@@ -196,6 +196,78 @@ knows; none has been measured against this tree.  Strike freely.*
   SuperCollider's GUI as a language afterthought — each is a
   different answer to *what is the model*.
 
+## The models — a taxonomy, a language, and what gestate has — 2026-09-07
+
+Henri asked, before reading the card: *"Is there some taxonomy or
+modeling language for models specifically?  And what is gestate's
+model aside the rope that contains the text?"*  The session's answer,
+and his decision under it.
+
+**Two kinds of taxonomy.**  One classifies *which model is meant*:
+Norman's designer's model, user's mental model and system image;
+Cooper's implementation, represented and mental models, with the rule
+that the represented one sits nearer the mental one than the
+implementation.  That taxonomy is why *very visual* is hard — the
+system image is the only channel the other two meet through.  The
+other kind is a language for writing a model, each buying one
+property:
+
+| language | it makes you say | the property |
+|---|---|---|
+| algebraic data types | the shapes a value may take | illegal states unrepresentable |
+| relational model, Datalog | a set of relations | normal forms as a quality taxonomy; mide did UI this way |
+| Object-Role Modeling (Halpin) | facts as sentences — *a Note sounds a Key at a Tick* | the model is checked in prose before any schema |
+| Alloy (Jackson) | relations plus invariants | a bounded checker finds the counterexample |
+| TLA+, Event-B | a state machine with invariants over time | behaviour, not only structure |
+| statecharts (Harel) | hierarchical states, orthogonal regions | the gesture machine, drawn |
+| domain-driven design (Evans) | entity, value object, aggregate, event | identity is named — the GUI's own hard problem |
+| event sourcing | the model is the log of commands | replay for free; `sessionlog.py` already is this |
+| lenses (Foster, Pierce) | a view that writes back, with laws | the picture-to-file direction held honest |
+| denotational design (Elliott) | a meaning the implementation is held to | the `Sig` lineage |
+| Naked Objects, Ecore | the UI derived from the model | model-first at its strongest; its generic UIs are dull |
+
+**The session's recommendation:** four of them together — ORM-style
+sentences to *say* the model, ADTs to *write* it, Alloy-style
+invariants to *check* it, a statechart for the gestures.  Alloy fits
+`doc/memory/the-language-goal.md`, easy to model-check.
+
+**Henri, 2026-09-07:** *"I accept your recommendation and would like
+to try it somewhere before we apply it to gestate."*  So the four are
+tried on something small first; where, is Q5.
+
+**Gestate's model beside the rope: seven, and none named as the
+model.**  Read off the tree, not guessed (`Session`, `Workbench`,
+`Window`, `Roll`, `sessionlog`, `shell/editor`):
+
+1. **The rope and cursor**, Rust — the text, and the only thing with
+   a persistence story; every edit returns a new one.
+2. **The program** — the parsed, typed tree and the running G-machine
+   with its channels and signals; the channels are the wire between
+   the picture and everything else.
+3. **The instrument** — what `doc/manual.md` already calls *the
+   editor's model*: engine, rebuild worker, transport, keyboard, and
+   parameters keyed by name rather than node id, a decision about
+   identity.
+4. **The score** — the `Roll`: a six-column relation, onset, offset,
+   leaf, key, velocity, manner, its leaves carrying provenance to a
+   line.  For a `.notes` the parsed records are the model on disk and
+   the roll is derived.
+5. **The gesture state** — holding, the rail's grab, the band, the
+   resize, the ruler, the taps, the selection, the group: a statechart
+   written as tuples and `if` ladders on the `Session`.
+6. **The command log** — `sessionlog.py`, *a session is a list of
+   commands*: the model over time.
+7. **The view state** — undo and redo, selection, scroll, zoom, in
+   `Window`.
+
+The honest reading: gestate chose the text as the source of truth on
+purpose and everything else is a projection — the acme and Lilypond
+family, and defensible.  The costs are yesterday's: every projection
+is a cache to recompute (the five seconds), item 5 has no model at
+all, only variables, and nothing names which of the seven a command
+edits — `transpose` edits the text and `select` edits the `Session`
+and both look alike on the command line.
+
 ## Questions
 
 *The session collected these on 2026-09-07; they are Henri's to answer.  He said he would ask
@@ -212,6 +284,11 @@ his words.*
 3. **Which of the four hard things does he want removed first?**  The
    session's candidate is the eye (idea 7, the window inspecting
    itself); his may differ, and the card is ordered by his answer.
+5. **Where is the trial?**  Henri wants the four-language
+   recommendation tried *"somewhere before we apply it to gestate"*.
+   A candidate the session can name: the transport's three modes,
+   `card:transport-modes.md` — small, a statechart by nature, and an
+   invariant or two worth checking.  His to pick.
 4. **Day one.**  What does a session do on the first sitting after
    the design?  If the answer needs a decision only he can make, this
    is a decision wearing a card, and it says so here rather than

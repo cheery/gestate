@@ -78,6 +78,10 @@ still the tiebreak between two workable cards, and it is still his.
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
    dialogue.  *Arrived unplaced, 2026-09-07.*
+8. **[transport-modes](transport-modes.md)** — the synth being on and
+   the score playing are one switch today, so a note dragged with the
+   score stopped is not heard; three modes, named.  *Arrived unplaced,
+   2026-09-07.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
