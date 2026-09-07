@@ -22,11 +22,12 @@ class Mode(Enum):
 
 
 class Verb(Enum):
-    """The commands that name a mode, and the one that keeps it."""
+    """The commands that name a mode — the window's own three, Henri,
+    2026-09-07: *"'stop' goes to silence, 'play' goes to playing,
+    'audition' goes to 'sounding'"* — and the one that keeps it."""
     PLAY = "play"
     STOP = "stop"
-    SOUND = "sound"
-    SILENCE = "silence"
+    AUDITION = "audition"
     SEEK = "seek"
 
 
@@ -55,16 +56,17 @@ def step(mode: Mode, verb: Verb, inert: bool = False) -> Mode:
         return Mode.SILENT
     if verb is Verb.PLAY:
         # `play` is a toggle from playing (`command.ges`: *start the
-        # transport, or stop it if it is running*), and from silent it
-        # brings the engine up and plays — one word, two changes.
+        # transport, or stop it if it is running*) and lands in
+        # sounding — the score stops, the instrument stays up; from
+        # silent it brings the engine up and plays, one word, two changes.
         return Mode.SOUNDING if mode is Mode.PLAYING else Mode.PLAYING
     if verb is Verb.STOP:
-        # Nothing to stop in silent, and stop never brings the engine up.
-        return Mode.SILENT if mode is Mode.SILENT else Mode.SOUNDING
-    if verb is Verb.SOUND:
-        return Mode.SOUNDING
-    if verb is Verb.SILENCE:
+        # The word that frees the card, from anywhere.
         return Mode.SILENT
+    if verb is Verb.AUDITION:
+        # A request to hear: brings the engine up; while playing it is
+        # a rebuild and the score keeps going.
+        return Mode.PLAYING if mode is Mode.PLAYING else Mode.SOUNDING
     return mode                                  # seek keeps the mode
 
 

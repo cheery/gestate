@@ -77,14 +77,23 @@ def test_I8_seek_keeps_the_mode():
         assert step(mode, Verb.SEEK) is mode
 
 
+def test_I9_stop_lands_in_silent_from_every_mode():
+    for mode in Mode:
+        assert step(mode, Verb.STOP) is Mode.SILENT
+        assert not facts(step(mode, Verb.STOP)).card_held, "the card is free"
+
+
+def test_I10_audition_never_lands_in_silent():
+    for mode in Mode:
+        assert step(mode, Verb.AUDITION) is not Mode.SILENT
+
+
 def test_the_sentences_4_and_5_the_verbs_land_where_they_say():
     assert step(Mode.SOUNDING, Verb.PLAY) is Mode.PLAYING
     assert step(Mode.SILENT, Verb.PLAY) is Mode.PLAYING, "sentence 5"
     assert step(Mode.PLAYING, Verb.PLAY) is Mode.SOUNDING, "the toggle"
-    assert step(Mode.PLAYING, Verb.STOP) is Mode.SOUNDING
-    assert step(Mode.SILENT, Verb.STOP) is Mode.SILENT, "nothing to stop"
-    assert step(Mode.PLAYING, Verb.SILENCE) is Mode.SILENT
-    assert step(Mode.SILENT, Verb.SOUND) is Mode.SOUNDING
+    assert step(Mode.SILENT, Verb.AUDITION) is Mode.SOUNDING
+    assert step(Mode.PLAYING, Verb.AUDITION) is Mode.PLAYING, "a rebuild"
 
 
 def test_the_keyboard_is_a_conjunction_of_two_axes():

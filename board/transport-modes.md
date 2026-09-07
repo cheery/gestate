@@ -55,10 +55,12 @@ machine is shared*).
 ## Names — `silent`, `sounding`, `playing`
 
 **Henri, 2026-09-07:** *"the names you gave 'silent' 'sounding'
-'playing' are excellent."*  Set 1 below, chosen; the verbs that land
-in each are `silence`, `sound`, `play`, and `stop` lands in
-`sounding` (`spec/transport.md` sentence 4).  The other two sets stay
-here as the argument.
+'playing' are excellent."*  Set 1 below, chosen.  And the verbs are
+the window's own three — **Henri, 2026-09-07:** *"'stop' goes to
+silence, 'play' goes to playing, 'audition' goes to 'sounding'..
+'sounding' should show as some state of it's own in the bar."*  So no
+new word joins `command.ges`; `spec/transport.md` sentences 4 and 5
+carry it.  The other two sets stay here as the argument.
 
 
 oscillseq had four; he asked for three and better words than
@@ -98,11 +100,16 @@ elsewhere.
    that it's not an isolated case.  But maybe that's ok."*  The
    not-isolated part is §"Not isolated" of `spec/transport.md`: the
    model names its neighbours and owns none of them.
-5. **Five decisions the model forced**, each a session's default in
-   `spec/transport.md` §5, his to strike: `stop` from silent does
-   nothing; `play` from silent is one word; `audition` brings the
-   engine up; the keyboard's audibility is two axes; `inert` is a
-   fixed mode, not a fourth.
+5. **Five decisions the model forced**, `spec/transport.md` §5.
+   **Answered, Henri, 2026-09-07:** *"I think these are good
+   choices"* — with two fixed by him: `stop` lands in *silent*, not
+   *sounding*, and `audition` lands in *sounding*.  Left as the
+   session's defaults: `play` from silent is one word and its toggle
+   lands in sounding; `audition` while playing keeps playing; the
+   keyboard is two axes; `inert` is fixed.
+6. **The bar.**  His: *"'sounding' should show as some state of it's
+   own in the bar."*  The furniture's `playing` boolean becomes the
+   mode on the wire — the landing, §6 of the spec.
 
 ## Day one, done — 2026-09-07
 

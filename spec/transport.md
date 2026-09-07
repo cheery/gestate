@@ -27,11 +27,19 @@ could read and refuse.
 3. The mode decides all three.  *Silent*: engine down, card free,
    clock held.  *Sounding*: engine up, card held, clock held.
    *Playing*: engine up, card held, clock moving.
-4. Each mode has a verb that lands there: `silence` → silent, `sound`
-   → sounding, `play` → playing.  `stop` lands in *sounding* from
-   *playing*, and does nothing in *silent* — there is nothing to stop.
+4. Each mode has a verb that lands there, and they are the verbs the
+   window already has: `stop` → silent, `play` → playing, `audition`
+   → sounding.  **Henri, 2026-09-07:** *"'stop' goes to silence,
+   'play' goes to playing, 'audition' goes to 'sounding'."*  So `stop`
+   brings the engine down and frees the card, from anywhere.
 5. `play` from *silent* brings the engine up and plays: one word, two
-   changes, because a person pressing play wants to hear.
+   changes, because a person pressing play wants to hear.  `play`
+   from *playing* is the toggle `command.ges` documents and lands in
+   *sounding* — the score stops, the instrument stays up, which is how
+   a moved note is heard with the score stopped.  `audition` from
+   *playing* keeps playing: it is a rebuild, and today's audition
+   while playing does not stop the score.  *Session's defaults, the
+   two things his sentence did not say.*
 6. The **position** is a number.  It changes only when the clock moves
    or when `seek` says so; `seek` is allowed in every mode.
 7. A **loop** is a pair of positions or none.  Setting one is allowed
@@ -64,7 +72,7 @@ does not own:**
     cardHeld  : Mode -> Bool      -- the same function, on purpose
     clockMoves: Mode -> Bool      -- Playing -> True, else False
 
-    Verb := Play | Stop | Sound | Silence | Seek
+    Verb := Play | Stop | Audition | Seek
 
     step : Mode -> Verb -> Mode
 
@@ -84,6 +92,8 @@ out.  Illegal states are unrepresentable: there is no value for
 | I6 | every mode is reachable from the open state, *sounding* | breadth-first over verbs |
 | I7 | `stop` never brings the engine up | enumeration |
 | I8 | `seek` never changes the mode | enumeration |
+| I9 | `stop` lands in *silent* from every mode — the card is free after it | enumeration |
+| I10 | `audition` never lands in *silent* — it is a request to hear | enumeration |
 
 Thirty steps in all — three modes, five verbs, inert or not — and
 the test walks every one.
@@ -94,18 +104,19 @@ the test walks every one.
 stateDiagram-v2
     [*] --> Sounding : open a program file
     [*] --> Silent : open an inert file
-    Silent --> Sounding : sound / audition
+    Silent --> Sounding : audition
     Silent --> Playing : play
     Sounding --> Playing : play
-    Playing --> Sounding : stop / play (toggle)
-    Sounding --> Silent : silence
-    Playing --> Silent : silence
+    Playing --> Sounding : play (toggle)
+    Sounding --> Silent : stop
+    Playing --> Silent : stop
 ```
 
-Every state also has a self-loop on `seek`, `loop`, `apply`.  `play`
-from *playing* is the toggle the command already documents — *start
-the transport, or stop it if it is running* — so it lands in
-*sounding*.
+Every state also has a self-loop on `seek`, `loop`, `apply`, and
+*playing* on `audition`.  **The bar shows all three** — Henri:
+*"'sounding' should show as some state of its own in the bar"* — so
+the furniture's `playing` boolean becomes the mode on the wire
+(`shell/editor/src/furniture.rs`).
 
 ## 5. What the trial found — the questions the model forced
 
@@ -113,15 +124,19 @@ Writing the sentences forced five decisions that the two-state
 transport never had to make, and none of them was visible in the
 card's `because`:
 
-1. Where `stop` lands from *silent* (nothing; sentence 4).
+1. Where `stop` lands.  *Session's first default: sounding.*
+   **Henri: silent** — `stop` is the word that frees the card, and
+   the score stops with `play`'s toggle.
 2. Whether `play` from *silent* is one word or two (one; sentence 5).
-3. What `audition` means with no engine (a request to hear; it brings
-   the engine up).
+3. What `audition` means with no engine.  **Henri: it lands in
+   sounding** — a request to hear.
 4. That the keyboard's audibility is a *conjunction* of two axes, and
    the mode owns only one of them.
 5. That `inert` is a mode fixed by the file, not a fourth mode.
 
-Each is a session's default and marked so.  **What the languages
+Henri, 2026-09-07, on the set: *"I think these are good choices"*,
+with 1 and 3 fixed as above; the rest stand as the session's
+defaults.  **What the languages
 cost:** one sitting, and one module of forty lines that the
 implementation will read instead of a boolean.  **What they did not
 do:** say whether *sounding* is the right name; a model checks
@@ -130,6 +145,9 @@ consistency, not taste.
 ## 6. How it lands in the code, when Henri says
 
 `Transport.playing: bool` becomes `mode: Mode` read by `fill`;
-`Workbench.play/pause/toggle` call `step`; two verbs, `sound` and
-`silence`, join `command.ges`, and `silence` runs the lifecycle stop
-without closing the window.  The status line says the mode by name.
+`Workbench.play/pause/toggle` call `step`; no verb joins
+`command.ges`, since `stop`, `play` and `audition` are the three
+already there — `stop` runs the lifecycle stop without closing the
+window, and `audition` from *silent* starts the engine before it
+rebuilds.  The furniture carries the mode instead of a boolean, and
+the bar shows *sounding* as its own state.
