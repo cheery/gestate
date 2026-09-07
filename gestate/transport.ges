@@ -1,0 +1,60 @@
+# transport.ges — the transport's three states, as a chart.
+#
+# `spec/transport.md`, written first as sentences, a type, invariants
+# and a drawing; then as `gestate/transportstate.py`'s `step`; and now
+# as the first chart `chart.ges` runs.  The editor loads this file the
+# way it loads `command.ges` and asks `advance transport` for every
+# `play`, `stop` and `audition`; `Workbench.transition` executes the
+# `Do`s it answers with.  Henri, 2026-09-07: *"'stop' goes to silence,
+# 'play' goes to playing, 'audition' goes to 'sounding'"*, and *"rename
+# them to states, modes is the wrong word."*
+
+# ── The states ───────────────────────────────────────────────────────────
+
+#: The instrument up: the score's clock held, or moving.
+Awake := Sounding | Playing
+
+#: The transport's state.  **Hierarchy is the nesting**: `Up` holds an
+#: `Awake`, and one `stop` arrow leaves both.  **History is the
+#: payload**: `Silent` carries the position the score was parked at, so
+#: `play` from silent resumes there — what the Python kept in `_parked`.
+State := Silent Int | Up Awake
+
+# ── The events and the actions ───────────────────────────────────────────
+
+#: The verbs, as the palette has them.  `Stop` carries the position to
+#: park, because a chart never asks the world — the event brings it.
+Verb := Play | Stop Int | Audition | Seek Int
+
+#: What the transport asks its host to do: bring the instrument up,
+#: bring it down, seek the score, release every held note.  The
+#: subsystem's own verbs — `card:gui-is-difficult.md` Q2 — executed by
+#: `Workbench._act`.
+Do := Sound | Hush | SeekTo Int | AllOff
+
+# ── The chart ────────────────────────────────────────────────────────────
+
+#: A program file opens playing, as it always has.
+transport : Chart State Verb Do
+transport = Chart (Up Playing) step enter
+
+#: One line an arrow.  `play` from silent is one word, two changes; the
+#: toggle from playing lands in sounding, which is how a moved note is
+#: heard with the score stopped; `stop` frees the card from anywhere and
+#: does nothing in silent; `audition` is a request to hear; `seek` never
+#: changes the state.
+step : State -> Verb -> Step State Do
+step (Silent at) Play = Go (Up Playing) [Sound, SeekTo at]
+step (Silent at) Audition = Go (Up Sounding) [Sound, SeekTo at]
+step (Silent at) (Stop x) = Stay
+step (Up s) (Stop at) = Go (Silent at) [Hush]
+step (Up Playing) Play = Go (Up Sounding) []
+step (Up Sounding) Play = Go (Up Playing) []
+step (Up s) Audition = Go (Up s) []
+step s (Seek x) = Stay
+
+#: Entering *sounding* releases the notes the score had going — a seek's
+#: rule, on the state rather than on the arrow.
+enter : State -> List Do
+enter (Up Sounding) = [AllOff]
+enter s = []

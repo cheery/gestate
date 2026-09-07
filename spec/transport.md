@@ -68,21 +68,25 @@ does not own:**
 - **The C host** and the Python transport are two faces of one clock;
   the state is read by whichever fills the block.
 
-## 2. The type — in the tree's own spelling
+## 2. The type — in the tree's own spelling, and since the evening a chart
 
-    State := Silent | Sounding | Playing
+    Awake := Sounding | Playing
+    State := Silent Int | Up Awake
+    Verb  := Play | Stop Int | Audition | Seek Int
+    Do    := Sound | Hush | SeekTo Int | AllOff
 
-    engineUp  : State -> Bool      -- Silent -> False, else True
-    cardHeld  : State -> Bool      -- the same function, on purpose
-    clockMoves: State -> Bool      -- Playing -> True, else False
+    step  : State -> Verb -> Step State Do
+    enter : State -> List Do
 
-    Verb := Play | Stop | Audition | Seek
-
-    step : State -> Verb -> State
-
-`gestate/transportstate.py` is this in Python, with `step` written
-out.  Illegal states are unrepresentable: there is no value for
-*card held, engine down*, because the card is a function of the state.
+**This is `gestate/transport.ges`**, the first chart `chart.ges` runs
+(`card:gui-is-difficult.md` §"The first slice").  The afternoon's
+flat `State := Silent | Sounding | Playing` is the three words the bar
+speaks, kept as the Python enum in `gestate/transportstate.py`, whose
+`step` now asks the chart.  Hierarchy is the nesting — one `stop`
+arrow leaves `Up _` — and history is the payload: `Silent` carries the
+parked position, so the event that leaves it carries none.  Illegal
+states are still unrepresentable: the card is a function of the state,
+and *card held, engine down* has no value to be written in.
 
 ## 3. The invariants — Alloy's discipline, run as an enumeration
 
@@ -166,6 +170,18 @@ each with its word in the status line.  **A correction to §4 while
 landing**: a
 program file opens *playing*, as it always has, not *sounding* — the
 session had misread the card's Q2.
+
+**And by the evening, executable.**  `gestate/chart.ges` is the library
+— `Step`, `Chart`, `initial`, `advance`, `beside`, `Or` — and
+`gestate/transport.ges` the chart; `gestate/charts.py` compiles the
+two once (0.2 s) and applies `advance transport` per event (twenty
+microseconds); `Workbench.transition` executes the `Do`s it answers
+with — `Sound`, `Hush`, `SeekTo`, `AllOff` — and settles the
+transport's flags for the state arrived in.  `set_state`, `play`,
+`pause` and `toggle` are verbs now.  Every test that held the Python
+step holds the chart, and three more hold the arrows the Python never
+had: the entry action, the parked position on the event, and two
+charts `beside` each other sharing nothing.
 
 ### How it was to land — as written before
 

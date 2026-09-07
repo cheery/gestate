@@ -646,6 +646,40 @@ because it needs the chart library and touches the notes-editor's
 live work; the grid over `.notes`, shelved on this card's own
 completion; anything drawn.
 
+### Landed — 2026-09-07, evening
+
+*"okay, do the chart library slice, and the measurement.  Lets see
+where we get from here."*  `gestate/chart.ges` is the library, six
+declarations; `gestate/transport.ges` the first chart; `gestate/charts.py`
+compiles the two once and applies `advance` per event — 0.2 s, then
+twenty microseconds a step, measured; `Workbench.transition` executes
+the `Do`s and every verb of the session goes through it.  Held by the
+fifteen model tests, now through the chart, three bench tests, the
+session tests and the gates.  `spec/transport.md` §2 and §6 say the
+rest.
+
+**Three things the language said back.**  `Score` was taken by
+`music.ges`, so the transport's inner type is `Awake`; a type must be
+declared before the type that names it, so a chart file reads
+bottom-up; and `where` is not a form, so `beside`'s helpers are top
+level.  None cost more than a minute; all three are worth knowing
+before a second chart is written.
+
+**What it found about Q2.**  The framework provides *no verbs*: its
+six names are structure — `Step`, `Chart`, `Or`, `initial`, `advance`,
+`beside`.  The subsystem declares its own action type (`Do`) and its
+own event type (`Verb`), and the events are the palette's commands
+already, so the transcript records the cause and the chart replays
+from it.  So "verbs defined by the GUI itself" is the `Do` type, one
+per chart, executed by the chart's host; "the framework provides some
+verbs" is, so far, none — the first place it would is `beside`, where
+two subsystems' `Do`s must be one type, and that is the question the
+second chart will ask.
+
+**The killer named in advance did not fire.**  Wiring events into
+`Session.run` and actions back out is `transition`, `_act` and
+`_settle`, fifty lines, less than the library's prose.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

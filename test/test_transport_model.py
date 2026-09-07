@@ -17,26 +17,87 @@ from gestate.transportstate import (State, Verb, OPENS_IN, facts, step,
                                    keyboard_audible)
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = ROOT / "spec" / "transport.md"
 
 
-def _spec_constructors(name: str) -> list[str]:
-    text = SPEC.read_text(encoding="utf-8")
-    m = re.search(rf"^\s*{name} := (.+)$", text, re.M)
-    assert m, f"spec/transport.md no longer spells `{name} := …`"
-    return [c.strip() for c in m.group(1).split("|")]
+def test_the_enums_name_constructors_of_the_chart():
+    """The three words and the four verbs are the chart's own
+    constructors — `transport.ges` is the truth, the enums its face."""
+    from gestate.charts import load
+
+    cons = load("transport").constructors
+    for s in State:
+        assert s.name.capitalize() in cons, s
+    for v in Verb:
+        assert v.name.capitalize() in cons, v
 
 
+def test_entering_sounding_releases_the_held_notes():
+    """`enter (Up Sounding) = [AllOff]` — an entry action on the state,
+    folded in by `advance`, not written on every arrow."""
+    from gestate.transportstate import advance, term_of
 
-def test_the_two_spellings_agree_on_the_modes():
-    assert _spec_constructors("State") == [m.name.capitalize() for m in State]
+    new, acts = advance(term_of(State.PLAYING), Verb.PLAY)
+    assert new == ("Up", ("Sounding",))
+    assert acts == [("AllOff",)]
 
 
-def test_the_two_spellings_agree_on_the_verbs():
-    assert _spec_constructors("Verb") == [v.name.capitalize() for v in Verb]
+def test_play_and_audition_from_silent_resume_where_the_score_was_parked():
+    """History as a payload: `Silent at` carries the position, and the
+    arrow out of it seeks there — what `_parked` did by hand."""
+    from gestate.transportstate import advance
+
+    new, acts = advance(("Silent", 4410), Verb.PLAY)
+    assert new == ("Up", ("Playing",))
+    assert acts == [("Sound",), ("SeekTo", 4410)]
+    new, acts = advance(("Silent", 4410), Verb.AUDITION)
+    assert new == ("Up", ("Sounding",))
+    assert acts == [("Sound",), ("SeekTo", 4410), ("AllOff",)]
 
 
-def test_I1_I2_I3_the_facts_are_a_function_of_the_mode():
+def test_a_stop_parks_the_position_the_event_carried():
+    """A chart never asks the world: the position arrives on the event."""
+    from gestate.transportstate import advance, term_of
+
+    new, acts = advance(term_of(State.PLAYING), Verb.STOP, at=777)
+    assert new == ("Silent", 777)
+    assert acts == [("Hush",)]
+
+
+def test_two_charts_beside_each_other_share_nothing(tmp_path):
+    """`beside`: the product is the region, an event reaches one side,
+    and the other side's state is untouched."""
+    from gestate.charts import Chart
+
+    both = tmp_path / "both.ges"
+    both.write_text(
+        (ROOT / "gestate" / "transport.ges").read_text()
+        + """
+Hands := Off | On
+Piano := PianoOn | PianoOff
+
+hands : Chart Hands Piano Do
+hands = Chart Off handStep handEnter
+
+handStep : Hands -> Piano -> Step Hands Do
+handStep Off PianoOn = Go On []
+handStep On PianoOff = Go Off []
+handStep h p = Stay
+
+handEnter : Hands -> List Do
+handEnter h = []
+
+both : Chart (State, Hands) (Or Verb Piano) Do
+both = beside transport hands
+""")
+    chart = Chart(both, "both")
+    assert chart.initial() == (("Up", ("Playing",)), ("Off",))
+    new, acts = chart.advance((("Up", ("Playing",)), ("Off",)), ("R", ("PianoOn",)))
+    assert new == (("Up", ("Playing",)), ("On",)) and acts == []
+    new, acts = chart.advance(new, ("L", ("Stop", 5)))
+    assert new == (("Silent", 5), ("On",)) and acts == [("Hush",)]
+
+
+def test_I1_I2_I3_the_facts_are_a_function_of_the_state():
     for state in State:
         f = facts(state)
         assert f.card_held == (state is not State.SILENT), "I1"
@@ -72,12 +133,12 @@ def test_I7_stop_never_brings_the_engine_up():
             assert not facts(step(state, Verb.STOP)).engine_up
 
 
-def test_I8_seek_keeps_the_mode():
+def test_I8_seek_keeps_the_state():
     for state in State:
         assert step(state, Verb.SEEK) is state
 
 
-def test_I9_stop_lands_in_silent_from_every_mode():
+def test_I9_stop_lands_in_silent_from_every_state():
     for state in State:
         assert step(state, Verb.STOP) is State.SILENT
         assert not facts(step(state, Verb.STOP)).card_held, "the card is free"

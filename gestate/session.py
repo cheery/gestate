@@ -2102,35 +2102,32 @@ class Session:
     def do_audition(self) -> str:
         # **A request to hear** — `spec/transport.md` sentence 4: from
         # *silent* it brings the instrument up first.
-        from .transportstate import State
+        from .transportstate import State, Verb
 
         if _state_of(self.bench) is State.SILENT \
-                and getattr(self.bench, "set_state", None) is not None:
-            self.bench.set_state(State.SOUNDING)
+                and getattr(self.bench, "transition", None) is not None:
+            self.bench.transition(Verb.AUDITION)
         self.bench.audition(self.view.text())
         return "auditioning"
 
     def do_play(self) -> str:
-        """*playing*, or *sounding* if it was — the toggle, through the
-        model (`gestate/transportstate.py`, `spec/transport.md`)."""
-        from .transportstate import Verb, step
+        """*playing*, or *sounding* if it was — the toggle, one event
+        through the transport's chart (`gestate/transport.ges`)."""
+        from .transportstate import Verb
 
         # "silent" for a file that cannot play would be the quiet
         # reading as breakage — the exact thing inert mode is worded
         # against.
         if getattr(self.bench, "inert", False):
             return "nothing plays — the file is inert"
-        target = step(_state_of(self.bench), Verb.PLAY)
-        self.bench.set_state(target)
-        return target.value
+        return self.bench.transition(Verb.PLAY).value
 
     def do_stop(self) -> str:
         """*silent*: the instrument down and the sound card free, the
         file still open — Henri, 2026-09-07: *"'stop' goes to silence."*"""
-        from .transportstate import State
+        from .transportstate import Verb
 
-        self.bench.set_state(State.SILENT)
-        return State.SILENT.value
+        return self.bench.transition(Verb.STOP).value
 
     def do_seek(self, bar: int) -> str:
         # Bars, beats and samples all count from zero; the conversion

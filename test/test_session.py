@@ -83,6 +83,11 @@ class Bench:
         self._state = target
         self.log.append(("state", target.value))
 
+    def transition(self, verb):
+        from gestate.transportstate import step
+        self.set_state(step(self.state, verb))
+        return self.state
+
     _state = None
 
     def seek_beats(self, beat):

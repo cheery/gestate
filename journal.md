@@ -1470,3 +1470,23 @@ Five photographs on the virtual display, the bar reading ▶ 1.2,
 through *silent*.  Twelve model tests, three new bench tests, 233
 Rust tests, the gates.  Transport in one commit, the model in the two
 before it; the card is on the done shelf the day it arrived.
+
+## The chart runs — 2026-09-07, evening
+
+*"okay, do the chart library slice, and the measurement."*  The
+four-line library from the afternoon's draft became six declarations
+in `chart.ges`, and the transport became the first chart the editor
+runs.  The mechanics were the interesting part: a `.ges` program
+compiled once by the reference G-machine, then its `advance` global
+applied to fresh constructor nodes built from Python, twenty
+microseconds an event — so a chart costs nothing a keystroke would
+notice, and the compile is paid where `command.ges`'s is.  The
+language pushed back three times, each a minute: `Score` belongs to
+the music library, a type is declared before the type that names it,
+and there is no `where`.  The Python `step` I wrote at noon is now
+four lines that ask the chart, and every test that held it holds the
+chart instead; three more hold what the Python never had — the entry
+action, the parked position riding on the event, two charts beside
+each other sharing nothing.  Q2 came out concrete: the framework
+provides structure and no verbs; a subsystem's verbs are its own
+action type, and the palette's commands are its events.

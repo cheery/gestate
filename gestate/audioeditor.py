@@ -988,8 +988,12 @@ class Workbench:
         self._directory = None
         self._seen = 0
         #: Where the score was when the instrument went *silent*, so the
-        #: bar keeps its readout and `sound` resumes there.
+        #: bar keeps its readout — the mirror of the chart's `Silent at`.
         self._parked = 0
+        #: **The transport's state, as the chart spells it** — a term of
+        #: `gestate/transport.ges`, `None` until the file has started.
+        #: `transition` is the only writer.
+        self._chart_state = None
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -1139,6 +1143,7 @@ class Workbench:
                 any(n in self.substrate.by_name for n in self.BANDS))
 
         self._run_audio(seconds)
+        self._chart_state = ("Up", ("Playing",))
 
     def _wire_transport(self) -> None:
         """A transport over the live engine — the C host's face when
@@ -1176,64 +1181,94 @@ class Workbench:
 
     @property
     def state(self):
-        """The transport's state — *silent*, *sounding* or *playing*, `spec/transport.md`.
+        """The transport's state — *silent*, *sounding* or *playing*,
+        `spec/transport.md` — read off the chart's term."""
+        from .transportstate import State, state_of
 
-        The instrument is up exactly when there is a transport over it;
-        the score's clock moves exactly when that transport is advancing.
+        if self.inert or self._chart_state is None:
+            return State.SILENT
+        return state_of(self._chart_state)
+
+    def transition(self, verb):
+        """One verb through the transport's chart (`gestate/transport.ges`),
+        its actions executed here, run to completion.
+
+        **The chart decides, this executes.**  `advance` answers the
+        arrow's actions and the entry actions of the state arrived in —
+        `Sound`, `Hush`, `SeekTo`, `AllOff` — and each is one method
+        below; the state's own consequences for the transport's flags
+        are `_settle`.  Answers the state arrived in.
         """
+        from .transportstate import advance, state_of
+
+        if self.inert or self._chart_state is None:
+            return self.state
+        at = (self.transport.position if self.transport is not None
+              else self._parked)
+        new, actions = advance(self._chart_state, verb, at)
+        for action in actions:
+            self._act(action)
+        self._chart_state = new
+        self._settle(state_of(new))
+        return self.state
+
+    def _act(self, action) -> None:
+        """One `Do` of `transport.ges`, done."""
+        head = action[0]
+        if head == "Sound":
+            self.sound()
+        elif head == "Hush":
+            self.stop(keep=True)
+        elif head == "SeekTo":
+            if self.transport is not None:
+                self.transport.seek(int(action[1]))
+        elif head == "AllOff":
+            if self.transport is not None:
+                self._after_seek(self.transport.position)
+        else:
+            self.say(f"transport.ges asked for `{head}`, which this host cannot do")
+
+    def _settle(self, state) -> None:
+        """The transport's flags for a state, and the word for the bar."""
         from .transportstate import State
 
-        if self.inert or self.transport is None:
-            return State.SILENT
-        if self.transport.playing and self.transport.advancing:
-            return State.PLAYING
-        return State.SOUNDING
+        if state is State.SILENT or self.transport is None:
+            self.say("silent")
+            return
+        self.transport.playing = True
+        self.transport.advancing = state is State.PLAYING
+        self.say("playing" if state is State.PLAYING
+                 else f"sounding at {self.position_in_beats():.1f}")
 
     def set_state(self, target) -> None:
-        """Go to a state, whatever the way there costs.
+        """Go to a state by the verb that leads there — a convenience
+        over `transition`, for `play`, `pause` and the tests.
 
-        *silent* brings the instrument down and frees the sound card,
-        the file still open and the score's position kept.  *sounding*
-        from *silent* opens the card again over the same engine, with
-        every knob where it was — `Transport`'s own reason: the state
-        *is* the instrument.  *sounding* from *playing* holds the score
-        and releases the notes it had going, as a seek does; *playing*
-        from *sounding* seeks the engine back to the held position.
+        *silent* is `stop`; *playing* is `play`; *sounding* is `play`'s
+        toggle from playing and `audition` from silent.
         """
-        from .transportstate import State
+        from .transportstate import State, Verb
 
         here = self.state
         if target is here or self.inert:
             return
         if target is State.SILENT:
-            self.stop(keep=True)
-            self.say("silent")
-            return
-        if here is State.SILENT:
-            self.sound()
-            if self.transport is None:
-                return
-        if target is State.PLAYING:
-            self.transport.playing = True
-            self.transport.advancing = True
-            self.say("playing")
+            self.transition(Verb.STOP)
+        elif target is State.PLAYING:
+            self.transition(Verb.PLAY)
         else:
-            self.transport.playing = True
-            self.transport.advancing = False
-            self._after_seek(self.transport.position)
-            self.say(f"sounding at {self.position_in_beats():.1f}")
+            self.transition(Verb.AUDITION if here is State.SILENT else Verb.PLAY)
 
     def sound(self) -> None:
         """The instrument up again after *silent*: the card opened over
         the engine that was kept, the transport rewired, the audio
-        thread started, the score where it was parked."""
+        thread started.  Where the score resumes is the chart's `SeekTo`,
+        which follows this in the same step."""
         if self.inert or self.live is None or self.transport is not None:
             return
         self._stop.clear()
         self.host = self._open_host()
         self._wire_transport()
-        if self._parked:
-            self.transport.seek(self._parked)
         self._run_audio(None)
         if self._want_midi:
             self._start_midi()
@@ -2572,10 +2607,9 @@ class Workbench:
 
     def toggle(self) -> bool:
         """`play`'s toggle — *playing*, or *sounding* if it was."""
-        from .transportstate import State, Verb, step
+        from .transportstate import State, Verb
 
-        self.set_state(step(self.state, Verb.PLAY))
-        return self.state is State.PLAYING
+        return self.transition(Verb.PLAY) is State.PLAYING
 
     def seek_beats(self, beat: float) -> None:
         if self.transport is not None:

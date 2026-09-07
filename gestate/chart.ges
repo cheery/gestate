@@ -1,0 +1,76 @@
+# chart.ges — executable statecharts, one per subsystem.
+#
+# `card:gui-is-difficult.md` §"Statecharts, executable and per
+# subsystem".  A chart is a **value**: an initial state, a transition
+# table and the entry actions.  Its `step` is a function of its own
+# state and its own event and nothing else — so a chart cannot read the
+# world or another chart's state, which is the per-subsystem law, held
+# by a type rather than by a sentence.  Its actions are a data type the
+# subsystem declares, and the host that runs the chart executes them
+# (`gestate/charts.py`); the events are the commands the person typed,
+# so the transcript records the cause and replays the chart.
+#
+# **Grammar: none new.**  A chart's transitions are the language's own
+# multi-equation function, one line an arrow — `step from event = Go to
+# [actions]`.  Hierarchy is a nested constructor, history is a payload,
+# an orthogonal region is `beside`.  Timers are outside: an `after 2s`
+# is an event from a clock channel, not a form here.
+#
+# In front of a subsystem's chart file — `transport.ges` first, 2026-09-07.
+
+# ── One step ─────────────────────────────────────────────────────────────
+
+#: What a transition answers: **stay**, or **go** to a state with the
+#: actions to take on the way.  An event a chart does not handle is
+#: `Stay`, written — a missing arm is a pattern the checker refuses,
+#: which is the defect this shape exists to catch.
+Step s a := Stay | Go s (List a)
+
+#: A chart over states `s`, events `e` and actions `a`: where it starts,
+#: how it moves, and what entering a state does.  The step's type is the
+#: whole rule — `s -> e -> Step s a`, nothing of the world in it.
+Chart s e a := Chart s (s -> e -> Step s a) (s -> List a)
+
+#: Two events of two charts, so `beside` can hand each its own.
+Or a b := L a | R b
+
+# ── Running one ──────────────────────────────────────────────────────────
+
+#: Where a chart starts.
+initial : Chart s e a -> s
+initial (Chart s0 step enter) = s0
+
+#: One event, taken to completion: the arrow's actions, then the entry
+#: actions of the state arrived in — run-to-completion, so a host that
+#: executes what this answers before taking the next event replays the
+#: chart from its events alone.
+advance : Chart s e a -> s -> e -> Step s a
+advance (Chart s0 step enter) s e = case step s e of
+    Stay -> Stay
+    Go t acts -> Go t (append acts (enter t))
+
+# ── Orthogonal regions ───────────────────────────────────────────────────
+
+#: Two charts side by side, each in a state of its own: the product is
+#: the region, an event reaches one side, and neither side can reach
+#: into the other because neither step's type admits it.
+beside : Chart a e x -> Chart b f x -> Chart (a, b) (Or e f) x
+beside (Chart a0 sa ea) (Chart b0 sb eb) =
+    Chart (a0, b0) (besideStep sa sb) (besideEnter ea eb)
+
+#: `beside`'s step — the left event moves the left state and leaves
+#: the right where it was, and the other way round.
+besideStep : (a -> e -> Step a x) -> (b -> f -> Step b x) -> (a, b) -> Or e f -> Step (a, b) x
+besideStep sa sb p ev = case p of
+    (a, b) -> case ev of
+        L e -> case sa a e of
+            Stay -> Stay
+            Go t acts -> Go (t, b) acts
+        R f -> case sb b f of
+            Stay -> Stay
+            Go t acts -> Go (a, t) acts
+
+#: `beside`'s entry actions — both sides', left first.
+besideEnter : (a -> List x) -> (b -> List x) -> (a, b) -> List x
+besideEnter ea eb p = case p of
+    (a, b) -> append (ea a) (eb b)

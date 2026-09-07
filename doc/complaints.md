@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**460 complaints**, in 46 files.
+**464 complaints**, in 47 files.
 
 | | |
 |---|---|
-| `author` | 242 |
+| `author` | 246 |
 | `command` | 41 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 161 |
-| say `nowhere`, on purpose | 35 |
+| say `nowhere`, on purpose | 39 |
 | `unplaced`, with a defect that owns it | 59 |
 
 ## A place that could exist, and does not
@@ -117,6 +117,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:525` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
 | `audioscore.py:591` | `ScoreError` | a note names a bank the piece does not declare |
 | `audioscore.py:1381` | `ScoreError` | the piece names a bank that was given no allocator |
+| `charts.py:49` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:72` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:78` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:90` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
@@ -399,6 +403,17 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 94 | `WasmError` | `world` | — | why |
 | 135 | `WasmError` | `machine` | — | '{wasm} is not a wasm binary' |
 | 183 | `WasmError` | `world` | — | 'no `wasmtime` in this interpreter (`tools/toolbox.sh`)' |
+
+### `charts.py`
+
+*a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line*
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 49 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{missing.args[0]}`' |
+| 72 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
+| 78 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
+| 90 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
 
 ### `coherence.py`
 
@@ -862,19 +877,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2412 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2418 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2432 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2542 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2548 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2553 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
-| 2571 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2633 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2699 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2703 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 2844 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 2855 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5044 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2409 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2415 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2429 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2539 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2545 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2550 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
+| 2568 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 2630 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2696 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2700 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 2841 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 2852 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5041 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 
