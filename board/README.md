@@ -74,6 +74,10 @@ still the tiebreak between two workable cards, and it is still his.
    before the hand has left the mouse; today it is 5 s to redraw and
    5 s to hear, against Reaper's next block.  His list of tools, and
    the data path first.  *Arrived unplaced, 2026-09-06.*
+7. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
+   framework for gestate is built from, the command language and the
+   model first; the critical parts are his to design, so day one is a
+   dialogue.  *Arrived unplaced, 2026-09-07.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
