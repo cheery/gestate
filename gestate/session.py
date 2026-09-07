@@ -2129,6 +2129,12 @@ class Session:
 
         return self.bench.transition(Verb.STOP).value
 
+    def do_probe(self, x: int, y: int) -> str:
+        """What is under a point of the canvas — `card:gui-is-difficult.md`
+        idea 7, *the window inspects itself*, as a command before a
+        chord: the same reader a gemba walk would use instead of code."""
+        return probe_at(self.bench, int(x), int(y))
+
     def do_seek(self, bar: int) -> str:
         # Bars, beats and samples all count from zero; the conversion
         # between them belongs here, once.
@@ -6234,6 +6240,54 @@ def _listening(bench, name: str) -> bool:
         return bool(bench.listening(name))
     except Exception:                                    # noqa: BLE001
         return False
+
+
+def probe_at(bench, x: int, y: int) -> str:
+    """Every attachment a press at `(x, y)` would take, innermost first
+    — `gui._grabbed` over the substrate's own hit table — each with
+    its channel's name, its axis and its region; and where the channel
+    is a score box's hand, the tick and key the point means and the
+    note sounding there with the line that wrote it, or the box's own
+    refusal.  Read, not written: no channel moves."""
+    from .gui import _attachments, _grabbed
+    from .scorebox import RefusedError, key_at, note_under, tick_at
+
+    view = getattr(bench, "substrate", None)
+    if view is None:
+        return "probe: no canvas"
+    hits = _attachments(view.signal.value, view.state)
+    got = _grabbed(hits, x, y)
+    if not got:
+        return f"probe: nothing at {x},{y} — {len(hits)} attachment(s) elsewhere"
+    regions = getattr(bench, "note_regions", None) or {}
+    origins = getattr(bench, "origins", None) or {}
+    out = []
+    for hit in got:
+        name = view._named(hit["chan"]) or f"#{hit['chan']}"
+        x0, y0, x1, y1 = hit["region"]
+        said = f"{name} ({hit['axis']}) {x0},{y0}–{x1},{y1}"
+        found = regions.get(name)
+        if found is not None:
+            roll = found.roll
+            if getattr(found, "on_ruler", False):
+                said += " — the ruler"
+            else:
+                tick = tick_at(roll, (x - x0) / max(1, x1 - x0))
+                key = key_at(roll, (y - y0) / max(1, y1 - y0))
+                try:
+                    note = note_under(roll, tick, key)
+                except RefusedError as exc:
+                    said += f" — tick {tick} key {key}: {exc}"
+                else:
+                    on, _off, leaf_id, sounds, _v, _m = roll.events[note]
+                    leaf = roll.leaves[leaf_id]
+                    where = origins.get(leaf.line)
+                    place = (f"line {leaf.line}" if where is None
+                             else f"line {where[1]} of {where[0]}")
+                    said += (f" — tick {tick} key {key}: note {sounds} at "
+                             f"tick {on}, written at {place}")
+        out.append(said)
+    return "; ".join(out)
 
 
 def _state_of(bench):

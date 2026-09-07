@@ -3725,3 +3725,21 @@ def test_only_one_command_ever_holds_a_given_chord():
         claimed = [k for k in _command_keys(it).values() if k]
         assert len(claimed) == len(set(claimed)), \
             f"showing {showing}: two commands claim {sorted(claimed)}"
+
+
+def test_probe_reads_the_pad_and_refuses_without_a_canvas():
+    """`probe x y` — idea 7 of `card:gui-is-difficult.md` as a command:
+    both attachments of a pad, innermost first, with their regions; and
+    a bench with no canvas says so instead of guessing."""
+    from gestate.gui import Substrate
+
+    s = session()
+    assert s.run("probe", 5, 5) == "probe: no canvas"
+    pad = ("cx : Chan Float\ncx = chan\ncy : Chan Float\ncy = chan\n"
+           "substrate : Sig Sub\n"
+           "substrate = !(TouchX cx (TouchY cy (Rect 40 40 (RGB 9 9 9))))\n")
+    s.bench.substrate = Substrate(pad, 22050)
+    said = s.run("probe", 5, 5)
+    assert said.startswith("cy (y)"), said
+    assert "; cx (x)" in said, said
+    assert s.run("probe", -100, 0).startswith("probe: nothing at")

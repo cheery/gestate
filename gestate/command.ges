@@ -117,6 +117,13 @@ stop = Stated
 seek : Int -> Command
 seek n = Stated
 
+#: What is under a point of the canvas: every attachment there,
+#: innermost first, with its channel and region — and for a note, its
+#: tick, its key and the line that wrote it.  The window inspecting
+#: itself, as a command first.
+probe : Int -> Int -> Command
+probe x y = Stated
+
 # ── The loop ─────────────────────────────────────────────────────────────
 
 #: Loop between two bars, counting from zero.

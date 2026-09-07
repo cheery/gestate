@@ -3255,3 +3255,32 @@ def test_roll_ges_states_the_editing_scales_numbers_as_scorebox_does():
     assert said["rollSemi"] == SEMI_H
     assert said["rollNoteH"] == editing(60, 72, 384).note_h
     assert said["rollRulerH"] == RULER_H
+
+
+def test_probe_says_what_is_under_a_point_and_where_it_was_written():
+    """`card:gui-is-difficult.md` idea 7 as a command: a point on a
+    note of the page names the rail and the pitch hand around it, the
+    tick and key the point means, and the line of `arc.notes` the note
+    was written on — read off the hit table, nothing written."""
+    from gestate.gui import Substrate
+    from gestate.scorebox import geometry_of, regions_of
+    from gestate.session import probe_at
+
+    rolls, (baked, _r, entries), _l = _live_and_baked()
+    view = Substrate.several(baked, 44100, entries)[0]
+    roll = rolls[0]
+    geo = geometry_of(roll)
+    heads = [i for i in view.picture() if i[0] == "rect" and i[4] == geo.note_h]
+    _kind, x, y, w, h, _c = heads[0]
+
+    class Bench:
+        substrate = view
+        note_regions = regions_of(rolls)
+        origins = {}
+
+    said = probe_at(Bench(), x + w // 2, y + h // 2)
+    assert "rail" in said and "pitch" in said, said
+    assert "written at line" in said, said
+    assert "tick" in said and "key" in said, said
+    # Somewhere with nothing under it says so, and how many there are.
+    assert probe_at(Bench(), -5000, -5000).startswith("probe: nothing at")

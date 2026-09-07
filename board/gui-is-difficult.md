@@ -722,6 +722,15 @@ second chart will ask.
 `Session.run` and actions back out is `transition`, `_act` and
 `_settle`, fifty lines, less than the library's prose.
 
+### Scheduled — Henri, 2026-09-07, evening
+
+*"schedule gesture as a chart for 2026-09-08 (tomorrow morning), lets
+do the 1. and 2. today."*  So: **2026-09-08, morning — a gesture as a
+chart**, the roll's press, drag and release as §"Statecharts"' `hand`,
+replacing one of the four `if` ladders on the `Session`.  Tonight: the
+probe (idea 7 as a command), and the second chart beside the transport
+to settle `beside`'s action type.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
