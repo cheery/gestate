@@ -300,6 +300,121 @@ all, only variables, and nothing names which of the seven a command
 edits — `transpose` edits the text and `select` edits the `Session`
 and both look alike on the command line.
 
+## Statecharts, executable and per subsystem — the session's draft, 2026-09-07
+
+Henri: *"I agree they belong into the GUI framework.  Actually, they
+might belong as executable statecharts.  Can you come up with
+gestate-shaped syntax/grammar for statecharts?  One that captures your
+last point, that they must be per subsystem."*  Then: *"Yes, write it
+into the GUI card."*
+
+**The grammar is the one the language has, plus a four-line library.**
+A chart is a value — an initial state, a transition table, the entry
+actions — and the per-subsystem rule is a type, not a sentence:
+
+```
+Step s     := Stay | Go s (List Command)
+Chart s e  := Chart s (s -> e -> Step s) (s -> List Command)
+
+run    : Chart s e -> Chan e -> Sig s
+beside : Chart a e -> Chart b f -> Chart (a, b) (Or e f)
+Or a b := L a | R b
+```
+
+Three things this fixes without a keyword.  A chart's step is a
+function of its own state and its own event and nothing else, so it
+cannot read the world or another chart's state — that is the
+per-subsystem law, enforced by `step`'s type.  Its actions are
+`Command`s, so every arrow lands in `Session.run` like a keystroke,
+the transcript records it, and run-to-completion is what that choke
+point already does.  And a chart is data, so one value is executed,
+drawn, and enumerated for checking.
+
+**The transport, as it would be written** — hierarchy is a nested
+constructor, history is a payload, events carry what the arrow needs
+so the chart never asks:
+
+```
+State  := Silent Parked | Up Score
+Score  := Sounding | Playing
+Parked := Parked Int
+Verb   := Play | Stop Int | Audition | Seek Int
+
+transport : Chart State Verb
+transport = Chart (Up Playing) step enter
+
+step : State -> Verb -> Step State
+step (Silent (Parked at)) Play      = Go (Up Playing)  [sound, seek at]
+step (Silent p)           Audition  = Go (Up Sounding) [sound]
+step (Silent p)           (Stop _)  = Stay
+step (Up _)               (Stop at) = Go (Silent (Parked at)) [hush]
+step (Up Playing)         Play      = Go (Up Sounding) []
+step (Up Sounding)        Play      = Go (Up Playing)  []
+step (Up s)               Audition  = Go (Up s)        []
+step s                    (Seek _)  = Stay
+
+enter : State -> List Command
+enter (Up Sounding) = [allOff]
+enter _             = []
+```
+
+The one `stop` arrow from `Up _` is Harel's outer transition, drawn
+once instead of twice.  Sounding's release of the score's held notes
+is an entry action on the state — where `Workbench.set_state` does it
+by hand today.
+
+**A gesture, the other subsystem** — press, drag, release, cancel the
+escape from anywhere:
+
+```
+Hand  := Idle | Pressed At | Dragging At At
+Touch := Down At | Move At | Up At | Cancel
+
+hand : Chart Hand Touch
+hand = Chart Idle step enter
+
+step Idle           (Down p) = Go (Pressed p)    []
+step (Pressed p)    (Move q) = Go (Dragging p q) [preview p q]
+step (Dragging p _) (Move q) = Go (Dragging p q) [preview p q]
+step (Pressed p)    (Up _)   = Go Idle           [reveal p]
+step (Dragging p q) (Up _)   = Go Idle           [commit p q]
+step _              Cancel   = Go Idle           [unpreview]
+```
+
+The roll's four hands are four of these and the ruler's a fifth, where
+today they are tuples and `if` ladders on the `Session` (model 5 of
+the seven above).
+
+**Regions.**  The keyboard's off/on/step switch is its own chart and
+the pair is one line, `beside transport hands`: the product type is
+the orthogonal region, and neither side can reach into the other
+because `step`'s type does not let it.
+
+**What the checker gets for free.**  The state and event types are
+finite, so a chart is enumerated the way `test/test_transport_model.py`
+did it: reachability, dead states, and the pair with no arrow.  The
+catch-all `step s _ = Stay` silences that last check; *session's
+suggestion:* allow it, and have the check print which pairs fell
+through it — a lamp, not a refusal.
+
+**Where it lands.**  A chart lives in the file of its subsystem —
+`transport.ges`, `roll.ges` — and the editor loads it the way it loads
+`command.ges`, evaluated by the reference G-machine.
+`gestate/transportstate.py`'s `step` becomes the first chart, and the
+bar draws ‖ from `head transport`.  The window drawing its own charts
+is idea 7 arriving by a side door.
+
+**Not covered.**  Timers — Harel's *after 2s* — are an event from a
+clock channel and stay outside the core.  A chart for the whole window
+is refused by construction: there is no state type for it to be over,
+only products of the subsystems' own.
+
+**His reading of the whole list, same afternoon:** *"I think that
+we've got ingredients together.  I liked all of the things you digged
+up, starting from 'modes are the enemy'.  Most of them I think are
+good.  But some of them probably won't belong together.  I think we'll
+see what we can get."*
+
 ## Questions
 
 *The session collected these on 2026-09-07; they are Henri's to answer.  He said he would ask
