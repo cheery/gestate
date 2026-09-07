@@ -100,6 +100,13 @@ here too, dated, with the card it came from.*
   note is stamped against the engine's clock, not the score's, so
   *sounding* needed two numbers where there had been one; a card that
   names a clock, a position or a time owes this question on day one*
+- What is inside this number besides the thing it claims to measure?
+  *— harvested 2026-09-07 at the close of `card:relations-at-frame-rate.md`:
+  the first table timed a query and its input's construction as one
+  evaluation, and the second timed a lazy value to its outer
+  constructor, so the fix landed and the number barely moved, then
+  moved the wrong way; a card whose `because` is a measurement owes
+  this question before its first slice*
 
 **For a shelved card:**
 
