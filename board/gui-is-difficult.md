@@ -38,6 +38,30 @@ below are already partly true of.  And it is **not a session's to
 design**: the critical parts are Henri's, by his own sentence, and
 day one of this card is a dialogue, not code.
 
+## The postcondition — Henri, 2026-09-08
+
+Written a day after the card opened and after two slices had landed,
+which `board/README.md` §"The postcondition" says is late; the slices
+each carried their own, and this is the card's.  The sentence it
+started from, his: *"The vision I have is that GUI development, even,
+or especially, for tricky things to edit, would be an easy task for a
+session."*  Verbalised with a guest session the same day:
+
+> **GUI development where a session does all the mechanical work —
+> model, commands, charts, identity, tests — and the keeper spends two
+> minutes with his hands on it to check the feel.**
+
+Names no function, and puts the number where the vision's sentence had
+none: not on the session's side, where *easy* cannot be measured, but
+on the keeper's — the time his hands are on a slice before he can say
+whether it feels right.  A slice that needs more of him than that is a
+slice where the mechanical work leaked back to the person, which is the
+`because` of this card in one line.  **Nothing measures it yet:** the
+two slices landed below record what was built and what held them, and
+not how long his hands were on either before he could say — the number
+this card's done would be, and the only instrument for it is a clock
+beside him at the next slice's gemba walk.
+
 ## What the vision says — Henri, 2026-09-07
 
 *"btw.  The GUI framework binds to several sentences we have at the
