@@ -1655,33 +1655,50 @@ is thin is still a design question, not a patch: what the events *are*
 wrong tool used into wrong place is also quite expensive.  I think that
 this really does need my hand a bit.  And it would be worthwhile to
 think from a clean board, keeping in mind what we have here already
-though."*
+though."*  And, correcting the first thing a session wrote under it:
+**"The card points to the direction where we need to go.  But we need to
+think without constraints of what we've built.  After we know what to
+build, I think we can build it into gestate."**
 
-His, then, and not a session's to start.  What a session owes it is that
-the board be clean and the material be *at hand* — so what follows is
-inventory and not direction: **the facts a redesign would have to keep**,
-each already measured or decided on this card, with nothing about what
-to build.
+His, and not a session's to start.  **The correction is the important
+part and it was earned:** a session answered *keeping in mind what we
+have* with a table headed *the facts a redesign would have to keep* —
+ten rows mixing two kinds of thing as though they were one kind.  That
+table is how a redesign becomes a refactor, and it is struck.
 
-| what stands | where it was settled |
-|---|---|
-| audio needs signals at sample rate; `scan`'s guarded recursion is what makes them productive | `signal.ges`, and every synth |
-| the wire carries meanings, never coordinates | `spec/workbench.md` §"The canvas walks over crust" |
-| two machines must agree — the reference and `crust` — so anything new runs on both | the parity fixtures |
-| the picture must be derivable headless | `audioperform`, every test here |
-| a query re-evaluated every frame does not fit a frame at a page's size — 22 ms against 16.7 | Q1, `tools/queryframe.py` |
-| identity is the model's key, never the picture's index | Q7, 2026-09-08 |
-| a gesture commits as a command, which is what makes a transcript replay | §"The one that comes first" |
-| the event calculus exists — `ExL` and six forms — and the library has one function on it | §"Would the whole thing need rethinking?" |
-| the chart library exists, is tested, runs on crust, and is not in scope for a canvas | `chart.ges`, `audio.preludes` |
-| the cost as it stands: 18 lines of hand for a 21-line model, ~7 of them pure pairing tax, and a failure that compiles | §"What his own GUI found", `examples/gui/tic-tac-toe.ges` |
+**The two kinds, because telling them apart is what makes a board
+clean:**
 
-**And one thing about this card itself, which is a fact and not a
-proposal: it is 1699 lines across 24 headings.**  It holds at least two
-subjects — the framework's design, and the log of what landed each day —
-and a clean-board sitting cannot have all of it in the head at once.
-Whether that is one card or two is his; a session did not split it,
-because the board's goal is four fewer and zero new.
+*Facts of the world.  True whatever is designed, and there are few.*
+Audio needs a value per sample.  A whole re-evaluation costs what it
+costs — 22 ms against a 16.7 ms frame at a page's rows
+(`tools/queryframe.py`).  An eye is the only oracle for a picture.  A
+gesture is spread across time.  Two machines that both decide what a
+press hit can disagree.
+
+*Decisions gestate made.  This implementation's answers, and a clean
+board may overturn any of them.*  That the wire carries meanings and not
+coordinates.  That identity is the model's key rather than the picture's
+index.  That a gesture commits as a command.  That state over time is a
+signal and an event is flattened into one at the door.  That the picture
+is a value built by ordinary functions.  Every one of these is written
+somewhere on this card as though it were settled — **and each is settled
+for gestate, not for the question.**
+
+**What the sitting's material actually is**, and it is the half of this
+card that came from outside it: §"The ideas, each with why it is great",
+§"Why it is hard — four things at once", §"The models", §"Statecharts",
+and the two-gulf reading.  Sketchpad, Morphic, ImGui, Elm, TeX,
+Cassowary, Shneiderman, Datalog — none of that is gestate's and all of
+it travels.  The landed sections and the measurements are **not** the
+material; they are what the fitting-in will meet afterwards, and they
+are on this card already for that day.
+
+**And one fact about this card: it is 1699 lines across 24 headings**,
+holding both the design and the log of what landed each day.  A
+clean-board sitting cannot hold all of it at once.  Whether it becomes
+one card or two is his; a session did not split it, because the board's
+goal is four fewer and zero new.
 
 ## What is next — 2026-09-08, evening; his to reorder
 
