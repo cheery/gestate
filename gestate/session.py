@@ -951,30 +951,24 @@ class Session:
     #: The arguments the box is already holding, in order — the tail of
     #: the window's `wants`.  See `fillers`.
     given: tuple = ()
-    #: The note a hand has hold of in a score box — `(channel, note,
-    #: the key it is written at, the key the hand took hold at, the key
-    #: it has been carried to)`, or `None`.
-    #: A drag lives here between the press and the release, because
-    #: nothing is written until the hand comes off.
-    holding: object = None
-    #: The body's grab, beside the column's — the same press writes
-    #: both (F204's repair, 2026-09-06): `(channel, note, tick it was
-    #: at, tick the hand took hold at, tick it is carried to)`.
-    holding_x: object = None
+    #: **The hand on a roll, per box — the state of `gestate/hand.ges`**
+    #: (`card:gui-is-difficult.md`, 2026-09-08, reading A: the hit-test's
+    #: answer rides on the event).  `Railed t` between the pad's two
+    #: touches; `Held`/`Carried` a note by its number, the tick and key
+    #: it was taken at and where it is; `Ending`/`Ended` a note's end;
+    #: `Sweeping`/`Swept` a band's corners.  A box with no entry is
+    #: `Free`.  Nothing is written until the hand comes off: the chart's
+    #: `Lift` answers `Click`, `Carry`, `Resize` or `Select`, and
+    #: `_hand_act` runs the command.  `holding`, `holding_x`, `banding`
+    #: and `resizing` below are readings of this, kept for the tests
+    #: that ask a fact of the hand.
+    hand: dict = field(default_factory=dict)
     #: **The group**, per score box — every note a band selected, or the
     #: one the last press picked (`card:notes-editor.md` slice 4: *drag
     #: and select multiple and move them around*).  `selected` still
     #: names the one; this names them all, and a hand on any of them
     #: carries the lot.
     group: dict = field(default_factory=dict)
-    #: A band being swept over empty roll: the column pressed, and the
-    #: corners in keys and ticks — `{"found", "y", "k0", "k1", "t0",
-    #: "t1"}` — until the hand lets go and `select` runs.
-    banding: object = None
-    #: A hand on a note's **end** — `(column channel, note, its length
-    #: in ticks, box)` — so the drag along changes its length and not
-    #: its place (`card:notes-editor.md` slice 4: *adjust offset*).
-    resizing: object = None
     #: A hand on the ruler — the section's end — `(ruler channel, box,
     #: bars it has, the gesture's state)` while `gestate/gesture.ges`
     #: is not `Idle`, else `None`; the chart carries where the hand
@@ -1038,6 +1032,91 @@ class Session:
     #: Return keeps it, `Esc` undoes it, and running anything else
     #: settles it, because by then you have moved on.
     inserted: object = None
+
+    # -- readings of `hand`, for whoever asks a fact of it ---------------------
+
+    def _hand_state(self):
+        """`(box, state)` of the one hand that is not free, or `None`."""
+        for box, state in self.hand.items():
+            return box, state
+        return None
+
+    def _channels_of(self, box: int) -> tuple:
+        """`(pitch channel, rail channel)` of a box, or two `None`s."""
+        regions = getattr(self.bench, "note_regions", None) or {}
+        pitch = next((k for k, r in regions.items()
+                      if r.box == box and not r.on_rail and not getattr(r, "on_ruler", False)), None)
+        rail = next((k for k, r in regions.items() if r.box == box and r.on_rail), None)
+        return pitch, rail
+
+    def _roll_of(self, box: int):
+        regions = getattr(self.bench, "note_regions", None) or {}
+        return next((r.roll for r in regions.values() if r.box == box), None)
+
+    @property
+    def holding(self):
+        """`(pitch channel, note, key written, key taken at, key carried
+        to)` while a note is held or carried, else `None` — the reading
+        `_pitch_touched` used to keep as a field."""
+        got = self._hand_state()
+        if got is None or got[1][0] not in ("Held", "Carried"):
+            return None
+        box, state = got
+        roll = self._roll_of(box)
+        pitch, _rail = self._channels_of(box)
+        note, t, k = state[1], state[2], state[3]
+        was = roll.events[note][3] if roll is not None else k
+        key = was + (state[5] - k) if state[0] == "Carried" else was
+        return (pitch, note, was, k, key)
+
+    @property
+    def holding_x(self):
+        """`(rail channel, note or None, tick written, tick taken at,
+        tick carried to)` while the rail has spoken, else `None`."""
+        got = self._hand_state()
+        if got is None:
+            return None
+        box, state = got
+        _pitch, rail = self._channels_of(box)
+        roll = self._roll_of(box)
+        if state[0] == "Railed":
+            return (rail, None, None, state[1], None)
+        if state[0] in ("Held", "Carried"):
+            note, t = state[1], state[2]
+            on = roll.events[note][0] if roll is not None else t
+            at = self._snapped(roll, on, state[4] - t) if state[0] == "Carried" else on
+            return (rail, note, on, t, at)
+        if state[0] in ("Ending", "Ended"):
+            note, t = state[1], state[2]
+            on, off = roll.events[note][:2]
+            length = self._length_of(roll, off - on, state[3] - t) if state[0] == "Ended" else off - on
+            return (rail, note, off - on, t, length)
+        return None
+
+    @property
+    def resizing(self):
+        """`(pitch channel, note, its length in ticks, box)` while a
+        note's end is held, else `None`."""
+        got = self._hand_state()
+        if got is None or got[1][0] not in ("Ending", "Ended"):
+            return None
+        box, state = got
+        roll = self._roll_of(box)
+        pitch, _rail = self._channels_of(box)
+        on, off = roll.events[state[1]][:2]
+        return (pitch, state[1], off - on, box)
+
+    @property
+    def banding(self):
+        """The band's corners while one is swept, else `None`."""
+        got = self._hand_state()
+        if got is None or got[1][0] not in ("Sweeping", "Swept"):
+            return None
+        box, state = got
+        pitch, _rail = self._channels_of(box)
+        t0, k0 = state[1], state[2]
+        t1, k1 = (state[3], state[4]) if state[0] == "Swept" else (t0, k0)
+        return {"box": box, "y": pitch, "k0": k0, "k1": k1, "t0": t0, "t1": t1}
 
     def __post_init__(self):
         # A selection held by key is resolved when the picture is new,
@@ -2619,7 +2698,7 @@ class Session:
         heard = ("" if getattr(self.bench, "playing", False)
                  else self._hear_at(first, self.view.text()))
         step = f"{'+' if keys > 0 else ''}{keys}"
-        return (f"carry: {name} — {len(rows)} notes, {step} semitones, "
+        return (f"carry: {name} — {len(rows)} note{'s' if len(rows) != 1 else ''}, {step} semitones, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
     def do_resize(self, region: str, voice: str, tick: int, key: int, length: int) -> str:
@@ -2748,7 +2827,7 @@ class Session:
         self.bench.audition(self.view.text())
         heard = ("" if getattr(self.bench, "playing", False)
                  else self._hear_at(first, self.view.text()))
-        return (f"stretch: {name} — {len(rows)} notes, "
+        return (f"stretch: {name} — {len(rows)} note{'s' if len(rows) != 1 else ''}, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
     def do_tap(self) -> str:
@@ -4540,163 +4619,277 @@ class Session:
         **The box is one pad** (2026-09-06, evening — Henri: *"yksi käsi
         koko rungon yli"*): a press writes the rail — the fraction of
         the body's width, a tick — and then the pitch hand, the fraction
-        of its height, a key, and the note is the one sounding at that
-        place (`scorebox.note_under`).  The ruler is its own hand above.
-        Every touch after the press is the same note being carried, and
-        the answer is the interval so far — read, not written, because
-        a drag that edited per frame would be a hundred undo entries
-        for one gesture.
+        of its height, a key.  **And the hand is a chart**
+        (`gestate/hand.ges`, 2026-09-08): the rail's touch and the
+        pitch's are its events, the pitch's carrying what the host
+        found under it — a note, a note's end, empty roll — and what a
+        touch means after that is the chart's to say.  The ruler is its
+        own hand above (`gestate/gesture.ges`).
         """
+        from .scorebox import key_at, tick_at
+
         found = (getattr(self.bench, "note_regions", None) or {}).get(name)
         if found is None:
             return None
         self._journal().slid("touched", (name, down))
         if getattr(found, "on_ruler", False):
             return self._ruler_touched(found, name, down)
-        if getattr(found, "on_rail", False):
-            return self._rail_touched(found, name, down)
-        return self._pitch_touched(found, name, down)
-
-    def _pressed_tick(self, found) -> int | None:
-        """The tick the rail's press wrote a moment before the pitch
-        hand's — the pad's two halves arrive rail first."""
-        rail = self._rail_name(found)
-        if self.holding_x is not None and self.holding_x[0] == rail:
-            return self.holding_x[3]
-        return None
-
-    def _rail_name(self, found) -> str:
-        regions = getattr(self.bench, "note_regions", None) or {}
-        return next((k for k, r in regions.items()
-                     if r.box == found.box and r.on_rail), "")
-
-    def _pitch_touched(self, found, name: str, down: float) -> str:
-        """The pad's pitch half: a press picks the note at the rail's
-        tick and this key, a drag carries it in pitch."""
-        from .scorebox import EDGE_PX, RefusedError, key_at, note_under, x_of
-
-        roll = found.roll
         if self.sizing is not None:
             return ""                  # the ruler has the hand
-        band = self.banding
-        if band is not None and band["y"] == name:
-            # **The band's other corner follows the hand** in pitch;
-            # the rail carries it in time (`_rail_touched`).
-            band["k1"] = key_at(roll, down)
-            self._show_band(found)
-            return ""
-        if self.holding is None or self.holding[0] != name:
-            key = key_at(roll, down)
-            tick = self._pressed_tick(found)
-            if tick is None:
-                return ""              # the rail has not spoken; it will
-            try:
-                note = note_under(roll, tick, key)
-            except RefusedError:
-                # **A press on nothing starts a band** — slice 4 of
-                # `card:notes-editor.md`, *select multiple*: the hand
-                # sweeps a rectangle over empty roll, in keys on this
-                # hand and in ticks on the rail, and lets go to
-                # `select` whatever it covers.  Nothing is selected
-                # until then.
-                self.selected.pop(found.box, None)
-                self.group.pop(found.box, None)
-                self.holding_x = None
-                self.banding = {"found": found, "y": name, "k0": key,
-                                "k1": key, "t0": tick, "t1": tick}
-                self._show_band(found)
-                return "sweep a band to select notes"
-            # **A press selects**, and the selection outlives the press:
-            # it is what the picture outlines until the next press or
-            # the next rebuild.  **A press on a note of the group keeps
-            # the group**, so a hand on any selected note carries them
-            # all; a press on any other note is a selection of one.
-            self.selected[found.box] = note
-            if note not in self.group.get(found.box, ()):
-                self.group[found.box] = (note,)
-            self._hold(found)
-            on, off, _k, was, _v, _m = roll.events[note]
-            # **A press in a note's last `EDGE_PX` takes its end** — for
-            # a note wider than twice that — and the drag along is a
-            # change of length, not of place (`resize`, `stretch`).
-            # Pitch is not carried during it: a hand on an end is on an
-            # end.
-            edge = (x_of(roll, off) - x_of(roll, tick) <= EDGE_PX
-                    and x_of(roll, off) - x_of(roll, on) > 2 * EDGE_PX)
-            self.resizing = (name, note, off - on, found.box) if edge else None
-            # **Where the hand took hold, not where the note is.**  A
-            # press lands at *some* pitch and rarely the note's own —
-            # carried absolutely, letting go without moving would
-            # transpose the note to wherever you happened to grab it,
-            # and a press that does not become a drag has to stay a
-            # jump.  So the note moves by the interval the hand has
-            # travelled — and the rail's grab, provisional until now,
-            # is filled in with the note and its tick.
-            self.holding = (name, note, was, key, was)
-            rail = self._rail_name(found)
-            grabbed = self.holding_x[3]
-            self.holding_x = ((rail, note, off - on, grabbed, off - on) if edge
-                              else (rail, note, on, grabbed, on))
-            self._preview(found, note, was)
-            leaf = roll.leaves[roll.events[note][2]]
-            # **Where the note is written, in the file that wrote it.**
-            # A note from an included `.notes` has a line in the
-            # expanded program that the buffer does not have; the
-            # origins say which file and which line.  When that file is
-            # this window's own document the caret goes there; when a
-            # `.ges` included it the place is said and the caret stays
-            # (rung 3: a click does not switch files).
-            where = (getattr(self.bench, "origins", None) or {}).get(leaf.line)
-            end = " — its end" if edge else ""
-            if where is None:
-                self.view.goto(leaf.line)
-                return f"line {leaf.line}{end}"
-            if self._is_document(where[0]):
-                self.view.goto(where[1])
-                return f"line {where[1]}{end}"
-            return f"line {where[1]} of {where[0]}{end}"
-        if self.resizing is not None:
-            return ""                  # a hand on an end carries no pitch
-        _n, note, was, grabbed, _at = self.holding
-        key = was + key_at(roll, down) - grabbed
-        self.holding = (name, note, was, grabbed, key)
-        self._preview(found, note, key)
-        if key == was:
-            return f"{was} — where it is written"
-        step = key - was
-        return f"{was} → {key} ({'+' if step > 0 else ''}{step})"
+        roll = found.roll
+        if getattr(found, "on_rail", False):
+            return self._hand_event(found, ("Rail", tick_at(roll, down)))
+        key = key_at(roll, down)
+        return self._hand_event(found, ("Pitch", key, self._hit(found, key)))
 
-    def _preview(self, found, note: int, key: int) -> None:
-        """Show the note under the hand, before anything is rebuilt.
+    def _hit(self, found, key: int) -> tuple:
+        """What is under the pitch half's touch, for the chart: the note
+        sounding at the rail's tick and this key, its **end** when the
+        press is in its last `EDGE_PX` (for a note wider than twice
+        that), or empty roll.  Read only while the chart is `Railed` —
+        the one moment the answer decides anything; a drag's touches
+        get `OnRoll` and the chart does not look at it."""
+        from .scorebox import EDGE_PX, RefusedError, note_under, x_of
+
+        state = self.hand.get(found.box, ("Free",))
+        if state[0] != "Railed":
+            return ("OnRoll",)
+        roll, tick = found.roll, state[1]
+        try:
+            note = note_under(roll, tick, key)
+        except RefusedError:
+            return ("OnRoll",)
+        on, off = roll.events[note][:2]
+        edge = (x_of(roll, off) - x_of(roll, tick) <= EDGE_PX
+                and x_of(roll, off) - x_of(roll, on) > 2 * EDGE_PX)
+        return ("OnEnd", note) if edge else ("OnNote", note)
+
+    def _hand_event(self, found, event: tuple) -> str:
+        """One touch through `gestate/hand.ges`, its acts done here —
+        `_ruler_event`'s shape for the roll's hand."""
+        from .charts import load
+
+        box = found.box
+        state = self.hand.get(box, ("Free",))
+        new, acts = load("hand").advance(state, event)
+        if new is not None:
+            if new == ("Free",):
+                self.hand.pop(box, None)
+            else:
+                self.hand[box] = new
+        said = [self._hand_act(found, act) for act in acts]
+        return "  ".join(x for x in said if x)
+
+    def _hand_act(self, found, act: tuple) -> str:
+        """One `Act` of `hand.ges`, done.
+
+        The chart holds the time and the numbers a touch brought; this
+        holds the geometry and the model — the grid a tick snaps to,
+        the interval from where the hand took hold, the group, and the
+        command a release runs.
+        """
+        roll, box, head = found.roll, found.box, act[0]
+        if head in ("Grab", "GrabEnd"):
+            # **A press selects**, and the selection outlives the press;
+            # a press on a note of the group keeps the group, so a hand
+            # on any selected note carries them all.
+            note = act[1]
+            self.selected[box] = note
+            if note not in self.group.get(box, ()):
+                self.group[box] = (note,)
+            self._hold(found)
+            self._show_moved(found, note, roll.events[note][3], roll.events[note][0])
+            return self._written_at(found, note, end=head == "GrabEnd")
+        if head == "Shift":
+            _h, note, t, k, u, q = act
+            key, at = self._carried(found, note, t, k, u, q)
+            self._show_moved(found, note, key, at)
+            return self._interval(roll, note, key, at)
+        if head == "Click":
+            self._unpreview(found)
+            return self._reveal(found, act[1])
+        if head == "Carry":
+            _h, note, t, k, u, q = act
+            key, at = self._carried(found, note, t, k, u, q)
+            return self._commit_move(found, note, key, at)
+        if head == "Grow":
+            _h, note, t, u = act
+            on, off = roll.events[note][:2]
+            length = self._length_of(roll, off - on, u - t)
+            self._grow(found, note, off - on, length)
+            if length == off - on:
+                return ""
+            step = length - (off - on)
+            return f"len {off - on} → {length} ({'+' if step > 0 else ''}{step})"
+        if head == "Resize":
+            _h, note, t, u = act
+            on, off = roll.events[note][:2]
+            return self._commit_length(found, note, self._length_of(roll, off - on, u - t))
+        if head == "Sweep":
+            _h, t, k, u, q = act
+            self._show_band(found, t, k, u, q)
+            return ""
+        if head == "Select":
+            _h, t, k, u, q = act
+            _pitch, rail = self._channels_of(box)
+            if rail is None:
+                self._unpreview(found)
+                return ""
+            return self.run("select", rail, t, k, u, q)
+        if head == "Clear":
+            # **A press on nothing starts a band** (`card:notes-editor.md`
+            # slice 4): nothing is selected until it lets go.
+            _h, t, k = act
+            self.selected.pop(box, None)
+            self.group.pop(box, None)
+            self.held.pop(box, None)
+            self._show_band(found, t, k, t, k)
+            return "sweep a band to select notes"
+        if head == "Drop":
+            self._unpreview(found)
+            return ""
+        return f"hand.ges asked for `{head}`, which the roll cannot do"
+
+    # -- what the acts are made of --------------------------------------------
+
+    @staticmethod
+    def _snapped(roll, on: int, by: int) -> int:
+        """`on` moved by `by` ticks, by whole grid steps, never before 0."""
+        from .scorebox import grid_of
+
+        grid = grid_of(roll)
+        return max(0, on + int(round(by / grid)) * grid)
+
+    @staticmethod
+    def _length_of(roll, was: int, by: int) -> int:
+        """A length changed by `by` ticks, by whole grid steps, never
+        under one."""
+        from .scorebox import grid_of
+
+        grid = grid_of(roll)
+        return max(grid, was + int(round(by / grid)) * grid)
+
+    def _carried(self, found, note: int, t: int, k: int, u: int, q: int) -> tuple:
+        """Where a note carried from (t, k) to (u, q) is: **by the interval
+        the hand has travelled, not to where the hand is** — a press
+        lands at some pitch and rarely the note's own, and letting go
+        without moving must stay a click.  `(key, tick)`."""
+        roll = found.roll
+        on, was = roll.events[note][0], roll.events[note][3]
+        return was + (q - k), self._snapped(roll, on, u - t)
+
+    @staticmethod
+    def _interval(roll, note: int, key: int, at: int) -> str:
+        on, was = roll.events[note][0], roll.events[note][3]
+        said = []
+        if key != was:
+            step = key - was
+            said.append(f"{was} → {key} ({'+' if step > 0 else ''}{step})")
+        if at != on:
+            step = at - on
+            said.append(f"tick {on} → {at} ({'+' if step > 0 else ''}{step})")
+        return "  ".join(said) if said else f"{was} — where it is written"
+
+    def _written_at(self, found, note: int, end: bool = False) -> str:
+        """Where the note under the press is written, in the file that
+        wrote it — and go there when that file is this window's own
+        document (rung 3: a click does not switch files)."""
+        roll = found.roll
+        leaf = roll.leaves[roll.events[note][2]]
+        where = (getattr(self.bench, "origins", None) or {}).get(leaf.line)
+        tail = " — its end" if end else ""
+        if where is None:
+            self.view.goto(leaf.line)
+            return f"line {leaf.line}{tail}"
+        if self._is_document(where[0]):
+            self.view.goto(where[1])
+            return f"line {where[1]}{tail}"
+        return f"line {where[1]} of {where[0]}{tail}"
+
+    def _commit_move(self, found, note: int, key: int, at: int) -> str:
+        """**The commit, and the only place a drag writes.**  One command
+        line, one rewrite, one undo entry, one rebuild — and it goes
+        through the command, so a drag records in the transcript and
+        replays.  A group is carried as one (`carry`); a note moved in
+        both axes is carried too, **as one command**, because after a
+        `move` the file is in its own order and a second command's
+        address would name a line that has moved (found 2026-09-08,
+        the day the order was decided; F210); one axis alone is
+        `transpose` or `move`.  Let go where it took hold is a click.
+        """
+        roll, box = found.roll, found.box
+        on, was = roll.events[note][0], roll.events[note][3]
+        dkey, dt = key - was, at - on
+        if dkey == 0 and dt == 0:
+            self._unpreview(found)
+            return self._reveal(found, note)
+        pitch, rail = self._channels_of(box)
+        group = self.group.get(box, ())
+        if len(group) > 1 or (dkey and dt):
+            said = self.run("carry", rail, dkey, dt)
+            if said.startswith("carry:") and "—" not in said:
+                self._unpreview(found)
+            return said
+        if dt:
+            said = self.run("move", rail, on, at)
+            if said.startswith("move:") and "—" not in said:
+                self._unpreview(found)
+            return said
+        said = self.run("transpose", pitch, self._voice_of(found, note) or "-", on, was, key)
+        if said.startswith("transpose:") and "—" not in said:
+            # Refused, so the note did not move and must not look as
+            # though it had; a *written* one keeps its lift until the
+            # rebuild arrives with it in the picture.
+            self._unpreview(found)
+        return said
+
+    def _commit_length(self, found, note: int, length: int) -> str:
+        """The end's commit: `resize` for one note, `stretch` for a
+        group; let go where it took hold is a click on the note."""
+        roll, box = found.roll, found.box
+        on, off = roll.events[note][:2]
+        if length == off - on:
+            self._unpreview(found)
+            return self._reveal(found, note)
+        pitch, rail = self._channels_of(box)
+        group = self.group.get(box, ())
+        if len(group) > 1 and note in group:
+            said = self.run("stretch", rail, length - (off - on))
+            if said.startswith("stretch:") and "—" not in said:
+                self._unpreview(found)
+            return said
+        said = self.run("resize", pitch, self._voice_of(found, note) or "-",
+                        on, roll.events[note][3], length)
+        if said.startswith("resize:") and "—" not in said:
+            self._unpreview(found)
+        return said
+
+    def _rail_name(self, found) -> str:
+        return self._channels_of(found.box)[1] or ""
+
+    # -- the picture following the hand ---------------------------------------
+
+    def _show_moved(self, found, note: int, key: int, at: int) -> None:
+        """Show the note under the hand where it would land, in both
+        axes, before anything is rebuilt.
 
         **The picture follows the hand, not the file.**  A roll is
         redrawn by a build, and a build is half a second at best — so a
         drag showed nothing at all until it was over, the note standing
-        still while the hand moved and the status line the only sign
-        anything was happening.  That is a form, not a gesture.
-
-        Two readings say it — which note, and how far in this picture's
-        own pixels — travelling the way `peak` does, and the roll's
-        program moves that one note by them.  Nothing is written and
-        nothing is rebuilt; the file is still the truth, and the
-        picture catches up with it when the rebuild lands, which is
-        when the workbench drops these (`_load_substrate`).
+        still while the hand moved.  Two readings say it — which note,
+        and how far in this picture's own pixels — and the roll's
+        program moves that one note by them.  Nothing is written; the
+        picture catches up with the file when the rebuild lands.
         """
-        from .scorebox import y_of
+        from .scorebox import x_of, y_of
 
         roll = found.roll
-        was = roll.events[note][3]
+        on, was = roll.events[note][0], roll.events[note][3]
         try:
-            # The other axis keeps what its own hand wrote: a note
-            # carried in pitch and in time by one press is previewed
-            # in both (F204's repair).
-            slide = (self.bench.previewing or {}).get(found.slide, 0.0) \
-                if self.holding_x is not None else 0.0
             self.bench.previewing = {found.held: float(note),
-                                     found.lift: float(y_of(roll, key)
-                                                       - y_of(roll, was)),
+                                     found.lift: float(y_of(roll, key) - y_of(roll, was)),
                                      found.sel: float(note),
-                                     found.slide: float(slide),
+                                     found.slide: float(x_of(roll, at) - x_of(roll, on)),
                                      found.sels: self._group_reading(found),
                                      found.band: [], found.grow: 0.0,
                                      found.endx: -10000.0}
@@ -4707,90 +4900,25 @@ class Session:
         """The group as the picture reads it — note numbers, as floats."""
         return [float(n) for n in self.group.get(found.box, ())]
 
-    def _show_band(self, found) -> None:
+    def _show_band(self, found, t0: int, k0: int, t1: int, k1: int) -> None:
         """Draw the band a hand is sweeping — its corners in the roll's
-        own pixels — or nothing until both hands have spoken."""
+        own pixels."""
         from .scorebox import geometry_of, x_of, y_of
 
-        band = self.banding
         try:
-            if band is None or band["t0"] is None or band["t1"] is None:
-                shown = []
-            else:
-                roll = found.roll
-                pad = geometry_of(roll).pad + 1
-                xs = sorted((x_of(roll, band["t0"]), x_of(roll, band["t1"])))
-                ys = sorted((y_of(roll, band["k0"]), y_of(roll, band["k1"])))
-                shown = [float((xs[0] + xs[1]) // 2), float((ys[0] + ys[1]) // 2),
-                         float(max(2, xs[1] - xs[0])),
-                         float(ys[1] - ys[0] + 2 * pad)]
+            roll = found.roll
+            pad = geometry_of(roll).pad + 1
+            xs = sorted((x_of(roll, t0), x_of(roll, t1)))
+            ys = sorted((y_of(roll, k0), y_of(roll, k1)))
+            shown = [float((xs[0] + xs[1]) // 2), float((ys[0] + ys[1]) // 2),
+                     float(max(2, xs[1] - xs[0])),
+                     float(ys[1] - ys[0] + 2 * pad)]
             self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
                                      found.sel: -1.0, found.slide: 0.0,
                                      found.sels: [], found.band: shown,
                                      found.grow: 0.0, found.endx: -10000.0}
         except Exception:                                # noqa: BLE001
             pass
-
-    def _rail_touched(self, found, name: str, across: float) -> str:
-        """A hand on the rail — the selected note, carried in time.
-
-        **The rail moves the note the last press selected**, because a
-        press writes one attachment and a column cannot listen in two
-        axes (`fixme.md` F204); the rail is the second axis given its
-        own element.  Relative, as the columns are: the note moves by
-        the ticks the hand has travelled from where it took hold,
-        snapped to the roll's own grid (`scorebox.grid_of`), and
-        nothing is written until the hand comes off.
-        """
-        from .scorebox import grid_of, tick_at, x_of
-
-        roll = found.roll
-        if self.sizing is not None:
-            return ""                  # the ruler has the hand; the body carries nothing
-        band = self.banding
-        if band is not None and band["found"].box == found.box:
-            # The band's corners in time: the press's tick, then wherever
-            # the hand has swept to.
-            tick = tick_at(roll, across)
-            if band["t0"] is None:
-                band["t0"] = tick
-            band["t1"] = tick
-            self._show_band(found)
-            return ""
-        rz = self.resizing
-        if rz is not None and rz[3] == found.box and self.holding_x is not None \
-                and self.holding_x[0] == name and self.holding_x[1] is not None:
-            # **The end follows the hand**, by whole grid steps, never
-            # shorter than one; nothing is written until it lets go.
-            _n, note, was, grabbed, _len = self.holding_x
-            grid = grid_of(roll)
-            delta = tick_at(roll, across) - grabbed
-            length = max(grid, was + int(round(delta / grid)) * grid)
-            self.holding_x = (name, note, was, grabbed, length)
-            self._grow(found, note, was, length)
-            if length == was:
-                return ""
-            step = length - was
-            return f"len {was} → {length} ({'+' if step > 0 else ''}{step})"
-        if self.holding_x is None or self.holding_x[0] != name:
-            # **The rail's press comes first and names no note yet**:
-            # the pad's pitch half arrives a moment later, finds the
-            # note at this tick, and fills the grab in
-            # (`_pitch_touched`).  Until then the tick is all it holds.
-            self.holding_x = (name, None, None, tick_at(roll, across), None)
-            return ""
-        if self.holding_x[1] is None:
-            return ""                  # a press the pitch hand has not answered
-        _n, note, was, grabbed, _at = self.holding_x
-        grid = grid_of(roll)
-        delta = tick_at(roll, across) - grabbed
-        at = max(0, was + int(round(delta / grid)) * grid)
-        self.holding_x = (name, note, was, grabbed, at)
-        self._slide(found, note, was, at)
-        if at == was:
-            return "" if self.holding is not None else f"tick {was} — where it is written"
-        step = at - was
-        return f"tick {was} → {at} ({'+' if step > 0 else ''}{step})"
 
     def _ruler_touched(self, found, name: str, across: float) -> str:
         """A hand on the ruler — the section's end, carried by whole bars.
@@ -4893,26 +5021,6 @@ class Session:
         except Exception:                                # noqa: BLE001
             pass
 
-    def _slide(self, found, note: int, was: int, at: int) -> None:
-        """Show the selected note where the hand on the rail has carried
-        it, before anything is rebuilt — `_preview`'s sibling for the
-        other axis."""
-        from .scorebox import x_of
-
-        try:
-            lift = (self.bench.previewing or {}).get(found.lift, 0.0) \
-                if self.holding is not None else 0.0
-            self.bench.previewing = {found.held: float(note),
-                                     found.lift: float(lift),
-                                     found.sel: float(note),
-                                     found.slide: float(x_of(found.roll, at)
-                                                        - x_of(found.roll, was)),
-                                     found.sels: self._group_reading(found),
-                                     found.band: [], found.grow: 0.0,
-                                     found.endx: -10000.0}
-        except Exception:                                # noqa: BLE001
-            pass
-
     def _grow(self, found, note: int, was: int, length: int) -> None:
         """Show the held selection longer or shorter by what the hand on
         the end has said — `_slide`'s sibling for a note's length."""
@@ -4964,137 +5072,19 @@ class Session:
                 # which changes nothing and says nothing.  The body's
                 # release ends the ruler's gesture too: the pad's two
                 # halves let go together.
-                self.holding_x = None
                 self._journal().add("released", (name,), "")
                 return self._ruler_event(regions[sz[0]], sz[0], ("Released",))
-        band = self.banding
-        if band is not None:
-            regions = getattr(self.bench, "note_regions", None) or {}
-            rail = next((k for k, r in regions.items()
-                         if r.box == band["found"].box and r.on_rail), None)
-            if name == band["y"] or name == rail:
-                # **The band's commit is `select`**: one command line,
-                # the corners in the roll's own ticks and keys, so a
-                # replay selects the same notes.  The second `released`
-                # of the pair finds no band and says nothing.
-                self.banding = None
-                self._journal().add("released", (name,), "")
-                if band["t0"] is None or band["t1"] is None or rail is None:
-                    self._unpreview(band["found"])
-                    return ""
-                return self.run("select", rail, band["t0"], band["k0"],
-                                band["t1"], band["k1"])
-        held, held_x = self.holding, self.holding_x
-        mine = held is not None and held[0] == name
-        mine_x = held_x is not None and held_x[0] == name
-        rz = self.resizing
-        if rz is not None and (mine or mine_x):
-            # **The end's commit is `resize`** for one note and
-            # `stretch` for a group — one line, or every selected line,
-            # by the same ticks.  Let go where it took hold is a click
-            # on the note, and reveals it as any click does.
-            self.resizing = self.holding = self.holding_x = None
+        regions = getattr(self.bench, "note_regions", None) or {}
+        found = regions.get(name)
+        if found is not None and not getattr(found, "on_ruler", False):
+            # **The hand's release is the chart's `Lift`**: a click, or the
+            # one commit the gesture was for.  Both halves of the pad let
+            # go at the first `released` — the window says it for each,
+            # and the second arrives to a free hand and says nothing.
             self._journal().add("released", (name,), "")
-            regions = getattr(self.bench, "note_regions", None) or {}
-            yname, note, was, box = rz
-            found = regions[yname]
-            length = held_x[4] if held_x is not None else was
-            if length == was:
-                self._unpreview(found)
-                return self._reveal(found, note)
-            group = self.group.get(box, ())
-            if len(group) > 1 and note in group:
-                rail = next(k for k, r in regions.items() if r.box == box and r.on_rail)
-                said = self.run("stretch", rail, length - was)
-                if said.startswith("stretch:") and "—" not in said:
-                    self._unpreview(found)
-                return said
-            said = self.run("resize", yname, self._voice_of(found, note) or "-",
-                            found.roll.events[note][0],
-                            found.roll.events[note][3], length)
-            if said.startswith("resize:") and "—" not in said:
-                self._unpreview(found)
-            return said
-        if mine or mine_x:
-            # **The commit, and the only place a drag writes.**  One
-            # text edit, one undo entry, one rebuild — and it goes
-            # through the command, so a drag records in the transcript
-            # as `transpose` and replays as one.
-            #
-            # **Both hands let go at the first `released`** (F204's
-            # repair): a press on a note grabs its column and the body
-            # around it, the window says `released` for each, and the
-            # first of the two commits whatever both have carried —
-            # `transpose` for pitch, `move` for time, both when both
-            # moved — so the second arrives to nothing held and says
-            # nothing.  Two lines in the transcript for one diagonal
-            # drag, each replayable on its own.
-            self.holding = self.holding_x = None
-            self._journal().add("released", (name,), "")
-            regions = getattr(self.bench, "note_regions", None) or {}
-            said = []
-            if held is not None and len(self.group.get(regions[held[0]].box, ())) > 1:
-                # **A group is carried as one** — `carry`, one command
-                # line, one rewrite of every selected line, one rebuild:
-                # by the interval the column's hand travelled and the
-                # ticks the body's did.  Let go where it took hold in
-                # both is a click, and a click on a group keeps it.
-                found = regions[held[0]]
-                dkey = held[4] - held[2]
-                dticks = (held_x[4] - held_x[2]) if held_x is not None else 0
-                if dkey == 0 and dticks == 0:
-                    self._unpreview(found)
-                    return self._reveal(found, held[1])
-                rail = next(k for k, r in regions.items()
-                            if r.box == found.box and r.on_rail)
-                carried = self.run("carry", rail, dkey, dticks)
-                if carried.startswith("carry:") and "—" not in carried:
-                    self._unpreview(found)
-                return carried
-            if held_x is not None and held_x[1] is not None:
-                xname, _note, was_at, _grabbed, at = held_x
-                found_x = regions[xname]
-                if at != was_at:
-                    # **The body's commit is `move`**, the same door as
-                    # `transpose`: one command line in the transcript,
-                    # one rewrite, one rebuild.
-                    moved = self.run("move", xname, was_at, at)
-                    if moved.startswith("move:") and "—" not in moved:
-                        self._unpreview(found_x)
-                    said.append(moved)
-                elif held is None:
-                    # Let go where it took hold moves nothing and says
-                    # nothing — a click on the body alone is not a
-                    # gesture.
-                    self._unpreview(found_x)
-                    return ""
-            if held is None:
-                return "  ".join(said)
-            _n, note, was, _grabbed, key = held
-            name = held[0]
-            found = regions[name]
-            if key == was and said:
-                return "  ".join(said)
-            if key == was:
-                self._unpreview(found)
-                # **Let go where it began is a click, and a click is the
-                # one gesture the read-only box owns** —
-                # `spec/scorebox.md`: *"it renders the score expression
-                # under it, and the one gesture it owns is a click that
-                # jumps to source."*  It returned `""` until 2026-09-05,
-                # so the sentence was true of the design and of nothing
-                # else.
-                return self._reveal(found, note)
-            moved = self.run("transpose", name, self._voice_of(found, note) or "-",
-                             found.roll.events[note][0], was, key)
-            if moved.startswith("transpose:"):
-                # Refused, so the note did not move and must not look
-                # as though it had.  A *written* one keeps its lift
-                # until the rebuild arrives with it in the picture,
-                # which is what stops it flicking back and forth.
-                self._unpreview(found)
-            said.append(moved)
-            return "  ".join(said)
+            if found.box in self.hand:
+                return self._hand_event(found, ("Lift",))
+            return ""
         doing = getattr(self.bench, "released", None)
         said = doing(name) if doing is not None else ""
         self._journal().add("released", (name,), "")

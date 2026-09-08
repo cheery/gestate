@@ -1657,3 +1657,23 @@ repairs of a few lines each, and the ratchets asked for their due:
 five files out of one allowance and nine out of the other, which is
 the most satisfying kind of red.
 
+## The note hand is a chart — 2026-09-08, evening
+
+*"A."*  The roll's hand, the one the morning called the hard one:
+three recognisers deciding at the press by looking, and two channels
+for one press.  The chart takes the look as a payload on the pitch's
+touch and the rail's touch as a state of its own, and after that it is
+eight states and thirty-two arrows, compiled on the first try.  The
+host was the afternoon: two hundred lines that had been sorted by
+channel are sorted by act now, and the four tuples the ladders kept in
+step became readings of the chart's state, so a dozen tests that asked
+a fact of the hand got the same answer from a different place.
+
+What the chart gave back was a defect of my own from breakfast.  A
+diagonal drag was two commands, and once the file wrote itself in its
+own order the second command's address was stale.  I found it by
+doing the naive thing on the one note the existing test had not
+chosen, and the chart had already decided the shape of the fix: a
+`Carry` is one act, so it is one command.  Twelve hours from the
+first chart to the fourth; the ruler, then the roll.
+

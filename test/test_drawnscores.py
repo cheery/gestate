@@ -2630,8 +2630,10 @@ def _diagonal(seat, roll, note: int):
 
 def test_one_drag_carries_a_note_in_pitch_and_in_time():
     """The postcondition F204 stood in front of: a note moves in both
-    axes under one hand.  The first `released` commits both — `transpose`
-    then `move` — and the second finds nothing held."""
+    axes under one hand.  The first `released` commits both — **as one
+    `carry`** since 2026-09-08 (F211: after a `move` the file is in its
+    own order, so a second command's address named a line that had
+    moved) — and the second finds nothing held."""
     from gestate.scorebox import grid_of
 
     with _copied() as here:
@@ -2640,7 +2642,7 @@ def test_one_drag_carries_a_note_in_pitch_and_in_time():
         on, key = roll.events[note][0], roll.events[note][3]
         assert seat.bench.previewing == {}
         first, second = _diagonal(seat, roll, note)
-        assert "transpose: arc.notes" in first and "move: arc.notes" in first, first
+        assert first.startswith("carry: arc.notes — 1 note, +2 semitones, +") and "ticks" in first, first
         assert second == "", second
         target = here.parent / "arc.notes"
         moved = [l for l in target.read_text().splitlines()
@@ -3414,3 +3416,33 @@ def test_a_unison_doubling_is_transposed_through_the_selection():
     assert said.startswith("transpose: arc.notes — key 62 → 64 on line "), said
     spelled = [step for step in seat.log.steps if step.verb == "transpose"][-1]
     assert spelled.args[1] == "middle", spelled.args
+
+
+def test_a_diagonal_drag_on_a_note_whose_move_reorders_the_file_keeps_both_axes():
+    """F211: the note at tick 480 of `arc.notes` sorts past its neighbour
+    when moved a beat, so a `move` then a `transpose` by address lost
+    the pitch.  One `carry` writes both fields of one line."""
+    from gestate.scorebox import across_of, grid_of, key_at, reach_of, scale_of
+
+    _here, seat, view, roll = _page_seat()
+    note = 5
+    on, key = roll.events[note][0], roll.events[note][3]
+    chan = _press_a_note(seat, roll, note)
+    grid = grid_of(roll)
+    _lo, _hi, span = scale_of(roll)
+    low, high = reach_of(roll)
+    grabbed = key_at(roll, (high - key) / (high - low))
+    up = next(d / 1000 for d in range(1000) if key_at(roll, d / 1000) == grabbed + 2)
+    seat.touched("__nb_rail_0__", across_of(roll, on) + 2 * grid / span)
+    seat.touched(chan, up)
+    before = seat.view.text()
+    said = seat.released("__nb_rail_0__")
+    assert said.startswith("carry: arc.notes — 1 note, +2 semitones, +192 ticks"), said
+    assert seat.released(chan) == ""
+    after = seat.view.text()
+    gone = sorted(set(before.splitlines()) - set(after.splitlines()))
+    came = sorted(set(after.splitlines()) - set(before.splitlines()))
+    assert len(gone) == 1 and len(came) == 1, (gone, came)
+    assert f"key {key + 2}" in came[0] and f"at {on % 384 + 2 * grid}" in came[0], came
+    assert notes.write(notes.parse(after, "arc.notes")) == after, "and the file is in its own order"
+

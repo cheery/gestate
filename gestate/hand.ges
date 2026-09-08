@@ -1,0 +1,123 @@
+# hand.ges — a hand on the roll's notes: press, drag, release, as a chart.
+#
+# The fourth chart `chart.ges` runs and the second gesture, built
+# 2026-09-08 (`card:gui-is-difficult.md` §"Landed — 2026-09-08": the
+# note hand, reading A — *the hit-test's answer rides on the event*).
+# Where `gesture.ges` is a hand on one thing, this is a hand on a roll:
+# a press decides three things by looking — a note under it, a note's
+# end, or empty roll — and the chart cannot look, so **the host looks
+# and the touch carries what it found** (`Hit`).  The chart then holds
+# the one thing it is for: what the press became, and what a later
+# touch or the release means because of it.
+#
+# **A press on the roll is two touches.**  The window walks the pad's
+# two halves in order — the rail writes a tick, then the pitch half
+# writes a key — so the chart has a state between them, `Railed`, and
+# the pitch's touch is the one that carries the hit.  A pitch touch
+# with no rail before it is ignored: the rail speaks first.
+#
+# The host holds the geometry and the group: a tick arrives as the
+# roll's own tick and is snapped to the grid where it is used; whether
+# `Carry` means one note or the selected group is the host's, because
+# the group is the model's and not the hand's.
+
+# ── What the pitch half found ────────────────────────────────────────────
+
+#: Under the press: a note, its end, or nothing — the host's hit test,
+#: on the event.
+Hit := OnNote Int | OnEnd Int | OnRoll
+
+# ── The states ───────────────────────────────────────────────────────────
+
+#: Nothing held; the rail has spoken a tick and the pitch half is next;
+#: a note held where it was taken (note, tick, key); the note carried
+#: from there to here (note, tick0, key0, tick, key); a note's end held
+#: at a tick; the end carried (note, tick0, tick); empty roll pressed
+#: at a corner; the band swept to the other corner.
+Hand := Free
+      | Railed Int
+      | Held Int Int Int
+      | Carried Int Int Int Int Int
+      | Ending Int Int
+      | Ended Int Int Int
+      | Sweeping Int Int
+      | Swept Int Int Int Int
+
+# ── The touches and the acts ─────────────────────────────────────────────
+
+#: The rail's touch at a tick; the pitch half's touch at a key, with
+#: what was under it; the grab let go; the gesture abandoned.
+Touch := Rail Int | Pitch Int Hit | Lift | Abort
+
+#: What the host does.  `Grab` on taking a note — select it, say its
+#: line; `Shift` while carried — preview both axes; `Click` when let go
+#: where it was taken — reveal; `Carry` when let go after moving — the
+#: commit, `transpose`, `move` or `carry` by the host's reading of the
+#: group; `GrabEnd`, `Grow`, `Resize` the same three for a note's end;
+#: `Sweep` and `Select` the band's preview and commit; `Clear` on
+#: pressing empty roll at a corner — nothing is selected any more, and
+#: the hand is told what a sweep does; `Drop` — put the picture back.
+Act := Grab Int Int Int
+     | Shift Int Int Int Int Int
+     | Click Int
+     | Carry Int Int Int Int Int
+     | GrabEnd Int Int
+     | Grow Int Int Int
+     | Resize Int Int Int
+     | Sweep Int Int Int Int
+     | Select Int Int Int Int
+     | Clear Int Int
+     | Drop
+
+# ── The chart ────────────────────────────────────────────────────────────
+
+hand : Chart Hand Touch Act
+hand = Chart Free handStep handEnter
+
+#: Thirty-two arrows, all written.  The rail's touch while free is the
+#: first half of a press; the pitch's touch after it decides which of
+#: three hands this is; every touch after that carries the latest
+#: place on its own axis; a release is a click from a held state and a
+#: commit from a carried one; an abort lands free from anywhere.
+handStep : Hand -> Touch -> Step Hand Act
+handStep Free (Rail t) = Go (Railed t) []
+handStep Free (Pitch k h) = Stay
+handStep Free Lift = Stay
+handStep Free Abort = Stay
+handStep (Railed t) (Rail u) = Go (Railed u) []
+handStep (Railed t) (Pitch k (OnNote n)) = Go (Held n t k) []
+handStep (Railed t) (Pitch k (OnEnd n)) = Go (Ending n t) []
+handStep (Railed t) (Pitch k OnRoll) = Go (Sweeping t k) []
+handStep (Railed t) Lift = Go Free []
+handStep (Railed t) Abort = Go Free []
+handStep (Held n t k) (Rail u) = Go (Carried n t k u k) [Shift n t k u k]
+handStep (Held n t k) (Pitch q h) = Go (Carried n t k t q) [Shift n t k t q]
+handStep (Held n t k) Lift = Go Free [Click n]
+handStep (Held n t k) Abort = Go Free [Drop]
+handStep (Carried n t k u q) (Rail v) = Go (Carried n t k v q) [Shift n t k v q]
+handStep (Carried n t k u q) (Pitch r h) = Go (Carried n t k u r) [Shift n t k u r]
+handStep (Carried n t k u q) Lift = Go Free [Carry n t k u q]
+handStep (Carried n t k u q) Abort = Go Free [Drop]
+handStep (Ending n t) (Rail u) = Go (Ended n t u) [Grow n t u]
+handStep (Ending n t) (Pitch q h) = Stay
+handStep (Ending n t) Lift = Go Free [Click n]
+handStep (Ending n t) Abort = Go Free [Drop]
+handStep (Ended n t u) (Rail v) = Go (Ended n t v) [Grow n t v]
+handStep (Ended n t u) (Pitch q h) = Stay
+handStep (Ended n t u) Lift = Go Free [Resize n t u]
+handStep (Ended n t u) Abort = Go Free [Drop]
+handStep (Sweeping t k) (Rail u) = Go (Swept t k u k) [Sweep t k u k]
+handStep (Sweeping t k) (Pitch q h) = Go (Swept t k t q) [Sweep t k t q]
+handStep (Sweeping t k) Lift = Go Free [Drop]
+handStep (Sweeping t k) Abort = Go Free [Drop]
+handStep (Swept t k u q) (Rail v) = Go (Swept t k v q) [Sweep t k v q]
+handStep (Swept t k u q) (Pitch r h) = Go (Swept t k u r) [Sweep t k u r]
+handStep (Swept t k u q) Lift = Go Free [Select t k u q]
+handStep (Swept t k u q) Abort = Go Free [Drop]
+
+#: Taking hold is an entry action, so it happens once, on the arrow in.
+handEnter : Hand -> List Act
+handEnter (Held n t k) = [Grab n t k]
+handEnter (Ending n t) = [GrabEnd n t]
+handEnter (Sweeping t k) = [Clear t k]
+handEnter h = []

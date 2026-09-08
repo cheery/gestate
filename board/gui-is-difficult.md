@@ -1124,6 +1124,49 @@ checker cannot see the branches of is the ladder wearing a type.
 `Cancel` is in the chart and no wire sends it; today nothing can
 abandon a drag short of letting go.
 
+### Landed — 2026-09-08, evening: the note hand is a chart
+
+*"A."*  `gestate/hand.ges`, the fourth chart and the second gesture:
+eight states, four touches, eleven acts, thirty-two arrows, no
+catch-all.  The hit-test's answer rides on the event — `Pitch key
+(OnNote n | OnEnd n | OnRoll)` — and the pad's two touches are two
+events with a state between them, `Railed t`, since the rail speaks
+first.  `Session._note_touched` turns a touch into `Rail tick` or
+`Pitch key hit`, `_hand_event` asks the chart, `_hand_act` does the
+acts; the four `if` ladders that were `_pitch_touched`, `_rail_touched`,
+the band and the end, and the long ladder in `released`, are gone.
+Held by `test/test_hand_model.py` (every state and touch, the rail
+first, an end carries no pitch, no hand held forever) and by the
+drawn-scores tests unchanged — 181 green — plus the suites that reach
+into the hand (299 more).
+
+**What it found.**
+- *The four fields became readings.*  `holding`, `holding_x`, `banding`
+  and `resizing` were tuples the ladders kept in step by hand; they are
+  properties of `hand` now — the same facts, derived — and twelve test
+  sites that asked them read the same answers.  Kale's trick, on the
+  session's own state: the thing is held, the old shape is projected.
+- *F211, and it was the morning's.*  A diagonal drag was two commands
+  at the release, and after the morning's canonical write the second's
+  address named a line that had moved.  The chart made the fix the
+  obvious one: `Carry` is one act, so it is one command — `carry` on
+  the group of one — and the transcript holds one line for one
+  gesture.  Found by trying the naive thing on a note whose move
+  reorders the file; the existing test's note did not.
+- *Ratio:* 32 lines of arrows, about 200 of host — most of it the
+  geometry and the commands that were there before, now sorted by act
+  instead of by channel.  The chart bought the checker's walk over 48
+  pairs and the split that made F211 disappear.
+- *Cancel is still unsent.*  `Abort` is in the chart with `Drop` under
+  it, and no wire sends it; the third gesture chart will want the
+  escape key first.
+
+**What the next hand asks — nothing of his.**  The three remaining
+hands (the keyboard's, the fader's, the caret's) are one-thing hands
+and `gesture.ges` serves them; the roll's was the hard one and it is
+done.  The open thread on this card is idea 1's other half, the
+picture as a query on crust, and idea 7's window side.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

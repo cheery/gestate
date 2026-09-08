@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 211 entries, **168 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 212 entries, **169 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,29 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F211. **[resolved]** a diagonal drag lost its pitch once the file was written in its own order — two commands, and the second's address named a line that had moved
+
+Found 2026-09-08, afternoon, by trying the naive thing: the morning's
+decision (`card:gui-is-difficult.md` Q7) made every gesture write the
+`.notes` file canonically, and a drag in both axes was still two
+commands at the release, `move` then `transpose`.  After the `move`
+the line had sorted past its neighbour; `transpose` then named the
+note by the old tick and refused *nothing sounds 68 at tick 480* — or,
+with the old roll still on screen, would have gone by line to a line
+that was now another note's.  `test_one_drag_carries_a_note_in_pitch_and_in_time`
+did not see it because its note's move does not reorder the file
+(120 of 291 do not).  Introduced at 250244f, the same day.
+
+**Resolved the same evening, in the note hand's host**
+(`Session._commit_move`): a release that moved both axes commits **one
+`carry`** — the group of one — so both fields of one line are written
+in one parse and one write, and the transcript holds one line for one
+gesture where it held two.
+
+gate: `test_a_diagonal_drag_on_a_note_whose_move_reorders_the_file_keeps_both_axes`,
+on the note at tick 480 of `arc.notes`, whose move by a beat sorts it
+past its neighbour.
 
 ### F210. **[resolved]** `fmt` drops the parentheses around a constructor field's type, so `Go s (List a)` comes back as `Go s List a`
 

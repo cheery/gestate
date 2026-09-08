@@ -76,16 +76,8 @@ DELIBERATELY_FRESH = {
     "_diff_last": "the last diff made, of the old text",
     "proposed": "the `(verb, argument)` a name was already filled into",
     "given": "the arguments the old box was holding",
-    "holding": "a note a hand has hold of in a score box, between press and "
-               "release — there is no hand on the new file",
-    "holding_x": "the same hand's grab on the body around the column — the "
-                 "note carried in time (F204's repair) — and there is no "
-                 "hand on the new file",
     "group": "the notes a band selected in a score box, per box — no box "
              "of the new file has been swept",
-    "banding": "a band being swept over empty roll — there is no hand on "
-               "the new file",
-    "resizing": "a hand on a note's end — there is no hand on the new file",
     "sizing": "a hand on the ruler, the section's end — there is no hand on "
               "the new file",
     "taps": "when the last taps landed — a tempo tapped into one file is "
@@ -94,6 +86,8 @@ DELIBERATELY_FRESH = {
     "selected": "the note the last press picked in a score box, per box — "
                 "no box of the new file has been pressed, and the rail "
                 "would move a note of the old one",
+    "hand": "the state of `gestate/hand.ges` per box of the old file — no "
+            "box of the new file has been pressed (2026-09-08)",
     "pending": "where a commit sent the old file's notes, waiting for a "
                "rebuild of the old file's rolls that is not coming",
     "held": "the old file's selection as keys — a key means nothing in "

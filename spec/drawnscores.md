@@ -1238,7 +1238,11 @@ listening to nothing.  In the model the body's grab stands beside the
 column's (`holding_x` beside `holding`), each preview keeps the other
 axis's reading, and **the first `released` commits both** — `move` and
 `transpose`, two lines in the transcript, each replayable alone — so the
-second arrives to nothing held.  A press on an empty column drops the
+second arrives to nothing held.  The two are one `carry` on the group
+of one since 2026-09-08 (F211): once the file writes itself in its
+own order after the first command, the second's address names a line
+that has moved.  And the hand is a chart, `gestate/hand.ges` — the
+model's grab is its state, not two tuples.  A press on an empty column drops the
 selection, so the body has nothing to carry off in time.
 
 **And the window found what no bench could.**  Driven, the first run

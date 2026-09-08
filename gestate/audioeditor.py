@@ -1542,13 +1542,16 @@ class Workbench:
                         views, drawn = views[:-1], drawn[:-1]
                     boxes.update(zip(drawn, views))
                     self.note_regions.update(regions)
-                    if any(getattr(r, "on_ruler", False) for r in regions.values()):
-                        # A ruler is a hand `gestate/gesture.ges` runs;
-                        # its compile (0.13 s) is paid here, once a
-                        # process, and not on the first press.
+                    if regions:
+                        # A roll's hand is `gestate/hand.ges` and a ruler's
+                        # `gestate/gesture.ges`; their compiles (0.2 s and
+                        # 0.13 s) are paid here, once a process, and not
+                        # on the first press.
                         try:
                             from .charts import load
-                            load("gesture")
+                            load("hand")
+                            if any(getattr(r, "on_ruler", False) for r in regions.values()):
+                                load("gesture")
                         except Exception:               # noqa: BLE001
                             pass                       # the press will say why
                     # The rows, written to the reference views now and
