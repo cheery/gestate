@@ -1525,6 +1525,73 @@ else — so `describe_touch` leads with the channel's name now.  A window
 that inspects itself, inspected by the first program written against
 it.
 
+### His reading of the working program — 2026-09-08, night
+
+*The tic-tac-toe passed every instrument this tree has and he still
+called it wrong.  His words, because the wording carries it:* **"It's
+going through the hoops human would have not bothered.  Human would
+have given up before discovering this solution."**  And, on his own
+description of how he would have built it: *"even in this description I
+find something.. wrong.  This language is supposed to do something far
+much simpler, in far less effort."*
+
+**A session's persistence is a broken instrument, and it fails in one
+direction.**  Everything here measures whether a thing works: the tests,
+the gates, the driven run, the photograph.  Nothing measures what it
+cost to arrive, and a session's cost is not a person's — twelve lines of
+nested `case` cost a session nothing to write and it never reports the
+friction, because it never feels any.  So *a session built it and it
+works* is **not** evidence that a person could have.  The more a session
+can absorb, the less its success says.  That inverts the postcondition's
+reading: the two minutes are for the feel of the running thing, and this
+was heavy in the **source**, which no hand on the picture can find.
+
+**And the hardest step here produces no error, only wrong behaviour.**
+A person writing this would put a pad over the board, take x and y, and
+write the obvious fold — and get marks in the wrong row, sometimes.
+Nothing refuses, nothing complains, and there is no page that says a
+press is two instants.  That is the hoop, and it is silent: the session
+found it by measuring, a person finds it by being confused.  *Session's
+reading, marked as its own:* a framework may be judged by what it
+refuses to compile, and this one's worst step compiles.
+
+**What his own order shows.**  He said he would go: how the board is
+represented, how it is stored, then the input — *"but I'm not sure how
+that'd look like"* — then what the input does, then the ending
+condition, then wire it to the input progressing the board.  Three
+things in that:
+
+- **Represented and stored are two steps and should be one.**  Here the
+  board *is* the state; a separate storage step is a scar from
+  languages where it lives somewhere else.
+- **The input's shape has to be decided before its meaning** — the
+  uncertainty is in that sentence, and it is the exact inversion of this
+  card's first rule, *the command language and a clear model before the
+  picture*.  Written that way round he would say *pressing cell k plays
+  there* and the input's shape would follow from it.
+- **There is a "wire it" step at the end**, and a description that needs
+  one is a description of plumbing.  Nothing in tic-tac-toe is wiring.
+
+**Why it comes out that way, and it is checkable.**  The rule at the top
+of this card is real for exactly one client, and it is implemented in
+Python.  A press on the roll becomes `transpose`, `carry`, `select` — a
+command in `command.ges`, dispatched by `session.act`, recorded in a
+transcript and replayable — and the gesture that produces it is a chart,
+`hand.ges`, *run by `charts.py` from the host*.  **A program a person
+writes gets none of it.**  `audio.preludes` puts `signal.ges` and
+`gui.ges` in front of a canvas, and `roll.ges` when it draws a roll;
+`chart.ges` is never among them.  So the framework's best idea, and the
+one machinery it already has for gestures, is reachable from Python and
+not from gestate.  The tic-tac-toe hand-rolls in a fold what the roll is
+handed.
+
+*What would make it as simple as he expects, stated and not built:* a
+program declares its model, declares its commands, declares the gesture
+as a chart, and draws — four declarations, no wiring step, and the chart
+library exists and is tested and runs on crust today.  **Whether that is
+the next slice is his**, and it is a bigger claim than anything else on
+this card, so it is written here and nowhere else.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
