@@ -1709,3 +1709,40 @@ carry an `origins` table the live bench does not answer from.  Which is
 the postcondition of the card in miniature: the mechanical work was a
 session's, and the finding came from hands on the picture.  Nobody has
 timed the two minutes yet; this slice is the one to time them on.
+
+## The picture as a query, measured before it was built — 2026-09-08, night
+
+*"lets try the query-as-picture on the notes."*  Q1 had his yes an hour
+earlier, with four kill conditions written beside it, and the first of
+them had a command's worth of work in it — so the evening went to the
+number and not to the generator.  `python tools/queryframe.py`: 22 ms a
+frame on crust at the page's 152 rows, 11.8 for the stacked roll alone,
+against today's walk at 5.8 and 3.4 ms on the reference machine, which
+is the slower of the two by a factor the earlier card put at thirteen.
+The kill condition fired for *a query every frame* and left standing *a
+query on change, with the hand's preview per frame* — which is what
+the generated program already does with its channels, so the slice
+that survives is the notes layer alone.  Three things worth keeping:
+
+**An hour went to two deadlocks that printed nothing.**  The compiler
+takes the pipeline's deep stack itself; I called it inside
+`_deep_stack` twice — once wrapping the whole run, once for a second
+compile inside the timing — and each time the run sat silent past a
+ten-minute timeout, the output buffered behind a `tail`.  The
+retraction tool's own comment names this trap.  The lesson that is not
+in the comment: **a measurement that has printed nothing in a minute
+has told you something about the harness, not the subject** — go and
+look at what is running before waiting on it, and never pipe a slow
+run through `tail`.
+
+**The join cost as much as the roll.**  A five-row selection joined by
+a nested `for` was 102 ms of the reference's 339: n·k singletons
+merged.  Membership is a lookup, and the query must be written so, or
+given a `member` the language provides.  That is a shape the number
+found and no argument would have.
+
+**The postcondition's number moved to where it bites.**  *The frame is
+no slower* is now measured on the drag — the hand's per-frame layer —
+and not on the whole picture, because the whole picture is allowed to
+cost twenty milliseconds at a press.  His two minutes, when they come,
+are on a moving note.

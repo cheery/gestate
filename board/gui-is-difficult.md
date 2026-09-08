@@ -686,6 +686,53 @@ his words.*
    above; the language a person writes in stays open until his own
    GUI (§"The postcondition", *first hands on it*) says what he wants
    to write.
+
+   **Kill condition 1, measured the same evening — `python
+   tools/queryframe.py`, and `--box` for one roll.**  The rows the
+   picture draws today, `(i, x, y, w, tone, dim, mark)` a note, as a set
+   of 7-tuples; the picture as a `for` over them unioned with a join
+   against a five-note selection; forced whole, beside the generated
+   program's frame for the same rolls:
+
+   | rows | the query, reference | the query, crust | today's program, reference |
+   |---|---|---|---|
+   | 88 — the stacked roll of line 127 | 103 ms | 11.8 ms | 3.4 ms (97 items) |
+   | 152 — the page's three rolls | 339 ms | 21.9 ms | 5.8 ms (171 items) |
+
+   Of the reference's 339 ms: rows 54, every note 124, the join 102 —
+   a five-row selection joined as a nested `for` costs as much as the
+   whole roll.  Of crust's 22 ms: rows 5, every note 12.  Today's
+   program on crust is unmeasured; the earlier card put crust at
+   thirteen times the reference, which would make the walk under half
+   a millisecond against the query's twenty-two.
+
+   **So the first kill condition fires for the reading it was written
+   against** — *the picture as a query re-evaluated every frame*: 22 ms
+   against a 16.7 ms frame at the page's size, and forty-odd times the
+   walk.  Two things survive it, and they are the shape of the slice
+   now:
+
+   - **A picture recomputed on change, not per frame.**  Twenty-two
+     milliseconds at a press, a commit or a rebuild is a cost nobody
+     feels; the rows relation itself is a CAF and recurs only when the
+     notes change.  What must stay per frame is the hand's preview —
+     the held note's shift, the band, the ruler's end — a handful of
+     rows over channels, exactly what the generated program computes
+     per frame today.  So: **two layers** — the notes as a query on
+     change, the hand as a signal per frame — and the postcondition's
+     *the frame is no slower* is measured on the drag, where it bites.
+   - **A lookup, not a join, for membership.**  *Is this note
+     selected* is a key lookup; a set that is a sorted list can answer
+     it in log n by a merge against the selection, and the nested
+     `for` answers it in n·k singletons and merges.  Either a
+     `member` the language provides or a merge-join the generator
+     writes; the 102 ms says which shape the query must not take.
+
+   *What would kill the survivor:* a drag whose commit, through the
+   on-change query, is felt — the postcondition's number, his hands on
+   a moving note, against the 60 ms the notes editor's own
+   postcondition set.  *Reversibility unchanged:* the generator, and
+   nothing a person writes.
 2. **What is the framework's own command language?**  The workbench
    has `Ctrl-K`; the roll has its verbs.  Does the framework own the
    verbs, or only the way a gesture reaches one?
@@ -1327,7 +1374,11 @@ remaining hands.  After it:
    generator emits a query over the notes relation instead of a
    program, measured against the four kill conditions in Q1, the roll
    of `arcnotes.ges` line 127 as the piece; nothing a person writes
-   changes yet.
+   changes yet.  **Measured before building** (Q1, *kill condition 1*):
+   a query re-evaluated every frame does not fit the frame at the
+   page's size; the slice is therefore **two layers** — the notes as a
+   query on change, the hand's preview as a signal per frame — with
+   membership as a lookup and not a join.
 3. **His own GUI, small, written by him** — the postcondition's first
    real check, his words under §"The postcondition".  A session stays
    reachable and writes down what he stumbled on; it does not go first.

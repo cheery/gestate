@@ -393,6 +393,21 @@ evidence and not instruments.  `spec/verification.md` is the design.
 
 ---
 
+### `tools/queryframe.py` — one frame of the roll as a query
+
+    python tools/queryframe.py          # the page of arcnotes.ges
+    python tools/queryframe.py --box    # the stacked roll alone
+
+`card:gui-is-difficult.md` Q1's first kill condition, as a command: the
+roll's rows as a relation, the picture as a `for` over them with a
+selection join, forced whole on the reference machine and on `crust`,
+beside the generated program's frame for the same rolls.  The number
+it produced on 2026-09-08 — 22 ms a frame on crust at the page's 152
+rows, against 16.7 — is what turned *a query every frame* into *a
+query on change, and the hand per frame*.  Its docstring carries the
+two traps that cost the evening an hour: the compiler takes the deep
+stack itself, and the language has no unary minus.
+
 ### `tools/wasmcheck.py` — the graph as wasm, held to the native render
 
 `python tools/wasmcheck.py examples/audio/twinkle.ges` compiles the graph
