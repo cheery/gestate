@@ -1694,11 +1694,20 @@ it travels.  The landed sections and the measurements are **not** the
 material; they are what the fitting-in will meet afterwards, and they
 are on this card already for that day.
 
-**And one fact about this card: it is 1699 lines across 24 headings**,
-holding both the design and the log of what landed each day.  A
-clean-board sitting cannot hold all of it at once.  Whether it becomes
-one card or two is his; a session did not split it, because the board's
-goal is four fewer and zero new.
+**And the card's length, which a session raised twice and he answered:**
+*"I think it's important for one to read the whole card.  It's the most
+complex problem we're tackling.  And it deserves space."*  So: **not
+split, and its length is not a defect.**  1750 lines across 24 headings,
+read whole, on purpose.
+
+*The suggestion was against a rule that was already in the board.*
+`board/README.md` §"Who writes what" records that he asked for cards
+long — *"Describe them in good detail so that next time you can fix
+them"* — and a session proposing a split had reached for the brevity
+that `spec/rules.md` demands of the **five rule documents**, which are
+charged to every shift before a session knows what it is working on.  A
+card is charged to the sitting that opens it.  The two are not the same
+budget and the instinct does not carry across.
 
 ## What is next — 2026-09-08, evening; his to reorder
 
