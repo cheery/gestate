@@ -22,6 +22,10 @@
              each already answered one of these once
              doc/memory/gui-command-language-first.md — the rule below,
              as a memory
+             doc/notes/notes-on-gui.md — the card read from outside,
+             2026-09-07 to 2026-09-08: identity named as the missing
+             decision before the morning that decided it, and the
+             postcondition's sentence at 10:49
              vision.md §"Gestate as a generic working platform" and
              §"Ease of use and efficiency" — the sentences this binds
              to, §"What the vision says" below
@@ -655,6 +659,9 @@ his words.*
 3. **Which of the four hard things does he want removed first?**  The
    session's candidate is the eye (idea 7, the window inspecting
    itself); his may differ, and the card is ordered by his answer.
+   **Henri, 2026-09-08, evening:** *"the inspection tools should
+   probably go higher."*  The eye, then — with a *probably* on it, so
+   §"What is next" puts it first and leaves it his to strike.
 5. **Where is the trial?**  Henri wants the four-language
    recommendation tried *"somewhere before we apply it to gestate"*.
    A candidate the session can name: the transport's three modes,
@@ -1190,6 +1197,45 @@ hands (the keyboard's, the fader's, the caret's) are one-thing hands
 and `gesture.ges` serves them; the roll's was the hard one and it is
 done.  The open thread on this card is idea 1's other half, the
 picture as a query on crust, and idea 7's window side.
+
+## What is next — 2026-09-08, evening; his to reorder
+
+Asked the same evening — *"What's the next on line for gui-is-difficult?
+Though, note that the inspection tools should probably go higher."*
+Before that sentence the card's own tail put the open threads in
+this order: idea 1's other half, idea 7's window side, the three
+remaining hands.  After it:
+
+1. **The inspection tools — idea 7's window side.**  `probe x y`
+   exists as a command (2026-09-07, evening) and answers a session;
+   nothing answers a person at the window.  The slice: a press with an
+   inspecting modifier, or a held key, shows in the picture what the
+   probe says in text — the attachment's region outlined, its
+   channel's name, and for a note its tick, key and the line that
+   wrote it — and a press that hit nothing says what it missed and by
+   how far.  Under the postcondition this is the piece the keeper's
+   two minutes spend the most on, which is why it moves up: a walk
+   through the window instead of through the code is what makes the
+   check cost two minutes and not twenty.  *Kill condition:* if the
+   probe's answer has to be recomputed for the picture rather than
+   drawn from the same hit table, the two machines do not agree and
+   that is the finding, not the feature.
+2. **Idea 1's other half — the picture as a query on crust**, so that
+   what the window shows is derivable from the model by a command,
+   headless, and the inspector above is a rendering of that query and
+   not a second reader.  It comes second because the inspector is the
+   first client that would want it; building it first is building for
+   the queue.
+3. **The three remaining hands** through `gesture.ges` — the
+   keyboard's, the fader's, the caret's.  Mechanical, no question of
+   his in them, and the escape key first.
+4. **Q7's open half** — the verbs on a doubled address — waits on him
+   asking for it, per the midday note.
+
+*Not on the list:* the grid over `.notes`, anything drawn from
+scratch, and the two shelved clients, for the reasons §"The first
+slice" gave and the notes page's warning against building for the
+queue.
 
 ## What a session does now
 
