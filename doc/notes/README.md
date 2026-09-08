@@ -44,6 +44,7 @@ produced it rather than take the summary on trust.
 | [notes-on-which-model-runs.md](notes-on-which-model-runs.md) | the worry about not picking the mind, said at 9:42 · why it bites a method that runs on the judgment layer · a model acceptance gate instead of vigilance, and its own caveat — necessary, not sufficient |
 | [notes-on-prerequisites.md](notes-on-prerequisites.md) | not a conversation — a page: what a person needs before the method works in their hands, four prerequisites and four disqualifiers, drafted from one month and marked suspected · what of it this tree can show |
 | [notes-on-cues.md](notes-on-cues.md) | *Thinking, Fast and Slow* against the tree — the fast generator, the cached slow thinking, the live keeper · knowledge is cued, not scoped, so the question is the retrieval key · an introspective index, and the three things that can be built instead, measured |
+| [notes-on-gui.md](notes-on-gui.md) | the GUI card read from outside — identity as the missing decision · Kale, and the pin to set before building · the vision verbalised at 10:49, and the filter it makes · generality when it is cheaper than the special case · why the earlier toolkits became gunk, and why this one started from the roll |
 
 ## Provenance, and what to distrust
 
@@ -96,6 +97,18 @@ the closing sections do more work than the earlier ones, because both
 pages lean on things this tree has never seen: a SimpleQA run, a tool
 called Delta, an inventory never run here.  Each such claim is named
 as *in neither tree* rather than trusted or cut.
+
+**The sixteenth, `notes-on-gui.md`, is the third kind again**, and the
+first written from *outside* the working session: a guest session
+Henri talked to across 2026-09-07 and 2026-09-08 while a different
+session worked `card:gui-is-difficult.md` in this tree.  His five
+passages verbatim with their times, the answers condensed by the
+answerer, saved as `~/misc/notes/notes-on-gui.md` and copied
+unchanged, with a front note and a closing section.  The closing
+section does the checking the page could not: every number it quotes
+is found in the card, one of its warnings had already been overtaken
+by a landed command, and one question it asked to be settled first was
+settled the other way, in a docstring.
 
 **The tenth is a third kind, and it is the least independent of the
 three.**  `notes-on-the-conditioning.md` was written by the session that
@@ -180,6 +193,10 @@ The fourteenth and fifteenth, `notes-on-prerequisites.md` and
 could go into notes.  And notes-on-cues.md could go into notes as well"*
 — and nobody but the author and a session speaks in either; the
 one surname in the second is a book's author, cited.
+The sixteenth, `notes-on-gui.md`, went in on 2026-09-08 at his ask —
+*"~/misc/notes/notes-on-gui.md <-- worthwhile to record into the
+tree"* — and nobody but the author and a session speaks in it; the
+one surname is a paper's first author, cited.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as
