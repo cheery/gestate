@@ -66,6 +66,21 @@ not how long his hands were on either before he could say — the number
 this card's done would be, and the only instrument for it is a clock
 beside him at the next slice's gemba walk.
 
+**First hands on it — Henri, 2026-09-08, evening**, on the inspector,
+unclocked: *"I did the inspector test.. I think that I should write
+some GUI myself, or with some help from session, and see whether I
+understand how the inspector maps into the picture."*  Not a number
+and not a verdict: what two minutes produced was the next test.  The
+postcondition says a session does the mechanical work and the keeper
+checks the feel; the check he reached for is to write a small GUI in
+the framework himself, with the inspector as the way of finding out
+what the picture is doing.  That is the stranger test run by the
+author, and the thing it measures is whether the mapping from press to
+picture to line can be understood by someone who did not build it that
+day.  What a session does for it: nothing in advance — an explanation
+handed over first would answer the test for him — and stays reachable
+while he writes, and records what he stumbled on.
+
 ## What the vision says — Henri, 2026-09-07
 
 *"btw.  The GUI framework binds to several sentences we have at the
@@ -632,6 +647,45 @@ his words.*
    it: *"Planning to run on crust everything that can run there."*  So
    the relations half of the model is back on the table: a picture
    may be a query, on crust.
+   **Henri, 2026-09-08, evening:** *"Yes.  I think picture could be a
+   query.  What would kill this decision and is it reversible?"*
+   Taken as the model's second half, then, with the answer to his
+   question written here so the decision carries its own retirement:
+
+   *What would kill it, each with the observation that does:*
+   - **The frame.**  Every evaluation is whole (ratio 1.0 above, no
+     retraction), so the whole roll must re-evaluate inside a frame:
+     14 ms at six hundred rows on crust, against 16.7 ms at 60 Hz.
+     Killed by the stacked roll of `arcnotes.ges` — 291 notes, five
+     voices, ruler, selection, band, held preview — not drawing under
+     a frame on crust as a query.  The generated program draws it at
+     80 ms a frame on the reference machine today, so the bar to clear
+     is the window's, not the reference's.
+   - **Identity in a set.**  A query answers a set, and a set has no
+     duplicates; two notes drawing one rectangle collapse to one row
+     and the hit table names one of them.  Killed by a picture row
+     whose key is its geometry — the rows must carry (voice, tick,
+     key), Q7's answer, and the doubled-address test must still pass.
+   - **Arithmetic the query cannot say.**  The roll's `Shift` sums,
+     the label's `_fit`, the grid's snapping.  Killed by one element of
+     the present roll that the query language cannot draw without a
+     helper written outside it.
+   - **The two machines.**  The query runs on crust in the window and
+     on the reference machine headless; the parity fixtures must hold
+     for a query-built picture.  Killed by a fixture that passes for
+     the generated program and fails for the query.
+
+   *Reversible — while it is one client's inside.*  The `notes` box
+   already generates its program; generating a query instead changes
+   the generator and nothing else — the wire, the hit tables, the
+   chart, the identity keys, the tests all stand — and the generator
+   can be put back in an afternoon.  **It stops being reversible the
+   day a person writes a picture as a query**, because then the query
+   language is what people know and it hardens.  So the order is: the
+   roll's own picture as a query first, measured against the four
+   above; the language a person writes in stays open until his own
+   GUI (§"The postcondition", *first hands on it*) says what he wants
+   to write.
 2. **What is the framework's own command language?**  The workbench
    has `Ctrl-K`; the roll has its verbs.  Does the framework own the
    verbs, or only the way a gesture reaches one?
@@ -1268,13 +1322,19 @@ remaining hands.  After it:
 2. **Idea 1's other half — the picture as a query on crust**, so that
    what the window shows is derivable from the model by a command,
    headless, and the inspector above is a rendering of that query and
-   not a second reader.  It comes second because the inspector is the
-   first client that would want it; building it first is building for
-   the queue.
-3. **The three remaining hands** through `gesture.ges` — the
+   not a second reader.  **Decided 2026-09-08, evening — Q1: *"Yes.  I
+   think picture could be a query."***  Its slice: the `notes` box's
+   generator emits a query over the notes relation instead of a
+   program, measured against the four kill conditions in Q1, the roll
+   of `arcnotes.ges` line 127 as the piece; nothing a person writes
+   changes yet.
+3. **His own GUI, small, written by him** — the postcondition's first
+   real check, his words under §"The postcondition".  A session stays
+   reachable and writes down what he stumbled on; it does not go first.
+4. **The three remaining hands** through `gesture.ges` — the
    keyboard's, the fader's, the caret's.  Mechanical, no question of
    his in them, and the escape key first.
-4. **Q7's open half** — the verbs on a doubled address — waits on him
+5. **Q7's open half** — the verbs on a doubled address — waits on him
    asking for it, per the midday note.
 
 *Not on the list:* the grid over `.notes`, anything drawn from
