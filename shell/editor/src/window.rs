@@ -295,6 +295,11 @@ struct EditorWindow {
     /// with no list up keeps a short fade.  The window's clock either
     /// way, because frames are the window's and the model has none.
     warned: RefCell<Option<(String, Instant, bool)>>,
+    /// A Ctrl-press being answered — `spec/workbench.md` §"The window
+    /// inspects itself": which walker was asked, where, what the model
+    /// has said so far by name, or the miss.  Cleared by the next press
+    /// or Escape; an inspection is read, not glimpsed.
+    pointing: RefCell<Option<Pointing>>,
     /// The knob being dragged, and the value last sent for it.
     ///
     /// **The value, so the same one is not sent twice.**  A pointer
@@ -320,6 +325,45 @@ struct EditorWindow {
     host: std::sync::Arc<dyn Host>,
     #[allow(dead_code)]
     ctx: WindowContext,
+}
+
+/// One Ctrl-press on a canvas, and what has been said about it.
+///
+/// **The region is never stored** — it is read from the walker's own
+/// hit table on the frame the answer is drawn, by the channel's name,
+/// so the outline moves with the picture and is the window's truth;
+/// the words are the model's (`spec/workbench.md` §"The window inspects
+/// itself").  A miss keeps the point and the nearest attachment, which
+/// the model has no better answer to.
+struct Pointing {
+    /// Which walker was asked — `substrate`, or a canvas box's key.
+    key: String,
+    /// Where, in that walker's own coordinates.
+    at: (i32, i32),
+    /// `told` answers by name, in the order they arrived.
+    told: Vec<(String, String)>,
+    /// A press on nothing: the nearest attachment's name and how far.
+    missed: Option<(String, i32)>,
+}
+
+impl Pointing {
+    /// How far a point is from a region's edge — zero inside it.
+    fn distance(at: (i32, i32), region: (i32, i32, i32, i32)) -> i32 {
+        let (x, y) = at;
+        let (x0, y0, x1, y1) = region;
+        let dx = (x0 - x).max(0).max(x - x1);
+        let dy = (y0 - y).max(0).max(y - y1);
+        ((dx * dx + dy * dy) as f64).sqrt().round() as i32
+    }
+
+    /// The nearest attachment to a point that hit nothing.
+    fn nearest(at: (i32, i32), regions: &[(String, (i32, i32, i32, i32))])
+        -> Option<(String, i32)>
+    {
+        regions.iter()
+            .map(|(name, r)| (name.clone(), Pointing::distance(at, *r)))
+            .min_by_key(|(_, d)| *d)
+    }
 }
 
 #[derive(Default)]
@@ -518,6 +562,7 @@ impl EditorWindow {
             drawn: Cell::new(0),
             fingers: RefCell::new(std::collections::HashSet::new()),
             warned: RefCell::new(None),
+            pointing: RefCell::new(None),
             was_open: Cell::new(false),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
@@ -848,9 +893,106 @@ impl EditorWindow {
                     }
                 }
             }
+            self.paint_pointing(canvas, key, w, ix, iy,
+                                Some((ix, iy, ix + iw, iy + vh)));
             live = true;
         }
         live
+    }
+
+    /// Draw what a Ctrl-press was told, where the thing is.
+    ///
+    /// **The outline is the window's, the words are the model's.**
+    /// Each answered name is looked up in the walker's hit table *this
+    /// frame*, so the halo sits on the region the window itself would
+    /// have grabbed — and if the model's words and the window's
+    /// rectangle ever disagree, the disagreement is on the screen
+    /// (`spec/workbench.md` §"The window inspects itself").  Labels
+    /// stack under the region in the order the answers arrived; a
+    /// label that would leave the window is pulled back in.  A miss
+    /// draws a cross where the press was, names the nearest attachment
+    /// and outlines it faintly.
+    fn paint_pointing(&self, canvas: &mut Canvas, key: &str,
+                      w: &crate::walk::Walker, ox: i32, oy: i32,
+                      clip: Option<(i32, i32, i32, i32)>) {
+        let pointing = self.pointing.borrow();
+        let Some(p) = pointing.as_ref() else { return };
+        if p.key != key {
+            return;
+        }
+        let regions = w.regions();
+        let font = self.font();
+        let scale = self.scale();
+        let (cw, ch) = (font.w * scale, font.h * scale);
+        // The band a box is drawn in, or the whole window: nothing
+        // here paints over the text beside a box.
+        let bounds = clip.unwrap_or((0, 0, canvas.w, canvas.h));
+        let fill = |c: &mut Canvas, x: i32, y: i32, w: i32, h: i32, ink: Colour| {
+            let (x0, y0) = (x.max(bounds.0), y.max(bounds.1));
+            let (x1, y1) = ((x + w).min(bounds.2), (y + h).min(bounds.3));
+            if x1 > x0 && y1 > y0 {
+                c.fill_rect(x0, y0, x1 - x0, y1 - y0, ink);
+            }
+        };
+        let outline = |c: &mut Canvas, r: (i32, i32, i32, i32), ink: Colour| {
+            let (x0, y0, x1, y1) = (r.0 + ox, r.1 + oy, r.2 + ox, r.3 + oy);
+            let (w, h) = (x1 - x0, y1 - y0);
+            fill(c, x0, y0, w, 2, ink);
+            fill(c, x0, y1 - 2, w, 2, ink);
+            fill(c, x0, y0, 2, h, ink);
+            fill(c, x1 - 2, y0, 2, h, ink);
+        };
+        // **The words sit at the press**, where the eye already is,
+        // stacked in the order the answers came; a label that would
+        // leave the band is pulled back inside it.
+        let label = |c: &mut Canvas, x: i32, y: i32, text: &str, ink: Colour| {
+            let tw = text.chars().count() as i32 * cw + 8;
+            let th = ch + 6;
+            let x = x.min(bounds.2 - tw).max(bounds.0);
+            let y = y.min(bounds.3 - th).max(bounds.1);
+            fill(c, x, y, tw, th, view::CHROME);
+            fill(c, x, y, tw, 1, ink);
+            font.draw_scaled(c, x + 4, y + 3, text, ink, scale);
+            th + 2
+        };
+        let (px, py) = (p.at.0 + ox, p.at.1 + oy);
+        let mut ly = py + 10;
+        for (name, text) in &p.told {
+            if let Some((_, region)) = regions.iter().find(|(n, _)| n == name) {
+                outline(canvas, *region, view::CARET);
+            }
+            ly += label(canvas, px + 10, ly, text, view::INK);
+        }
+        if let Some((name, dist)) = &p.missed {
+            fill(canvas, px - 5, py, 11, 1, view::ANGRY);
+            fill(canvas, px, py - 5, 1, 11, view::ANGRY);
+            if let Some((_, region)) = regions.iter().find(|(n, _)| n == name) {
+                outline(canvas, *region, view::FAINT);
+            }
+            let words = format!("nothing here · nearest {name}, {dist} px");
+            label(canvas, px + 10, ly, &words, view::ANGRY);
+        } else if p.told.is_empty() {
+            label(canvas, px + 10, ly, "asking…", view::FAINT);
+        }
+    }
+
+    /// A Ctrl-press: ask the walker what a press here would mean, send
+    /// each answer's name and fraction as `pointed`, and start drawing
+    /// — or, for a press on nothing, say what it missed and by how far.
+    fn point(&self, key: &str, w: &crate::walk::Walker, x: i32, y: i32) {
+        let asked = w.ask(x, y);
+        let missed = if asked.is_empty() {
+            Pointing::nearest((x, y), &w.regions())
+        } else {
+            None
+        };
+        *self.pointing.borrow_mut() = Some(Pointing {
+            key: key.to_string(), at: (x, y), told: Vec::new(), missed,
+        });
+        for (name, value) in asked {
+            self.host.gesture(Gesture::Pointed(name, value).line());
+        }
+        self.dirty.set(true);
     }
 
     fn canvas_centre(&self) -> (i32, i32) {
@@ -1045,6 +1187,17 @@ impl EditorWindow {
             }
             Order::Saved => {
                 self.doc.borrow_mut().mark_saved();
+                Did::nothing()
+            }
+            Order::Told(name, text) => {
+                // Only for the press still being read; an answer to a
+                // question the next press ended is dropped, the
+                // furniture's own rule for a word it has no use for.
+                if let Some(p) = self.pointing.borrow_mut().as_mut() {
+                    p.told.retain(|(n, _)| *n != name);
+                    p.told.push((name, text));
+                    self.dirty.set(true);
+                }
                 Did::nothing()
             }
             Order::Warn(text) => {
@@ -1675,6 +1828,8 @@ impl WindowHandler for EditorWindow {
                     let shown = w.frame(dx, dy);
                     gestate_panel::paint::paint(&mut canvas, shown);
                     let (top, bottom) = view::span_of(shown);
+                    self.paint_pointing(&mut canvas, "substrate", w, 0, 0,
+                                        None);
                     let span = (top + scroll, bottom + scroll);
                     self.canvas_span.set(span);
                     // **Placed once, then clamped.**  The first frame
@@ -1856,6 +2011,13 @@ impl WindowHandler for EditorWindow {
                 if k.state != KeyState::Down {
                     return EventStatus::Ignored;
                 }
+                // Escape ends an inspection and then goes on to mean
+                // whatever else it means here.
+                if matches!(k.key, Kt::Named(NamedKey::Escape))
+                    && self.pointing.borrow_mut().take().is_some()
+                {
+                    self.dirty.set(true);
+                }
                 // **A shortcut is looked up in the list that
                 // advertises it.**  Every command travels with the key
                 // it claims, so matching the chord against *that* keeps
@@ -2034,6 +2196,11 @@ impl WindowHandler for EditorWindow {
                 button: MouseButton::Left, modifiers, ..
             }) => {
                 let (x, y) = self.cursor.get();
+                // **The next press ends the inspection**, whatever it
+                // is — the halo was read, or the person moved on.
+                if self.pointing.borrow_mut().take().is_some() {
+                    self.dirty.set(true);
+                }
                 // **The burger owns its corner, above everything** —
                 // it is painted after the palette, so it answers
                 // before it: the F116 rule, that the pointer belongs
@@ -2182,6 +2349,10 @@ impl WindowHandler for EditorWindow {
                         if let Some(w) =
                             self.walkers.borrow_mut().get_mut(&key)
                         {
+                            if modifiers.contains(Modifiers::CONTROL) {
+                                self.point(&key, w, x - ix, y - iy);
+                                return EventStatus::Captured;
+                            }
                             self.touching.set(true);
                             *self.box_grab.borrow_mut() =
                                 Some((key.clone(), ix, iy));
@@ -2208,6 +2379,18 @@ impl WindowHandler for EditorWindow {
                 // The place is in canvas coordinates: origin at the
                 // window's centre, where the paint put it.
                 if self.on_canvas.get() {
+                    // **Ctrl asks; a plain press does** — the same
+                    // hit table, answered instead of grabbed
+                    // (`spec/workbench.md` §"The window inspects
+                    // itself").
+                    if modifiers.contains(Modifiers::CONTROL) {
+                        if let Some(w) =
+                            self.walkers.borrow_mut().get_mut("substrate")
+                        {
+                            self.point("substrate", w, x, y);
+                        }
+                        return EventStatus::Captured;
+                    }
                     self.touching.set(true);
                     // **The walk is here, so the hit-testing is too.**
                     // What crosses is what the gesture meant: the

@@ -600,6 +600,11 @@ pub enum Order {
     Copy,
     Cut,
     Paste,
+    /// The answer to a `pointed`: what the attachment named is, in one
+    /// line, for the window to draw where that attachment is —
+    /// `spec/workbench.md` §"The window inspects itself".  The region
+    /// is the window's own; only the words cross.
+    Told(String, String),
     /// Say this in red beside the caret, briefly, and flash the `[+]`.
     ///
     /// **A refusal that catches the eye where it already is.**  `open`
@@ -642,6 +647,7 @@ impl Order {
             "saved" => Some(Order::Saved),
             "show" => Some(Order::Show(arg(1).into())),
             "warn" => Some(Order::Warn(arg(1).into())),
+            "told" => Some(Order::Told(arg(1).into(), arg(2).into())),
             "copy" => Some(Order::Copy),
             "cut" => Some(Order::Cut),
             "paste" => Some(Order::Paste),
@@ -693,6 +699,13 @@ pub enum Gesture {
     /// This is the verb the first revision of `spec/workbench.md`
     /// lost, and with it every fader on every canvas — fixme.md F101.
     Touch(&'static str, i32, i32),
+    /// A Ctrl-press on the canvas: what a press here **would** have
+    /// meant — the same name and clamped fraction a `touched` carries
+    /// — asked and not done.  Nothing is grabbed, nothing written, no
+    /// `released` follows (`spec/workbench.md` §"The window inspects
+    /// itself").  *Pointed*, because `asked` is already the list's
+    /// word.
+    Pointed(String, f64),
     /// A canvas element wrote its channel — **what, never where.**
     ///
     /// `Touch`'s opposite, for the window that walks the substrate
@@ -782,6 +795,9 @@ impl Gesture {
                 format!("touched\t{name}\t{value}")
             }
             Gesture::Released(name) => format!("released\t{name}"),
+            Gesture::Pointed(name, value) => {
+                format!("pointed\t{name}\t{value}")
+            }
             Gesture::Struck(c, code, on) => {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }
@@ -815,6 +831,9 @@ mod order_tests {
                    Some(Order::Insert("C4".into())));
         assert_eq!(Order::read("warn\tunsaved changes"),
                    Some(Order::Warn("unsaved changes".into())));
+        assert_eq!(Order::read("told\t__nb_rail_0__\tthe rail — tick 48"),
+                   Some(Order::Told("__nb_rail_0__".into(),
+                                    "the rail — tick 48".into())));
         // Everything after the verb is an argument already given.
         assert_eq!(Order::read("ask\tcomplete\tSig Float"),
                    Some(Order::Ask("complete".into(),
@@ -857,6 +876,15 @@ mod order_tests {
                                  zoom: 4, rungs: 9, undos: 0, redos: 1,
                                  saved: true, top: 12, rows: 30 };
         assert_eq!(g.line(), "state\t4\t9\t0\t1\t1\t12\t30\t1\t1");
+    }
+
+    /// A Ctrl-press crosses as a question with `touched`'s two fields,
+    /// under its own word — `spec/workbench.md` §"The window inspects
+    /// itself".
+    #[test]
+    fn a_pointed_press_says_the_name_and_the_fraction() {
+        assert_eq!(Gesture::Pointed("__nb_rail_0__".into(), 0.25).line(),
+                   "pointed\t__nb_rail_0__\t0.25");
     }
 
     /// **The tokenizer is the model's**, so the window only reads runs.

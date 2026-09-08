@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 212 entries, **169 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 213 entries, **169 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,28 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F212. **[bug]** a note from an included `.notes` is named by a line of the expanded program, without its file, and the caret goes nowhere
+
+Found 2026-09-08, evening, by driving the real window under `Xvfb`
+while photographing the first Ctrl-press (`card:gui-is-difficult.md`
+idea 7, the window side): a plain press on a note of `arcnotes.ges`'s
+melody roll put *59, line 246* in the status line, and the Ctrl-press
+beside it said *written at line 192* — for a file of 158 lines, whose
+notes live in `arc.notes`.  The caret stayed where it was.  Headless,
+the same note resolves: `notes.expanded` gives an `origins` table with
+291 entries and the first leaf's line 162 maps to `('arc.notes', 9)`,
+so `Session._written_at` and `describe_touch` would have said *line 9
+of arc.notes*.  In the running bench `origins.get(leaf.line)` answers
+`None`, so the roll's leaf lines and the bench's `origins` are numbered
+against two different texts — `Workbench.program` is asked more than
+once, and one of the callers (`_source_text`'s prelude sizing, or the
+`.notes` kind's wrapper) sets `self.origins` for a program the roll was
+not built from.  Suspected, not measured: the two numberings have not
+been printed side by side from inside the bench.  What a person sees
+is the fault: a line number with no file, pointing at nothing they can
+open.  Not this slice's; filed from its photograph
+(`test/driven/`, the inspector run of 2026-09-08).
 
 ### F211. **[resolved]** a diagonal drag lost its pitch once the file was written in its own order — two commands, and the second's address named a line that had moved
 

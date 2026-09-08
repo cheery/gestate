@@ -86,6 +86,11 @@ DELIBERATELY_FRESH = {
     "selected": "the note the last press picked in a score box, per box — "
                 "no box of the new file has been pressed, and the rail "
                 "would move a note of the old one",
+    "pointed_tick": "the tick a Ctrl-press's rail named, for the pitch half "
+                    "of the *same press* to pair with (`spec/workbench.md` "
+                    "§\"The window inspects itself\") — it lives for the two "
+                    "lines of one press, and a box number of the old file "
+                    "would pair a new file's note with an old file's tick",
     "hand": "the state of `gestate/hand.ges` per box of the old file — no "
             "box of the new file has been pressed (2026-09-08)",
     "pending": "where a commit sent the old file's notes, waiting for a "

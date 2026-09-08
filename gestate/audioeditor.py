@@ -1787,6 +1787,14 @@ class Workbench:
             return None
         return self.substrate.touch(kind, x, y)
 
+    def ask(self, x: int, y: int) -> list:
+        """What a press at this point of the canvas would mean, asked and
+        not done — `Substrate.ask`, the reference half of a Ctrl-press
+        (`spec/workbench.md` §"The window inspects itself")."""
+        if self.substrate is None:
+            return []
+        return self.substrate.ask(x, y)
+
     def touched(self, name: str, value: float) -> None:
         """A canvas element wrote its channel, by name.
 

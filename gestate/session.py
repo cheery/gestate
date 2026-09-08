@@ -969,6 +969,11 @@ class Session:
     #: names the one; this names them all, and a hand on any of them
     #: carries the lot.
     group: dict = field(default_factory=dict)
+    #: **The tick a Ctrl-press's rail named**, per box, so the pitch
+    #: half's `pointed` that follows it can say which note — the pairing
+    #: `hand.ges` keeps in `Railed`, for a press that holds nothing
+    #: (`spec/workbench.md` §"The window inspects itself").
+    pointed_tick: dict = field(default_factory=dict)
     #: A hand on the ruler — the section's end — `(ruler channel, box,
     #: bars it has, the gesture's state)` while `gestate/gesture.ges`
     #: is not `Idle`, else `None`; the chart carries where the hand
@@ -5090,6 +5095,26 @@ class Session:
         self._journal().add("released", (name,), "")
         return said or ""
 
+    def pointed(self, name: str, value: float) -> str:
+        """A Ctrl-press's question — what a press here would have meant
+        — answered in words and sent back to be drawn where the
+        attachment is (`spec/workbench.md` §"The window inspects
+        itself"; `card:gui-is-difficult.md` idea 7, the window side).
+
+        **The same reader `probe` uses**, `describe_touch`, so the
+        command and the picture never say two things about one point.
+        Nothing is grabbed, written or released here: the hand chart
+        does not hear of it, and the selection stays what it was.  The
+        transcript records it as a step with its answer, so a recording
+        shows what was looked at and what was seen.
+        """
+        words = describe_touch(self.bench, name, float(value), self.pointed_tick)
+        tell = getattr(self.view, "tell", None)
+        if tell is not None:
+            tell(name, words)
+        self._journal().add("pointed", (name, float(value)), words)
+        return words
+
     def _retune_included(self, found, note: int, key: int, origins) -> str | None:
         """A drag on a note an included `.notes` wrote — or `None`.
 
@@ -6478,12 +6503,14 @@ def _listening(bench, name: str) -> bool:
 def probe_at(bench, x: int, y: int) -> str:
     """Every attachment a press at `(x, y)` would take, innermost first
     — `gui._grabbed` over the substrate's own hit table — each with
-    its channel's name, its axis and its region; and where the channel
-    is a score box's hand, the tick and key the point means and the
-    note sounding there with the line that wrote it, or the box's own
-    refusal.  Read, not written: no channel moves."""
-    from .gui import _attachments, _grabbed
-    from .scorebox import RefusedError, key_at, note_under, tick_at
+    its channel's name, its axis and its region, and then the words
+    `describe_touch` has for it: the tick a rail means, the key and the
+    note under a pitch hand with the line that wrote it, the box's own
+    refusal, a plain channel's value and declaration.  Read, not
+    written: no channel moves.  **One reader for the command and for
+    the window's Ctrl-press** (`spec/workbench.md` §"The window
+    inspects itself"), so the two never describe one point twice."""
+    from .gui import _attachments, _gesture_value, _grabbed
 
     view = getattr(bench, "substrate", None)
     if view is None:
@@ -6492,35 +6519,95 @@ def probe_at(bench, x: int, y: int) -> str:
     got = _grabbed(hits, x, y)
     if not got:
         return f"probe: nothing at {x},{y} — {len(hits)} attachment(s) elsewhere"
+    # The rail speaks first (`hand.ges`): its tick is what the pitch
+    # half's words need, whichever order the hit table has them in.
+    named = [(view._named(h["chan"]) or f"#{h['chan']}", h,
+              _gesture_value(h, "press", x, y) or 0.0) for h in got]
+    regions = getattr(bench, "note_regions", None) or {}
+    ticks: dict = {}
+    for name, _hit, value in named:
+        found = regions.get(name)
+        if found is not None and getattr(found, "on_rail", False):
+            describe_touch(bench, name, value, ticks)
+    out = []
+    for name, hit, value in named:
+        x0, y0, x1, y1 = hit["region"]
+        out.append(f"{name} ({hit['axis']}) {x0},{y0}–{x1},{y1} — "
+                   + describe_touch(bench, name, value, ticks))
+    return "; ".join(out)
+
+
+def describe_touch(bench, name: str, value: float, ticks: dict | None = None) -> str:
+    """One attachment a press took, in words — the reader behind
+    `probe x y` and behind a Ctrl-press's `pointed` (`spec/workbench.md`
+    §"The window inspects itself"), so the command and the picture say
+    the same thing about one point.
+
+    `value` is what the attachment's own rule produced — the fraction
+    of its extent, `gui._gesture_value` — which is all the wire
+    carries.  For a score box's **rail** that is a tick, remembered in
+    `ticks` by box so the **pitch** half that follows can name the note
+    sounding there and the line that wrote it, or say *empty roll*;
+    the **ruler** is the section's end.  Any other channel is named
+    with the value it holds, what a press would write, and the line
+    that declared it — the picture answering *which line made this*
+    for a fader as well as a note.
+    """
+    from .scorebox import RefusedError, key_at, note_under, tick_at
+
     regions = getattr(bench, "note_regions", None) or {}
     origins = getattr(bench, "origins", None) or {}
-    out = []
-    for hit in got:
-        name = view._named(hit["chan"]) or f"#{hit['chan']}"
-        x0, y0, x1, y1 = hit["region"]
-        said = f"{name} ({hit['axis']}) {x0},{y0}–{x1},{y1}"
-        found = regions.get(name)
-        if found is not None:
-            roll = found.roll
-            if getattr(found, "on_ruler", False):
-                said += " — the ruler"
-            else:
-                tick = tick_at(roll, (x - x0) / max(1, x1 - x0))
-                key = key_at(roll, (y - y0) / max(1, y1 - y0))
-                try:
-                    note = note_under(roll, tick, key)
-                except RefusedError as exc:
-                    said += f" — tick {tick} key {key}: {exc}"
-                else:
-                    on, _off, leaf_id, sounds, _v, _m = roll.events[note]
-                    leaf = roll.leaves[leaf_id]
-                    where = origins.get(leaf.line)
-                    place = (f"line {leaf.line}" if where is None
-                             else f"line {where[1]} of {where[0]}")
-                    said += (f" — tick {tick} key {key}: note {sounds} at "
-                             f"tick {on}, written at {place}")
-        out.append(said)
-    return "; ".join(out)
+    found = regions.get(name)
+    if found is not None:
+        roll, box = found.roll, found.box
+        if getattr(found, "on_ruler", False):
+            return (f"the ruler — the section's end; hand at tick "
+                    f"{tick_at(roll, value)}, a drag carries it by bars")
+        if getattr(found, "on_rail", False):
+            tick = tick_at(roll, value)
+            if ticks is not None:
+                ticks[box] = tick
+            return f"the rail — tick {tick}"
+        key = key_at(roll, value)
+        tick = (ticks or {}).get(box)
+        if tick is None:
+            return f"the pitch hand — key {key}; no rail spoke, so no tick"
+        try:
+            note = note_under(roll, tick, key)
+        except RefusedError as exc:
+            return f"tick {tick} key {key}: empty roll — {exc}"
+        on, _off, leaf_id, sounds, _v, _m = roll.events[note]
+        leaf = roll.leaves[leaf_id]
+        where = origins.get(leaf.line)
+        place = (f"line {leaf.line}" if where is None
+                 else f"line {where[1]} of {where[0]}")
+        return (f"tick {tick} key {key}: note {sounds} at tick {on}, "
+                f"written at {place}")
+    view = getattr(bench, "substrate", None)
+    held = (getattr(view, "values", None) or {}).get(name) if view is not None else None
+    said = (f"holds {held:.3g}, " if isinstance(held, (int, float))
+            else "") + f"a press here would write {value:.3g}"
+    line = _declared_at(bench, name)
+    if line is not None:
+        said += f"; declared at line {line}"
+    return said
+
+
+def _declared_at(bench, name: str) -> int | None:
+    """The line of the bench's source that declares `name`, counting
+    from one — `name : Chan …` — or `None` when the source has no such
+    line, which is a hidden channel or a box's own."""
+    import re
+
+    source = getattr(bench, "source", None)
+    text = source() if callable(source) else source
+    if not isinstance(text, str):
+        return None
+    pattern = re.compile(r"^\s*" + re.escape(name) + r"\s*:")
+    for n, line in enumerate(text.splitlines(), 1):
+        if pattern.match(line):
+            return n
+    return None
 
 
 def _state_of(bench):
@@ -6817,10 +6904,20 @@ def act(session: "Session", line: str) -> str:
         # its extent the point means — is the substrate's decision
         # (`spec/substrate.md`), so nothing here interprets the place.
         try:
-            meant = session.bench.touch(parts[1], int(parts[2]),
-                                        int(parts[3]))
+            x, y = int(parts[2]), int(parts[3])
         except ValueError:
             return f"touch: `{parts[2]} {parts[3]}` is not a place"
+        if parts[1] == "point":
+            # **A question, not a press** — the reference half of the
+            # window's Ctrl-press (`spec/workbench.md` §"The window
+            # inspects itself"): the same attachments a press would
+            # take, each answered and none grabbed.
+            asking = getattr(session.bench, "ask", None)
+            meant = asking(x, y) if asking is not None else []
+            if not meant:
+                return f"pointed: nothing at {x},{y}"
+            return "; ".join(session.pointed(n, v) for n, v in meant)
+        meant = session.bench.touch(parts[1], x, y)
         # **The reference path says the same words the wire does.**  A
         # window that walks the substrate sends `touched`/`released`
         # already hit-tested; here the model did the walk itself, and
@@ -6845,4 +6942,14 @@ def act(session: "Session", line: str) -> str:
         # the last `touched` and two readings of one number is how
         # they disagree (`spec/workbench.md`).
         return session.released(parts[1])
+    if verb == "pointed" and len(parts) >= 3:
+        # A Ctrl-press: what a press here would have meant, asked and
+        # not done — answered by name, drawn by the window where the
+        # attachment is (`spec/workbench.md` §"The window inspects
+        # itself").  Not in `_INTERRUPTS`: looking at the document is
+        # not doing something to it.
+        try:
+            return session.pointed(parts[1], float(parts[2]))
+        except ValueError:
+            return f"pointed: `{parts[2]}` is not a value"
     return f"no gesture `{verb}`"

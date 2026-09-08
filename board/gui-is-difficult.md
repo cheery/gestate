@@ -1196,7 +1196,59 @@ into the hand (299 more).
 hands (the keyboard's, the fader's, the caret's) are one-thing hands
 and `gesture.ges` serves them; the roll's was the hard one and it is
 done.  The open thread on this card is idea 1's other half, the
-picture as a query on crust, and idea 7's window side.
+picture as a query on crust; idea 7's window side landed the same
+evening.
+
+### Landed — 2026-09-08, evening: the window inspects itself
+
+*"Lets go for the Idea 7, should we?"*  Postcondition, written first:
+*with a key held, pressing anything in the window shows in the window
+what it is and which line made it, and a press on nothing shows what
+it missed, so you check the picture without reading the code.*
+
+**The wire first**, `spec/workbench.md` §"The window inspects itself"
+— F101's order: **Ctrl-press** crosses as `pointed <name> <value>`,
+the same name and clamped fraction a `touched` carries, as a question:
+nothing grabbed, nothing written, no `released`, the hand chart never
+hears of it.  (*Pointed*, because `asked` was already the list's word
+for *done asking* — found by the first seam test returning nothing.)
+The model answers `told <name> <text>` by name; **the region never
+crosses** — the window outlines the attachment from its own hit table
+this frame and puts the model's words at the press, so if the two
+machines ever disagree about *where*, the halo sits beside the wrong
+rectangle and a person sees it.  A miss is the window's own: a cross,
+*nothing here*, the nearest attachment named with its distance.
+
+**One reader for the command and the picture.**  `describe_touch` in
+`session.py` is the words; `probe x y` and a `pointed` both go through
+it, held by `test_ask_is_the_press_without_the_grab` (the two say the
+same for one point, by construction) — and `Substrate.ask` /
+`touch point x y` is the reference half, so a session without a window
+inspects the same picture headless.  The window half: `Canvas::ask`
+and `regions` in the panel crate, `Walker::ask` / `regions` in the
+editor's, `Pointing` in `window.rs` with the clip-aware paint, cleared
+by the next press or Escape.  Held by four Python tests in
+`test/test_drawnscores.py`, three Rust tests (the order reads back,
+the gesture's line, the walker asks and holds nothing), the atlas's
+wire gate, and **a stamped driven run**,
+`test/driven/20260908-132518-inspector/` — three photographs, read.
+
+**Two things found on the way.**  *`fixme.md` F212*: a note from an
+included `.notes` is named by a bare line of the expanded program
+(*written at line 246*, for a 158-line file) and the caret goes
+nowhere — an older gap in the click path, which the photograph made
+visible.  And the pad's extent is the whole band, taller than the roll
+it draws, so the halo's top and bottom edges are clipped and only the
+sides show — the window's truth about where the pad is, and worth
+knowing before anyone reads the sides as a defect.
+
+**Two things for his hands** — not questions to answer here, things
+to feel: whether Ctrl is the right key to hold, and whether a miss
+naming the channel as the program named it (`__nb_rail_2__`) is a
+help or a leak of a mechanism into a person's view.  **The
+postcondition's number is still unmeasured** — nobody has timed two
+minutes on this — and this is the slice to time it on, because
+inspecting is what the two minutes are spent doing.
 
 ## What is next — 2026-09-08, evening; his to reorder
 
@@ -1206,20 +1258,13 @@ Before that sentence the card's own tail put the open threads in
 this order: idea 1's other half, idea 7's window side, the three
 remaining hands.  After it:
 
-1. **The inspection tools — idea 7's window side.**  `probe x y`
-   exists as a command (2026-09-07, evening) and answers a session;
-   nothing answers a person at the window.  The slice: a press with an
-   inspecting modifier, or a held key, shows in the picture what the
-   probe says in text — the attachment's region outlined, its
-   channel's name, and for a note its tick, key and the line that
-   wrote it — and a press that hit nothing says what it missed and by
-   how far.  Under the postcondition this is the piece the keeper's
-   two minutes spend the most on, which is why it moves up: a walk
-   through the window instead of through the code is what makes the
-   check cost two minutes and not twenty.  *Kill condition:* if the
-   probe's answer has to be recomputed for the picture rather than
-   drawn from the same hit table, the two machines do not agree and
-   that is the finding, not the feature.
+1. **The inspection tools — idea 7's window side.**  **Landed the
+   same evening**, §"Landed — 2026-09-08, evening: the window inspects
+   itself" above.  The kill condition did not fire: the words come from
+   one reader and the region from the window's own hit table, so the
+   two machines are shown side by side rather than reconciled.  What
+   is left of it is his: the key, the miss's wording, and the two
+   minutes.
 2. **Idea 1's other half — the picture as a query on crust**, so that
    what the window shows is derivable from the model by a command,
    headless, and the inspector above is a rendering of that query and

@@ -314,6 +314,14 @@ class Window:
         """
         self.editor.order(f"warn\t{message}")
 
+    def tell(self, name: str, text: str) -> None:
+        """The answer to a `pointed`, for the window to draw beside the
+        attachment it named — `told <name> <text>`,
+        `spec/workbench.md` §"The window inspects itself".  One line: a
+        tab or a newline in the words would be a second field."""
+        clean = " ".join(str(text).split())
+        self.editor.order(f"told\t{name}\t{clean}")
+
     def insert(self, text: str) -> bool:
         if not text:
             return False

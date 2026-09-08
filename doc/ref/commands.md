@@ -178,7 +178,8 @@ probe x y : Int -> Int -> Command
 What is under a point of the canvas: every attachment there,
 innermost first, with its channel and region — and for a note, its
 tick, its key and the line that wrote it.  The window inspecting
-itself, as a command first.
+itself, as a command first; **Ctrl-press** on the canvas asks the
+same reader and draws its answer where the thing is.
 
 
 ## The loop

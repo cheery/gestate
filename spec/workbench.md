@@ -1126,6 +1126,68 @@ ended — the dialog's rule, for the same reason: a step per motion
 event would push the run-up to the bug off the top of the recording
 that exists to hold it.
 
+### The window inspects itself — `pointed` and `told`, 2026-09-08
+
+*`card:gui-is-difficult.md` idea 7, the window side.  The command side
+landed 2026-09-07 as `probe x y`; this is the same reader reached from
+the picture, written here before the window learns it — F101's law
+again.*
+
+**A press that asks instead of writes.**  With **Ctrl held**, a press
+on the canvas — the file's own or a `canvas`/`notes` box — takes the
+same hit-test and the same clamp a `touched` would, and crosses as a
+question:
+
+    pointed <name> <value>       what a press here would have meant
+
+One line per attachment the press would have taken, innermost first,
+exactly the lines a `touched` press sends (*pointed*, because `asked`
+is already the list's word for *done asking*) — and **nothing else
+happens**: no grab is held, no channel is written, no `released`
+follows, the hand chart never hears of it.  A Ctrl-press on a note
+does not select it.  The window says what it *would* have meant, and
+the model says what that is.
+
+**The model answers by name, not by place:**
+
+    told <name> <text>           the answer, for that attachment
+
+`text` is one line, the same words `probe` says for the same point —
+by construction, because both go through one reader in
+`gestate/session.py`: for a score box's rail, the tick; for its pitch
+half, the key and the note sounding there with the line that wrote it,
+or *empty roll*; for the ruler, the bar; for any other channel, its
+name, the value it holds, and the line that declared it.  A `told`
+for a name the window is not showing is dropped, the furniture's own
+rule.
+
+**The window draws the answer where the attachment is**, and the
+region comes from the window's own hit table — the one it walked this
+frame — never from the model.  So the outline is the window's truth
+and the words are the model's, side by side, and if the two machines
+ever disagree about where a thing is, the halo sits beside the wrong
+rectangle and a person sees it.  That is the point of drawing it
+rather than saying it in the status line: the eye is the only oracle
+for *where*, and this puts the two readings in front of it at once.
+The halo stays until the next press on the canvas or Escape — an
+inspection is read, not glimpsed.
+
+**A miss is the window's own.**  Ctrl-press on nothing sends nothing
+— the wire keeps not carrying the misses — and the window says so
+where the press was, naming the nearest attachment and the distance
+to it in pixels.  The model has no better answer to *why did I not
+hit*: the extent lives in the window.
+
+**Both machines say it.**  `gui.Substrate.ask(x, y)` is the reference
+half — `_grabbed` and `_gesture_value` with no grab kept — and
+`touch point <x> <y>` drives it headless through `session.act`, so a
+session without a window inspects the same picture with the same
+words; the parity fixtures hold the two hit tables to each other as
+they already do.  In the transcript a `pointed` is a step with its
+answer, so a recording shows what was looked at and what was seen;
+it is **not** an interrupt to a gemba walk (`session._INTERRUPTS`),
+because looking at the document is not doing something to it.
+
 ## Content boxes — the rows grow a height
 
 The margin proved the idea sideways: a knob beside its own declaration

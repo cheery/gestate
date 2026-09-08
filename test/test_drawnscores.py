@@ -3305,6 +3305,108 @@ def test_probe_says_what_is_under_a_point_and_where_it_was_written():
     assert probe_at(Bench(), -5000, -5000).startswith("probe: nothing at")
 
 
+def test_a_ctrl_press_asks_and_holds_nothing():
+    """`spec/workbench.md` §"The window inspects itself": a `pointed` on
+    the rail then on the pitch half names the tick, then the note and
+    the line that wrote it; the answer goes back to the view by name to
+    be drawn where the attachment is; and nothing is held — the hand
+    chart stays free, nothing is selected, no preview is written.  The
+    transcript keeps the step with its answer."""
+    from gestate.scorebox import across_of, reach_of
+    from gestate.session import act
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        told = []
+        seat.view.tell = lambda name, text: told.append((name, text))
+        low, high = reach_of(roll)
+        on, _off, _k, key, _v, _m = roll.events[0]
+        rail = act(seat, f"pointed\t__nb_rail_0__\t{across_of(roll, on)}")
+        assert rail.startswith("the rail — tick"), rail
+        pitch = act(seat, f"pointed\t__nb_pitch_0__\t{(high - key) / (high - low)}")
+        assert "note" in pitch and "written at line" in pitch, pitch
+        assert seat.hand == {} and seat.selected == {}
+        assert seat.bench.previewing == {}
+        assert [n for n, _ in told] == ["__nb_rail_0__", "__nb_pitch_0__"]
+        assert told[1][1] == pitch
+        step = seat.log.steps[-1]
+        assert step.verb == "pointed" and step.said == pitch
+        # The pitch half alone has no tick to name a note by, and says so.
+        seat.pointed_tick.clear()
+        assert "no rail spoke" in act(seat, "pointed\t__nb_pitch_0__\t0.5")
+
+
+def test_ask_is_the_press_without_the_grab():
+    """`Substrate.ask` names the attachments a press would take with the
+    values a press would write, and keeps no hold; and `touch point x y`
+    through `act` says, for each, the words `probe x y` says for the
+    same point — one reader, by construction."""
+    from gestate.scorebox import geometry_of
+    from gestate.session import Session, act, probe_at
+
+    _here, seat, view, roll = _page_seat()
+    geo = geometry_of(roll)
+    heads = [i for i in view.picture() if i[0] == "rect" and i[4] == geo.note_h]
+    _kind, x, y, w, h, _c = heads[0]
+    cx, cy = x + w // 2, y + h // 2
+    asked = view.ask(cx, cy)
+    assert view._held is None
+    pressed = [(n, v) for _k, n, v in view.touch_all("press", cx, cy)]
+    view.touch_all("release", cx, cy)
+    assert asked == pressed, (asked, pressed)
+    assert {n for n, _ in asked} == {"__nb_rail_0__", "__nb_pitch_0__"}
+
+    class Bench:
+        substrate = view
+        note_regions = seat.bench.note_regions
+        origins = getattr(seat.bench, "origins", None) or {}
+
+        def ask(self, x, y):
+            return view.ask(x, y)
+
+    class View:
+        def text(self):
+            return ""
+
+    other = Session(bench=Bench())
+    other.view = View()
+    by_ask = set(act(other, f"touch\tpoint\t{cx}\t{cy}").split("; "))
+    by_probe = {part.split(" — ", 1)[1]
+                for part in probe_at(Bench(), cx, cy).split("; ")}
+    assert by_ask == by_probe, (by_ask, by_probe)
+    assert act(other, "touch\tpoint\t-5000\t-5000") == "pointed: nothing at -5000,-5000"
+
+
+FADER = """
+dragged : Chan Float
+dragged = chan
+
+level : Sig Float
+level = 0.5 ::: mkSig (wait dragged)
+
+substrate : Sig Sub
+substrate = onTouchY dragged (rect 12 120 (colour 40 40 40))
+"""
+
+
+def test_a_plain_channel_is_told_its_value_and_its_line():
+    """A fader is a channel and not a note, and the picture still answers
+    *which line made this*: what a press would write, and the line that
+    declared the channel."""
+    from gestate.gui import Substrate
+    from gestate.session import describe_touch
+
+    class Bench:
+        substrate = Substrate(FADER, rate=8000)
+        source = FADER
+
+    said = describe_touch(Bench(), "dragged", 0.25)
+    assert "a press here would write 0.25" in said, said
+    assert "declared at line 2" in said, said
+    Bench.substrate.write("dragged", 0.75)
+    assert describe_touch(Bench(), "dragged", 0.25).startswith("holds 0.75")
+
+
 
 # ── Identity: the file is a table, and the selection follows the note ──────
 #

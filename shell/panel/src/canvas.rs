@@ -282,12 +282,36 @@ impl Canvas {
     /// one was); two faders side by side share no extent and a press
     /// on one leaves the other alone.
     pub fn press(&mut self, x: i32, y: i32) -> Vec<(i64, f64)> {
-        self.held = self.display.grabbed(x, y).into_iter()
+        self.held = self.taken(x, y);
+        self.value_at(x, y)
+    }
+
+    /// What a press here **would** write, and nothing held — the
+    /// window's Ctrl-press (`spec/workbench.md` §"The window inspects
+    /// itself").  The same grab and the same clamp as `press`, over the
+    /// same hit table, answered and forgotten: `is_grabbing` stays
+    /// false, a motion after this moves nothing, and there is nothing
+    /// to release.
+    pub fn ask(&self, x: i32, y: i32) -> Vec<(i64, f64)> {
+        fractions(&self.taken(x, y), x, y)
+    }
+
+    /// Every channel attachment the last frame laid out, with its
+    /// region — the window's own hit table, for drawing an answer
+    /// where the thing is.
+    pub fn regions(&self) -> Vec<(i64, (i32, i32, i32, i32))> {
+        self.display.hits.iter().filter_map(|hit| match hit.kind {
+            Kind::Chan(_, chan) => Some((chan, hit.region)),
+            _ => None,
+        }).collect()
+    }
+
+    fn taken(&self, x: i32, y: i32) -> Vec<(Axis, i64, (i32, i32, i32, i32))> {
+        self.display.grabbed(x, y).into_iter()
             .filter_map(|hit| match hit.kind {
                 Kind::Chan(axis, chan) => Some((axis, chan, hit.region)),
                 _ => None,
-            }).collect();
-        self.value_at(x, y)
+            }).collect()
     }
 
     pub fn motion(&mut self, x: i32, y: i32) -> Vec<(i64, f64)> {
@@ -314,21 +338,7 @@ impl Canvas {
     /// restate it; and the number means something without knowing the
     /// size, so the same signal drives a synth parameter directly.
     fn value_at(&self, x: i32, y: i32) -> Vec<(i64, f64)> {
-        self.held.iter().map(|&(axis, chan, (x0, y0, x1, y1))| {
-            let (here, low, span) = match axis {
-                Axis::X => (x, x0, x1 - x0),
-                Axis::Y => (y, y0, y1 - y0),
-            };
-            // An element with no extent on the axis it listens to has
-            // no fraction to report; 0 is the honest answer and the
-            // alternative is a division by zero on a `Gap`.
-            let f = if span <= 0 {
-                0.0
-            } else {
-                (((here - low) as f64) / span as f64).clamp(0.0, 1.0)
-            };
-            (chan, f)
-        }).collect()
+        fractions(&self.held, x, y)
     }
 
     /// The parameter a channel also is, if the export found one.
@@ -378,4 +388,27 @@ impl Canvas {
     pub fn grabbed(&self) -> Vec<i64> {
         self.held.iter().map(|&(_, c, _)| c).collect()
     }
+}
+
+/// The fraction of its own extent each held attachment reads at a
+/// point, clamped there — `gui._gesture_value`, the one rule both
+/// machines run.
+fn fractions(held: &[(Axis, i64, (i32, i32, i32, i32))], x: i32, y: i32)
+    -> Vec<(i64, f64)>
+{
+    held.iter().map(|&(axis, chan, (x0, y0, x1, y1))| {
+        let (here, low, span) = match axis {
+            Axis::X => (x, x0, x1 - x0),
+            Axis::Y => (y, y0, y1 - y0),
+        };
+        // An element with no extent on the axis it listens to has
+        // no fraction to report; 0 is the honest answer and the
+        // alternative is a division by zero on a `Gap`.
+        let f = if span <= 0 {
+            0.0
+        } else {
+            (((here - low) as f64) / span as f64).clamp(0.0, 1.0)
+        };
+        (chan, f)
+    }).collect()
 }

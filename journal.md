@@ -1677,3 +1677,35 @@ chosen, and the chart had already decided the shape of the fix: a
 `Carry` is one act, so it is one command.  Twelve hours from the
 first chart to the fourth; the ruler, then the roll.
 
+## The window inspects itself — 2026-09-08, evening
+
+*"Lets go for the Idea 7, should we?"* — after *"the inspection tools
+should probably go higher."*  `card:gui-is-difficult.md` §"Landed —
+2026-09-08, evening" is the record; three things worth the journal.
+
+**The first seam test returned an empty string**, and that was the
+day's best catch: the verb I had chosen, `asked`, was already the
+palette's word for *done asking*, so `act` swallowed it silently.  A
+word added to one end of a wire that the other end already means
+something else by is exactly the defect the atlas's wire gate exists
+for, and the gate would not have caught this one — both ends knew the
+word.  The test did, because it asked for an answer and got none.  The
+verb is `pointed`.
+
+**The wire gate refused the model half alone.**  I meant to commit the
+model side first, F101's order, spec then seam tests then Rust — and
+`test_the_two_ends_of_the_wire_agree` said *`pointed` is read and
+nothing sends it; `told` is sent and nothing reads it*.  Right: F101
+is about the order of *writing*, and a commit is a publication of a
+whole.  So the two halves landed together, and the order of writing
+was still spec, tests, Rust.
+
+**The photograph found an older defect in two minutes.**  The first
+Ctrl-press in the real window said *written at line 246* for a file of
+158 lines, and a plain press on the same note said the same bare
+number — `fixme.md` F212, in the click path since the roll learned to
+say a line, and invisible to every test because the tests' benches
+carry an `origins` table the live bench does not answer from.  Which is
+the postcondition of the card in miniature: the mechanical work was a
+session's, and the finding came from hands on the picture.  Nobody has
+timed the two minutes yet; this slice is the one to time them on.

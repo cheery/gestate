@@ -1117,6 +1117,26 @@ class Substrate:
             # here.
         return out
 
+    def ask(self, x: int, y: int) -> list:
+        """What a press here *would* mean, and nothing done about it —
+        `spec/workbench.md` §"The window inspects itself".
+
+        The same hit-test and the same clamp `touch_all` gives a press,
+        answered as `[(name, value), …]` innermost first, with no grab
+        kept, no channel written and nothing to release: the reference
+        half of a Ctrl-press, so a headless session asks the picture
+        the question a window asks it.  Anonymous channels are left out
+        as they are everywhere else — there is no name to answer by.
+        """
+        hits = _attachments(self.signal.value, self.state)
+        out = []
+        for target in _grabbed(hits, x, y):
+            name = self._named(target["chan"])
+            value = _gesture_value(target, "press", x, y)
+            if name is not None and value is not None:
+                out.append((name, value))
+        return out
+
     def _named(self, chan: int) -> str | None:
         """The declared name of a channel id, or `None` for a hidden one."""
         for name, cid in self.by_name.items():

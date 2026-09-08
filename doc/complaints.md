@@ -634,7 +634,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 648 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
 | 903 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
 | 925 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1216 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 1236 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -879,21 +879,21 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2524 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2530 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2544 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2657 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2663 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2668 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
-| 2686 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2748 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2816 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2820 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 2960 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 2971 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5135 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5303 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5309 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 2529 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2535 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2549 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2662 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2668 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2673 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
+| 2691 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 2753 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2821 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2825 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 2965 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 2976 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5160 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5328 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5334 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `tempo.py`
 

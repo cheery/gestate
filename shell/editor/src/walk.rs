@@ -323,6 +323,26 @@ impl Walker {
     pub fn is_grabbing(&self) -> bool {
         self.canvas.is_grabbing()
     }
+
+    /// What a press here would have meant, by name, and nothing held —
+    /// the Ctrl-press's `pointed` (`spec/workbench.md` §"The window
+    /// inspects itself").  Nothing is pushed to `pending`: the picture
+    /// is asked, not moved.
+    pub fn ask(&self, x: i32, y: i32) -> Vec<(String, f64)> {
+        self.canvas.ask(x, y).into_iter().filter_map(|(chan, value)| {
+            self.names.iter().find(|(id, _)| *id == chan)
+                .map(|(_, name)| (name.clone(), value))
+        }).collect()
+    }
+
+    /// The named attachments of the last frame with their regions, in
+    /// the frame's own coordinates — where an answer is drawn.
+    pub fn regions(&self) -> Vec<(String, (i32, i32, i32, i32))> {
+        self.canvas.regions().into_iter().filter_map(|(chan, region)| {
+            self.names.iter().find(|(id, _)| *id == chan)
+                .map(|(_, name)| (name.clone(), region))
+        }).collect()
+    }
 }
 
 /// `reading` lines to `(name, value)` pairs — the furniture's
@@ -471,6 +491,29 @@ mod walker_tests {
     /// rather than generated so `cargo test` needs no Python; if the
     /// payload format moves, regenerate it the same way.
     const FADER: &str = include_str!("../tests/fader.walk");
+
+    /// A Ctrl-press asks the same hit table a press grabs and holds
+    /// nothing — `spec/workbench.md` §"The window inspects itself".
+    #[test]
+    fn asking_names_the_fader_and_keeps_no_hold() {
+        let walk = Walk::read(FADER).expect("the payload reads");
+        let mut w = Walker::open(&walk).expect("the program loads");
+        let (x0, y0, x1, y1) = w.frame(100, 100).hits[0].region;
+        let (cx, cy) = ((x0 + x1) / 2, (y0 + y1) / 2);
+        let asked = w.ask(cx, cy);
+        assert_eq!(asked.len(), 1, "one attachment under the fader's middle");
+        assert_eq!(asked[0].0, "dragged");
+        assert!((asked[0].1 - 0.5).abs() < 0.02, "the middle reads as half");
+        assert!(!w.is_grabbing(), "asking took hold of nothing");
+        assert!(w.motion(cx, cy + 40).is_empty(), "a drag after asking moves nothing");
+        // And the window's own hit table, by name, is where the answer
+        // is drawn.
+        let regions = w.regions();
+        assert_eq!(regions.len(), 1);
+        assert_eq!(regions[0], ("dragged".to_string(), (x0, y0, x1, y1)));
+        // A point off the fader asks nothing.
+        assert!(w.ask(x1 + 500, cy).is_empty());
+    }
 
     #[test]
     fn a_real_payload_opens_and_draws() {
