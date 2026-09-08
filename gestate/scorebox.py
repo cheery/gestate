@@ -1164,6 +1164,10 @@ _NIGHT = (32, 35, 43)
 _DIM = 96          # take ink draws at this brightness of its hue
 
 
+#: The relation's row — `rows_of`'s tuple, as the language spells it.
+ROW_T = "(Int, Int, Int, Int, Int, Int, Int)"
+
+
 def _n(v: int) -> str:
     """A number as the language spells it.
 
@@ -1794,22 +1798,68 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
             + f"{ground_g} = Over (Rect {geo.w} {geo.h} rollNight) "
               f"(rollFurniture {body_g} {scale_g} {beat} ({bars_list}) {_n(kx)} {geo.keys - 4})\n\n"
             + f"{hands_g} : Sub\n{hands_g} = Over (Over (Gap 0 0) ({ruler})) ({body})\n\n"
-            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd gg ex es = " if live else
+            + (_layers(N, f"{rows_c}_s", f"{sel_c}_s", f"{sels_c}_s", f"{held_c}_s",
+                       f"{lift_c}_s", f"{slide_c}_s", f"{grow_c}_s",
+                       still=f"rollStill {_n(rail_y)}",
+                       moving=f"rollMoving (floor h) (floor v) (floor dx) (floor gg) {_n(rail_y)}")
+               if live else "")
+            + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Sub\n"
+               f"{pic_g} still moving bd ex = " if live else
                f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Sub\n"
                f"{pic_g} h v s dx ss bd gg ex = ")
             + f"Sized {geo.w} {geo.h} (Over (Over (Over\n"
             + f"    (Over {ground_g} (rollBand bd))\n"
-            + f"    (Over ({'rollNotes' if live else 'rollNotesBaked'} (floor h) (floor v) (floor s) "
-              f"(floor dx) ss (floor gg) {_n(rail_y)} {'es' if live else N('rows')}) "
-              f"(rollEnd {body_g} (floor ex))))\n"
+            + (f"    (Over (Over still moving) (rollEnd {body_g} (floor ex))))\n" if live else
+               f"    (Over (rollNotesBaked (floor h) (floor v) (floor s) "
+               f"(floor dx) ss (floor gg) {_n(rail_y)} {N('rows')}) "
+               f"(rollEnd {body_g} (floor ex))))\n")
             + f"    (Shift {_n(left + body_w // 2)} {geo.h // 2 - geo.foot // 2 - 1} "
               f"(Label {body_w - 8} 12 \"{caption}\" (RGB 120 124 134))))\n"
             + f"    {hands_g})\n\n"
             + f"{entry} : Sig Sub\n"
-            + f"{entry} = !{pic_g} {held_c}_s {lift_c}_s {sel_c}_s {slide_c}_s {sels_c}_s "
-              f"{band_c}_s {grow_c}_s {endx_c}_s" + (f" {rows_c}_s\n" if live else "\n"))
+            + (f"{entry} = !{pic_g} {N('still')} {N('moving')} {band_c}_s {endx_c}_s\n" if live else
+               f"{entry} = !{pic_g} {held_c}_s {lift_c}_s {sel_c}_s {slide_c}_s {sels_c}_s "
+               f"{band_c}_s {grow_c}_s {endx_c}_s\n"))
     return text, named
+
+
+def _layers(N, rows_s: str, sel_s: str, sels_s: str, held_s: str, lift_s: str,
+            slide_s: str, grow_s: str, *, still: str, moving: str) -> str:
+    """The live picture in **two layers** over the notes as a relation —
+    `card:gui-is-difficult.md` Q1, 2026-09-08, and `roll.ges` §"The notes
+    as a relation".
+
+    The reading on the rows channel becomes a set of rows (`rollRelation`),
+    the selection a set of indices (`rollSelected`), and one merge splits
+    the rows into the carried and the standing.  `still` draws the
+    standing rows and is lifted over the two relations alone, so it is
+    recomputed when the notes or the selection change and at no other
+    tick; `moving` draws the carried rows and is lifted over the hand's
+    four channels too, so a motion recomputes the selected few and not
+    every note — which is what a drag cost before this
+    (`tools/queryframe.py`: 80 to 280 ms a motion over 88 notes on the
+    reference machine).  `still` and `moving` are the box's own drawers,
+    `Int -> List row -> Sub` and `Int -> Int -> Int -> Int -> Int -> List
+    row -> Sub` shaped, so the compact box and the editing scale each
+    keep their ink and share the split.
+    """
+    row_t = "(Int, Int, Int, Int, Int, Int, Int)"
+    return (f"{N('rel')} : Sig (Set {row_t})\n"
+            f"{N('rel')} = !rollRelation {rows_s}\n\n"
+            f"{N('picked')} : Sig (Set Int)\n"
+            f"{N('picked')} = !rollSelected {sel_s} {sels_s}\n\n"
+            f"{N('standing')} : Sig (List {row_t})\n"
+            f"{N('standing')} = !rollStanding {N('rel')} {N('picked')}\n\n"
+            f"{N('carried')} : Sig (List {row_t})\n"
+            f"{N('carried')} = !rollCarried {N('rel')} {N('picked')}\n\n"
+            f"{N('stillf')} : List {row_t} -> Sub\n"
+            f"{N('stillf')} rows = {still} rows\n\n"
+            f"{N('movef')} : Float -> Float -> Float -> Float -> List {row_t} -> Sub\n"
+            f"{N('movef')} h v dx gg rows = {moving} rows\n\n"
+            f"{N('still')} : Sig Sub\n"
+            f"{N('still')} = !{N('stillf')} {N('standing')}\n\n"
+            f"{N('moving')} : Sig Sub\n"
+            f"{N('moving')} = !{N('movef')} {held_s} {lift_s} {slide_s} {grow_s} {N('carried')}\n\n")
 
 
 def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
@@ -1961,6 +2011,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n"
                      for c in [sels_c, band_c])
     rows_c, rows_s = rows_channel(box), f"__nb_rs_{box}__"
+    N = lambda k: f"__nb_{k}_{box}__"          # noqa: E731 — the layers' names
     if live:
         chans += f"{rows_c} : Chan (List Float)\n{rows_c} = chan\n"
     rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
@@ -2127,14 +2178,36 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
                "    Nil -> Gap 0 0\n"
                f"    (i, x, y, w, t, d, m) :: rest -> Over "
                f"({one_g} h v s dx ss gg i x y w t d m) ({all_g} h v s dx ss gg rest)\n\n")
-            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd gg ex es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
+            # **Two layers when live** — `_layers`: the standing notes
+            # over the relations, the carried few over the hand; the
+            # box's own ink for each, `one_g`'s.
+            + (f"{N('cstill')} : List {ROW_T} -> Sub\n"
+               f"{N('cstill')} rows = case rows of\n"
+               f"    Nil -> Gap 0 0\n"
+               f"    row :: rest -> Over ({N('cone')} row) ({N('cstill')} rest)\n\n"
+               f"{N('cone')} : {ROW_T} -> Sub\n"
+               f"{N('cone')} row = case row of\n"
+               f"    (i, x, y, w, t, d, m) -> {one_g}_ (0 - 1) 0 0 0 False i x y w t d m\n\n"
+               f"{N('cmove')} : Int -> Int -> Int -> Int -> List {ROW_T} -> Sub\n"
+               f"{N('cmove')} h v dx gg rows = case rows of\n"
+               f"    Nil -> Gap 0 0\n"
+               f"    row :: rest -> Over ({N('cmone')} h v dx gg row) ({N('cmove')} h v dx gg rest)\n\n"
+               f"{N('cmone')} : Int -> Int -> Int -> Int -> {ROW_T} -> Sub\n"
+               f"{N('cmone')} h v dx gg row = case row of\n"
+               f"    (i, x, y, w, t, d, m) -> {one_g}_ h v dx ({shift_g} True h gg) True i x y w t d m\n\n"
+               + _layers(N, rows_s, sel_s, sels_s, held_s, lift_s, slide_s, grow_s,
+                         still=N('cstill'),
+                         moving=f"{N('cmove')} (floor h) (floor v) (floor dx) (floor gg)")
+               if live else "")
+            + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Sub\n"
+               f"{pic_g} still moving bd ex = Sized {geo.w} {geo.h} (Over (Over (Over\n"
                if live else
                f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Sub\n"
                f"{pic_g} h v s dx ss bd gg ex = Sized {geo.w} {geo.h} (Over (Over (Over\n")
             + f"    (Over __nb_ground_{box}__ ({band_g} bd))\n"
-            + f"    (Over ({all_g} (floor h) (floor v) (floor s) (floor dx) ss (floor gg) "
-              f"{'es' if live else rows_g}) ({end_g} (floor ex))))\n"
+            + (f"    (Over (Over still moving) ({end_g} (floor ex))))\n" if live else
+               f"    (Over ({all_g} (floor h) (floor v) (floor s) (floor dx) ss (floor gg) "
+               f"{rows_g}) ({end_g} (floor ex))))\n")
             + f"    (Shift {_n(0 if geo is COMPACT else left + body_w // 2)} "
               f"{geo.h // 2 - geo.foot // 2 - 1} (Label {120 if geo is COMPACT else body_w - 8} "
               f"12 \"{caption}\" (RGB 120 124 134))))\n"
@@ -2153,7 +2226,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # does, and lifting the picture over the two channels above
             # is what lets the note follow before anything is rebuilt.
             + f"{entry} : Sig Sub\n"
-            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s} {endx_s} {rows_s}\n"
+            + (f"{entry} = !{pic_g} {N('still')} {N('moving')} {band_s} {endx_s}\n"
                if live else
                f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s} {endx_s}\n"))
     return text, named

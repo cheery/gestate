@@ -309,9 +309,13 @@ def has_roll(source: str) -> bool:
     `scorebox.roll_program` declares each box's `Body`, which is
     `roll.ges`'s own type — so a program that names one is written in
     that vocabulary and gets it in front, after `gui.ges`.  A hand-written
-    canvas never says `Body`, and pays nothing.
+    canvas never says `Body`, and pays nothing.  Since 2026-09-08 a
+    *compact* live box declares no `Body` but does lift `rollRelation` over
+    its rows channel — `__nb_rel_k__ : Sig (Set …)` — and gets the
+    library the same way (`roll.ges` §"The notes as a relation").
     """
-    return re.search(r"^__nb_body_\d+__ : Body$", source, re.M) is not None
+    return re.search(r"^__nb_body_\d+__ : Body$|^__nb_rel_\d+__ : Sig \(Set ",
+                     source, re.M) is not None
 
 
 #: A program that only draws: no audio vocabulary, and none of its cost.

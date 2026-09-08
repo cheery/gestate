@@ -366,6 +366,11 @@ def infer(env: dict[Name, Scheme], expr: Expr, fresh: Fresh,
                 f"supercombinator or class method){at(expr)}")
         t, cs = instantiate(env[expr.name], fresh)
         constraints_out.extend(_at_site(cs, expr))
+        if expr.name in ("set", "elems"):
+            # The two forms between a list and a set are desugared by
+            # element type (`pipeline._desugar_datafun`), so the type
+            # this occurrence took is left on it, as `EVar` leaves its.
+            expr.type_ = t
         return t, Subst.empty()
 
     if isinstance(expr, ECon):
@@ -1039,6 +1044,8 @@ def settle_annotations(root: Expr, s: Subst, cons: dict | None = None) -> None:
     for node in _all_exprs(root):
         if isinstance(node, (EVar, ELambda, EHole)) and node.type_ is not None:
             node.type_ = s.apply(node.type_)
+        if isinstance(node, EGlobal) and getattr(node, "type_", None) is not None:
+            node.type_ = s.apply(node.type_)
         if isinstance(node, EChan) and node.elem_type is not None:
             node.elem_type = s.apply(node.elem_type)
         if isinstance(node, (ESet, EFix, EJoin)) and node.set_type is not None:
@@ -1301,7 +1308,11 @@ def _infer_program(
     if classes is None: classes = {}
     if sc_constraints is None: sc_constraints = {}
 
-    env: dict[Name, Scheme] = {n: scheme_mono(t) for n, t in builtins.items()}
+    # A builtin is monomorphic unless it arrives as a `Scheme` already —
+    # `set` and `elems` (`pipeline._build_builtins`) are the two that
+    # quantify, because a set's element type is the caller's.
+    env: dict[Name, Scheme] = {n: (t if isinstance(t, Scheme) else scheme_mono(t))
+                               for n, t in builtins.items()}
     imported = frozenset(imports) if imports else frozenset()
     if imports:
         env.update(imports)
@@ -1391,7 +1402,7 @@ def _infer_program(
     for name, _arity, _lam, _sig in scs:
         final_env[name] = scheme_mono(results[name])
     for n, t in builtins.items():
-        final_env[n] = scheme_mono(t)
+        final_env[n] = t if isinstance(t, Scheme) else scheme_mono(t)
     if imports:
         for n, sch in imports.items():
             final_env.setdefault(n, sch)

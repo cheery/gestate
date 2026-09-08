@@ -139,3 +139,34 @@ main = closure (Box {(0, 1), (1, 2)})
 """
     assert evaluate(src) == (
         "Pack{1,2} (0, 1) Pack{1,2} (0, 2) Pack{1,2} (1, 2) Pack{0,0}")
+
+
+# ── `set` and `elems` — the two doors between a list and a set ──────────────
+#
+# `card:gui-is-difficult.md` Q1, 2026-09-08: a picture that is a query
+# over the model's rows needs its rows *as* a relation and its result
+# *as* a list again.  Both are forms (`pipeline._build_builtins`): `set`
+# merges like a literal, `elems` is the identity a sorted cons-list
+# already is.
+
+
+def test_set_sorts_and_drops_duplicates_like_a_literal():
+    assert _show("elems (set (3 :: 1 :: 2 :: 2 :: Nil))", "List Int") == "[1, 2, 3]"
+    assert _show("elems (set (3 :: 1 :: 2 :: Nil)) == elems {1, 2, 3}", "Bool") == "True"
+
+
+def test_set_of_tuples_orders_structurally():
+    assert _show("elems (set ((2, 1) :: (1, 2) :: (1, 2) :: Nil))",
+                 "List (Int, Int)") == "[(1, 2), (2, 1)]"
+
+
+def test_a_set_made_from_a_list_is_a_set_to_for_and_union():
+    assert _show("elems (for (p in set ((2, 1) :: (1, 2) :: Nil)) {fst p + snd p})",
+                 "List Int") == "[3]"
+    assert _show("elems (set (5 :: Nil) \\/ {1, 9})", "List Int") == "[1, 5, 9]"
+
+
+def test_set_is_a_form_and_refuses_to_be_a_value():
+    from gestate.pipeline import PipelineError
+    with pytest.raises(PipelineError, match="form and not a value"):
+        evaluate("f : List Int -> Set Int\nf = set\n\nmain : Set Int\nmain = f (1 :: Nil)\n")

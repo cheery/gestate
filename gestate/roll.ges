@@ -379,6 +379,106 @@ rollRow7 : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> (Int, Int, In
 rollRow7 h v s dx ss gg ry row = case row of
     (i, x, y, w, t, d, m) -> rollNote h v s dx ss gg ry i x y w t d m
 
+# ── The notes as a relation, and the picture in two layers ──────────────
+#
+# **The rows are a relation and the picture is a fold over it** —
+# `card:gui-is-difficult.md` Q1, 2026-09-08.  The reading that arrives
+# on the rows channel is seven numbers a note; `rollRelation` makes it a
+# set of 7-tuples keyed by the note's index, `rollSelected` makes the
+# selection a set of indices, and one merge over the two sorted lists
+# splits the notes into the selected and the rest.  Measured before it
+# was built (`tools/queryframe.py`): the whole picture as a query every
+# frame is 22 ms on crust at a page's rows against a 16.7 ms frame, and
+# a hand's tick recomputed every note — 80 to 280 ms a motion on the
+# reference machine.  So **two layers**: `rollStill`, the unselected
+# notes, recomputed when the rows or the selection change; `rollMoving`,
+# the selected few, recomputed per motion of the hand.  Both are lifted
+# over their own signals by the page's program, so Rizzo's rule — a
+# signal advances only when its tail ticked — is what makes "on change"
+# true, and nothing here checks a clock.
+
+#: The reading's seven numbers a note, floored into the relation's row:
+#: (index, x, y, width, tone, dimmed, marks).
+rollChunk : List Float -> List (Int, Int, Int, Int, Int, Int, Int)
+rollChunk es = case es of
+    i :: x :: y :: w :: t :: d :: m :: rest -> (floor i, floor x, floor y, floor w, floor t, floor d, floor m) :: rollChunk rest
+    _ -> Nil
+
+#: The notes, as a relation keyed by index — sorted, and one row a note.
+rollRelation : List Float -> Set (Int, Int, Int, Int, Int, Int, Int)
+rollRelation es = set (rollChunk es)
+
+rollFloors : List Float -> List Int
+rollFloors xs = case xs of
+    x :: rest -> floor x :: rollFloors rest
+    _ -> Nil
+
+#: The selection as a relation: the note the last press picked and the
+#: group, as one sorted set of indices.  `s` below zero is no note and
+#: matches no row.
+rollSelected : Float -> List Float -> Set Int
+rollSelected s ss = set (floor s :: rollFloors ss)
+
+#: The rows whose index is in the selection — one pass over two sorted
+#: lists, so membership costs a merge and not a scan per note.
+rollTaken : List (Int, Int, Int, Int, Int, Int, Int) -> List Int -> List (Int, Int, Int, Int, Int, Int, Int)
+rollTaken rows ks = case rows of
+    Nil -> Nil
+    row :: rest -> case ks of
+        Nil -> Nil
+        k :: more -> case row of
+            (i, x, y, w, t, d, m) -> case i == k of
+                True -> row :: rollTaken rest more
+                False -> case i < k of
+                    True -> rollTaken rest ks
+                    False -> rollTaken rows more
+
+#: The rows whose index is not in the selection — the same merge, the
+#: other side of it.
+rollUntaken : List (Int, Int, Int, Int, Int, Int, Int) -> List Int -> List (Int, Int, Int, Int, Int, Int, Int)
+rollUntaken rows ks = case rows of
+    Nil -> Nil
+    row :: rest -> case ks of
+        Nil -> rows
+        k :: more -> case row of
+            (i, x, y, w, t, d, m) -> case i == k of
+                True -> rollUntaken rest more
+                False -> case i < k of
+                    True -> row :: rollUntaken rest ks
+                    False -> rollUntaken rows more
+
+#: Which rows a hand carries: the selection's, in the relation's order.
+rollCarried : Set (Int, Int, Int, Int, Int, Int, Int) -> Set Int -> List (Int, Int, Int, Int, Int, Int, Int)
+rollCarried rows sels = rollTaken (elems rows) (elems sels)
+
+#: Which rows stand still: the others.
+rollStanding : Set (Int, Int, Int, Int, Int, Int, Int) -> Set Int -> List (Int, Int, Int, Int, Int, Int, Int)
+rollStanding rows sels = rollUntaken (elems rows) (elems sels)
+
+#: The unselected notes, drawn where they are — `ry` is the ruler's y for
+#: the marker a selected note would wear, unused here but the shape is
+#: `rollOne`'s.  Recomputed when the rows or the selection change.
+rollStill : Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollStill ry rows = case rows of
+    Nil -> Gap 0 0
+    row :: rest -> Over (rollStillOne ry row) (rollStill ry rest)
+
+rollStillOne : Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollStillOne ry row = case row of
+    (i, x, y, w, t, d, m) -> rollOne (0 - 1) 0 0 0 False ry i x y w t d m
+
+#: The selected notes, outlined and carried by the hand — `h` the note
+#: held or below zero, `v` and `dx` the carry, `gg` the growth of a held
+#: end.  Recomputed per motion, over these rows alone.
+rollMoving : Int -> Int -> Int -> Int -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollMoving h v dx gg ry rows = case rows of
+    Nil -> Gap 0 0
+    row :: rest -> Over (rollMovingOne h v dx gg ry row) (rollMoving h v dx gg ry rest)
+
+rollMovingOne : Int -> Int -> Int -> Int -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollMovingOne h v dx gg ry row = case row of
+    (i, x, y, w, t, d, m) -> rollOne h v dx (rollHeld h gg) True ry i x y w t d m
+
 #: The band a hand is sweeping: centre and size, or nothing.
 rollBand : List Float -> Sub
 rollBand xs = case xs of

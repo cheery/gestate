@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**466 complaints**, in 47 files.
+**468 complaints**, in 47 files.
 
 | | |
 |---|---|
-| `author` | 246 |
+| `author` | 248 |
 | `command` | 43 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 162 |
-| say `nowhere`, on purpose | 39 |
+| say `nowhere`, on purpose | 41 |
 | `unplaced`, with a defect that owns it | 59 |
 
 ## A place that could exist, and does not
@@ -83,7 +83,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gui.py:624` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `pipeline.py:1112` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
+| `pipeline.py:1155` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -99,13 +99,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | where | error | why |
 |---|---|---|
-| `audio.py:526` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:610` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:616` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:622` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:632` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:838` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:858` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:530` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:614` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:620` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:626` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:636` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:842` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:862` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audioalloc.py:103` | `AllocError` | a bank with no voices is a count in a declaration; the declaration places it before this is reached |
 | `audioalloc.py:172` | `AllocError` | the piece's notes and the bank's payload disagree, which is about two declarations and not one line |
 | `audiodynamic.py:80` | `ScoreError` | the piece names a bank that was given no allocator, which is about two declarations and not one line |
@@ -136,8 +136,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
 | `online.py:122` | `OnlineError` | a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet |
-| `pipeline.py:285` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:926` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:302` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:943` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1013` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1025` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
 ## Every complaint
 
@@ -147,20 +149,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 463 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
-| 526 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
-| 610 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
-| 616 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
-| 622 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
-| 632 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
-| 662 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
-| 702 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
-| 707 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
-| 716 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
-| 816 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
-| 838 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
-| 850 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
-| 858 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
+| 467 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
+| 530 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
+| 614 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
+| 620 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
+| 626 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
+| 636 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
+| 666 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
+| 706 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
+| 711 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
+| 720 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
+| 820 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
+| 842 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
+| 854 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
+| 862 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
 
 ### `audioalloc.py`
 
@@ -655,19 +657,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 |---|---|---|---|---|
 | 341 | `UnresolvedName` | `author` | `at()` | 'Unbound variable: {expr.name!r}{at(expr)}' |
 | 364 | `UnresolvedName` | `author` | `at()` | "Unknown global '{expr.name}' (not defined as a supercombinator or class method){at(expr)}" |
-| 374 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {expr.tag}{at(expr)}' |
-| 379 | `InferError` | `author` | `at()` | 'Constructor {con.name}: expected {len(field_types)} args, got {len(expr.args)}{at(expr)}' |
-| 615 | `InferError` | `author` | `at()` | 'fix expects a boxed monotone set function {want}: {exc}; write `fix Box (x => ...)`{at(expr)}' |
-| 681 | `InferError` | `machine` | — | 'Unknown expression: {type(expr).__name__}' |
-| 702 | `InferError` | `author` | `at()` | 'Lambda with {len(expr.params)} params: expected function type, got {t}{at(expr)}' |
-| 867 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
-| 889 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
-| 959 | `InferError` | `author` | handed in | "'.{index}' is not a projection: fields are selected by position, and a record declares no fiel… |
-| 967 | `InferError` | `author` | handed in | "'.{index}' on a {len(parts)}-tuple — the components are 0 to {len(parts) - 1}{place}" |
-| 975 | `InferError` | `author` | handed in | "'.{index}' needs the type of what it projects from, and it is not known here. Projection is re… |
-| 992 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(fields)} field(s){place}" |
-| 1002 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(owned)} constructors — only a record (one construc… |
-| 1009 | `InferError` | `author` | handed in | "'.{index}' on {show_type(t)}, which is not a tuple or a record{place}" |
+| 379 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {expr.tag}{at(expr)}' |
+| 384 | `InferError` | `author` | `at()` | 'Constructor {con.name}: expected {len(field_types)} args, got {len(expr.args)}{at(expr)}' |
+| 620 | `InferError` | `author` | `at()` | 'fix expects a boxed monotone set function {want}: {exc}; write `fix Box (x => ...)`{at(expr)}' |
+| 686 | `InferError` | `machine` | — | 'Unknown expression: {type(expr).__name__}' |
+| 707 | `InferError` | `author` | `at()` | 'Lambda with {len(expr.params)} params: expected function type, got {t}{at(expr)}' |
+| 872 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
+| 894 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
+| 964 | `InferError` | `author` | handed in | "'.{index}' is not a projection: fields are selected by position, and a record declares no fiel… |
+| 972 | `InferError` | `author` | handed in | "'.{index}' on a {len(parts)}-tuple — the components are 0 to {len(parts) - 1}{place}" |
+| 980 | `InferError` | `author` | handed in | "'.{index}' needs the type of what it projects from, and it is not known here. Projection is re… |
+| 997 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(fields)} field(s){place}" |
+| 1007 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(owned)} constructors — only a record (one construc… |
+| 1014 | `InferError` | `author` | handed in | "'.{index}' on {show_type(t)}, which is not a tuple or a record{place}" |
 
 ### `internals.py`
 
@@ -800,18 +802,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 285 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
-| 577 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 607 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 610 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 650 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 663 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 666 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 759 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 783 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 789 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 926 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
-| 1112 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
+| 302 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
+| 594 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 624 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 627 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 667 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 680 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 683 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 776 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 800 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 806 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 943 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
+| 1013 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
+| 1025 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
+| 1155 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
 
 ### `reactive.py`
 
@@ -858,10 +862,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1049 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
 | 1052 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
 | 1056 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1338 | `RefusedError` | `command` | — | 'nothing sounds at that tick' |
-| 1342 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
-| 1358 | `RefusedError` | `command` | — | 'nothing sounds {key} at tick {tick}' |
-| 1360 | `RefusedError` | `command` | — | '{key} sounds {len(found)} times at tick {tick}, so which note is meant is not written down any… |
+| 1342 | `RefusedError` | `command` | — | 'nothing sounds at that tick' |
+| 1346 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
+| 1362 | `RefusedError` | `command` | — | 'nothing sounds {key} at tick {tick}' |
+| 1364 | `RefusedError` | `command` | — | '{key} sounds {len(found)} times at tick {tick}, so which note is meant is not written down any… |
 
 ### `seminaive.py`
 

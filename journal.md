@@ -1746,3 +1746,29 @@ no slower* is now measured on the drag — the hand's per-frame layer —
 and not on the whole picture, because the whole picture is allowed to
 cost twenty milliseconds at a press.  His two minutes, when they come,
 are on a moving note.
+
+## The notes as a relation, built — 2026-09-08, night
+
+*"can you create those things you need, and then write the generator?"*
+`card:gui-is-difficult.md` §"Landed — 2026-09-08, night" has the
+numbers; two things for the journal.
+
+**The name clash was the compiler's catch, not mine.**  `rollRows` and
+`rollLeft` already existed in `roll.ges` — the staff's lines, the body's
+edge — and I wrote both again for the relation and the merge's other
+half.  The compiler refused a duplicate signature and the score-box
+tests had passed anyway, because the compact box did not load the
+library then.  A library one writes into without reading its index
+first is a library one collides with; the fix took a minute and the
+lesson is the reading.
+
+**Two tests encoded the painter's order without saying so.**  They
+paired the first four heads of the picture with the first four rows of
+the file, which held only while notes were drawn in file order.  The
+two layers draw the standing notes first and the carried on top, and the
+tests failed on order, not on the picture.  Rewriting them found a
+second unsaid thing: a grown bar keeps its left edge, so its key stays
+while its width changes, and a set of positions cannot see a bar that
+shares a corner with a wider one.  The tests count whole heads now.
+What they hold is the same claim, said in a way that does not depend on
+which note is drawn first.

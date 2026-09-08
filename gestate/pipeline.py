@@ -29,7 +29,7 @@ from .kindcheck import (build_kind_env, check_class_names, check_kind,
 from .helpers import generate_all_helpers, _type_suffix
 from .seminaive import transform as seminaive_transform, make_semifix_helpers
 from .bottoms import propagate_scs as propagate_bottoms
-from .types import TApp, TCon, TFun, Type, TVar, free_vars, tuple_con
+from .types import Scheme, TApp, TCon, TFun, Type, TVar, free_vars, tuple_con
 from .expr import EAnnot, EGlobal, ELambda, Expr, subexprs
 from .exhaust import check_program, ExhaustError
 from .monotone import check_scs as check_monotone
@@ -90,6 +90,23 @@ def _build_builtins() -> dict:
         # puts on `empty?`, so it needs no `Box` in the signature to be
         # non-monotone.
         "empty?": TFun(TApp(TCon("Set"), tuple_con(0)), TCon("Bool")),
+        # **The two doors between a list and a set** — `card:gui-is-difficult.md`
+        # Q1, 2026-09-08, for a picture that is a query over the model's
+        # rows.  Both are forms, not functions: `set xs` is the same
+        # balanced merge a set literal is (`for_X xs (x => {x})`), so
+        # the sorted, duplicate-free invariant every set operation
+        # assumes is established rather than trusted; `elems xs` is the
+        # identity at run time — a set *is* a sorted cons-list — and
+        # exists so a set can be folded into anything that is not a
+        # semilattice, a picture first of all.  Typed here as schemes
+        # because the element type is the caller's; desugared in
+        # `_desugar_datafun`, so no machine learns a new primitive.
+        "set": Scheme(frozenset({-1}),
+                      TFun(TApp(TCon("List"), TVar(-1)),
+                           TApp(TCon("Set"), TVar(-1)))),
+        "elems": Scheme(frozenset({-2}),
+                        TFun(TApp(TCon("Set"), TVar(-2)),
+                             TApp(TCon("List"), TVar(-2)))),
     }
 
 
@@ -986,6 +1003,28 @@ def _desugar_datafun(
                             (expr.var, EAp(EProj(0), EVar(tmp))),
                             ("d" + expr.var, EAp(EProj(1), EVar(tmp))),
                         ], desugar(expr.body)))
+        if isinstance(expr, EAp) and isinstance(expr.fn, (EVar, EGlobal)) \
+                and expr.fn.name in ("set", "elems"):
+            # set xs → for_X xs (x => {x}) — the list's elements merged
+            # into a set by the same balanced merge a literal uses;
+            # elems xs → xs — a set is already the sorted list of its
+            # elements (`_build_builtins` says why both are forms).
+            if not isinstance(getattr(expr.fn, "type_", None), TFun):
+                raise PipelineError(
+                    f"the type of this `{expr.fn.name}` did not reach code "
+                    f"generation; it should have been annotated during inference")
+            if expr.fn.name == "elems":
+                return desugar(expr.arg)
+            suffix = suffix_for(expr.fn.type_.ret, "`set`")
+            nil_tag = cons["Nil"].tag
+            cons_tag = cons["Cons"].tag
+            one = ELambda(["__elem"],
+                          ECon(cons_tag, [EVar("__elem"), ECon(nil_tag, [])]))
+            return EAp(EAp(EGlobal(f"for_{suffix}"), desugar(expr.arg)), one)
+        if isinstance(expr, (EVar, EGlobal)) and expr.name in ("set", "elems"):
+            raise PipelineError(
+                f"`{expr.name}` is a form and not a value: write `{expr.name} xs`, "
+                f"it cannot be passed unapplied")
         # Recursive walk
         if isinstance(expr, EAp):
             return EAp(desugar(expr.fn), desugar(expr.arg))
@@ -1043,12 +1082,16 @@ def _uses_datafun(scs: list) -> bool:
     pair, so a program using them needs the transform even with no set
     literal in sight.
     """
-    from .expr import EBox, EFix, EFor, EJoin, ESet, EUnbox
+    from .expr import EBox, EFix, EFor, EJoin, ESet, EUnbox, EVar
 
     stack = [lam.body for _n, _a, lam, _s in scs]
     while stack:
         e = stack.pop()
         if isinstance(e, (ESet, EFix, EFor, EJoin, EBox, EUnbox)):
+            return True
+        # `set xs` and `elems xs` are forms too, spelled as applications
+        # of two builtin names (`_build_builtins`).
+        if isinstance(e, (EVar, EGlobal)) and e.name in ("set", "elems"):
             return True
         stack.extend(subexprs(e))
     return False
@@ -1130,7 +1173,7 @@ def _collect_set_types(scs: list) -> list[Type]:
     set type ϕ/δ discovers for itself is added afterwards, from the
     `Changes` builder.
     """
-    from .expr import EFix, EFor, EJoin, ESet
+    from .expr import EFix, EFor, EJoin, ESet, EVar
 
     types: list[Type] = []
     seen: set[str] = set()
@@ -1151,6 +1194,11 @@ def _collect_set_types(scs: list) -> list[Type]:
                 add(node.set_type)
             elif isinstance(node, EFor):
                 add(node.result_type)
+            elif isinstance(node, (EVar, EGlobal)) and node.name in ("set", "elems") \
+                    and isinstance(getattr(node, "type_", None), TFun):
+                # `set : List a -> Set a`, `elems : Set a -> List a` —
+                # the set type is on whichever side names it.
+                add(node.type_.ret if node.name == "set" else node.type_.arg)
     return types
 
 

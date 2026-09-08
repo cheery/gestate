@@ -115,6 +115,21 @@ PRIMITIVES = (
          "An arrival that never comes.  The unit of `sync`, and what a "
          "signal that only ever holds one value waits on."),
     )),
+    ("Sets", (
+        ("set", "List a -> Set a",
+         "The list's elements as a set — sorted, duplicates dropped, by "
+         "the same balanced merge a set literal is built with, so every "
+         "set operation's invariant is established rather than trusted.  "
+         "A form and not a function: it is desugared by element type "
+         "and cannot be passed unapplied.  Added on 2026-09-08 for a "
+         "picture that is a query over the model's rows "
+         "(`card:gui-is-difficult.md` Q1)."),
+        ("elems", "Set a -> List a",
+         "The set's elements as a list, in the set's own order — the "
+         "identity at run time, since a set *is* a sorted cons-list.  "
+         "How a set is folded into anything that is not a semilattice: "
+         "`for` eliminates only into one, and a picture is not."),
+    )),
     ("Signals", (
         ("head", "Sig a -> a",
          "What a signal holds *now*."),

@@ -1540,6 +1540,25 @@ and one picture lifted over its readings.  The compact box beside a
 | a drag's frame | 90 ms | 80 ms | 84 ms |
 | picture and hits | — | identical | identical |
 
+**Two layers over the notes as a relation — 2026-09-08**
+(`card:gui-is-difficult.md` Q1; `roll.ges` §"The notes as a relation";
+`scorebox._layers`).  The rows channel's reading becomes a set of rows
+(`rollRelation`, by the new `set` form — `spec/data.md` §III.4), the
+selection a set of indices, and one merge splits them into the standing
+and the carried.  The standing notes are lifted over the two relations
+alone and recompute when the notes or the selection change; the carried
+few are lifted over the hand's four channels too and recompute per
+motion.  Measured on the reference machine, the stacked roll of
+`arcnotes.ges` (88 notes, three selected): a hand's tick **80 → 7 ms**,
+a slide **280 → 9 ms**, a lift 7 ms; a press 85 ms and a change of the
+notes 107 ms (was 81), on change only.  Two things changed with it:
+**the painter's order** — the carried notes are drawn after the
+standing ones, on top, where the file's order interleaved them — and
+**the compact live box gets `roll.ges` too** (`audio.has_roll` reads
+its `__nb_rel_k__ : Sig (Set …)`), because the split is the library's
+and writing it twice would be the generated text this section retired.
+A baked compact box keeps the program it had.
+
 **What is left in the text** is what differs from box to box and
 cannot be a function of anything: a hundred and thirty channel
 declarations a box.  A channel per column exists because a press

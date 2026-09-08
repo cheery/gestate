@@ -2923,14 +2923,25 @@ def test_the_picture_outlines_the_group_and_moves_it_with_the_hand():
     assert len(outlines) == 3, "every selected note wears an outline"
     band = [i for i in pic if i[0] == "rect" and i[5] == (58, 70, 96)]
     assert band and band[0][3:5] == (200, 100), "the band is drawn where it was said"
-    heads = lambda v: [(i[1], i[2]) for i in v.picture() if i[0] == "rect" and i[4] == geo.note_h][:4]
+    # **Matched by where they were, not by their place in the list**: since
+    # 2026-09-08 the picture is two layers (`roll.ges` §"The notes as a
+    # relation"), the standing notes first and the carried on top, so the
+    # order of the heads is no longer the file's.
+    # Whole heads counted, not positions: two bars may share a top-left
+    # corner and differ in width.
+    from collections import Counter
+    heads = lambda v: Counter((i[1], i[2], i[3]) for i in v.picture()
+                              if i[0] == "rect" and i[4] == geo.note_h)
     before = heads(view)
     view.write("__nb_held_0__", 1.0)
     view.write("__nb_lift_0__", -16.0)
     view.tick()
     after = heads(view)
-    assert [a[1] - b[1] for a, b in zip(after, before)] == [-16, -16, -16, 0], \
-        "the three selected move with a hand on the second; the fourth stays"
+    moved, arrived = before - after, after - before
+    assert sum(moved.values()) == 3, "three heads moved"
+    assert arrived == Counter((x, y - 16, w) for (x, y, w), n in moved.items() for _ in range(n)), \
+        "the three selected move with a hand on the second; every other stays"
+    assert sum(after.values()) == sum(before.values())
 
 
 # ── Slice 4, continued — resize a note by its end, and the selection with it ──
@@ -3065,16 +3076,24 @@ def test_the_picture_draws_the_held_selection_longer_from_its_start():
     geo = geometry_of(roll)
     view.write(rows_channel(0), rows_reading(roll))
     view.tick()
-    heads = lambda: [i for i in view.picture() if i[0] == "rect" and i[4] == geo.note_h][:3]
+    # Heads keyed by where they stand — the picture's order is two layers
+    # since 2026-09-08 and no longer the file's.
+    from collections import Counter
+    heads = lambda: Counter((i[1], i[2], i[3]) for i in view.picture()
+                            if i[0] == "rect" and i[4] == geo.note_h)
     before = heads()
     view.write("__nb_sels_0__", [0.0, 1.0])
     view.write("__nb_held_0__", 0.0)
     view.write("__nb_grow_0__", 24.0)
     view.tick()
     after = heads()
-    for k in (0, 1):
-        assert after[k][1] == before[k][1] and after[k][3] == before[k][3] + 24, "the start stays, the end moves"
-    assert after[2] == before[2], "an unselected note is untouched"
+    # The two held notes keep their start and grow 24 wider: the bar's
+    # left edge stays and its width grows; every other head is untouched.
+    was, now = before - after, after - before
+    assert sum(was.values()) == 2 and sum(now.values()) == 2, "the two selected notes changed"
+    assert now == Counter((x, y, w + 24) for (x, y, w), n in was.items() for _ in range(n)), \
+        "the start stays, the end moves"
+    assert before - was == after - now, "an unselected note is untouched"
 
 
 # ── Slice 4, continued — the section resized on its ruler ──────────────────
@@ -3242,9 +3261,11 @@ def test_tap_has_a_chord_and_the_command_list_advertises_it():
 def test_the_page_is_written_over_roll_ges_and_the_compact_box_is_not():
     """Henri: *"Tehdään sitten se idea 2, moduuli."*  A `.notes` page's
     program declares its boxes' `Body` and is compiled with `roll.ges`
-    in front; a `.ges` box beside a line still carries its own drawing
-    and gets `gui.ges` alone.  The page's text is a third of what the
-    unrolled program was."""
+    in front; a baked `.ges` box beside a line still carries its own
+    drawing and gets `gui.ges` alone.  The page's text is a third of
+    what the unrolled program was.  Since 2026-09-08 a *live* compact
+    box lifts the library's relations too and gets `roll.ges` the same
+    way (`audio.has_roll`)."""
     from gestate.audio import has_roll, library_text, preludes
     from gestate.scorebox import asks, build_rolls, page_program
 
@@ -3252,7 +3273,8 @@ def test_the_page_is_written_over_roll_ges_and_the_compact_box_is_not():
     assert has_roll(live) and has_roll(baked)
     assert library_text("roll.ges") in preludes(live)
     assert len(live) < 40_000, len(live)
-    assert "rollFurniture" in live and "rollNotes" in live and "TouchY __nb_pitch_0__ (TouchX __nb_rail_0__" in live
+    assert "rollFurniture" in live and "rollStill" in live and "rollMoving" in live \
+        and "TouchY __nb_pitch_0__ (TouchX __nb_rail_0__" in live
 
     source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
     asks_ = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines()) if l.startswith("notes ")]

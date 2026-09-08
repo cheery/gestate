@@ -1351,6 +1351,67 @@ postcondition's number is still unmeasured** — nobody has timed two
 minutes on this — and this is the slice to time it on, because
 inspecting is what the two minutes are spent doing.
 
+### Landed — 2026-09-08, night: the notes as a relation, the picture in two layers
+
+*"can you create those things you need, and then write the generator?"*
+Postcondition, written first: *after the notes box draws its roll as a
+query over the notes, the roll on his piece looks the same, a press
+means the same, the frame is no slower on a drag, and a deleted note is
+gone from the picture with nothing but the query knowing.*
+
+**The two words** — `set : List a -> Set a` and `elems : Set a -> List
+a`, `spec/data.md` §III.4.  Forms, not functions: typed as the first
+two builtins that quantify, desugared by element type to the balanced
+merge a literal already uses and to the identity a sorted cons-list
+already is, so `crust` learned nothing and runs them unchanged.  Both
+are public words of the language, which retracts the *hidden helpers*
+default I proposed — his *"create those things"* was the trigger.
+Held by four tests in `test/test_datafun_sugar.py`; an unapplied `set`
+is refused.
+
+**The generator** — `roll.ges` §"The notes as a relation", `scorebox._layers`,
+both live paths.  The rows channel's reading becomes a set of rows
+keyed by index (`rollRelation`), the selection a set of indices
+(`rollSelected`), one merge splits them (`rollTaken`/`rollUntaken`),
+and the picture is two layers: the standing notes lifted over the two
+relations, the carried few lifted over the hand's channels too.  Rizzo's
+rule — a signal advances only when its tail ticked — is what makes *on
+change* true; nothing checks a clock.  The compact live box gets the
+library in front too (`audio.has_roll`), because the split is written
+once.  Measured on the reference machine, 88 notes, three selected:
+
+| tick | before | after |
+|---|---|---|
+| a hand's (`held`) | 80 ms | 7 ms |
+| a slide | 280 ms | 9 ms |
+| a lift | — | 7 ms |
+| a press (selection) | 80 ms | 85 ms |
+| the notes change | 81 ms | 107 ms |
+| the first picture | 98 ms | 377 ms |
+
+The drag, where the postcondition bites, is ten to thirty times cheaper;
+what is paid for it is the first picture and the on-change layer, each
+once.  The roll on `arcnotes.ges` photographed the same (the inspector
+run of 15:44, `test/driven/`), the inspector's answer over it unchanged,
+and the notes-editor's 163 tests green — two of them rewritten, because
+they paired notes by their place in the picture's list and **the
+painter's order changed**: the carried notes are drawn after the
+standing ones, on top, where the file's order interleaved them.  *Two
+things found on the way:* the library already had `rollRows` and
+`rollLeft`, for the staff's lines and the body's edge — a name clash
+the compiler caught as a duplicate signature; and a grown bar keeps its
+left edge, so the item's key does not move while its width does, which
+two positional tests had encoded without saying.
+
+**His idea, on the card and not built:** *"you can run things per-area
+that changes.. so that one section doesn't interfere with another.
+but I'm not sure about that."*  Today the layers are two per box, and a
+page's boxes are already separate signals, so one section's hand does
+not recompute another's notes.  Finer than that — a damage rectangle,
+the layer recomputed only where a row changed — is the derivative of
+the query, which `card:relations-at-frame-rate.md` left waiting; his
+uncertainty is recorded as his.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
@@ -1378,7 +1439,9 @@ remaining hands.  After it:
    a query re-evaluated every frame does not fit the frame at the
    page's size; the slice is therefore **two layers** — the notes as a
    query on change, the hand's preview as a signal per frame — with
-   membership as a lookup and not a join.
+   membership as a lookup and not a join.  **Landed the same night**,
+   §"Landed — 2026-09-08, night" above; `set` and `elems` are words of
+   the language now.
 3. **His own GUI, small, written by him** — the postcondition's first
    real check, his words under §"The postcondition".  A session stays
    reachable and writes down what he stumbled on; it does not go first.

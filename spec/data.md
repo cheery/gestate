@@ -806,6 +806,41 @@ routing table.
 
 ---
 
+### III.4 `set` and `elems` — the doors between a list and a set, 2026-09-08
+
+*Added for `card:gui-is-difficult.md` Q1: a picture that is a query over
+the model's rows needs the rows as a relation and the result as a list
+again, and neither door existed.*
+
+    set   : List a -> Set a
+    elems : Set a -> List a
+
+Both are **forms, not functions** — typed as polymorphic builtins
+(`pipeline._build_builtins`, the first two that quantify) and desugared
+by element type in `_desugar_datafun`, so no machine learns a new
+primitive and `crust` runs them unchanged:
+
+* `set xs` ≡ `for_X xs (x => {x})` — the elements merged into a set by
+  the balanced merge a literal uses (`helpers._gen_for`), `n log n`.
+  The sorted, duplicate-free invariant every set operation assumes is
+  *established* here rather than trusted, which is why a coercion was
+  refused: a `List` handed over as a `Set` with one element out of
+  order breaks every merge after it, silently.
+* `elems xs` ≡ `xs` — the identity, because a set's runtime
+  representation *is* the sorted cons-list of its elements, sharing
+  `Cons`/`Nil` with `List`.  It exists at the type level only, so that a
+  set can be folded into something that is not a semilattice: `for`
+  eliminates into semilattices alone, and a `Sub` is not one.
+
+**What they are not.**  Not a change to what a set is, nor to ϕ/δ: an
+occurrence inside a `fix` body is an ordinary application to the
+transform, and `set` over a list is monotone in the list only under
+the prefix order, which nothing here claims — a `set` under `fix` is
+untested and should be read as unsupported until it is.  Passing either
+name unapplied is refused (`PipelineError`), so the desugaring never
+meets one it cannot rewrite.  Held by `test/test_datafun_sugar.py`
+§"`set` and `elems`".
+
 ## Summary of what's genuinely new vs. inherited
 
 | Piece | Needs new `Node`/`Instruction`? | Why / why not |
