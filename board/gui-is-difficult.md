@@ -1412,6 +1412,56 @@ the layer recomputed only where a row changed — is the derivative of
 the query, which `card:relations-at-frame-rate.md` left waiting; his
 uncertainty is recorded as his.
 
+### What his own GUI found on its first evening — 2026-09-08
+
+*The postcondition's check, running: he wrote a tic-tac-toe board —
+nine circles in a `row`/`column` grid — and asked where user input comes
+from.  Measured rather than answered from memory, and one of the four
+answers is a missing piece.*
+
+**Input reaches a program by one road: a channel a pad writes.**  A
+press writes the fraction of the element's extent, clamped, to each
+attachment it took; `0.0 ::: mkSig (wait c)` makes that a signal and
+`scan` folds it.  Three facts, each measured on a nine-line canvas:
+
+- **The fold advances once per write, never per frame.**  Idle ticks do
+  not move it — a `wait c` signal only advances when `c` speaks, which
+  is Rizzo's rule doing the work `on change` needs and no clock being
+  read.
+- **A press writes once, a drag writes on every motion, a release
+  writes nothing.**  Counted: press 1, two motions 2 more, release 0.
+- **A pad writes both axes on one press, x first, then y.**  So a
+  cell's address arrives as two writes and a state is needed between
+  them — which is exactly `hand.ges`'s `Railed`, *the rail speaks
+  first*.  His grid landed on the roll's own structure without being
+  shown it.
+
+**And the missing piece: a program cannot see the end of a gesture.**
+`gui.ges` declares `Event := Tick | Move | Press | Release | Key` and
+`events : Sig Event` — but in the editor that stream is `Tick` and
+nothing else.  Measured: a whole press-drag-release delivers **zero**
+events, two frames deliver two.  `Press`/`Move`/`Release` are
+constructed only by `gui.run`, the retired pygame runner
+(`doc/memory/gestate-canvas-unwired.md`); the editor's wire carries
+meanings and not coordinates on purpose (`spec/workbench.md` §"The
+canvas walks over crust"), and `released` reaches the *model*, in
+Python, never the program.  So the commit-on-release that
+§"The one that comes first" calls idea 3 — *a gesture writes nothing
+until it commits* — is available to `session.py` and to no `.ges`
+program.
+
+*What it costs today, and the answer that does not need a mechanism:*
+**make the fold's step idempotent.**  *Place the current player's mark
+in cell k if k is empty* is idempotent per cell and advances the turn
+only when a mark lands, so a click that jitters inside one cell is
+harmless; only a deliberate sweep across cells misbehaves, which is not
+a gesture anyone makes at a board.  One line of the fold, no mechanism.
+
+*Whether the vocabulary should carry the gesture's end is his* — the
+honest options are a `Release` that crosses (which the wire refuses on
+purpose), a `released` channel a pad may declare, or nothing, with
+idempotence as the standing answer.  Not minted as a card.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
