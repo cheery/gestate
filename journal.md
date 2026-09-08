@@ -1772,3 +1772,74 @@ while its width changes, and a set of positions cannot see a bar that
 shares a corner with a wider one.  The tests count whole heads now.
 What they hold is the same claim, said in a way that does not depend on
 which note is drawn first.
+
+## The reviewer role, run once — and the corpus nobody had read, 2026-09-08
+
+*"I ran the reviewer role for the first time."*  It was invoked the day
+it landed, and what it found was not in the tree at all: `~/.claude/history.jsonl`,
+**2,943 prompts Henri typed at gestate over 37 days and 106 sessions**,
+first line 2026-08-03, which is **five days before git's initial
+commit**.  A handoff was written outside the tree because another
+session held it that afternoon — `board/README.md`'s rule that two
+writers never touch one file, kept by a session that could not write
+anyway.  This sitting landed it.  `doc/memory/the-prompt-log.md` is the
+record; four memories were corrected from it, each with the line and
+its timestamp:
+
+- **[[day-one-was-not-day-one]]'s central hedge narrows.**  It said no
+  artefact *in this repository* can attribute the spine, and that stays
+  true; the log is not in the repository and it attributes one piece —
+  *"Let's add a rule into the specification: Do not create things that
+  are not needed"*, 2026-08-04, four days before the commit that memory
+  called the earliest evidence.
+- **[[gui-command-language-first]] was 27 days late**, and he had marked
+  it joint at the time: *"I didn't come up with that alone.  It was
+  result of this discussion."*  A memory written later gave him whole
+  what he had already split.
+- **[[gestate-testing-standard]] got its sentence and its cause** —
+  *"now I've seen testing.. Definitely lets test things from now on and
+  properly"*, and five days before it, Ariadne: *"a string out from a
+  maze."*  The name in `test_ariadne.py` is the same thread.
+- **[[henri-pushback-on-unsafe-asks]] had two moments written as one.**
+  The concession is 09:39, the approval 09:56 — he agreed, worked
+  seventeen minutes, and came back to say it.  Read as one exchange it
+  was politeness; it was not.
+
+**And the transcripts beside the log were expiring.**  `cleanupPeriodDays`
+unset, cleanup daily, 31 days present and one leaving every morning:
+**19 sessions had already gone** before anyone looked.  Stopped and
+copied out the same day, outside the tree.
+
+**What the role is worth, on one run.**  It found a corpus, four dated
+corrections and a silent data loss — none of which the building
+sessions had looked for, because none of them was asked *what is
+missing*.  That is one run and not a measurement, and the reviewer was
+inside the tree, so `spec/roles/reviewer.md`'s own ceiling holds: it
+could not have said the tree is pointed the wrong way, and it did not.
+
+**Two things it left open, and both are his.**
+
+*The count he has now asked for twice.*  2026-08-28, with people in the
+room: *"show me an example of where you have pushed against me.  I need
+it to illustrate to my friend at platform 6, what you are."*  And again
+as this session's opening question.  Neither could be answered, and the
+reason is structural: **a session refusing him, or catching an error
+before it reached him, is not an event class here** — no shelf, no
+field, no stamp, while a card, a defect, a tool and a memory each get
+one.  `board/refused/` counts *his* refusals of cards, not the
+sessions' of asks.  Whether that earns a mark is his; what the log
+added is that the need is standing and dated, not passing.
+
+*A measurement that failed on its own terms.*  A vocabulary counter run
+over all 37 days was **language-blind** — every regex English, while
+Finnish went 0 → 1 → 22 → 33 → 8 percent across the five weeks, and
+2026-08-29 is 46 Finnish prompts and no English — so a week that read
+as a collapse was a change of language.  The `board`/`rule` share peaks
+in the week the board was *built* and falls after, so it measured
+construction and not adoption.  The metric that survived was chosen
+after seeing the data, which
+[[a-trial-is-refused-until-its-sheet-can-decide]] forbids outright.
+**So the reading is weaker than before the test, not stronger**, and it
+is recorded here rather than quietly dropped.  Redoing it means
+pre-registering in both languages, naming the null in advance, and
+handing the pass to a session that has not read this page.

@@ -73,6 +73,32 @@ this must not quietly drop the paragraph — it is the whole difference
 between a measurement and a flattering one, and the first version of
 this read had the flattering one. [[the-evaluation-loop]].
 
+## The hedge narrows — one piece of the spine is attributable after all, 2026-09-08
+
+*The hedge above says "no artefact **in this repository**".  That is
+still true and now it is also exact: the prompt log is not in the
+repository, and it attributes one piece.*  [[the-prompt-log]].
+
+**2026-08-04 16:15, Henri, verbatim:** *"Let's add a rule into the
+specification: Do not create things that are not needed.  That'd be a
+bit of Lean -practice."*  Four days before the initial commit this
+memory reads as the earliest evidence, in his words, with its source
+named; `roadmap.md` §"The rule" in `b049e0c` is the same rule in the
+tree's voice.
+
+**And the practice preceded the vocabulary.**  2026-08-16 20:05: *"I
+read the toyota production system really carefully making notes.  This
+was about a month ago."*  Mid-July.  *Kaizen* first appears in the log
+2026-08-13 16:01, *poka yoke* 2026-08-16 08:27 — so TPS by a month, the
+words by days, the rules after that, which is
+[[discovered-not-designed]] with dates on it.
+
+**What this does not do:** the 2026-08-03 prompts already show the
+project running — `implementation_order.md`, F17/F18/F19/F45 in use —
+so everything before that date is still unattributable, and the pre-git
+tree was still model-assisted by his own account above.  The paragraph
+before this section stands unchanged.
+
 ## What survives, and it is the session's reading — marked as its own
 
 What *is* attributable is his relationship to the tree: he was the one

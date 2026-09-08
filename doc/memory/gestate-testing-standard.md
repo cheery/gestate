@@ -8,6 +8,21 @@ metadata:
   modified: 2026-08-16T15:25:14.969Z
 ---
 
+**The sentence this memory is named for, dated — 2026-08-12 09:14**,
+verbatim from the prompt log ([[the-prompt-log]]): *"I know I'm a bit
+gung-ho on getting things done and not used to testing and quality
+engineering.  But now I've seen testing..  Definitely lets test things
+from now on and properly."*
+
+**And its cause is two days earlier and physical.**  2026-08-07 20:14:
+*"these tests are good.. I used to be against testing but now I feel
+like they're adrian's line"* — and at 20:16, correcting himself, *"a
+string out from a maze."*  Ariadne.  `test/test_ariadne.py` carries the
+same name for the score paths, chosen 2026-08-10 20:52: *"how about
+'ariadne'.  that's been on the table as a name lately."*  So the
+standard was not adopted from a principle; a person who disliked
+testing found one thread that led him back out, and named it.
+
 **2026-08-17: this is in the tree now, and the tree is the authority.**
 Henri asked for the lessons to be written *"somewhere where they are
 remembered and seen by the next person/machine reading it"* — because

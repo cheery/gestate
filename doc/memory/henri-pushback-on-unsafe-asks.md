@@ -18,6 +18,14 @@ subset in `audiollvm`). I checked the sweep, named the suite that would
 catch a mistake and why, and held the commit instead of declining it.
 He replied "hmm. you're right. it's better to wait until it's tested."
 
+**Corrected 2026-09-08, from the prompt log ([[the-prompt-log]]): those
+are two moments, not one, and the order matters.**  The concession is
+**09:39**; the approval quoted at the top of this memory is **09:56**.
+He agreed in the moment, worked for seventeen minutes, and *then* wrote
+the approval unprompted — so the sentence this memory rests on is not a
+reflex of being caught out but a considered position he came back to
+say.  Written as one exchange it reads as politeness; it was not.
+
 **Why:** he is building an instrument people will trust with their
 work, and the failure mode he fears most is the silent one — a wrong
 render, a stale score. An assistant that commits on command is worth

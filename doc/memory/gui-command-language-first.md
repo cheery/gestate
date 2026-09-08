@@ -10,6 +10,16 @@ Henri, 2026-09-07, opening `card:gui-is-difficult.md`: *"One thing I
 find important, that you already listed: it's the command language and
 clear model before the GUI.  That's so important it must be stressed."*
 
+**It was first said on 2026-08-11, and he marked it joint at the time.**  The sentence
+above is 27 days late and reads as his alone; the log has the moment
+(`the-prompt-log`).  **2026-08-11 16:16:** *"we already have a language
+here.. btw.  It can double as command language."*  And at 16:23:
+*"Indeed, we already have a suitable language for commands.  It's the
+language gestate itself.  **Well.  I didn't come up with that alone.
+It was result of this discussion.**"*  The last sentence is the part
+worth carrying: the attribution a session would have given him whole
+was one he had already split.
+
 **Why:** it is the one idea that makes the other GUI ideas testable.
 A picture as a function of state needs a state; hit-testing needs
 something to name what was hit; a photograph as a test needs a command

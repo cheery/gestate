@@ -14,7 +14,7 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 84 of 84 memories classified — 24 harness, 40 henri, 14 session, 6 argument
+    testimony: 85 of 85 memories classified — 25 harness, 40 henri, 14 session, 6 argument
 
 **Read it this way.**  Sixty of eighty rest on something a reader can
 check without trusting a session — a command, a test, a transcript, or
@@ -118,6 +118,7 @@ sentence that was taken to be.
 | research-that-leaves-a-command | henri | his rule, 2026-08-23, in Finnish |
 | restore-a-mutation-from-memory | harness | the case, 2026-09-01 — two failures where one was expected |
 | a-traceback-quotes-the-file-not-the-run | harness | the case, 2026-09-06 — a failure quoting a test's new source with its old assertion's message, and a re-run that passed |
+| the-prompt-log | harness | `~/.claude/history.jsonl` itself, read 2026-09-08: 2,943 prompts, 106 sessions, first at 2026-08-03 09:11 — outside the tree, so a clone cannot re-run the count |
 | a-run-silent-for-a-minute | harness | two runs on 2026-09-08 killed at a ten-minute timeout with nothing printed, and the same compile measured at 0.14 s outside the nested deep stack — `tools/queryframe.py`'s docstring carries the shape |
 | retargeting-not-reversal | argument | the sycophancy literature and the preference-signal asymmetry; marked a product of the method in its own text |
 | sediment-versus-debt | session | a session's framing from a 2026-08-20 dialogue; the test question is useful and unmeasured |
