@@ -40,20 +40,9 @@
 
 # ── The model ────────────────────────────────────────────────────────────
 
-#: What is in a cell.
-Mark := Empty | X | O
-
-sameMark : Mark -> Mark -> Bool
-sameMark a b = case a of
-    Empty -> case b of
-        Empty -> True
-        _ -> False
-    X -> case b of
-        X -> True
-        _ -> False
-    O -> case b of
-        O -> True
-        _ -> False
+#: What is in a cell.  `deriving Eq` is what gives `==` here, and it is
+#: the difference between this line and twelve of nested `case`.
+Mark := Empty | X | O deriving Eq
 
 #: The board is nine cells, row-major: 0 1 2 across the top.
 start : List Mark
@@ -78,11 +67,7 @@ putAt b k m = case b of
 
 #: How many cells hold `m`.
 tally : List Mark -> Mark -> Int
-tally b m = case b of
-    Nil -> 0
-    c :: rest -> case sameMark c m of
-        True -> 1 + tally rest m
-        False -> tally rest m
+tally b m = length (filter (c => c == m) b)
 
 #: **Whose turn it is, read off the board and never carried.**  X goes
 #: first, so it is X's turn whenever the two counts are level.  A turn
@@ -93,54 +78,39 @@ turn b = case tally b X == tally b O of
     True -> X
     False -> O
 
-#: The mark that owns a line, or `Empty`.
-lineOwner : List Mark -> Int -> Int -> Int -> Mark
-lineOwner b p q r = case sameMark (markAt b p) Empty of
-    True -> Empty
-    False -> case sameMark (markAt b p) (markAt b q) of
-        True -> case sameMark (markAt b q) (markAt b r) of
-            True -> markAt b p
-            False -> Empty
-        False -> Empty
+#: The eight ways to win — three rows, three columns, two diagonals.
+ways : List (Int, Int, Int)
+ways = (0, 1, 2) :: (3, 4, 5) :: (6, 7, 8)
+    :: (0, 3, 6) :: (1, 4, 7) :: (2, 5, 8)
+    :: (0, 4, 8) :: (2, 4, 6) :: Nil
 
-#: The first of the eight lines that is owned, or `Empty` — three rows,
-#: three columns, two diagonals.
+#: The mark that owns a line of three, or `Empty`.
+owner : List Mark -> (Int, Int, Int) -> Mark
+owner b (p, q, r) = case all (k => markAt b k == markAt b p) (q :: r :: Nil) of
+    True -> markAt b p
+    False -> Empty
+
+#: Who has won, or `Empty` — the first way that is owned by somebody.
 winner : List Mark -> Mark
-winner b = firstOwned (lineOwner b 0 1 2)
-          (firstOwned (lineOwner b 3 4 5)
-          (firstOwned (lineOwner b 6 7 8)
-          (firstOwned (lineOwner b 0 3 6)
-          (firstOwned (lineOwner b 1 4 7)
-          (firstOwned (lineOwner b 2 5 8)
-          (firstOwned (lineOwner b 0 4 8)
-                      (lineOwner b 2 4 6)))))))
-
-firstOwned : Mark -> Mark -> Mark
-firstOwned a b = case sameMark a Empty of
-    True -> b
-    False -> a
+winner b = case filter (m => m /= Empty) (map (w => owner b w) ways) of
+    m :: rest -> m
+    Nil -> Empty
 
 #: **The move, and it is idempotent.**  A cell that is taken, an index
 #: off the board, or a game already won all leave the board as it was —
 #: so a second write of the same press changes nothing, which is what
 #: stands in for the release the canvas cannot see.
 play : List Mark -> Int -> List Mark
-play b k = case sameMark (winner b) Empty of
+play b k = case all (m => m == Empty) (winner b :: markAt b k :: Nil) of
+    True -> putAt b k (turn b)
     False -> b
-    True -> case sameMark (markAt b k) Empty of
-        False -> b
-        True -> putAt b k (turn b)
 
 #: Which cell a point of the board means.  A fraction is 0 … 1 of the
 #: pad's own extent and the board is three cells across, so the column is
 #: `floor (f * 3)` — clamped, because the right and bottom edges are
 #: exactly 1.0 and would name a fourth column that is not there.
 third : Float -> Int
-third f = case floor (f * 3.0) > 2 of
-    True -> 2
-    False -> case floor (f * 3.0) < 0 of
-        True -> 0
-        False -> floor (f * 3.0)
+third f = clamp 0 2 (floor (f * 3.0))
 
 cellOf : Float -> Float -> Int
 cellOf x y = third y * 3 + third x
@@ -172,12 +142,9 @@ hand = zip (a b => (a, b)) handX pressed
 #: down-touches it has already answered; every instant where that number
 #: has not moved is the x half speaking, and is ignored.
 step : (Int, List Mark) -> (Float, (Int, Float)) -> (Int, List Mark)
-step st touch = case st of
-    (seen, b) -> case touch of
-        (x, p) -> case p of
-            (n, y) -> case n > seen of
-                True -> (n, play b (cellOf x y))
-                False -> (seen, b)
+step (seen, b) (x, (n, y)) = case n > seen of
+    True -> (n, play b (cellOf x y))
+    False -> (seen, b)
 
 game : Sig (Int, List Mark)
 game = scan step (0, start) hand

@@ -1463,14 +1463,43 @@ purpose), a `released` channel a pad may declare, or nothing, with
 idempotence as the standing answer.  Not minted as a card.
 
 **Written out, at his ask — `examples/gui/tic-tac-toe.ges`.**  *"can you
-implement that so I see how complex it is?"*  Counted: **249 lines, 132
-of them code**, 80 comment and 37 blank — and most of the comment is the
-paragraph above, written into the file because it is what the next
-person will want.  Of the 132, the **hand is 21**: two channels, two
-signals, a count of the down half's arrivals, a `zip`, and one `scan`
-whose state is *(how many down-touches answered, the board)*.  The rest
-is the model and the drawing, and neither is about GUIs.  Two things it
-shows that argument would not:
+implement that so I see how complex it is?"*  It plays, and his reading
+of it was **that it is complicated for what it is** — *"something I
+would never leave from my hand… I don't know if this should be
+optimized, but it's worth saying."*  Measured rather than agreed with,
+and the measurement splits three ways.
+
+**A quarter of it was the session's, not the framework's.**  The first
+draft was 132 lines of code; written the way the language allows it is
+**99**, same behaviour, the 34 tests unchanged.  What came out:
+`deriving Eq` on `Mark` in place of twelve lines of nested `case`;
+**tuple patterns in an argument** — `step (seen, b) (x, (n, y))` — in
+place of four nested `case`s unpacking one tuple; `filter`, `all`,
+`length` and `clamp` in place of four hand-rolled recursions.  Every one
+of those was in scope and on a generated page the whole time.  So the
+first honest finding is not about GUIs at all: **a session reached for
+the general form it can always write instead of the specific one the
+language already had, and was 25% over for it.**  Nothing caught that —
+not the type checker, not the tests, not the session — until a person
+read it and said it felt heavy.  `doc/memory/why-models-hallucinate.md`
+is the rule it belongs to: fluency is no evidence, including your own.
+
+**Of the 99 that remain, 81 are not about gestate.**
+
+| | code lines |
+|---|---|
+| the model — `Mark`, nine cells, `markAt`/`putAt`, the eight ways, the turn | 41 |
+| the picture — tiles, marks, the foot | 40 |
+| **the hand** | **18** |
+
+The 81 are tic-tac-toe and would be about that in any language.  The 18
+are what a GUI costs here, and **about seven of them exist only because
+a press arrives as two instants and a program cannot hear the release**:
+the arrival count, the `zip`, and the `n > seen` guard.  That is the
+framework's tax on this program, it is real, and it is the thing the
+open question above would remove.
+
+Two things the file shows that argument would not:
 
 - **The turn is derived and never carried** — `tally b X == tally b O` —
   so a press that changes nothing cannot advance it, and idempotence

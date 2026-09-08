@@ -1843,3 +1843,49 @@ after seeing the data, which
 is recorded here rather than quietly dropped.  Redoing it means
 pre-registering in both languages, naming the null in advance, and
 handing the pass to a session that has not read this page.
+
+## He read the tic-tac-toe and called it heavy — 2026-09-08, night
+
+*"The program does work, but it's something I would never leave from my
+hand, because it's doing very complicated things to get there… This tic
+tac toe demonstration is complicated for what it is.  I don't know if
+this should be optimized, but it's worth saying."*
+
+He was right, and agreeing would have been the wrong answer: the useful
+one was to find out **whose** complexity it was.  Measured, it splits
+three ways, and only one of the three is the framework's.
+
+**A quarter of it was mine.**  132 lines of code became **99** with no
+change of behaviour and the same 34 tests: `deriving Eq` instead of
+twelve lines of nested `case`; a tuple pattern in an argument —
+`step (seen, b) (x, (n, y))` — instead of four nested `case`s taking
+one tuple apart; `filter`, `all`, `length`, `clamp` instead of four
+hand-rolled recursions.  All of them in scope, all of them on a
+generated reference page, none of them reached for.  I wrote the
+general form I can always write rather than the specific one the
+language already had.
+
+**What caught it was a person's eye, and nothing else could have.**  The
+program compiled, the tests were green, the game played under a real
+mouse, and the driven run photographed it working.  Every instrument
+this tree has said yes.  The defect was that it was *heavy*, and heavy
+is not in the suite — `manifesto.md`'s table has the row for it: a
+picture that looks right for the wrong reason still looks right, and
+here the code was right and still wrong.  That is the postcondition of
+`card:gui-is-difficult.md` doing exactly what it promises: a session did
+the mechanical work, and the keeper's hands found the thing the
+mechanical work could not.
+
+**And of the 99 that remain, 81 are not about gestate** — 41 model, 40
+picture, both of which you would write in any language.  The hand is
+18, and about seven of those exist only because a press arrives as two
+instants and a program cannot hear the release.  So the fair sentence
+is not *the framework is complicated*: it is that the framework taxes
+this program about seven lines, and the session added thirty-three of
+its own on top and did not notice.
+
+**No memory for it.**  The lesson — check what is in scope before
+writing the helper — is `why-models-hallucinate`'s *fluency is no
+evidence* and `henri-working-style`'s *reuse existing machinery*,
+already carried.  What is new is the number, and the number belongs to
+the card.
