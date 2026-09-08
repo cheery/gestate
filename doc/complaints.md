@@ -20,12 +20,12 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**465 complaints**, in 47 files.
+**466 complaints**, in 47 files.
 
 | | |
 |---|---|
 | `author` | 246 |
-| `command` | 42 |
+| `command` | 43 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 162 |
@@ -891,8 +891,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 2741 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
 | 2881 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
 | 2892 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5143 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5303 | `RefusedError` | `command` | carried from `exc` | '{exc} — press the one you mean first' |
+| 5145 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5313 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5319 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `tempo.py`
 

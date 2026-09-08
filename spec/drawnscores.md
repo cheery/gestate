@@ -1568,7 +1568,12 @@ the pitch hand.
 `resize` took a column and a key; they take a tick and a key now —
 `transpose <hand> tick was key` — which is what the file and the
 picture agree on, and a chord is as many names as it has keys.  No
-tracked transcript held the old shape.  The model's grab is in two
+tracked transcript held the old shape.  *And since 2026-09-08 the
+voice too — `transpose <hand> voice tick was key`, Henri: "laita
+transkription transpose-osoitteeseen ääni" — because a tick and a key
+name two lines where two voices double a note; `-` is no voice, and
+then the selection decides or the command refuses.  `mark` and
+`resize` the same, being the same address.*  The model's grab is in two
 halves that arrive in order: the rail's press holds a tick and names
 no note, the pitch hand's press finds the note there and fills the
 rail's grab in; a rail let go alone writes nothing.

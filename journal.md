@@ -1631,3 +1631,15 @@ object instead.  And one thing left half-open on purpose: the typed
 selected the note is the tiebreak — because the fix is an arity
 change to four verbs and the transcript, and that is his to ask for.
 
+## The voice in the address — 2026-09-08, afternoon
+
+*"laita transkription transpose-osoitteeseen ääni."*  Three verbs
+share the note's address and all three took the voice, second, so a
+line reads box, voice, tick, key.  The interesting line was the
+refusal: a wrong voice on a doubling now names who does sound there,
+because a refusal that only says *no* sends the person back to the
+picture to find out what the command already knew.  The test caught
+me naming the wrong voice for arc.notes's first chord — melody and
+middle double the D, not melody and upper — which is the kind of
+mistake the address exists to make impossible.
+

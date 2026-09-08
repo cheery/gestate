@@ -963,6 +963,20 @@ his words.*
    it.  Adding the voice to the command is an arity change to four
    verbs, his to ask for.
 
+   **Asked for and done, 2026-09-08, afternoon** — *"laita transkription
+   transpose-osoitteeseen ääni."*  The three verbs that share the
+   address — `transpose`, `mark`, `resize` — take it as their second
+   argument: *the box, the voice, the tick, the key*, coarse to fine.
+   The voice is the `.notes` voice, or the bank a `.ges` note was
+   assigned to, or `-` for neither; a named voice decides a doubling
+   with no press, a wrong one refuses and says who does sound there
+   (*no bass sounds 62 at tick 0 — melody and middle do*), and `-` on
+   a doubling falls back to the selection or refuses.  A drag spells
+   the voice into the transcript itself, read from the file at the
+   release.  No tracked transcript held the old shape; eleven test
+   calls gained an argument and `doc/ref/commands.md` regenerated.
+   **Question 3 is closed.**
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide

@@ -697,7 +697,7 @@ def test_the_command_writes_the_note_the_region_and_the_key_name():
     chan = "__nb_pitch_0__"
     on, was = next((e[0], e[3]) for e in roll.events if e[2] == 0)
 
-    said = seat.run("transpose", chan, on, was, was + 2)
+    said = seat.run("transpose", chan, "-", on, was, was + 2)
 
     assert "+2 semitone" in said, said
     before, after = _only_change(source, seat.view.text())
@@ -852,7 +852,7 @@ def test_a_note_dropped_while_it_plays_is_auditioned():
         seat.bench.playing = playing
         seat.bench.audition = lambda text: heard.append(text)
         on, was = next((e[0], e[3]) for e in roll.events if e[2] == 0)
-        seat.run("transpose", "__nb_pitch_0__", on, was, was + 2)
+        seat.run("transpose", "__nb_pitch_0__", "-", on, was, was + 2)
 
     assert len(heard) == 1, "auditioned while stopped, or not while playing"
     assert f"low {was + 2}" in heard[0] or str(was + 2) in heard[0]
@@ -1036,10 +1036,10 @@ def test_the_command_refuses_by_name_and_writes_nothing():
 
     # A region nobody drew.
     assert "no score box region" in seat.run("transpose", "__nb_pitch_9__",
-                                             on, was, was + 1)
+                                             "-", on, was, was + 1)
     # A pitch nothing sounds at that tick: the picture and the file
     # disagree, which is a refusal rather than a guess.
-    assert "sounds" in seat.run("transpose", chan, on, was + 7, was + 8)
+    assert "sounds" in seat.run("transpose", chan, "-", on, was + 7, was + 8)
     assert seat.view.text() == source, "a refusal wrote to the file"
 
 

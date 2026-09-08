@@ -2999,11 +2999,11 @@ def test_a_typed_resize_names_the_note_as_transpose_does():
     n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
     on, key = roll.events[n][0], roll.events[n][3]
     before = seat.view.text()
-    assert seat.run("resize", "__nb_pitch_0__", on, key, 0).startswith("resize: a note is at least one tick")
-    assert seat.run("resize", "__nb_pitch_0__", on, key + 1, 96).startswith("resize: nothing sounds")
-    assert seat.run("resize", "__nb_pitch_0__", on, key, 384).startswith("resize: nothing to do")
+    assert seat.run("resize", "__nb_pitch_0__", "-", on, key, 0).startswith("resize: a note is at least one tick")
+    assert seat.run("resize", "__nb_pitch_0__", "-", on, key + 1, 96).startswith("resize: nothing sounds")
+    assert seat.run("resize", "__nb_pitch_0__", "-", on, key, 384).startswith("resize: nothing to do")
     assert seat.view.text() == before
-    said = seat.run("resize", "__nb_pitch_0__", on, key, 480)
+    said = seat.run("resize", "__nb_pitch_0__", "-", on, key, 480)
     assert said.startswith("resize: arc.notes — len 384 → 480"), said
     assert "len 480" in seat.view.text(), "past the bar line is written as it is"
 
@@ -3373,17 +3373,44 @@ def test_a_group_follows_through_the_rebuild_and_can_be_carried_twice():
 
 def test_a_unison_doubling_is_transposed_through_the_selection():
     """Seven places on `arc.notes` where two voices sound one key at one
-    tick: a typed `transpose` cannot say which, and the press that
-    selected one can.  With nothing selected it refuses, as before."""
+    tick.  **The voice is the address** (Henri, 2026-09-08: "laita
+    transkription transpose-osoitteeseen ääni"): said, the command needs
+    no press; `-` is no voice, and then the press that selected one of
+    the two decides, and with nothing selected it refuses.  And a drag
+    spells the voice into the transcript itself."""
+    from gestate.scorebox import key_at, reach_of
+
     _here, seat, view, roll = _page_seat()
     twice = [i for i, e in enumerate(roll.events) if e[0] == 0 and e[3] == 62]
     assert len(twice) == 2, twice
-    said = seat.run("transpose", "__nb_pitch_0__", 0, 62, 64)
+    said = seat.run("transpose", "__nb_pitch_0__", "-", 0, 62, 64)
     assert said.startswith("transpose: 62 sounds 2 times at tick 0") and "press the one you mean" in said, said
-    chan = _press_a_note(seat, roll, twice[0])
-    seat.released(chan); seat.released("__nb_rail_0__")
-    said = seat.run("transpose", chan, 0, 62, 64)
-    assert said.startswith("transpose: arc.notes — key 62 → 64 on line "), said
+    said = seat.run("transpose", "__nb_pitch_0__", "bass", 0, 62, 64)
+    assert said.startswith("transpose: no bass sounds 62 at tick 0 — melody and middle do"), said
+    said = seat.run("transpose", "__nb_pitch_0__", "middle", 0, 62, 63)
+    assert said.startswith("transpose: arc.notes — key 62 → 63 on line "), said
     roll2 = _rebuilt(seat)
-    assert roll2.events[seat.selected[0]][:1] == (0,) and roll2.events[seat.selected[0]][3] == 64
+    assert sorted(e[3] for e in roll2.events if e[0] == 0 and e[3] in (62, 63)) == [62, 63], \
+        "the middle's moved, the melody's did not"
+    # `-` with a press: bar 5's doubling, the melody's pressed
+    at = 4 * 384
+    pair = [i for i, e in enumerate(roll2.events) if e[0] == at and e[3] == 62]
+    assert len(pair) == 2, pair
+    chan = _press_a_note(seat, roll2, pair[0])
+    seat.released(chan); seat.released("__nb_rail_0__")
+    said = seat.run("transpose", chan, "-", at, 62, 64)
+    assert said.startswith("transpose: arc.notes — key 62 → 64 on line "), said
+    roll3 = _rebuilt(seat)
+    assert roll3.events[seat.selected[0]][:1] == (at,) and roll3.events[seat.selected[0]][3] == 64
     assert seat._voice_of(seat.bench.note_regions["__nb_rail_0__"], seat.selected[0]) == "melody"
+    # and a drag spells the voice: the middle's 62 at bar 5, two semitones up
+    other, = [i for i, e in enumerate(roll3.events) if e[0] == at and e[3] == 62]
+    chan = _press_a_note(seat, roll3, other)
+    low, high = reach_of(roll3)
+    grabbed = key_at(roll3, (high - 62) / (high - low))
+    up = next(d / 1000 for d in range(1000) if key_at(roll3, d / 1000) == grabbed + 2)
+    seat.touched(chan, up)
+    said = seat.released(chan)
+    assert said.startswith("transpose: arc.notes — key 62 → 64 on line "), said
+    spelled = [step for step in seat.log.steps if step.verb == "transpose"][-1]
+    assert spelled.args[1] == "middle", spelled.args

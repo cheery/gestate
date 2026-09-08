@@ -2302,7 +2302,7 @@ class Session:
         where = self.bench.keyboard.transpose(by)
         return f"octave {where}"
 
-    def do_transpose(self, region: str, tick: int, was: int, key: int) -> str:
+    def do_transpose(self, region: str, voice: str, tick: int, was: int, key: int) -> str:
         """Write one note of a score box at a different pitch.
 
         **The first gesture in this project that writes text**
@@ -2327,7 +2327,7 @@ class Session:
         roll = found.roll
         origins = getattr(self.bench, "origins", None) or {}
         try:
-            note = self._note_named(found, int(tick), int(was))
+            note = self._note_named(found, voice, int(tick), int(was))
             # **A note from an included `.notes` is edited in that file**,
             # not in this buffer — `spec/drawnscores.md` rung 4.  Tried
             # first, because `transposed` refuses it by name and the
@@ -2622,7 +2622,7 @@ class Session:
         return (f"carry: {name} — {len(rows)} notes, {step} semitones, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
-    def do_resize(self, region: str, tick: int, key: int, length: int) -> str:
+    def do_resize(self, region: str, voice: str, tick: int, key: int, length: int) -> str:
         """Give one note of a score box a new length, in ticks.
 
         **What a hand on a note's end runs when it lets go**
@@ -2645,7 +2645,7 @@ class Session:
             return f"resize: no score box region called `{region}`"
         roll = found.roll
         try:
-            note = note_of(roll, int(tick), int(key))
+            note = self._note_named(found, voice, int(tick), int(key))
             line, _col, _width, _key = pitch_atom(roll, note)
         except RefusedError as exc:
             return f"resize: {exc}"
@@ -2899,7 +2899,7 @@ class Session:
         self.bench.audition(self.view.text())
         return f"bars: {name} — section {section_name} {said}"
 
-    def do_mark(self, region: str, tick: int, was: str, manners: str) -> str:
+    def do_mark(self, region: str, voice: str, tick: int, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
 
         **`transpose`'s path, for the other field** — the descent says
@@ -2925,7 +2925,7 @@ class Session:
             return f"mark: no score box region called `{region}`"
         roll = found.roll
         try:
-            note = note_of(roll, int(tick), int(was))
+            note = self._note_named(found, voice, int(tick), int(was))
             text, said = marked(self._source(), roll, note,
                                 int(manners),
                                 getattr(self.bench, "origins", None))
@@ -5009,7 +5009,8 @@ class Session:
                 if said.startswith("stretch:") and "—" not in said:
                     self._unpreview(found)
                 return said
-            said = self.run("resize", yname, found.roll.events[note][0],
+            said = self.run("resize", yname, self._voice_of(found, note) or "-",
+                            found.roll.events[note][0],
                             found.roll.events[note][3], length)
             if said.startswith("resize:") and "—" not in said:
                 self._unpreview(found)
@@ -5084,7 +5085,8 @@ class Session:
                 # so the sentence was true of the design and of nothing
                 # else.
                 return self._reveal(found, note)
-            moved = self.run("transpose", name, found.roll.events[note][0], was, key)
+            moved = self.run("transpose", name, self._voice_of(found, note) or "-",
+                             found.roll.events[note][0], was, key)
             if moved.startswith("transpose:"):
                 # Refused, so the note did not move and must not look
                 # as though it had.  A *written* one keeps its lift
@@ -5197,8 +5199,8 @@ class Session:
         self.pending[found.box] = (found.roll, keys)
 
     def _voice_of(self, found, note: int) -> str | None:
-        """The voice a roll's note is written in, or `None` for a note
-        no `.notes` line wrote."""
+        """The voice a roll's note is written in — the `.notes` voice,
+        or the bank a `.ges` note was assigned to — or `None`."""
         from .notes import NotesError, parse
         from .scorebox import RefusedError, pitch_atom
 
@@ -5208,7 +5210,8 @@ class Session:
             return None
         where = (getattr(self.bench, "origins", None) or {}).get(line)
         if where is None:
-            return None
+            leaf = found.roll.leaves[found.roll.events[int(note)][2]]
+            return getattr(leaf, "bank", None) or None
         name, row = where
         try:
             text = (self.view.text() if self._is_document(name)
@@ -5281,26 +5284,39 @@ class Session:
                 self.selected.pop(box, None)
                 self.held.pop(box, None)
 
-    def _note_named(self, found, tick: int, key: int) -> int:
-        """`scorebox.note_of`, with the selection as the tiebreak.
+    def _note_named(self, found, voice: str, tick: int, key: int) -> int:
+        """The note an address names: the voice, the tick and the key.
 
-        A typed address is (tick, key) and has no voice, so on a piece
-        where two voices double a note it names two; the press that
-        selected one of them says which — the gesture always has, and a
-        typed command with the doubling still selected does too.  With
-        nothing selected it refuses, as before, and says so.
+        **The voice is part of the address** (Henri, 2026-09-08): on a
+        piece where two voices double a note, a tick and a key name two
+        lines, and the voice says which.  `-` is no voice — a `.ges`
+        note with no bank, or a hand-typed command that left it out —
+        and then the selection is the tiebreak: the press that selected
+        one of the two says which, and with nothing selected it
+        refuses, and says so.
         """
         from .scorebox import RefusedError, note_of
 
+        roll = found.roll
+        voice = str(voice or "-")
         try:
-            return note_of(found.roll, int(tick), int(key))
+            return note_of(roll, int(tick), int(key))
         except RefusedError as exc:
+            hits = [j for j, e in enumerate(roll.events)
+                    if e[0] <= int(tick) < e[1] and e[3] == int(key)]
+            if voice != "-" and len(hits) > 1:
+                named = [j for j in hits if self._voice_of(found, j) == voice]
+                if len(named) == 1:
+                    return named[0]
+                if not named:
+                    who = sorted({self._voice_of(found, j) or "-" for j in hits})
+                    raise RefusedError(
+                        f"no {voice} sounds {key} at tick {tick} — "
+                        f"{' and '.join(who)} do")
             chosen = self.selected.get(found.box)
-            if chosen is not None and 0 <= chosen < len(found.roll.events):
-                on, off, _l, k, _v, _m = found.roll.events[chosen]
-                if on <= int(tick) < off and k == int(key):
-                    return chosen
-            raise RefusedError(f"{exc} — press the one you mean first")
+            if chosen in hits:
+                return chosen
+            raise RefusedError(f"{exc} — say the voice, or press the one you mean first")
 
     def _reveal(self, found, note: int) -> str:
         """Where the note under a click is written — and go there.

@@ -271,7 +271,7 @@ Move the played octave.  Negative goes down.
 ### `transpose`
 
 ```
-transpose region tick was key : Text -> Int -> Int -> Int -> Command
+transpose region voice tick was key : Text -> Text -> Int -> Int -> Int -> Command
 ```
 
 Write a note in a score box at a different pitch — the region it is
@@ -296,11 +296,19 @@ moved under the picture.  A note written once and played many times
 is *not* refused — it is said: the bytes are one atom, so moving it
 moves every voicing, and the answer says how many.
 
+**The voice is part of the address** — Henri, 2026-09-08, closing
+`card:gui-is-difficult.md` Q7: *"laita transkription
+transpose-osoitteeseen ääni."*  A `.notes` piece may sound one key in
+two voices at one tick (seven places on `arc.notes`), and a tick and a
+key alone then name two lines.  `voice` is the `.notes` voice, or the
+bank a `.ges` note was assigned to, or `-` for a note with neither —
+and `-` on a doubled address takes the selected note or refuses.
+
 
 ### `mark`
 
 ```
-mark region tick was manners : Text -> Int -> Int -> Int -> Command
+mark region voice tick was manners : Text -> Text -> Int -> Int -> Int -> Command
 ```
 
 Write how a note is to be **played** — `spec/annotations.md`.
@@ -314,9 +322,10 @@ any violinist writes on one head.  `audio.ges` names the bits.
 transcript that said *toggle* would mean a different thing the second
 time it was read, and a replay is the one reader that cannot ask.
 
-`region`, `tick` and `was` name the note the way `transpose` does — the
-box, a place in time and the key sounding there — because it is the same note being named
-and a second way of naming one would be a second thing to be wrong.
+`region`, `voice`, `tick` and `was` name the note the way `transpose`
+does — the box, the voice, a place in time and the key sounding there —
+because it is the same note being named and a second way of naming one
+would be a second thing to be wrong.
 
 It refuses by name: a note the dice drew, a payload with no manner
 field to change, and — more often than `transpose` does — a line
@@ -381,13 +390,13 @@ keyboard or its section, or would land on a note already written.
 ### `resize`
 
 ```
-resize region tick key len : Text -> Int -> Int -> Int -> Command
+resize region voice tick key len : Text -> Text -> Int -> Int -> Int -> Command
 ```
 
 Give one note of a score box a new length, in ticks — what a hand on
 a note's end runs when it lets go (`card:notes-editor.md` slice 4).
-The note is named as `transpose` names one, the column and the key
-it sounds at.  Only a note written in a `.notes` file, where its
+The note is named as `transpose` names one — the column, the voice,
+the tick and the key it sounds at.  Only a note written in a `.notes` file, where its
 length is one named field on one line; a length past the bar line is
 written as it is, and the bar clips it when it sounds.  Refuses by
 name no such note, a `.ges`-written one, and a length under a tick.
