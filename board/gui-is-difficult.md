@@ -796,6 +796,70 @@ his words.*
    the cheap road to F for `.notes` and is worth measuring before F is
    written by hand.  *Open.*
 
+   **Henri, later the same morning:** *"tätä tarvitsisi varmaankin
+   mittailla tai tutkia.  Ajatellaan laajempaa tilannetta, ei
+   pelkästään nuotteja.  Esimerkiksi onhan meillä myöhemmin myös excel
+   taulukon solut.."* — and a paper: Coblenz et al., *Kale: A
+   Transformation-Safe Spreadsheet System*, arXiv 2608.26345, 2026-08-26
+   (UCSD; source and replication package on GitHub, `ucsd-salad/Kale`).
+
+   **What Kale is, read 2026-09-08.**  This question, in a spreadsheet,
+   with numbers.  Their name for it is *reference instability*: does
+   `B2` in a formula mean the *data* that was in B2 or the *geometry*
+   of B2?  Excel answers by rewriting references when rows move — F
+   above, marks carried through edits — and the paper's first finding
+   is that people cannot predict that rewriting: 7 of 15 answers right
+   about what happens to a range when a row is inserted, and in the
+   task study 50–83 % of Sheets users left a broken formula behind on
+   four of the five risks.  Kale's answer is to make **the reference
+   say which identity it means**: `Col[0]` is *the thing* — resolved
+   at parse time to a **row id the system assigns and the user never
+   sees**, so it follows the row through insert, sort and move;
+   `Col[+1]` is *the place* — an offset, geometry, and stays put; a
+   whole column or row is the third form; a rectangle `B2:C3` is
+   refused because it is a place pretending to be a set of things.
+   Names move with cells on sort.  Result: four of seven risk
+   instances at 0 % against over 50 % in Sheets; and two Kale users hit
+   a *new* error on the sort task — they moved rows expecting the
+   place and got the thing — which is exactly question 2 above
+   (*follows the note, or stays at the place?*) with the answer that
+   neither is right until the reference says.  Not evaluated:
+   *queries* — `AVERAGE(Salary[Experience > 10])`, reading I — the form
+   the tree has and Kale did not.
+
+   **What it changes on this card.**  Two things.
+   - *The kinds are three, not two, and the reference declares its
+     kind.*  A reference is to **a thing** (a key the model carries —
+     B; Kale's hidden row id is B where the file can carry one),
+     **a place** (a coordinate in the geometry — H, the rail's tick),
+     or **a set** (a query re-run — I).  Kale's errors, Excel's and
+     the CAD problem all come from one kind being silently taken for
+     another, and the framework's law is then *a reference names its
+     kind and is never converted to another kind without saying so*.
+     On the roll: a selection is things, a band is a set (re-run after
+     every rebuild, so a note nudged out leaves it — right, because the
+     band was a region), the rail is a place.  On the sheet
+     (`card:gex-sheet.md`, *its first client with identity by
+     address*): `Col[0]`, `Col[+1]`, and a Datafun `for` as the range —
+     the query Kale left for future work is the form this tree already
+     compiles.
+   - *F is a mechanism, not a semantics.*  Carrying marks through edits
+     is right inside a command that knows what it moved, and wrong as
+     a rule shown to a person: the 47 % is the number.  So a typed edit
+     the editor did not make drops a *thing* reference and says so
+     (G never), and a *set* reference simply re-runs.
+
+   **What to measure or read next, his to pick:** (1) Kale's source, for
+   how a row id persists and what sort does to a name — an afternoon's
+   reading; (2) the seven shared (tick, key) pairs on `arc.notes` and
+   the 0 within-voice chords, on his other `.notes` files, so the key
+   (voice, tick, key) is measured on more than one piece; (3) E against
+   F on `.notes` — whether the record survives a gesture edit with the
+   byte-exact write, which is a half-day and decides the session's
+   half; (4) `card:gex-sheet.md` Q-list gains *which reference kinds a
+   `.gex` formula has*, answered by Kale's three plus the query.
+   *Open.*
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide
