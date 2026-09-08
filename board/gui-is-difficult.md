@@ -1592,6 +1592,63 @@ library exists and is tested and runs on crust today.  **Whether that is
 the next slice is his**, and it is a bigger claim than anything else on
 this card, so it is written here and nowhere else.
 
+### Would the whole thing need rethinking? — measured, 2026-09-08, night
+
+*His question, said out loud and deferred in the same breath:* **"The
+FRP -parts are great for audio, and they're great for describing certain
+GUI details.  But at the same time.. I think we're hitting boundaries
+and limits there.  You prove me that it's possible to work around those
+limits, but at what cost? … I think it'd be worthwhile to think this
+through.  But it's not today's task."**  Not opened.  What follows is
+one measurement, taken because the difference between *a foundation is
+wrong* and *a layer is thin* is cheap to settle and expensive to carry
+around unsettled.
+
+**The language already has an event calculus, and nothing above it uses
+it.**  `ExL a` — *a value, later* — **is** an event: `wait c : ExL a` is
+the next arrival on a channel, and `delay`, `<*>`, `<@>`, `gfix`, `sync`
+and `watch` are its combinators, all of them language forms today.  And
+`gestate/signal.ges` has **exactly one function that takes an `ExL`**:
+`mkSig`, whose job is to turn it into a signal.  Its own prose says so —
+*"every signal fed by a channel starts here"* — and `gui.ges` calls
+`x ::: mkSig (wait c)` *the first line of nearly every canvas program*.
+
+**That line is the door where an event stops being one.**  After it,
+*something happened* has become *a value that is always there*, and
+whether it just arrived is no longer askable.  The arrival counter in
+`examples/gui/tic-tac-toe.ges`, the seven lines of pairing tax, and the
+`n > seen` guard are all one thing: a program reconstructing, at the
+signal level, the fact it was handed and gave away one line earlier.
+
+**Measured — a fold over an event is one line, in the language as it
+stands:**
+
+    scanE : (b -> a -> b) -> b -> ExL a -> Sig b
+    scanE = gfix q => (f z e => z ::: (delay (q2 x => q2 f (f z x) e) <*> q <@> e))
+
+Written the way `scan` and `mkSig` are written, one level down.  Driven
+on a canvas: nought at the start, nought after two idle frames, **one
+after a press**, one after another frame, two after a drag's motion,
+three after a second press.  It steps when the event arrives and at no
+other instant, and nothing in it counts or compares.
+
+**So the answer to his question, as far as one measurement can carry
+it:** the foundation is not what is wrong.  Rizzo, guarded recursion and
+signals are doing real work — audio needs them, animation needs them,
+and the *on change* property this card's own two-layer roll depends on
+falls out of them for free.  What is thin is the **event layer above**:
+one type, six language forms, and a library that offers a single way to
+leave it.  A GUI is the client that wants events where audio wants
+signals, and it has been made to speak the audio half.
+
+*What this does not claim.*  `scanE` counts arrivals on **one** channel;
+it does not by itself pair the two halves of a press — `sync : ExL a ->
+ExL b -> ExL (Sync a b)` exists and is untried here.  And a layer that
+is thin is still a design question, not a patch: what the events *are*
+(`Press`, `Play k`, a command?), who folds them, and how that meets
+`onPress` and the chart is the thing he says is worth thinking through.
+**Not today's task, and not a session's to open.**
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
