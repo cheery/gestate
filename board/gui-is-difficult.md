@@ -915,6 +915,26 @@ his words.*
    **(4)** `card:gex-sheet.md` carries the reference-kind question and
    Kale's answer.
 
+   **Answered, Henri, 2026-09-08:** *"nuotti saisi lajittua siihen
+   järjestykseen mikä on tiedostolle sovittu."*  So the file is a
+   table: after a move in time the line sorts to where it sounds, in
+   the canonical order `notes.write` already defines.  That settles the
+   pair — **B for the file** (a note's identity is its content, (voice,
+   tick, key); a doubled line is one note said twice, as `doubled`
+   decided) and **E for the session** (the parsed records are the live
+   model, a gesture edits a record and writes the file canonically, and
+   the record survives its own edit, so the selection follows the note
+   a command moved).  Questions 1 and 2 of Q7 fall with it; question 3,
+   the voice in the address, is the first thing the slice fixes.  *Not
+   built yet — the slice is his to schedule:* every `.notes` gesture
+   through parse → edit → `write` instead of `retune`; `selected` and
+   `group` held as (voice, tick, key) or as the records themselves, and
+   never as an index; `transpose`, `move`, `resize` taking the voice.
+   What it changes visibly: a rail drag reorders lines in the buffer,
+   and the buffer's line for a note is no longer where it was typed.
+   What stays: byte-exact on every other line and every comment
+   (measured, 291 of 291).
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide
