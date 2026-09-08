@@ -6585,8 +6585,13 @@ def describe_touch(bench, name: str, value: float, ticks: dict | None = None) ->
                 f"written at {place}")
     view = getattr(bench, "substrate", None)
     held = (getattr(view, "values", None) or {}).get(name) if view is not None else None
-    said = (f"holds {held:.3g}, " if isinstance(held, (int, float))
-            else "") + f"a press here would write {value:.3g}"
+    # **The name leads**, because for a plain channel it is the whole of
+    # the identity — the window draws these words beside the region and
+    # nothing else in them says which of a pad's two halves this is
+    # (found 2026-09-08 by Ctrl-pressing `examples/gui/tic-tac-toe.ges`,
+    # whose two answers were distinguishable only by their line numbers).
+    said = f"{name}: " + (f"holds {held:.3g}, " if isinstance(held, (int, float))
+                          else "") + f"a press here would write {value:.3g}"
     line = _declared_at(bench, name)
     if line is not None:
         said += f"; declared at line {line}"

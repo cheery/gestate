@@ -3423,10 +3423,13 @@ def test_a_plain_channel_is_told_its_value_and_its_line():
         source = FADER
 
     said = describe_touch(Bench(), "dragged", 0.25)
+    # The name leads: beside the region in the window it is the whole of
+    # a plain channel's identity.
+    assert said.startswith("dragged: "), said
     assert "a press here would write 0.25" in said, said
     assert "declared at line 2" in said, said
     Bench.substrate.write("dragged", 0.75)
-    assert describe_touch(Bench(), "dragged", 0.25).startswith("holds 0.75")
+    assert describe_touch(Bench(), "dragged", 0.25).startswith("dragged: holds 0.75")
 
 
 

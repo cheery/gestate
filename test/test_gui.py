@@ -23,6 +23,7 @@ GUI_DIR = Path(__file__).resolve().parent.parent / "examples" / "gui"
 EXAMPLE = GUI_DIR / "bounce.ges"
 CHAIN = GUI_DIR / "chain.ges"
 PATCHBAY = GUI_DIR / "patchbay.ges"
+TICTACTOE = GUI_DIR / "tic-tac-toe.ges"
 
 
 def _source() -> str:
@@ -174,7 +175,7 @@ def _dots(scene):
 
 def test_every_gui_example_is_exercised_here():
     assert {p.name for p in GUI_DIR.glob("*.ges")} == {
-        "bounce.ges", "chain.ges", "patchbay.ges"}
+        "bounce.ges", "chain.ges", "patchbay.ges", "tic-tac-toe.ges"}
 
 
 # ── `patchbay.ges` — a Datafun query behind a picture ───────────────────────
@@ -442,3 +443,91 @@ substrate : Sig Sub
 substrate = rect (map (t => 40 + t) now) !40 (colour !255 !0 !0)
 """
     assert scenes(mine, [("Tick",)])
+
+
+# ── `tic-tac-toe.ges` — a pad, a fold, and no release ───────────────────────
+#
+# Henri, 2026-09-08, writing his own first GUI: *"can you implement that
+# so I see how complex it is?"*  What these hold is the part that is not
+# the game — how a press reaches a program at all
+# (`card:gui-is-difficult.md` §"What his own GUI found on its first
+# evening").  `scenes` cannot drive a pad, so these use `Substrate`,
+# which is what the workbench holds.
+
+
+#: The centre of each cell, in the canvas's own pixels — three 60-wide
+#: cells across, the board 180 tall above a 24-tall foot.
+CELL_X = {0: -60, 1: 0, 2: 60}
+CELL_Y = {0: -72, 1: -12, 2: 48}
+
+
+def _game():
+    from gestate.gui import Substrate
+
+    return Substrate(TICTACTOE.read_text(), 44100)
+
+
+def _press(view, cell: int) -> None:
+    view.touch_all("press", CELL_X[cell % 3], CELL_Y[cell // 3])
+
+
+def _marks(view) -> list:
+    """The letters on the board, top-left first."""
+    return sorted((i[2], i[1], i[3]) for i in view.picture()
+                  if i[0] == "text" and i[3] in ("X", "O"))
+
+
+def _foot(view) -> str:
+    said = [i[3] for i in view.picture() if i[0] == "text" and len(i[3]) > 1]
+    return said[0] if said else ""
+
+
+def test_a_press_puts_a_mark_in_the_cell_it_landed_on():
+    view = _game()
+    assert _foot(view) == "X TO PLAY"
+    _press(view, 0)
+    assert len(_marks(view)) == 1 and _marks(view)[0][2] == "X"
+    _press(view, 4)
+    assert [m[2] for m in _marks(view)] == ["X", "O"], "and the turn alternates"
+
+
+def test_the_second_write_of_one_press_changes_nothing():
+    """**Idempotence stands in for the release the canvas cannot see.**
+    A drag writes on every motion and `released` never reaches a `.ges`
+    program, so `play` is written to be a no-op on a cell that is taken
+    — which makes a jittery press harmless without any rule about time.
+    """
+    view = _game()
+    _press(view, 0)
+    was, foot = _marks(view), _foot(view)
+    for _ in range(5):
+        _press(view, 0)
+    assert _marks(view) == was and _foot(view) == foot
+
+
+def test_the_x_half_of_a_press_places_nothing_on_its_own():
+    """**One press is two instants, x first**, and acting on the first
+    marks the wrong row.  The fold waits for the down half, and knows it
+    by an integer that changed rather than by comparing two floats —
+    `gestate/hand.ges` calls the same state `Railed`.
+
+    Written straight to the channels, because that is the only way to
+    deliver half a press.
+    """
+    view = _game()
+    view.write("across", 0.5)
+    view.write("across", 0.9)
+    assert _marks(view) == [], "x alone is a hand moving, not a move"
+    view.write("down", 0.5)
+    assert len(_marks(view)) == 1, "the down half is what commits"
+
+
+def test_the_turn_is_read_off_the_board_and_a_win_stops_the_game():
+    """The turn is `tally b X == tally b O`, so it cannot drift from the
+    board and a press that changes nothing cannot advance it."""
+    view = _game()
+    for cell in (0, 4, 1, 8, 2):          # X takes the top row
+        _press(view, cell)
+    assert _foot(view) == "X WINS"
+    _press(view, 3)
+    assert len(_marks(view)) == 5, "a finished game takes no more marks"

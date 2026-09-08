@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 213 entries, **169 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 214 entries, **169 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,30 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F213. **[bug]** `bounce.ges` cannot be thrown in the editor: its `Press` events are only ever sent by the retired pygame runner
+
+Found 2026-09-08, evening, measuring where user input reaches a `.ges`
+program for `card:gui-is-difficult.md`.  `gui.ges` declares
+`Event := Tick | Move | Press | Release | Key` and `examples/gui/bounce.ges`
+folds over it — *"Click to move the ball there"*, its own second line —
+but the workbench sends **only `Tick`** on that channel
+(`Substrate.tick`), and `Press`/`Move`/`Release` are constructed nowhere
+but `gui.run`, the pygame runner the canvas lost when pygame went
+(`doc/memory/gestate-canvas-unwired.md`).  Measured: `bounce.ges`
+declares no channels and offers no attachments, so a press reaches it by
+neither road — the ball bounces and cannot be thrown.  The example's
+own header names `python -m gestate.gui`, where it works;
+`doc/manual.md` §"A canvas" names `python -m gestate.workbench`, where
+the headline interaction is dead and nothing says so.
+
+**Not the wire's fault.**  `spec/workbench.md` §"The canvas walks over
+crust" decided on purpose that coordinates never cross and meanings do,
+which is why a pad's fraction reaches a program and a `Press` does not.
+So the fix is a choice and not a repair: teach the manual which runner
+throws the ball, rewrite the example over a pad, or give a program a way
+to hear the end of a gesture — the third is the one
+`card:gui-is-difficult.md` §"What his own GUI found" leaves to Henri.
 
 ### F212. **[bug]** a note from an included `.notes` is named by a line of the expanded program, without its file, and the caret goes nowhere
 

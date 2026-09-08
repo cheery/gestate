@@ -1462,6 +1462,40 @@ honest options are a `Release` that crosses (which the wire refuses on
 purpose), a `released` channel a pad may declare, or nothing, with
 idempotence as the standing answer.  Not minted as a card.
 
+**Written out, at his ask — `examples/gui/tic-tac-toe.ges`.**  *"can you
+implement that so I see how complex it is?"*  Counted: **249 lines, 132
+of them code**, 80 comment and 37 blank — and most of the comment is the
+paragraph above, written into the file because it is what the next
+person will want.  Of the 132, the **hand is 21**: two channels, two
+signals, a count of the down half's arrivals, a `zip`, and one `scan`
+whose state is *(how many down-touches answered, the board)*.  The rest
+is the model and the drawing, and neither is about GUIs.  Two things it
+shows that argument would not:
+
+- **The turn is derived and never carried** — `tally b X == tally b O` —
+  so a press that changes nothing cannot advance it, and idempotence
+  falls out instead of being enforced.  The state of the whole game is
+  one board and one integer.
+- **The picture is a pure function of the board**, so the nine cells
+  differ because `markAt` differs, not because nine things were built.
+
+Held by four tests in `test/test_gui.py`, one of them writing half a
+press — `across` and no `down` — to pin that the x instant places
+nothing.  And **driven in the real window**: three mouse clicks placed
+X, O, X and the foot read *O TO PLAY*
+(`test/driven/20260908-180145-tictactoe/`).
+
+**And the run found two defects, both older than the game.**
+`fixme.md` F213: `examples/gui/bounce.ges` folds over `Press` events and
+*"Click to move the ball there"* is its own second line — but the
+workbench sends only `Tick`, so the flagship canvas example cannot be
+thrown in the editor the manual tells you to open it with.  And the
+inspector's halo named a plain channel only by the **line it was
+declared on** — a pad's two answers were distinguishable by nothing
+else — so `describe_touch` leads with the channel's name now.  A window
+that inspects itself, inspected by the first program written against
+it.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?

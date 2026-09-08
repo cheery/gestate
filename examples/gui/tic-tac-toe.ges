@@ -1,0 +1,249 @@
+# Tic-tac-toe — a board you play with the mouse.
+#
+#   python -m gestate.workbench examples/gui/tic-tac-toe.ges
+#
+# Press a cell to put your mark in it; X goes first.  Hold **Ctrl** and
+# press to ask the window what is under the pointer.
+#
+# **Written to find out how much a small game costs here** — Henri,
+# 2026-09-08, `card:gui-is-difficult.md`.  It is the four hard things in
+# the smallest shape that has all of them: the picture is a function of
+# the board, a press has to name a cell, a gesture is spread across two
+# instants, and the drawing and the hit-testing must agree about where
+# the thirds are.
+#
+# ── Where the input comes from, which is the part worth reading ─────────
+#
+# **A program is reached by one road: a channel a pad writes.**  A press
+# on `onTouchX c` writes the fraction of that element's own extent, 0 at
+# the left edge and 1 at the right, and `onTouchY` the same downwards.
+# That is the whole of it — `events` carries `Press` and `Release`
+# constructors, but only the standalone runner ever sends them, and in
+# the workbench that stream is `Tick` and nothing else.
+#
+# **One press writes both halves of a pad, x first and then y**, as two
+# separate instants.  So a fold over the two sees the new x beside the
+# *old* y before it sees the pair, and acting on the first instant marks
+# the wrong cell.  The fold below waits for y, and knows y has spoken
+# because `pressed` counts its arrivals: an integer that changed, not two
+# floats compared.  `gestate/hand.ges` holds the same pairing for the
+# roll and calls the state between the two touches `Railed`.
+#
+# **And a program cannot see the end of a gesture** — `released` reaches
+# the model, in Python, and never a `.ges` file.  A drag writes on every
+# motion, so a fold that places a mark would place one per motion event.
+# The answer here needs no mechanism: **`play` is idempotent.**  Putting a
+# mark in a cell that is taken changes nothing, and the turn is *read off
+# the board* rather than carried, so it only advances when a mark
+# actually lands.  A press that jitters inside one cell is harmless; only
+# a deliberate sweep across cells misbehaves, and nobody sweeps a board.
+
+# ── The model ────────────────────────────────────────────────────────────
+
+#: What is in a cell.
+Mark := Empty | X | O
+
+sameMark : Mark -> Mark -> Bool
+sameMark a b = case a of
+    Empty -> case b of
+        Empty -> True
+        _ -> False
+    X -> case b of
+        X -> True
+        _ -> False
+    O -> case b of
+        O -> True
+        _ -> False
+
+#: The board is nine cells, row-major: 0 1 2 across the top.
+start : List Mark
+start = Empty :: Empty :: Empty :: Empty :: Empty :: Empty :: Empty :: Empty :: Empty :: Nil
+
+#: What is in cell `k` — `Empty` for an index off the board, so no caller
+#: has to bound-check before asking.
+markAt : List Mark -> Int -> Mark
+markAt b k = case b of
+    Nil -> Empty
+    m :: rest -> case k == 0 of
+        True -> m
+        False -> markAt rest (k - 1)
+
+#: The board with cell `k` set to `m`.
+putAt : List Mark -> Int -> Mark -> List Mark
+putAt b k m = case b of
+    Nil -> Nil
+    c :: rest -> case k == 0 of
+        True -> m :: rest
+        False -> c :: putAt rest (k - 1) m
+
+#: How many cells hold `m`.
+tally : List Mark -> Mark -> Int
+tally b m = case b of
+    Nil -> 0
+    c :: rest -> case sameMark c m of
+        True -> 1 + tally rest m
+        False -> tally rest m
+
+#: **Whose turn it is, read off the board and never carried.**  X goes
+#: first, so it is X's turn whenever the two counts are level.  A turn
+#: that is derived cannot drift from the board it belongs to, and a
+#: press that changes nothing cannot advance it.
+turn : List Mark -> Mark
+turn b = case tally b X == tally b O of
+    True -> X
+    False -> O
+
+#: The mark that owns a line, or `Empty`.
+lineOwner : List Mark -> Int -> Int -> Int -> Mark
+lineOwner b p q r = case sameMark (markAt b p) Empty of
+    True -> Empty
+    False -> case sameMark (markAt b p) (markAt b q) of
+        True -> case sameMark (markAt b q) (markAt b r) of
+            True -> markAt b p
+            False -> Empty
+        False -> Empty
+
+#: The first of the eight lines that is owned, or `Empty` — three rows,
+#: three columns, two diagonals.
+winner : List Mark -> Mark
+winner b = firstOwned (lineOwner b 0 1 2)
+          (firstOwned (lineOwner b 3 4 5)
+          (firstOwned (lineOwner b 6 7 8)
+          (firstOwned (lineOwner b 0 3 6)
+          (firstOwned (lineOwner b 1 4 7)
+          (firstOwned (lineOwner b 2 5 8)
+          (firstOwned (lineOwner b 0 4 8)
+                      (lineOwner b 2 4 6)))))))
+
+firstOwned : Mark -> Mark -> Mark
+firstOwned a b = case sameMark a Empty of
+    True -> b
+    False -> a
+
+#: **The move, and it is idempotent.**  A cell that is taken, an index
+#: off the board, or a game already won all leave the board as it was —
+#: so a second write of the same press changes nothing, which is what
+#: stands in for the release the canvas cannot see.
+play : List Mark -> Int -> List Mark
+play b k = case sameMark (winner b) Empty of
+    False -> b
+    True -> case sameMark (markAt b k) Empty of
+        False -> b
+        True -> putAt b k (turn b)
+
+#: Which cell a point of the board means.  A fraction is 0 … 1 of the
+#: pad's own extent and the board is three cells across, so the column is
+#: `floor (f * 3)` — clamped, because the right and bottom edges are
+#: exactly 1.0 and would name a fourth column that is not there.
+third : Float -> Int
+third f = case floor (f * 3.0) > 2 of
+    True -> 2
+    False -> case floor (f * 3.0) < 0 of
+        True -> 0
+        False -> floor (f * 3.0)
+
+cellOf : Float -> Float -> Int
+cellOf x y = third y * 3 + third x
+
+# ── The hand ─────────────────────────────────────────────────────────────
+
+across : Chan Float
+across = chan
+
+down : Chan Float
+down = chan
+
+#: Where the hand is along the board, as it arrives.
+handX : Sig Float
+handX = 0.0 ::: mkSig (wait across)
+
+#: The down half, **with a count of its own arrivals**.  The count is the
+#: whole trick: one press writes `across` and then `down`, in two
+#: instants, and this is how the fold knows which of the two it is
+#: looking at without comparing floats.
+pressed : Sig (Int, Float)
+pressed = scan (p v => (fst p + 1, v)) (0, 0.0) (0.0 ::: mkSig (wait down))
+
+#: The two halves, instant by instant.
+hand : Sig (Float, (Int, Float))
+hand = zip (a b => (a, b)) handX pressed
+
+#: **The game is one scan.**  Its state is the board and the number of
+#: down-touches it has already answered; every instant where that number
+#: has not moved is the x half speaking, and is ignored.
+step : (Int, List Mark) -> (Float, (Int, Float)) -> (Int, List Mark)
+step st touch = case st of
+    (seen, b) -> case touch of
+        (x, p) -> case p of
+            (n, y) -> case n > seen of
+                True -> (n, play b (cellOf x y))
+                False -> (seen, b)
+
+game : Sig (Int, List Mark)
+game = scan step (0, start) hand
+
+board : Sig (List Mark)
+board = map snd game
+
+# ── The picture ──────────────────────────────────────────────────────────
+
+cellSide : Int
+cellSide = 60
+
+tileInk : Colour
+tileInk = RGB 38 42 52
+
+xInk : Colour
+xInk = RGB 122 200 235
+
+oInk : Colour
+oInk = RGB 235 178 110
+
+footInk : Colour
+footInk = RGB 120 124 134
+
+#: One cell: a tile, and the mark on it.  Its `Sized` is what makes the
+#: thirds exact — the pad's extent is three of these across, so the
+#: arithmetic in `third` and the arithmetic the walk does agree by
+#: construction rather than by two numbers being kept in step.
+cellPic : Mark -> Sub
+cellPic m = Sized cellSide cellSide
+    (Over (Rect (cellSide - 4) (cellSide - 4) tileInk) (markPic m))
+
+markPic : Mark -> Sub
+markPic m = case m of
+    Empty -> Gap 0 0
+    X -> Label 26 26 "X" xInk
+    O -> Label 26 26 "O" oInk
+
+rowPic : List Mark -> Int -> Sub
+rowPic b r = Row (cellPic (markAt b (r * 3)))
+                 (Row (cellPic (markAt b (r * 3 + 1)))
+                      (cellPic (markAt b (r * 3 + 2))))
+
+boardPic : List Mark -> Sub
+boardPic b = Column (rowPic b 0) (Column (rowPic b 1) (rowPic b 2))
+
+#: What the foot says — who is to move, or who won.
+saying : List Mark -> Sub
+saying b = case winner b of
+    X -> Label 90 14 "X WINS" xInk
+    O -> Label 90 14 "O WINS" oInk
+    Empty -> case tally b Empty == 0 of
+        True -> Label 90 14 "A DRAW" footInk
+        False -> turnPic (turn b)
+
+turnPic : Mark -> Sub
+turnPic m = case m of
+    X -> Label 90 14 "X TO PLAY" xInk
+    _ -> Label 90 14 "O TO PLAY" oInk
+
+#: **The pad is on the board and on nothing else**, so the fractions the
+#: hand writes are fractions of the nine cells and the foot is not part
+#: of the arithmetic.
+substrate : Sig Sub
+substrate = column (onTouchY down (onTouchX across (map boardPic board)))
+                   (sized (!190) (!24) (map saying board))
+
+sound : Sig Float
+sound = 0.0
