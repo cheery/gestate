@@ -32,8 +32,18 @@ def counts(days=14, today=None):
     zero-filled."""
     today = today or datetime.date.today()
     since = today - datetime.timedelta(days=days - 1)
+    # **The whole log, bucketed here — never `--since`.**  A date-bounded
+    # walk *truncates*: `git log --since=2026-08-16` over this repository
+    # reaches the commits of that evening at 21:48 and stops, so the ones
+    # at 19:37 the same day are never seen.  It reported **2** card
+    # arrivals for 2026-08-16 where the day had **13**, and the number
+    # drifted downwards as history grew in front of the window — the
+    # worst shape for a lamp, because nothing looks wrong
+    # (`fixme.md` F215).  The full log is 0.14 s on this tree and the
+    # bucketing was already being done here; the date filter bought
+    # nothing and cost the answer.
     out = subprocess.run(
-        ["git", "-C", str(ROOT), "log", f"--since={since:%Y-%m-%d}",
+        ["git", "-C", str(ROOT), "log",
          "--diff-filter=A", "--name-only", "--format=%ad", "--date=short",
          "--", "board/*.md", "board/later/*.md"],
         capture_output=True, text=True).stdout

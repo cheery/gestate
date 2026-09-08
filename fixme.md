@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 215 entries, **170 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 216 entries, **171 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,31 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F215. **[resolved]** `tools/arrivals.py` under-counted, because a date-bounded `git log` truncates its walk — and it drifted downwards as history grew
+
+Found 2026-09-08, night, by the confirming full run after F214:
+`test/test_arrivals.py` asserted at least ten card arrivals on
+2026-08-16 and read **2**.  The day had **12**.  It is not the test and
+not the history: `git log --since=2026-08-16 --diff-filter=A -- board/…`
+reaches that evening's commits at 21:48 and **stops**, so the ones at
+19:37 the same day are never walked.  Bounding the query at both ends
+with a wider `--since` returned 13, which is what showed the walk was
+truncating rather than filtering.
+
+**The bad part is not the wrong number, it is the drift.**  The same
+query passed this test in the previous full run forty minutes earlier,
+against the same commits — the walk stops at a different place as
+history grows in front of the window.  A lamp that reads low and moves
+on its own is worse than no lamp: `tools/arrivals.py` is the number
+*question it into existence* is measured by, drawn on `test/gates.md` at
+every commit, and it had been under-reporting how many cards a day
+arrives.
+
+**Repaired** by asking git for the whole log and bucketing by day in
+Python, which the function was already doing — the date filter bought
+nothing and cost the answer.  The full log is 0.14 s on this tree.
+`test/test_flow.py` and `test/test_arrivals.py` green.
 
 ### F214. **[resolved]** `fmt` drops a `deriving` clause, so every `==` on the type stops resolving and the output does not compile
 
