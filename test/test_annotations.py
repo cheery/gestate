@@ -293,8 +293,8 @@ def test_mark_is_a_command_or_it_is_not_a_capability():
     from gestate.session import Session
 
     text = (ROOT / "gestate" / "command.ges").read_text()
-    assert "mark : Text -> Int -> Int -> Int -> Command" in text
-    assert "mark region tick was manners = Stated" in text
+    assert "mark : Text -> Text -> Int -> Int -> Int -> Command" in text
+    assert "mark region voice tick was manners = Stated" in text
     assert hasattr(Session, "do_mark"), "the command has no verb behind it"
 
 
@@ -374,7 +374,7 @@ def test_marking_while_stopped_plays_the_piece_from_that_note():
 
     seat, roll = _seated(playing=False)
     tick, note = _clean_note(roll)
-    said = seat.do_mark("r", tick, str(roll.events[note][3]), "1")
+    said = seat.do_mark("r", "-", tick, str(roll.events[note][3]), "1")
     assert "playing from there" in said, said
     assert "start" in seat.bench.calls, "it did not play"
     seeks = [c for c in seat.bench.calls if isinstance(c, tuple)]
@@ -396,7 +396,7 @@ def test_marking_while_it_plays_does_not_restart_it():
     """
     seat, roll = _seated(playing=True)
     tick, note = _clean_note(roll)
-    said = seat.do_mark("r", tick, str(roll.events[note][3]), "1")
+    said = seat.do_mark("r", "-", tick, str(roll.events[note][3]), "1")
     assert "playing from there" not in said
     assert "start" not in seat.bench.calls, "it restarted a piece already playing"
     assert "audition" in seat.bench.calls, "it did not hear the edit at all"
@@ -408,7 +408,7 @@ def test_a_refused_mark_neither_writes_nor_plays():
     seat, roll = _seated(playing=False)
     note = next(j for j, e in enumerate(roll.events)
                 if len([a for a in roll.leaves[e[2]].atoms if a[3] == e[5]]) > 1)
-    said = seat.do_mark("r", roll.events[note][0], str(roll.events[note][3]), "1")
+    said = seat.do_mark("r", "-", roll.events[note][0], str(roll.events[note][3]), "1")
     assert said.startswith("mark: "), said
     assert seat.bench.calls == [], f"it acted on a refusal: {seat.bench.calls}"
 

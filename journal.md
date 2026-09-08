@@ -1643,3 +1643,17 @@ me naming the wrong voice for arc.notes's first chord — melody and
 middle double the D, not melody and upper — which is the kind of
 mistake the address exists to make impossible.
 
+## The full run, and what it owed — 2026-09-08, afternoon
+
+The shift's one full pass: 4136 tests, 32 minutes, seven red.  Four
+were mine from an hour before — `mark` took the voice and its tests
+had not been told.  One was the testimony page a memory behind.  Two
+were the formatter on the chart files, which no full run had seen
+since they were written: a constructor's field printed without its
+parentheses, which is either a different program or none, and F209's
+two shapes — prose between two type declarations sent to the end of
+the file, a nested `case` flattened into its parent's column.  Three
+repairs of a few lines each, and the ratchets asked for their due:
+five files out of one allowance and nine out of the other, which is
+the most satisfying kind of red.
+

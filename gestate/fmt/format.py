@@ -106,6 +106,11 @@ class Formatter:
     def __init__(self, indent: int = 4):
         self._indent = indent
         self._level = 0
+        #: How many `case`s the expression being printed is inside — the
+        #: arms of a nested one go one unit deeper than the arms of the
+        #: case around it, or the two cases' arms end up in one column
+        #: and the program changes (F209 iii, repaired 2026-09-08).
+        self._depth = 0
         self._buf: list[str] = []
         self._pending_comments: list[VComment] = []
         self._line_empty = True
@@ -205,6 +210,11 @@ class Formatter:
                 self._pending_comments.append(item)
                 continue
             self._flush_comments()
+            # Trivia that fell *between* the last item and this one — the
+            # prose above a type declaration, which the parser reads as
+            # trivia rather than as an item — goes here, where it was,
+            # and not to the end of the file (F209, repaired 2026-09-08).
+            trivia = self._flush_trivia_before(item, trivia)
             self._space_before(item)
             self._format_top_item(item)
             self._note_line(item)
@@ -215,6 +225,19 @@ class Formatter:
             self._start_line()
         for c in trivia:
             self._ln(f"#{c.text}")
+
+    def _flush_trivia_before(self, item: Val, trivia: list) -> list:
+        """Print the trivia that starts above `item`; return the rest."""
+        span = getattr(item, "span", None)
+        if span is None:
+            return trivia
+        left = []
+        for c in trivia:
+            if c.span.start.line < span.start.line:
+                self._ln(f"#{c.text}")
+            else:
+                left.append(c)
+        return left
 
     def _flush_trivia_in(self, item: Val, trivia: list) -> list:
         """Print the trivia that fell inside `item`; return the rest."""
@@ -272,10 +295,13 @@ class Formatter:
             self._ln(self._fmt_val(item))
 
     def _format_type_decl(self, td: VTypeDecl):
-        params = " ".join(td.params)
-        header = f"{td.name} {params} :=".rstrip()
+        header = " ".join([td.name, *td.params, ":="])
         for i, ctor in enumerate(td.constructors):
-            fields = " ".join(self._fmt_val(f) for f in ctor.fields)
+            # A field that is an application or an arrow is an argument
+            # to the constructor and keeps its parentheses — `Go s (List
+            # a)`, `Chart s (s -> e -> Step s a)` — or the output is a
+            # different program, or no program (F210, 2026-09-08).
+            fields = " ".join(_paren_val(f, self._fmt_val(f)) for f in ctor.fields)
             constraints = ""
             if ctor.constraints:
                 cons = ", ".join(self._fmt_val(c) for c in ctor.constraints)
@@ -471,10 +497,15 @@ class Formatter:
     def _fmt_case(self, case: VCase) -> str:
         scrut = self._fmt_val(case.scrut)
         lines = [f"case {scrut} of"]
-        for alt in case.alts:
-            pat = self._fmt_pat(alt.pat)
-            body = self._fmt_val(alt.body)
-            lines.append(f"{' ' * self._indent}{pat} -> {body}")
+        self._depth += 1
+        pad = " " * (self._indent * self._depth)
+        try:
+            for alt in case.alts:
+                pat = self._fmt_pat(alt.pat)
+                body = self._fmt_val(alt.body)
+                lines.append(f"{pad}{pat} -> {body}")
+        finally:
+            self._depth -= 1
         return "\n".join(lines)
 
     #: Forms whose body runs to the end of the enclosing expression.  As an

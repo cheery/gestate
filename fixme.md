@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 210 entries, **167 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 211 entries, **168 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,27 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F210. **[resolved]** `fmt` drops the parentheses around a constructor field's type, so `Go s (List a)` comes back as `Go s List a`
+
+Found 2026-09-08 by the first full suite run since the charts were
+written: `test/fmt/test_roundtrip.py` reported `gestate/chart.ges:
+expected a type, got '->'` — `Chart s (s -> e -> Step s a) (s -> List
+a)` printed without its parentheses is not a program, and `Go s (List
+a)` printed as `Go s List a` is a different one.  `_format_type_decl`
+joined a constructor's fields with `_fmt_val` alone, where every other
+argument position in the formatter goes through `_paren_val`.
+
+**Resolved the same hour**, one line: the fields go through
+`_paren_val`.  And on the way, F209's (ii) and (iii) — trivia between
+two type declarations now prints where it stood
+(`_flush_trivia_before`), and a nested `case`'s arms go one unit
+deeper (`_depth`) — which took five files out of `PROGRAM_CHANGES`
+(F191) and nine out of `NOT_IDEMPOTENT` (F190).  F209 (i), the tuple
+pattern before `::`, is untested since `roll.ges` works around it.
+
+gate: `test/fmt/test_roundtrip.py` over `gestate/chart.ges`,
+`transport.ges`, `hands.ges`, `gesture.ges` — none in any allowance.
 
 ### F209. **[bug]** `fmt` rewrites `roll.ges` into another program: a tuple pattern before `::` is bracketed, and prose between two type declarations moves to the end of the file
 

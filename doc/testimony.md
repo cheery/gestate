@@ -14,7 +14,7 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 81 of 81 memories classified — 23 harness, 38 henri, 14 session, 6 argument
+    testimony: 82 of 82 memories classified — 23 harness, 39 henri, 14 session, 6 argument
 
 **Read it this way.**  Sixty of eighty rest on something a reader can
 check without trusting a session — a command, a test, a transcript, or
@@ -89,6 +89,7 @@ sentence that was taken to be.
 | gestate-hardening | harness | `tools/sandbox.sh --check`, 13/13; his words on trust are quoted beside it |
 | gestate-house-rules-authorship | henri | his words, 2026-08-19 |
 | gestate-instruments | harness | the tools listed exist and each says who asked; his ask for the page is quoted |
+| gui-command-language-first | henri | his sentence, 2026-09-07, quoted; the examples are the session's |
 | gestate-language-pitfalls | harness | each pitfall names the test or the fix that dates it |
 | gestate-rules-cap | henri | *2000 lines, for now*, 2026-08-20; `tools/rulecount.py` counts it |
 | gestate-salvage-week | henri | a job he named and parked, 2026-08-15 |
