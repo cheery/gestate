@@ -296,6 +296,18 @@ class Formatter:
 
     def _format_type_decl(self, td: VTypeDecl):
         header = " ".join([td.name, *td.params, ":="])
+        # **The `deriving` clause is part of the program, not decoration.**
+        # Dropped, it removes the instances it asks for: every `==` on the
+        # type stops resolving and the output is a *different* program
+        # that no longer compiles.  `fixme.md` F214, found by the
+        # roundtrip gate on `examples/gui/tic-tac-toe.ges` — the first
+        # file in the tree to use `deriving` and be formatted.
+        tail = ""
+        if td.deriving:
+            names = (td.deriving[0] if len(td.deriving) == 1
+                     else "(" + ", ".join(td.deriving) + ")")
+            tail = f" deriving {names}"
+        last = len(td.constructors) - 1
         for i, ctor in enumerate(td.constructors):
             # A field that is an application or an arrow is an argument
             # to the constructor and keeps its parentheses — `Go s (List
@@ -306,11 +318,12 @@ class Formatter:
             if ctor.constraints:
                 cons = ", ".join(self._fmt_val(c) for c in ctor.constraints)
                 constraints = f"({cons}) => "
+            suffix = tail if i == last else ""
             if i == 0:
-                self._ln(f"{header} {constraints}{ctor.name} {fields}".rstrip())
+                self._ln(f"{header} {constraints}{ctor.name} {fields}".rstrip() + suffix)
             else:
                 prefix = " " * (len(td.name) + 1)
-                self._ln(f"{prefix}| {constraints}{ctor.name} {fields}".rstrip())
+                self._ln(f"{prefix}| {constraints}{ctor.name} {fields}".rstrip() + suffix)
 
     def _format_type_alias(self, ta: VTypeAlias):
         params = " ".join(ta.params)

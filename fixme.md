@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 214 entries, **169 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 215 entries, **170 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,34 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F214. **[resolved]** `fmt` drops a `deriving` clause, so every `==` on the type stops resolving and the output does not compile
+
+Found 2026-09-08, night, by the shift's closing full run:
+`test/fmt/test_roundtrip.py::test_formatting_does_not_change_the_program`
+went red on `examples/gui/tic-tac-toe.ges`, written the same evening and
+the first file in the tree to both use `deriving` and be formatted.
+`Mark := Empty | X | O deriving Eq` came back as the three constructors
+alone.  `VTypeDecl` carries `deriving: list[str]` and
+`fmt/format.py::_format_type_decl` never printed it — a field forgotten
+by the printer, not a parse or a model fault.  **The consequence is not
+cosmetic:** the formatted file refuses with *No instance for Eq Mark*,
+so a `fmt` over a file using `deriving` produced a program that no
+longer compiles, silently.
+
+**Repaired** the same night: the clause is appended to the last
+constructor's line, `deriving Eq` for one and `deriving (Eq, Show)` for
+several, which is what the parser accepts (`syntax/parse.py::_parse_deriving`).
+Checked on four shapes, on the example, and for idempotence.
+
+**And it emptied a list.**  `examples/records.ges` — `Point := Point Int
+Int deriving (Show, Eq, Ord)` — was the last name in `NOT_IDEMPOTENT`
+(F190), because a dropped clause made the second pass differ from the
+first; the repair took it off and that set is now empty.  It stays in
+`PROGRAM_CHANGES` for a fault of its own that this did not touch:
+`(Point 1 2).1` loses the parentheses its base needs and comes back as
+`Point 1 2.1`, where a projection has become a float.  *Unfixed, and the
+next thing anyone touching `fmt` should look at.*
 
 ### F213. **[bug]** `bounce.ges` cannot be thrown in the editor: its `Press` events are only ever sent by the retired pygame runner
 

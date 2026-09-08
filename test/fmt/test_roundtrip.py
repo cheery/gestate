@@ -287,7 +287,10 @@ OUTPUT_DOES_NOT_PARSE = {
 #: *different program*.  **May shrink, never grow.**
 #: Five of seven left on 2026-09-08 — prose between two type
 #: declarations stays where it was (F209 ii), and a nested `case`'s arms
-#: go one unit deeper (F209 iii).
+#: go one unit deeper (F209 iii).  `examples/records.ges` stays for a
+#: fault of its own and **not** the `deriving` drop that F214 repaired:
+#: `(Point 1 2).1` loses the parentheses its base needs and comes back
+#: as `Point 1 2.1`, where the projection has become a float.
 PROGRAM_CHANGES = {
     "examples/records.ges",
     "gestate/command.ges",
@@ -295,10 +298,12 @@ PROGRAM_CHANGES = {
 
 #: `fixme.md` F190 — a second pass moves comments and deletes some.
 #: **May shrink, never grow.**
-#: Nine of ten left on 2026-09-08, the same two repairs.
-NOT_IDEMPOTENT = {
-    "examples/records.ges",
-}
+#: Nine of ten left on 2026-09-08, the same two repairs — and the tenth
+#: the same evening, with F214: a dropped `deriving` made the first pass
+#: differ from the second, so repairing the drop emptied this set.
+#: **Empty, and it stays a set**: the next file to lose its comments
+#: names itself here rather than being argued about.
+NOT_IDEMPOTENT: set[str] = set()
 
 
 def test_a_file_that_reads_today_still_reads():
