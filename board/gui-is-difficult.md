@@ -657,6 +657,76 @@ his words.*
    morning after (a gesture as a chart).  Each slice ends in a
    question that is his — §"Landed — 2026-09-08" closes on one.
 
+7. **Identity: by position or by key?**  Henri, 2026-09-08, morning,
+   after a guest session raised it: *"Mielestäni meidän kannattaisi
+   katsoa 'identity by position vs identity by key' ja miettiä se asia
+   seuraavaksi, tehdä siitä jonkin sortin päätös."*  Idea 1's own hard
+   part — which drawn thing is the same thing after the picture is
+   recomputed — and DDD's *identity is named*.
+
+   **Measured first, 2026-09-08 — the tree answers it three ways in
+   three layers, and they disagree.**
+   - *The file is values.*  A `.notes` row's identity is its content:
+     `notes.doubled` (2026-09-05, his *"the middle one"*) treats two
+     identical lines as one place said twice, allowed in the file and
+     refused at the gesture.  `spec/drawnscores.md`: a drag in time,
+     velocity or manner *"does not change which note it is"*; a drag
+     in pitch does, and drops the spelling.
+   - *The commands are keys, one field short.*  `transpose <col> tick
+     key key'`, `move`, `resize`, `select` address a note by (tick,
+     key), so the transcript replays by content.  But the address has
+     no **voice**: on `arc.notes`, 7 (tick, key) pairs are shared
+     between two voices, and the first chord tried this morning
+     answered *"62 sounds 2 times at tick 0, so which note is meant"*
+     — a unison doubling cannot be transposed by hand today.
+   - *The session is positions.*  `selected`, `group`, `holding`,
+     `resizing` hold an index into `roll.events` (17 positional reads
+     in `session.py`, 7 in `scorebox.py`).  The rebuild renumbers, so
+     `move`, `carry` and `stretch` **spend the selection** on commit —
+     and a person who nudges a group twice sweeps it twice.
+     `transpose` does not spend it; safe on `arc.notes` because it has
+     no chord within one voice (0 of 291 notes), latent otherwise.
+   - *The `.ges` roll is the line.*  A `.ges` note is (leaf line, the
+     atom whose value is its key) — `spec/north_star.md`'s measured
+     rule — and a generated note (`chancy`) has no identity to edit.
+   - *The instrument chose names once already.*  Parameters are keyed
+     by name, not node id (`doc/manual.md`), which is why the desk can
+     restore a knob across a rebuild.
+
+   **Readings, each with what kills it.**
+   - **A. Position, spent at every commit** (today, made consistent).
+     Cheapest.  *Killed by* `card:notes-editor.md`'s postcondition:
+     editing is many nudges of the same notes, and a selection that
+     dies at each one is not Reaper's league.
+   - **B. The key — (voice, tick, key), the row's content.**  The file
+     already says it; the commands nearly do.  Selection and group
+     held as keys and re-found after the rebuild; a command answers
+     where it put the note, so the selection follows it.  *Killed by*
+     the `.ges` roll, where a note has no row, and by two identical
+     rows being one identity — which the file already accepts.
+   - **C. The line — identity is where it is written.**  `.notes` row =
+     line, `.ges` note = line + atom, carried across edits the way
+     `move_marks` carries holes.  *Killed by* every insertion above
+     moving every line below — a selection held as lines is
+     transformed by every edit — and by included files' lines against
+     the buffer's.
+   - **D. An id column in the file.**  *Killed by* the format's own
+     argument: he writes the lines by hand, and an id is ceremony that
+     goes stale under copy and paste.
+
+   **Session's recommendation:** B for the `.notes` model, with the
+   voice added to the command address (which is also the fix for the
+   7 refusals), and C kept for the `.ges` roll, where it is already
+   the measured rule.  The framework's law then reads: *identity is
+   the model's key, never the picture's index* — an index crosses the
+   wire only inside one build, as `previewing` already does — which is
+   Q1's *types for the few, relations for the many* with the key
+   filled in.  **Three questions his to answer:** is a doubled line
+   one note said twice or two notes (B assumes one, as `doubled`
+   decided); does the selection follow the note a command moved, or
+   stay at the place (session's default: follows, as in Reaper); and
+   does the voice belong in the address.  *Open.*
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide
