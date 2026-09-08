@@ -1649,6 +1649,40 @@ is thin is still a design question, not a patch: what the events *are*
 `onPress` and the chart is the thing he says is worth thinking through.
 **Not today's task, and not a session's to open.**
 
+### Taken by him — a clean-board sitting, 2026-09-08
+
+**Henri:** *"It is true that redesign would be expensive.  But also
+wrong tool used into wrong place is also quite expensive.  I think that
+this really does need my hand a bit.  And it would be worthwhile to
+think from a clean board, keeping in mind what we have here already
+though."*
+
+His, then, and not a session's to start.  What a session owes it is that
+the board be clean and the material be *at hand* — so what follows is
+inventory and not direction: **the facts a redesign would have to keep**,
+each already measured or decided on this card, with nothing about what
+to build.
+
+| what stands | where it was settled |
+|---|---|
+| audio needs signals at sample rate; `scan`'s guarded recursion is what makes them productive | `signal.ges`, and every synth |
+| the wire carries meanings, never coordinates | `spec/workbench.md` §"The canvas walks over crust" |
+| two machines must agree — the reference and `crust` — so anything new runs on both | the parity fixtures |
+| the picture must be derivable headless | `audioperform`, every test here |
+| a query re-evaluated every frame does not fit a frame at a page's size — 22 ms against 16.7 | Q1, `tools/queryframe.py` |
+| identity is the model's key, never the picture's index | Q7, 2026-09-08 |
+| a gesture commits as a command, which is what makes a transcript replay | §"The one that comes first" |
+| the event calculus exists — `ExL` and six forms — and the library has one function on it | §"Would the whole thing need rethinking?" |
+| the chart library exists, is tested, runs on crust, and is not in scope for a canvas | `chart.ges`, `audio.preludes` |
+| the cost as it stands: 18 lines of hand for a 21-line model, ~7 of them pure pairing tax, and a failure that compiles | §"What his own GUI found", `examples/gui/tic-tac-toe.ges` |
+
+**And one thing about this card itself, which is a fact and not a
+proposal: it is 1699 lines across 24 headings.**  It holds at least two
+subjects — the framework's design, and the log of what landed each day —
+and a clean-board sitting cannot have all of it in the head at once.
+Whether that is one card or two is his; a session did not split it,
+because the board's goal is four fewer and zero new.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
