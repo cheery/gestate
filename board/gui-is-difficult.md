@@ -727,6 +727,75 @@ his words.*
    stay at the place (session's default: follows, as in Reaper); and
    does the voice belong in the address.  *Open.*
 
+   **Henri, same morning:** *"En osaa sanoa tähän yhtikäs mitään.
+   Mietin että kenties se on B mikä on tässä järkevä vaihtoehto.  Tämä
+   on yksi vaikeimmista kysymyksistä GUI-käyttöliittymissä.  Voisitko
+   miettiä vielä lisää että mitä muita ratkaisuja meillä tähän olisi?
+   Vai ovatko nämä kaikki mitä on keksitty?"*
+
+   **The wider map — session, 2026-09-08.**  A to D are one family:
+   *a reference, and what it points at*.  Every system that regenerates
+   a picture from a source has answered with one of three moves, or a
+   mix — **carry identity in the source** (A–D), **maintain it through
+   the edits**, or **recover it by matching** — and the families the
+   four missed are the last two and one that has no reference at all:
+   - **E. Object identity in a live model, the text its
+     serialisation.**  Reaper's: a note is an object and *selected* is
+     a flag on it, so nothing points at anything and the question
+     dissolves.  Here: `.notes` parses to records and *writing the
+     shipped file back is a no-op* already holds, so a gesture could
+     edit the record and write the file, and the record survives.
+     *Killed by* the second writer — a keystroke in the buffer
+     re-parses and the objects die — so it holds for gestures only and
+     typed edits need G.
+   - **F. Marks carried through edits.**  The text editor's answer
+     (Emacs markers, OT, Excel rewriting `A3` when a row is inserted
+     above it): a reference is a position that the *edit machinery
+     moves*.  The tree does this already — `move_marks` carries holes
+     through edits — and every command here is a text edit.  C done
+     honestly.  *Killed by* nothing structural; it costs a mark per
+     reference and holds only through edits the editor made.
+   - **G. Reconciliation — no identity, a matcher per frame.**  React
+     without keys, git's rename detection: identity is recovered by
+     similarity after the fact.  *Killed by* being wrong silently, which
+     is F136's class of defect.  Useful only where nothing better
+     exists — typed edits — and then a stale selection should be
+     dropped rather than guessed.
+   - **H. Path identity.**  SwiftUI's structural identity, Dear ImGui's
+     ID stack, a musician's *the third note of the melody in bar 5*:
+     a position, but inside a hierarchy, so renumbering is local.
+     The roll's index already is (bar, voice, ordinal).  *Killed by* a
+     note moved across the hierarchy — out of its bar.
+   - **I. Selection as a predicate, not a set.**  The band kept as a
+     query in the file's own ticks and keys, re-run after every
+     rebuild; Excel's range.  *Killed by* a note nudged out of the
+     band leaving the selection — right for *a region I am working
+     on*, wrong for *these notes*.
+   - **J. Creation identity — the command that made it.**  CRDTs:
+     (author, sequence) at birth, never rewritten; here the transcript
+     is that (`sessionlog`).  *Killed by* the file, which carries no
+     birth, so it dies with the session unless written (D again).
+
+   **What the field says about the shape.**  The best-known unsolved
+   instance is parametric CAD's *persistent naming* problem — which
+   face is "the same face" after the model is regenerated from its
+   history — open since the 1990s, and its lesson is exact for a roll
+   regenerated from a file: the systems that tried to recover identity
+   by matching (G) are the ones still broken; the ones that work carry
+   a name in the source or maintain it through the operations.
+   Databases' natural-versus-surrogate-key argument is B against D and
+   has never closed, because it is a trade and not a fact.  MIDI has
+   no note identity at all, and every DAW is E on top of it.
+
+   **The refined recommendation, still his to take:** B as the name
+   the source carries (voice, tick, key — the file already made notes
+   values); **F for the session**, so a reference follows the note
+   through the command that moved it, exactly and without a matcher —
+   the command knows where it put the note; and **G never**, so an
+   edit the editor did not make drops the selection and says so.  E is
+   the cheap road to F for `.notes` and is worth measuring before F is
+   written by hand.  *Open.*
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide
