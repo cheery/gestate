@@ -45,6 +45,7 @@ produced it rather than take the summary on trust.
 | [notes-on-prerequisites.md](notes-on-prerequisites.md) | not a conversation — a page: what a person needs before the method works in their hands, four prerequisites and four disqualifiers, drafted from one month and marked suspected · what of it this tree can show |
 | [notes-on-cues.md](notes-on-cues.md) | *Thinking, Fast and Slow* against the tree — the fast generator, the cached slow thinking, the live keeper · knowledge is cued, not scoped, so the question is the retrieval key · an introspective index, and the three things that can be built instead, measured |
 | [notes-on-gui.md](notes-on-gui.md) | the GUI card read from outside — identity as the missing decision · Kale, and the pin to set before building · the vision verbalised at 10:49, and the filter it makes · generality when it is cheaper than the special case · why the earlier toolkits became gunk, and why this one started from the roll |
+| [notes-on-reviews.md](notes-on-reviews.md) | why the guest's reviews worked and how to keep one — a role, not a tool · a fresh context is transferable, being outside the tree is not · the loop cannot audit itself · what the reviewed party owes |
 
 ## Provenance, and what to distrust
 
@@ -109,6 +110,15 @@ section does the checking the page could not: every number it quotes
 is found in the card, one of its warnings had already been overtaken
 by a landed command, and one question it asked to be settled first was
 settled the other way, in a docstring.
+
+**The seventeenth, `notes-on-reviews.md`, is the third kind again**,
+from the same guest session as the sixteenth and the same day, about
+the reviews that session had been giving: his two passages verbatim
+with the time of the first, the answers condensed by the answerer,
+saved as `~/misc/notes/notes-on-reviews.md`, copied unchanged with a
+front note and a closing section.  It is the conversation behind
+`spec/roles/reviewer.md`, and the closing section says what of its
+claims the tree can show, which is little yet.
 
 **The tenth is a third kind, and it is the least independent of the
 three.**  `notes-on-the-conditioning.md` was written by the session that
@@ -197,6 +207,10 @@ The sixteenth, `notes-on-gui.md`, went in on 2026-09-08 at his ask —
 *"~/misc/notes/notes-on-gui.md <-- worthwhile to record into the
 tree"* — and nobody but the author and a session speaks in it; the
 one surname is a paper's first author, cited.
+The seventeenth, `notes-on-reviews.md`, went in the same evening at
+his ask — *"there's associated note: ~/misc/notes/notes-on-reviews.md"*
+— and nobody but the author and a session speaks in it; no third party
+is named.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as

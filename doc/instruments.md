@@ -280,6 +280,21 @@ as colleagues, so I want that you're deployed properly if deployed."*
 Without it the three parts read as courtesies, and courtesies get
 dropped when a run is in a hurry.
 
+### `spec/roles/` — a brief a session takes for one sitting
+
+*No tool.  A page, named at the start of a message:*
+
+    your role is spec/roles/reviewer.md, what is missing from card:X?
+
+A role is context for one sitting and never a rule — it says what kind
+of reader the session is today and what that reader owes, and the five
+rule documents stand under it unchanged.  The first is the reviewer:
+the second reader of an artifact its author can no longer see cold,
+who answers *what is missing* and never *is this good*, and who does
+not write.  `spec/roles/README.md` is the directory's contract and says
+what a role cannot reach; `doc/notes/notes-on-reviews.md` is where the
+first one came from, 2026-09-08.
+
 ### Running a blind comparison — the parts that are not the ethics
 
 **The setup, each rule paid for once** — 2026-08-19, and what each one
