@@ -651,6 +651,11 @@ his words.*
    the design?  If the answer needs a decision only he can make, this
    is a decision wearing a card, and it says so here rather than
    queueing.
+   **Answered by the day itself, 2026-09-07 to 08:** the dialogue
+   first, then a slice he chose (*"okay, do the chart library slice"*),
+   then two he scheduled (the probe, the second chart) and one for the
+   morning after (a gesture as a chart).  Each slice ends in a
+   question that is his — §"Landed — 2026-09-08" closes on one.
 
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
@@ -743,6 +748,61 @@ chart**, the roll's press, drag and release as §"Statecharts"' `hand`,
 replacing one of the four `if` ladders on the `Session`.  Tonight: the
 probe (idea 7 as a command), and the second chart beside the transport
 to settle `beside`'s action type.
+
+### Landed — 2026-09-08, morning: the ruler is a chart
+
+`gestate/gesture.ges` is the `hand` of §"Statecharts", written as the
+third chart — `Idle | Pressed Int | Dragging Int Int`, the wire's own
+`Touched Int | Released | Cancel` as its events, and five acts the
+host does: `Take`, `Preview`, `Reveal`, `Commit`, `Unpreview`.  Nine
+arrows, no catch-all.  `Session._ruler_event` asks it for every touch
+and release on a ruler and `_ruler_act` does the acts; the `if` ladder
+that was `_ruler_touched` and the ruler's branch of `released` is
+gone, and `sizing` is the chart's state with the section's bars beside
+it.  Held by the drawn-scores tests that already fed a press, a drag
+and a release through the real hit table (unchanged, all 163 green),
+and by `test/test_gesture_model.py`, which walks every state and touch
+and holds the entry action, the click/commit split and that no hand
+is held forever.  Compile 0.13 s, paid when a roll with a ruler is
+built; a step under 100 µs.
+
+**What it found — the one rule that made the ruler fit, and will
+decide the other three.**  *The chart holds the time, the host holds
+the geometry.*  A gesture is state spread across time (hard thing 3),
+and that is all the chart knows: whether a touch is the press or the
+drag, whether a release is a click or a commit.  Where the hand is
+arrives as an `Int` on the event, and what a bar is, where the end is
+drawn and the `bars` line at the end stay in the host.  So the same
+chart serves any hand on any one thing, and *let go where it took
+hold* is decided twice — by the chart in ticks (`Reveal`) and by the
+host in bars (a `Commit` that lands on the bars the section has does
+nothing) — because the chart cannot know a grid.  **Ratio:** the
+chart is 12 lines of arrows and the host 60 lines of acts, so for the
+ruler the chart bought a checked skeleton and not less code; what it
+bought is that the skeleton is the same one for the next hand.
+
+**And the events are the wire's words, not the draft's.**  The draft
+had `Down | Move | Up`; the window does not know which `touched` is
+the press, and the chart is the right place to decide that, so the
+event is `Touched` and `Idle` is what makes it a press.  `Up` was
+taken by the transport anyway — the constructor rule from `hands.ges`
+again.
+
+**What the next hand asks, and it is his.**  The note hand — press,
+band, end — is three recognisers deciding at the press by geometry:
+a note under the point, nothing under it, the note's last eight
+pixels.  A chart's event must carry that decision (`Down (Hit)`, with
+`Note n | Empty | End n`) or the three stay one ladder in the host,
+and the pad's two channels (rail first, pitch a moment later) make
+one press two events — which `beside` does not express, since the
+two halves are one gesture and not two regions.  So the second
+gesture chart needs one design decision before it is written: **does
+the hit-test's answer ride on the event, so the chart branches on
+it, or does the host pick which of three charts to feed?**  Session's
+default: the former, one chart over `Hit`, because a chart the
+checker cannot see the branches of is the ladder wearing a type.
+`Cancel` is in the chart and no wire sends it; today nothing can
+abandon a drag short of letting go.
 
 ## What a session does now
 

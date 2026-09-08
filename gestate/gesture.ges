@@ -1,0 +1,72 @@
+# gesture.ges — a hand on one thing: press, drag, release, as a chart.
+#
+# The third chart `chart.ges` runs, and the first that is a *gesture*
+# — `card:gui-is-difficult.md` §"Statecharts, executable and per
+# subsystem", the `hand` drawn there, built 2026-09-08 for the roll's
+# ruler (`Session._ruler_touched`, `Session.released`), which was the
+# smallest of the four `if` ladders a hand on the roll ran as: one
+# channel, one axis, one command at the end (`bars`).
+#
+# **The chart holds the time, the host holds the geometry.**  A
+# gesture is state spread across time — press to release — and that is
+# the only thing this file knows: what a touch means depends on whether
+# one came before it, and a release means a click or a commit by the
+# same rule.  Where the hand *is* — a tick, a key, a bar — arrives on
+# the event as an `Int`, and what a `Preview` or a `Commit` does with
+# two of them is the host's, because that is where the snap to a grid
+# and the file live.  So one chart serves any hand on any one thing,
+# and the ruler is its first host.
+#
+# **Its events are the wire's words.**  The window says `touched` for
+# the press and for every move after it, and `released` once — it does
+# not know which touch is the press, and the chart is where that is
+# decided (`Idle` or not).  `Cancel` is the escape from anywhere; no
+# wire sends it yet.
+
+# ── The states, the touches, the acts ────────────────────────────────────
+
+#: Nothing held; held where it took hold; carried from there to here.
+#: Where it took hold rides along, so a drag is always measured from
+#: the press and a release can say both ends.
+Gesture := Idle | Pressed Int | Dragging Int Int
+
+#: What the wire says: a touch at a place, the grab let go, or the
+#: gesture abandoned.
+Touch := Touched Int | Released | Cancel
+
+#: What the host is asked to do.  `Take` on the press — show what was
+#: taken and say so; `Preview` while carried — draw it where it would
+#: land and say the interval; `Reveal` when let go without moving — a
+#: click; `Commit` when let go after moving — the one command the
+#: gesture was for; `Unpreview` — put the picture back.
+Act := Take Int | Preview Int Int | Reveal Int | Commit Int Int | Unpreview
+
+# ── The chart ────────────────────────────────────────────────────────────
+
+#: Every hand starts empty.
+gesture : Chart Gesture Touch Act
+gesture = Chart Idle gestureStep gestureEnter
+
+#: Nine arrows, all written — no catch-all, so a state and a touch with
+#: no arrow between them is a missing arm the checker refuses.  A touch
+#: while idle is the press; a touch while held is the drag, and the
+#: place it carries is the latest; a release is a click from `Pressed`
+#: and a commit from `Dragging`; a cancel lands idle from anywhere and
+#: undoes the picture.
+gestureStep : Gesture -> Touch -> Step Gesture Act
+gestureStep Idle (Touched p) = Go (Pressed p) []
+gestureStep Idle Released = Stay
+gestureStep Idle Cancel = Stay
+gestureStep (Pressed p) (Touched q) = Go (Dragging p q) [Preview p q]
+gestureStep (Pressed p) Released = Go Idle [Reveal p]
+gestureStep (Pressed p) Cancel = Go Idle [Unpreview]
+gestureStep (Dragging p q) (Touched r) = Go (Dragging p r) [Preview p r]
+gestureStep (Dragging p q) Released = Go Idle [Commit p q]
+gestureStep (Dragging p q) Cancel = Go Idle [Unpreview]
+
+#: Taking hold is an entry action of `Pressed`, so it happens once, on
+#: the arrow in, and not on the press's own touch — which is how the
+#: press and the drag stay one arrow each.
+gestureEnter : Gesture -> List Act
+gestureEnter (Pressed p) = [Take p]
+gestureEnter g = []

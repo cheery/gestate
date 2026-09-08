@@ -1555,3 +1555,35 @@ file: its functions carry its name, and its constructors are global
 and must not repeat the library's or another chart's — `Step` and
 `Playing` were both taken, which is how a played note's third state
 came to be called `Noting`.
+
+## The ruler is a chart — 2026-09-08, morning
+
+*"schedule gesture as a chart for 2026-09-08 (tomorrow morning)."*
+The roll has four hands written as `if` ladders on the `Session`, and
+the ruler is the smallest: one channel, one axis, one command when it
+lets go.  So it went first.  `gesture.ges` is the `hand` the card drew
+on Sunday, three states and nine arrows, and it compiled on the first
+try — the language had already said its three things to the transport.
+The ruler's press, drag and release now go through it, and every
+drawn-scores test that fed a real press through the hit table passed
+without an edit.
+
+The rule that made it fit is the one worth keeping: the chart holds
+the time and the host holds the geometry.  The chart knows that a
+touch after a touch is a drag and a release after a drag is a commit;
+it does not know what a bar is, so the place rides on the event as an
+integer and the snap to whole bars stays in the host.  That is also
+why *let go where it took hold* is decided twice, once in ticks and
+once in bars, and why the same chart will serve any hand on one thing.
+The draft's `Down | Move | Up` became `Touched | Released | Cancel`,
+because the window does not know which touch is the press — that is
+the chart's to decide, and `Up` was the transport's constructor
+anyway.
+
+The count is honest: twelve lines of chart and sixty of host, so the
+ruler did not get smaller.  What it got is a skeleton the checker
+walks — every state and touch, no hand held forever — and the next
+hand gets the same skeleton for free.  The next hand is the question:
+the note hand decides three things at the press by looking, and
+whether that look rides on the event or picks the chart is Henri's
+call, written on the card.

@@ -1542,6 +1542,15 @@ class Workbench:
                         views, drawn = views[:-1], drawn[:-1]
                     boxes.update(zip(drawn, views))
                     self.note_regions.update(regions)
+                    if any(getattr(r, "on_ruler", False) for r in regions.values()):
+                        # A ruler is a hand `gestate/gesture.ges` runs;
+                        # its compile (0.13 s) is paid here, once a
+                        # process, and not on the first press.
+                        try:
+                            from .charts import load
+                            load("gesture")
+                        except Exception:               # noqa: BLE001
+                            pass                       # the press will say why
                     # The rows, written to the reference views now and
                     # kept for the window, which is sent them as a
                     # trace whenever they change (`workbench.py`).

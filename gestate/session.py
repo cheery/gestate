@@ -976,9 +976,11 @@ class Session:
     #: its place (`card:notes-editor.md` slice 4: *adjust offset*).
     resizing: object = None
     #: A hand on the ruler — the section's end — `(ruler channel, box,
-    #: bars it has, tick the hand took hold at, bars it is carried to)`
-    #: until the hand lets go and `bars` runs (slice 4: *resize the
-    #: clip*, answered as the section's `bars`).
+    #: bars it has, the gesture's state)` while `gestate/gesture.ges`
+    #: is not `Idle`, else `None`; the chart carries where the hand
+    #: took hold and where it is, in ticks, and `bars` runs when it
+    #: lets go (slice 4: *resize the clip*, answered as the section's
+    #: `bars`).  The first of the four hands to be a chart, 2026-09-08.
     sizing: object = None
     #: When the last taps landed, `tap` — a run of them is a tempo
     #: (`card:notes-editor.md` slice 4: *select bpm by tapping*).
@@ -4769,26 +4771,79 @@ class Session:
         section growing past the roll's edge is said in the status line
         and drawn when the file has it.
         """
-        from .scorebox import scale_of, tick_at
+        from .scorebox import tick_at
+
+        return self._ruler_event(found, name, ("Touched", tick_at(found.roll, across)))
+
+    def _ruler_event(self, found, name: str, event: tuple) -> str:
+        """One touch of the ruler through `gestate/gesture.ges`, the
+        chart's acts done here — `Workbench.transition`'s shape, for a
+        hand (`card:gui-is-difficult.md`, 2026-09-08).
+
+        **The chart holds the time, this holds the geometry.**  Whether
+        a touch is the press or the drag, and whether a release is a
+        click or a commit, is the chart's; the tick a touch means goes
+        in on the event, and what a bar is, where the end is drawn and
+        the `bars` line at the end are `_ruler_act`'s.  `sizing` is the
+        chart's state with the ruler's own facts beside it, and `None`
+        while the chart is `Idle`, which is what the other hands read.
+        """
+        from .charts import load
+
+        sz = self.sizing
+        state = sz[3] if sz is not None and sz[0] == name else ("Idle",)
+        was = sz[2] if sz is not None and sz[0] == name else len(found.roll.bars or ())
+        new, acts = load("gesture").advance(state, event)
+        if new is not None:
+            self.sizing = None if new == ("Idle",) else (name, found.box, was, new)
+        said = [self._ruler_act(found, name, was, act) for act in acts]
+        return "  ".join(s for s in said if s)
+
+    def _ruler_act(self, found, name: str, was: int, act: tuple) -> str:
+        """One `Act` of `gesture.ges`, done for the section's end.
+
+        A place on the chart is a tick; a bar is the ruler's own unit,
+        so the interval a `Preview` or a `Commit` carries is turned into
+        whole bars here, never under one.  A commit that lands on the
+        bars the section has changes nothing and says nothing — the
+        chart cannot know the grid, so *let go where it took hold* is
+        decided twice: by the chart in ticks (`Reveal`), and here in
+        bars.
+        """
+        from .scorebox import scale_of
 
         roll = found.roll
         bars = roll.bars or ()
         _lo, _hi, span = scale_of(roll)
         one = (bars[1] - bars[0]) if len(bars) > 1 else span
-        if self.sizing is None or self.sizing[0] != name:
-            was = len(bars)
-            self.sizing = (name, found.box, was, tick_at(roll, across), was)
+
+        def now_of(p: int, q: int) -> int:
+            return max(1, was + int(round((q - p) / max(1, one))))
+
+        head = act[0]
+        if head == "Take":
             self._show_end(found, span)
             return "the section's end — drag along to change its bars"
-        _n, _box, was, grabbed, _now = self.sizing
-        delta = tick_at(roll, across) - grabbed
-        now = max(1, was + int(round(delta / max(1, one))))
-        self.sizing = (name, found.box, was, grabbed, now)
-        self._show_end(found, now * one)
-        if now == was:
-            return f"bars {was} — as written"
-        step = now - was
-        return f"bars {was} → {now} ({'+' if step > 0 else ''}{step})"
+        if head == "Preview":
+            now = now_of(act[1], act[2])
+            self._show_end(found, now * one)
+            if now == was:
+                return f"bars {was} — as written"
+            step = now - was
+            return f"bars {was} → {now} ({'+' if step > 0 else ''}{step})"
+        if head in ("Reveal", "Unpreview"):
+            self._unpreview(found)
+            return ""
+        if head == "Commit":
+            now = now_of(act[1], act[2])
+            if now == was:
+                self._unpreview(found)
+                return ""
+            said = self.run("bars", name, was, now)
+            if said.startswith("bars:") and "—" not in said:
+                self._unpreview(found)
+            return said
+        return f"gesture.ges asked for `{head}`, which the ruler cannot do"
 
     def _show_end(self, found, tick: int) -> None:
         """Draw the section's end at this tick, inside the roll."""
@@ -4871,18 +4926,14 @@ class Session:
                          if r.box == sz[1] and r.on_rail), None)
             if name == sz[0] or name == rail:
                 # **The ruler's commit is `bars`**: one line of the
-                # section record.  Let go where it took hold changes
-                # nothing and says nothing.
-                self.sizing = self.holding_x = None
+                # section record — the chart's `Commit`, or its
+                # `Reveal` when the hand let go where it took hold,
+                # which changes nothing and says nothing.  The body's
+                # release ends the ruler's gesture too: the pad's two
+                # halves let go together.
+                self.holding_x = None
                 self._journal().add("released", (name,), "")
-                rname, _box, was, _grabbed, now = sz
-                if now == was:
-                    self._unpreview(regions[rname])
-                    return ""
-                said = self.run("bars", rname, was, now)
-                if said.startswith("bars:") and "—" not in said:
-                    self._unpreview(regions[rname])
-                return said
+                return self._ruler_event(regions[sz[0]], sz[0], ("Released",))
         band = self.banding
         if band is not None:
             regions = getattr(self.bench, "note_regions", None) or {}
