@@ -84,3 +84,40 @@ grid view too**, his ask — a notes file is already a table.
 cards into later/ shelf."*  Waits on an event: `card:gui-is-difficult.md`
 reaching a framework this can be the first client of.  Sediment, not
 debt.
+
+## Added 2026-09-08 — which reference kinds a `.gex` formula has
+
+*From `card:gui-is-difficult.md` Q7, after Coblenz et al., **Kale: A
+Transformation-Safe Spreadsheet System** (arXiv 2608.26345, 2026-08-26)
+and its source.  Henri: "gex-sheet voisi todella saada tuon kysymyksen
+ja vastauksen siihen."*
+
+**The question.**  A formula refers to cells; when rows are inserted,
+sorted or moved, what does the reference mean — the *thing* that was
+there, the *place*, or the *set* that matches?  Excel rewrites
+references on structural change and Kale measured that people cannot
+predict the rewrite (7 of 15 right); 50–83 % of Sheets users left a
+broken formula behind on four of five risks.
+
+**The answer, taken from Kale and one form further.**  A reference
+declares its kind, and there are three:
+
+| kind | Kale's spelling | means | under sort / insert / move |
+|---|---|---|---|
+| a thing | `Col[0]` | the row that is 0th *now*, held by identity | follows the row |
+| a place | `Col[+1]` | the row one below the formula's own | stays an offset |
+| a set | whole `Col`, or `Col[Experience > 10]` | every row that matches | re-runs |
+
+No rectangle `B2:C3` — a place pretending to be a set.  Kale left the
+query form unevaluated; here it is a Datafun `for` over the sheet's
+rows (`spec/data.md`), which the tree already compiles, so the set kind
+is the one gestate can do best and Kale could not.
+
+**How Kale holds the thing kind, read from its source:** the id is the
+grid's row-node id, session-scoped, never written to the file; the
+formula's text is regenerated from the id after every change, so what
+the person sees is `Col[5]` when the row is fifth.  For a `.gex` whose
+truth is a text file the same trick is available only if the file
+carries something stable — which is `card:gui-is-difficult.md` Q7's
+question, and a `.gex` row may want a name column for exactly this.
+

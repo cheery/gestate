@@ -860,6 +860,61 @@ his words.*
    `.gex` formula has*, answered by Kale's three plus the query.
    *Open.*
 
+   **Henri:** *"Nämä kaikki voisi tehdä järjestyksessä."*  Done the same
+   morning, 2026-09-08, in order:
+
+   **(1) Kale's source, read** (`~/Kale`, 7,250 lines of TypeScript over
+   AG Grid).  The hidden id is AG Grid's row-node id, **held for the
+   session and never written**: the widget model persists values only.
+   A formula is stored as text, `Col[3]`; at parse time the grammar
+   action resolves `[3]` to the *displayed* row's node id and keeps it
+   in the parse tree; after every structural change (`onModelUpdated`
+   → `recalculate`) a string visitor regenerates every formula's text
+   from the id — `Col[3]` becomes `Col[5]` because the row it means is
+   now fifth.  **So Kale is E, not D**: the object is the identity and
+   the visible position is a projection re-derived from it.  Names are
+   a field on the cell object, so they follow the row for free.  The
+   query form is in the code (`Salary[Experience > 10]`, a `QUERY`
+   value): a boolean vector filtered against a column by *index in
+   iteration order* — positional inside one evaluation, which is fine.
+   Two things the paper does not say: `[0]` means the first *displayed*
+   row, so a filter changes what an absolute reference resolves to
+   when it is typed; and a formula typed before its row exists is an
+   error, not a dangling reference.
+
+   **(2) The key, measured on every `.notes` in the tree — which is
+   two.**  `arc.notes`: 291 notes, 0 chords within one voice, 7 (tick,
+   key) pairs shared across voices, 0 doubled.  `untitled.notes`: 4
+   notes, nothing shared.  The measurement rests on one real piece and
+   says: the voice belongs in the address, and the within-voice case is
+   untested by any file he has written.
+
+   **(3) E against F on `.notes`, byte for byte.**  For every note of
+   `arc.notes` and of the annotated fixture, each of `key`, `len`, `at`
+   changed once by F (`notes.retune`, the line rewritten in place) and
+   by E (the record edited, `notes.write` canonical):
+
+   | field | E == F | differs | the difference |
+   |---|---|---|---|
+   | key | 291 | 0 | — |
+   | len | 291 | 0 | — |
+   | at | 120 | 171 | the same lines, in canonical order |
+
+   And **nothing live calls `notes.write`** — every gesture is `retune`,
+   so a file edited by rail drags leaves canonical order and nothing
+   puts it back; *writing this file again is a no-op* is a test
+   property, not a live one.  So the two are not the same thing wearing
+   two mechanisms: **F keeps the line where it was written (identity
+   C, the file remembers where you put the note); E re-sorts it to
+   where it sounds (identity B, the file is a table)**, and the choice
+   is visible in the file after the first move in time.  Cost of E
+   otherwise: none — the record survives, and the write is exact on
+   every comment.  *His to choose, and the question is now sharp: after
+   a rail drag, does the line stay or does it sort?*
+
+   **(4)** `card:gex-sheet.md` carries the reference-kind question and
+   Kale's answer.
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide

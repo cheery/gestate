@@ -1587,3 +1587,25 @@ hand gets the same skeleton for free.  The next hand is the question:
 the note hand decides three things at the press by looking, and
 whether that look rides on the event or picks the chart is Henri's
 call, written on the card.
+
+## Identity, measured four ways — 2026-09-08, late morning
+
+*"Olin skimmannut paperin läpi ja minulla ei ollut ideaakaan että se
+voisi vastata tähän ongelmaan."*  Kale had, and its source said more
+than the paper: the hidden row id is the grid's own object, kept for
+the session and never written, and every formula's text is regenerated
+from it after each change — the position a person sees is a projection
+of a thing the system holds.  That is reading E, and the file stays
+values.
+
+Then the tree.  The key (voice, tick, key) is measured on one real
+piece, because there is one: seven unison doublings a hand cannot
+transpose, no chord within a voice.  And E against F on every note:
+identical bytes for a pitch or a length, and for a move in time the
+same lines in a different order — because `retune` leaves the line
+where it was and `write` sorts it to where it sounds, and nothing live
+has ever called `write`.  So the choice between the two is not a
+mechanism, it is what the file looks like after the first drag along
+the rail: the line you put there, or a table.  His question now, and
+sharper than it was at breakfast.
+
