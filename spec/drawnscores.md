@@ -366,6 +366,26 @@ does not.
 | **no significant whitespace and no nesting** | the meaning survives being reflowed by anything | a file whose lines are shuffled parses to the same score |
 | **a stable order** | two writings of one phrase are byte-identical, so a diff shows what changed and nothing else | the writer emits section, then bar, then the section's own **voice** order, then `at`, then key; writing a file it just read is a no-op |
 
+**And the order is kept by every gesture — 2026-09-08.**  Henri,
+closing `card:gui-is-difficult.md` Q7 (*identity by position or by
+key*): *"nuotti saisi lajittua siihen järjestykseen mikä on tiedostolle
+sovittu."*  So a note's identity is its content, (voice, tick, key),
+and never the line it was typed on: a gesture rewrites one field
+(`notes.retune`) and then writes the file in its own order
+(`notes.canonical`), so a note moved in time sorts to where it sounds.
+Measured on every note of `arc.notes` before it was decided: for `key`
+and `len` the two writes are byte-identical; for `at` they are the same
+lines in canonical order.  The buffer's lines say where the notes
+sound, not where they were typed, and a file with a mistake elsewhere
+in it is left in its own order so the gesture still lands.  With it,
+the selection is a set of keys (`Session.held`) looked up in the roll
+of the moment: a commit's rebuild finds the notes again where the
+command sent them, so a group is nudged twice without being swept
+twice, and a typed edit that moves them drops the selection rather
+than guessing.  A typed `transpose` on a unison doubling — seven places
+on `arc.notes` where two voices sound one key at one tick — takes the
+selected one; unselected it refuses, as before.
+
 **The third gate is why every note line names its section and bar.**  A
 header that opened a block would be cheaper to type and would make a
 line's meaning depend on a line above it — which is nesting wearing
@@ -1276,8 +1296,10 @@ a group in one rewrite — every selected line changes by the same two
 numbers, one text edit, one undo entry, one rebuild.  Refused whole
 rather than half-done: a note written in a `.ges`, a note that would
 leave the keyboard or its section, a note that would land where the
-file already says one is (`notes.doubled`).  The selection is spent
-with the commit, as `move`'s is — the rebuild renumbers the roll.
+file already says one is (`notes.doubled`).  The selection was spent
+with the commit, as `move`'s was — the rebuild renumbers the roll —
+until 2026-09-08, when it became a set of keys that follows the notes
+(§"And the order is kept by every gesture").
 
 **A list-valued reading crosses as a trace**, the word a scope's window
 and a live roll's rows already use; `observe` writes it to the
@@ -1299,7 +1321,7 @@ took the first of them and carried it up three rows, and `Ctrl-S`
 changed six lines of the copy, each `key` by two, nothing else.
 
 **What this slice does not do, said now.**  A group is spent with its
-commit, where Reaper keeps it; a band selects by touching, with no way
+commit, where Reaper keeps it (*kept since 2026-09-08, by key*); a band selects by touching, with no way
 yet to add or drop one note from a group; the compact box beside a
 `.ges` line sweeps bands too, on a roll three pixels a semitone where
 three semitones is five pixels — honest, and not much use there.  And

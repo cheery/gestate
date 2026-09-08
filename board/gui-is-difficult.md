@@ -935,6 +935,34 @@ his words.*
    What stays: byte-exact on every other line and every comment
    (measured, 291 of 291).
 
+   **Built, 2026-09-08, midday** — *"ota se."*  Postcondition, written
+   first: *after a note is moved or transposed on the roll, the file's
+   lines are in the file's agreed order and the note stays selected, so
+   the next drag moves the same note, on his piece.*  Landed as three
+   things.  `notes.canonical` and one seam, `Session._write_included`:
+   every gesture's write goes through it, so the buffer is a table
+   after every commit (`retune` unchanged — the field, then the order).
+   The selection is a set of keys, `Session.held`, written by the press
+   and by `select`; a commit records where it sent the notes
+   (`_follow`, `pending`) and the bench's new `rebuilt` hooks fire
+   `_settle` after every `_load_substrate`, which finds the keys in the
+   new roll — the voice read from the file only where (tick, key) is
+   two notes — outlines them, or drops them when they find nothing.  A
+   typed `transpose` or `resize` on a doubled address takes the
+   selected note (`_note_named`), and refuses with *press the one you
+   mean first* when nothing is.  Held by four new tests in
+   `test/test_drawnscores.py` (the file sorts, the selection follows
+   through two moves, a group is carried twice, a unison doubling is
+   transposed) and 163 unchanged ones, three of which changed their
+   last line from *spent with the commit* to *held by key*.  **One thing
+   found on the way:** comparing the old roll to the new by `id()`
+   failed once — a rebuilt roll landed at the freed address — so the
+   old roll object is held instead.  **Half of question 3 stays open:**
+   the transcript's `transpose` address still has no voice; the
+   tiebreak is the selection, and a replay carries the press that made
+   it.  Adding the voice to the command is an arity change to four
+   verbs, his to ask for.
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide

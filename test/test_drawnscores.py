@@ -1861,7 +1861,10 @@ def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
         assert a.replace(f"at {on}", "", 1) == b.replace(f"at {on + grid}", "", 1) \
             or "bar" in said, f"more than the time moved:\n  {a}\n  {b}"
         assert "move" in seat._journal().text()
-        assert 0 not in seat.selected, "the selection is spent with the commit"
+        # **The selection follows the note** (2026-09-08, Q7 of
+        # `card:gui-is-difficult.md`): held by key across the rebuild the
+        # commit causes, so the next drag moves the same note.
+        assert seat.pending[0][1] == [(on + grid, roll.events[note][3], "melody")], seat.pending
         assert seat.bench.auditioned, "and the piece is rebuilt"
 
 
@@ -2737,6 +2740,14 @@ def test_the_window_view_answers_its_own_replacement_until_the_window_takes_it()
 # undo entry, one rebuild.  Every gesture a command, as before.
 
 
+def _rebuilt(seat):
+    """The rebuild a commit causes in the window, done by hand here: the
+    bench's pictures from the buffer, which fires `Session._settle`."""
+    seat.bench._load_substrate(seat.bench.program(seat.view.text()))
+    return seat.bench.note_regions["__nb_rail_0__"].roll
+
+
+
 def _page_seat():
     """The `.notes` page opened alone, its first roll's reference view,
     and a seat over the bench — the way the window does it, one press
@@ -2855,7 +2866,11 @@ def test_a_hand_on_any_note_of_the_group_carries_them_all_in_one_rewrite():
         ka = int(a.split("key ")[1].split()[0]); kb = int(b.split("key ")[1].split()[0])
         assert kb - ka == 2, (a, b)
         assert a.split("key")[0] == b.split("key")[0], "only the key moved"
-    assert 0 not in seat.group, "the selection is spent with the commit"
+    # The group is held by key across the rebuild (2026-09-08, Q7):
+    # every note, two semitones up, in its own voice.
+    roll2 = _rebuilt(seat)
+    assert sorted((roll2.events[n][0], roll2.events[n][3]) for n in seat.group[0]) == \
+        sorted((roll.events[n][0], roll.events[n][3] + 2) for n in group)
 
 
 def test_a_carry_that_would_double_a_note_refuses_whole_and_keeps_the_group():
@@ -3020,7 +3035,9 @@ def test_a_hand_on_the_end_of_any_note_of_the_group_stretches_them_all():
     for a, b in changed:
         la = int(a.split("len ")[1].split()[0]); lb = int(b.split("len ")[1].split()[0])
         assert lb - la == 96, (a, b)
-    assert 0 not in seat.group, "spent with the commit"
+    roll2 = _rebuilt(seat)
+    assert sorted((roll2.events[n][0], roll2.events[n][3]) for n in seat.group[0]) == \
+        sorted((roll.events[n][0], roll.events[n][3]) for n in group), "held by key across the rebuild"
 
 
 def test_a_stretch_that_would_leave_a_note_shorter_than_a_tick_refuses_whole():
@@ -3284,3 +3301,89 @@ def test_probe_says_what_is_under_a_point_and_where_it_was_written():
     assert "tick" in said and "key" in said, said
     # Somewhere with nothing under it says so, and how many there are.
     assert probe_at(Bench(), -5000, -5000).startswith("probe: nothing at")
+
+
+
+# ── Identity: the file is a table, and the selection follows the note ──────
+#
+# `card:gui-is-difficult.md` Q7, Henri, 2026-09-08: *"nuotti saisi
+# lajittua siihen järjestykseen mikä on tiedostolle sovittu."*  A note's
+# identity is its content, never its number in the roll; the file is
+# written in its own order after every gesture; a selection is held by
+# key across the rebuild the commit causes.
+
+
+def test_a_note_moved_in_time_sorts_to_the_files_order():
+    """The buffer is canonical after a rail drag, and the change is one
+    field of one line — the line now standing where the note sounds."""
+    from gestate.scorebox import across_of, grid_of, scale_of
+
+    _here, seat, view, roll = _page_seat()
+    note = 5
+    on, key = roll.events[note][0], roll.events[note][3]
+    chan = _press_a_note(seat, roll, note)
+    grid = grid_of(roll)
+    _lo, _hi, span = scale_of(roll)
+    seat.touched("__nb_rail_0__", across_of(roll, on) + 2 * grid / span)
+    before = seat.view.text()
+    said = seat.released("__nb_rail_0__")
+    assert said.startswith("move: arc.notes —"), said
+    after = seat.view.text()
+    assert notes.write(notes.parse(after, "arc.notes")) == after, "the file is in its own order"
+    gone = sorted(set(before.splitlines()) - set(after.splitlines()))
+    came = sorted(set(after.splitlines()) - set(before.splitlines()))
+    assert len(gone) == 1 and len(came) == 1, (gone, came)
+    assert gone[0].replace(f"at {on % 384}", "", 1) == came[0].replace(f"at {on % 384 + 2 * grid}", "", 1), \
+        "one field changed and the line moved"
+    assert before.splitlines().index(gone[0]) != after.splitlines().index(came[0]), \
+        "and the line stands somewhere else now — past the neighbour it overtook"
+
+
+def test_the_selection_follows_the_note_it_moved_through_the_rebuild():
+    """Two nudges of one note without pressing it again: after the first
+    commit's rebuild the selection names the note at its new tick, so
+    the second `move` moves the same note — what a person expects and
+    what an index cannot give."""
+    _here, seat, view, roll = _page_seat()
+    note = 5
+    on, key = roll.events[note][0], roll.events[note][3]
+    chan = _press_a_note(seat, roll, note)
+    seat.released(chan); seat.released("__nb_rail_0__")
+    assert seat.run("move", "__nb_rail_0__", on, on + 96).startswith("move: arc.notes —")
+    roll2 = _rebuilt(seat)
+    assert 0 not in seat.pending and 0 in seat.selected, "settled"
+    assert roll2.events[seat.selected[0]][0] == on + 96 and roll2.events[seat.selected[0]][3] == key
+    assert seat.bench.previewing["__nb_sel_0__"] == float(seat.selected[0]), "and the picture outlines it"
+    said = seat.run("move", "__nb_rail_0__", on + 96, on + 192)
+    assert said.startswith("move: arc.notes —"), said
+    roll3 = _rebuilt(seat)
+    assert roll3.events[seat.selected[0]][:1] == (on + 192,)
+
+
+def test_a_group_follows_through_the_rebuild_and_can_be_carried_twice():
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    group = seat.group[0]
+    assert seat.run("carry", "__nb_rail_0__", 2, 0).startswith("carry: arc.notes —")
+    roll2 = _rebuilt(seat)
+    assert len(seat.group[0]) == len(group)
+    assert sorted(roll2.events[n][3] for n in seat.group[0]) == sorted(roll.events[n][3] + 2 for n in group)
+    assert seat.run("carry", "__nb_rail_0__", 2, 0).startswith("carry: arc.notes —"), "a second carry, no second sweep"
+
+
+def test_a_unison_doubling_is_transposed_through_the_selection():
+    """Seven places on `arc.notes` where two voices sound one key at one
+    tick: a typed `transpose` cannot say which, and the press that
+    selected one can.  With nothing selected it refuses, as before."""
+    _here, seat, view, roll = _page_seat()
+    twice = [i for i, e in enumerate(roll.events) if e[0] == 0 and e[3] == 62]
+    assert len(twice) == 2, twice
+    said = seat.run("transpose", "__nb_pitch_0__", 0, 62, 64)
+    assert said.startswith("transpose: 62 sounds 2 times at tick 0") and "press the one you mean" in said, said
+    chan = _press_a_note(seat, roll, twice[0])
+    seat.released(chan); seat.released("__nb_rail_0__")
+    said = seat.run("transpose", chan, 0, 62, 64)
+    assert said.startswith("transpose: arc.notes — key 62 → 64 on line "), said
+    roll2 = _rebuilt(seat)
+    assert roll2.events[seat.selected[0]][:1] == (0,) and roll2.events[seat.selected[0]][3] == 64
+    assert seat._voice_of(seat.bench.note_regions["__nb_rail_0__"], seat.selected[0]) == "melody"

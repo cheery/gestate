@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**464 complaints**, in 47 files.
+**465 complaints**, in 47 files.
 
 | | |
 |---|---|
 | `author` | 246 |
-| `command` | 41 |
+| `command` | 42 |
 | `world` | 27 |
 | `machine` | 150 |
-| say where | 161 |
+| say where | 162 |
 | say `nowhere`, on purpose | 39 |
 | `unplaced`, with a defect that owns it | 59 |
 
@@ -740,42 +740,42 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 195 | `NotesError` | `author` | handed in | '{place}: `{key}` is not a field here; this record takes ' + ', '.join((f'`{f}`' for f in sorte… |
-| 199 | `NotesError` | `author` | handed in | '{place}: `{key}` is written twice' |
-| 201 | `NotesError` | `author` | handed in | '{place}: `{key}` has no value' |
-| 205 | `NotesError` | `author` | handed in | '{place}: missing ' + ', '.join((f'`{m}`' for m in missing)) |
-| 236 | `NotesError` | `author` | handed in | '{place}: `{key} {text}` is not a whole number' |
-| 279 | `NotesError` | `author` | handed in | '{place}: `bpm` is declared twice' |
-| 281 | `NotesError` | `author` | handed in | '{place}: `bpm` takes one number' |
-| 284 | `NotesError` | `author` | handed in | '{place}: `bpm {tokens[1]}` — a tempo is at least one' |
-| 287 | `NotesError` | `author` | handed in | '{place}: `{kind}` is not a record; a line is `section …`, `note …` or `bpm …`' |
-| 297 | `NotesError` | `author` | handed in | '{place}: section `{one.name}` is declared twice' |
-| 310 | `NotesError` | `author` | handed in | '{place}: `section` needs a name — `section A key D bars 8 beats 4 voices melody,roots`' |
-| 317 | `NotesError` | `author` | handed in | '{place}: `bars {bars}` — a section has at least one bar' |
-| 319 | `NotesError` | `author` | handed in | '{place}: `beats {beats}` — a bar has at least one beat' |
-| 322 | `NotesError` | `author` | handed in | '{place}: `voices` names none' |
-| 325 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a voice name' |
-| 327 | `NotesError` | `author` | handed in | '{place}: a voice is named twice in `voices`' |
-| 330 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a note name; ' + ', '.join(sorted(_PITCH_CLASS)) |
-| 334 | `NotesError` | `author` | handed in | '{place}: `mode {mode}` is not one this knows; ' + ', '.join(sorted(_MODES)) |
-| 346 | `NotesError` | `author` | handed in | '{place}: no section `{got['section']}`; this file has ' + (', '.join((f'`{s.name}`' for s in o… |
-| 351 | `NotesError` | `author` | handed in | '{place}: `bar {bar}` — section `{section.name}` has {section.bars} bars' |
-| 360 | `NotesError` | `author` | handed in | '{place}: `at {tick}` is not inside bar {bar} of section `{section.name}`, which is {section.be… |
-| 366 | `NotesError` | `author` | handed in | '{place}: `len {length}` — a note lasts at least one tick' |
-| 368 | `NotesError` | `author` | handed in | '{place}: section `{section.name}` has no voice `{got['voice']}`; it has ' + ', '.join((f'`{v}`… |
-| 373 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a MIDI key number (0-127)' |
-| 375 | `NotesError` | `author` | handed in | '{place}: `vel {got['vel']}` is not a dynamic; ' + ' '.join(LEVELS) |
-| 399 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` is not a pitch name — a letter, an optional `is`/`es`/`isis`/`eses`, … |
-| 403 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` names key {named}, and this note is `key {key}`' |
-| 417 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
-| 421 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
-| 582 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
-| 588 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
-| 596 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
-| 598 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1003 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1009 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 1059 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 198 | `NotesError` | `author` | handed in | '{place}: `{key}` is not a field here; this record takes ' + ', '.join((f'`{f}`' for f in sorte… |
+| 202 | `NotesError` | `author` | handed in | '{place}: `{key}` is written twice' |
+| 204 | `NotesError` | `author` | handed in | '{place}: `{key}` has no value' |
+| 208 | `NotesError` | `author` | handed in | '{place}: missing ' + ', '.join((f'`{m}`' for m in missing)) |
+| 239 | `NotesError` | `author` | handed in | '{place}: `{key} {text}` is not a whole number' |
+| 282 | `NotesError` | `author` | handed in | '{place}: `bpm` is declared twice' |
+| 284 | `NotesError` | `author` | handed in | '{place}: `bpm` takes one number' |
+| 287 | `NotesError` | `author` | handed in | '{place}: `bpm {tokens[1]}` — a tempo is at least one' |
+| 290 | `NotesError` | `author` | handed in | '{place}: `{kind}` is not a record; a line is `section …`, `note …` or `bpm …`' |
+| 300 | `NotesError` | `author` | handed in | '{place}: section `{one.name}` is declared twice' |
+| 313 | `NotesError` | `author` | handed in | '{place}: `section` needs a name — `section A key D bars 8 beats 4 voices melody,roots`' |
+| 320 | `NotesError` | `author` | handed in | '{place}: `bars {bars}` — a section has at least one bar' |
+| 322 | `NotesError` | `author` | handed in | '{place}: `beats {beats}` — a bar has at least one beat' |
+| 325 | `NotesError` | `author` | handed in | '{place}: `voices` names none' |
+| 328 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a voice name' |
+| 330 | `NotesError` | `author` | handed in | '{place}: a voice is named twice in `voices`' |
+| 333 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a note name; ' + ', '.join(sorted(_PITCH_CLASS)) |
+| 337 | `NotesError` | `author` | handed in | '{place}: `mode {mode}` is not one this knows; ' + ', '.join(sorted(_MODES)) |
+| 349 | `NotesError` | `author` | handed in | '{place}: no section `{got['section']}`; this file has ' + (', '.join((f'`{s.name}`' for s in o… |
+| 354 | `NotesError` | `author` | handed in | '{place}: `bar {bar}` — section `{section.name}` has {section.bars} bars' |
+| 363 | `NotesError` | `author` | handed in | '{place}: `at {tick}` is not inside bar {bar} of section `{section.name}`, which is {section.be… |
+| 369 | `NotesError` | `author` | handed in | '{place}: `len {length}` — a note lasts at least one tick' |
+| 371 | `NotesError` | `author` | handed in | '{place}: section `{section.name}` has no voice `{got['voice']}`; it has ' + ', '.join((f'`{v}`… |
+| 376 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a MIDI key number (0-127)' |
+| 378 | `NotesError` | `author` | handed in | '{place}: `vel {got['vel']}` is not a dynamic; ' + ' '.join(LEVELS) |
+| 402 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` is not a pitch name — a letter, an optional `is`/`es`/`isis`/`eses`, … |
+| 406 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` names key {named}, and this note is `key {key}`' |
+| 420 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
+| 424 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
+| 607 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
+| 613 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
+| 621 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
+| 623 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
+| 1028 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1034 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
+| 1084 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -875,21 +875,24 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 ### `session.py`
 
+*the box refusing an edit, said back to the hand that asked for it*
+
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2417 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2423 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2437 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2547 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2553 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2558 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
-| 2576 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2638 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2704 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2708 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 2849 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 2860 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5109 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2445 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2451 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2465 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2578 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2584 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2589 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
+| 2607 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 2669 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2737 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2741 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 2881 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 2892 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5143 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5303 | `RefusedError` | `command` | carried from `exc` | '{exc} — press the one you mean first' |
 
 ### `tempo.py`
 

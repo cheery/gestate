@@ -20,7 +20,10 @@ and the score box all go on seeing a program they already understood.
 self-contained — it names its section, its bar and its voice — so no
 line's meaning depends on a line above it.  That is what makes the
 format survive being reflowed, and it is what makes a drag on the roll
-able to rewrite one line and nothing else.
+able to rewrite one line and nothing else — and, since 2026-09-08, to
+put that line where the note sounds (`canonical`): the file is a table,
+a note's identity is its content, and the line it was typed on is not
+kept.
 """
 
 from __future__ import annotations
@@ -535,6 +538,27 @@ def write(out: NotesFile) -> str:
     return "\n".join(lines) + "\n"
 
 
+def canonical(text: str, name: str = "<notes>") -> str:
+    """The same file, in the file's own order — what a gesture writes.
+
+    **The file is a table.**  Henri, 2026-09-08, closing
+    `card:gui-is-difficult.md` Q7: *"nuotti saisi lajittua siihen
+    järjestykseen mikä on tiedostolle sovittu."*  So a note moved in
+    time does not keep the line it was typed on; it sorts to where it
+    sounds, and every gesture's write goes through here — `retune`
+    rewrites the field, this puts the line in its place, and both are
+    byte-exact on everything else (measured on every note of
+    `arc.notes`: `key` and `len` identical to the in-place rewrite,
+    `at` the same lines in canonical order).  A file the parser refuses
+    is returned as it came, so a gesture still lands on a file with a
+    mistake elsewhere in it.
+    """
+    try:
+        return write(parse(text, name))
+    except NotesError:
+        return text
+
+
 def _line(one: Note) -> str:
     #: `spell` goes beside `key`, because it is about that field and
     #: nothing else — and it is absent on almost every line, which is
@@ -567,7 +591,8 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
     change and nothing else.**  Every other character of the file,
     including every other field of this very line, is the same
     afterwards — which is what makes a drag safe to undo by dragging
-    back.
+    back.  Since 2026-09-08 the line then goes to the file's own order
+    (`canonical`), which moves it and changes no byte of it.
 
     Refused rather than forced when the line is not a note, when it has
     no such field, or when the field does not currently say `was` — the

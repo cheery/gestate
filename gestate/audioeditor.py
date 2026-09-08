@@ -1581,6 +1581,15 @@ class Workbench:
                 self.transport.watch_peak = True
             if any(n in wanted for n in self.BANDS):
                 self.transport.watch_bands(True)
+        # **The picture is new; whoever held a note by number is told.**
+        # A rebuilt roll numbers its notes afresh, and the session keeps
+        # a selection by the note's key across it (`Session._settle`) —
+        # this is the moment it can resolve one.
+        for hook in list(getattr(self, "rebuilt", ())):
+            try:
+                hook()
+            except Exception as exc:                    # noqa: BLE001
+                self.say(f"after the rebuild: {self._first_line(exc)}")
 
     #: What the host will write into a canvas, if the canvas declares it.
     #:

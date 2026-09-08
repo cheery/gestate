@@ -1609,3 +1609,25 @@ mechanism, it is what the file looks like after the first drag along
 the rail: the line you put there, or a table.  His question now, and
 sharper than it was at breakfast.
 
+## The file is a table — 2026-09-08, midday
+
+*"ota se."*  The identity slice, built on the decision of an hour
+before.  The seam turned out to be one function and one call: every
+gesture already wrote through `_write_included`, so `notes.canonical`
+there made the buffer a table after every commit and nothing else in
+the commit paths moved.  The selection was the real work.  It had been
+an index into a roll that every rebuild renumbers, patched by spending
+it at each commit; now it is a set of keys — tick, key, and the voice
+only where the key is two notes — that a press or a `select` writes,
+a commit sends ahead to where the notes will be, and the bench's new
+`rebuilt` hooks let the session find again in the new roll.  A group
+carried twice without a second sweep, on his piece, is the number.
+
+One mistake worth the sentence: I compared rolls by `id()` and a
+rebuilt roll landed at the freed address, so a settled selection
+looked unsettled on the second move and not the first.  Held the
+object instead.  And one thing left half-open on purpose: the typed
+`transpose` still has no voice in its address — the press that
+selected the note is the tiebreak — because the fix is an arity
+change to four verbs and the transcript, and that is his to ask for.
+

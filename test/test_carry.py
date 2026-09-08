@@ -94,6 +94,10 @@ DELIBERATELY_FRESH = {
     "selected": "the note the last press picked in a score box, per box — "
                 "no box of the new file has been pressed, and the rail "
                 "would move a note of the old one",
+    "pending": "where a commit sent the old file's notes, waiting for a "
+               "rebuild of the old file's rolls that is not coming",
+    "held": "the old file's selection as keys — a key means nothing in "
+            "another file's rolls (2026-09-08)",
     "marked": "`(text, holes)` — the program the hole marks were true for, "
               "and it is not this one",
     "_answered": "`(question, answer)` from the old program's choices, kept "

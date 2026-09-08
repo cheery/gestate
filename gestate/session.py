@@ -997,6 +997,23 @@ class Session:
     #: Dropped with a commit, because the file's notes are renumbered
     #: by the rebuild that follows it.
     selected: dict = field(default_factory=dict)
+    #: **The selection, held by key across a rebuild** — `{box: (the
+    #: roll the commit saw, [(tick, key, voice), …])}`.  A commit
+    #: writes the file and the rebuild renumbers the roll, so a note's
+    #: number is spent; its key is not (`card:gui-is-difficult.md` Q7,
+    #: 2026-09-08: identity is the model's key, never the picture's
+    #: index).  `_follow` records where the notes went, `_settle` finds
+    #: them in the new roll and puts `selected` and `group` back, so a
+    #: person nudges the same notes twice without sweeping twice.
+    pending: dict = field(default_factory=dict)
+    #: **What the selection *is*: keys, per box** — `{box: [(tick, key,
+    #: voice or None), …]}`, written whenever a press or a `select` sets
+    #: the group and whenever `_settle` re-finds it.  `selected` and
+    #: `group` are this, looked up in the roll of the moment; a rebuild
+    #: that finds the keys keeps the selection and outlines it, and one
+    #: that does not — a note deleted by hand, a file moved under the
+    #: picture — drops it and says nothing.
+    held: dict = field(default_factory=dict)
     #: `(text, holes)` — the program the hole marks are true for, and
     #: the list that was true for it, so `move_marks` can tell a hole
     #: list it has already carried from one the workbench just made.
@@ -1021,6 +1038,17 @@ class Session:
     #: Return keeps it, `Esc` undoes it, and running anything else
     #: settles it, because by then you have moved on.
     inserted: object = None
+
+    def __post_init__(self):
+        # A selection held by key is resolved when the picture is new,
+        # and the bench says when that is (`Workbench._load_substrate`).
+        hooks = getattr(self.bench, "rebuilt", None)
+        if hooks is None:
+            try:
+                self.bench.rebuilt = hooks = []
+            except Exception:                            # noqa: BLE001
+                return                     # a bench that takes no hooks
+        hooks.append(self._settle)
 
     def commands(self) -> list:
         """The palette.  Derived from `command.ges` every time it is
@@ -2299,12 +2327,12 @@ class Session:
         roll = found.roll
         origins = getattr(self.bench, "origins", None) or {}
         try:
-            note = note_of(roll, int(tick), int(was))
+            note = self._note_named(found, int(tick), int(was))
             # **A note from an included `.notes` is edited in that file**,
             # not in this buffer — `spec/drawnscores.md` rung 4.  Tried
             # first, because `transposed` refuses it by name and the
             # refusal is what stood here until 2026-09-05.
-            said = self._retune_included(roll, note, int(key), origins)
+            said = self._retune_included(found, note, int(key), origins)
             if said is not None:
                 return said
             text, said = transposed(self._source(), roll, note,
@@ -2437,12 +2465,13 @@ class Session:
                 raise NotesError(
                     f"{place} would land on a note already written "
                     "there — the file cannot say one place twice")
+            # The rebuild renumbers the roll's notes; the selection is
+            # held by key across it and follows the note (`_settle`).
+            self._follow(found, [(note, found.roll.events[note][0] + by,
+                                  found.roll.events[note][3])])
             self._write_included(path, out, mine)
         except (OSError, NotesError, StopIteration) as exc:
             return f"move: {exc}"
-        # The rebuild renumbers the roll's notes, so the selection is
-        # spent with the commit.
-        self.selected.pop(found.box, None)
         self.bench.audition(self.view.text())
         heard = ("" if getattr(self.bench, "playing", False)
                  else self._hear_at(found.roll.events[note][0] + by,
@@ -2480,6 +2509,7 @@ class Session:
                     f"and keys {lo_k}–{hi_k}")
         self.group[found.box] = notes
         self.selected[found.box] = notes[0]
+        self._hold(found)
         self._unpreview(found)
         return (f"select: {len(notes)} note{'s' if len(notes) != 1 else ''} — "
                 f"ticks {lo_t}–{hi_t}, keys {lo_k}–{hi_k}")
@@ -2495,8 +2525,9 @@ class Session:
         half-moved would be a picture the file disagrees with.  Refused
         by name, too, for a note that would leave the keyboard or its
         section, and for one that would land where the file already says
-        a note is.  The selection is spent with the commit, as `move`'s
-        is: the rebuild renumbers the roll.
+        a note is.  The rebuild renumbers the roll, and the group is held
+        by key across it and follows the notes (`_follow`, `_settle`;
+        2026-09-08).
         """
         from pathlib import Path
 
@@ -2578,12 +2609,12 @@ class Session:
                     "there — the file cannot say one place twice")
             if out == text:
                 return "carry: nothing to do — no interval and no ticks"
+            self._follow(found, [(n, roll.events[n][0] + ticks, roll.events[n][3] + keys)
+                                 for n in group])
             self._write_included(path, out, mine)
         except (OSError, NotesError, KeyError) as exc:
             return f"carry: {exc}"
         first = min(roll.events[n][0] for n in group) + ticks
-        self.group.pop(found.box, None)
-        self.selected.pop(found.box, None)
         self.bench.audition(self.view.text())
         heard = ("" if getattr(self.bench, "playing", False)
                  else self._hear_at(first, self.view.text()))
@@ -2639,6 +2670,7 @@ class Session:
             if one.length == length:
                 return "resize: nothing to do — that is its length"
             out, said = retune(text, row, "len", one.length, length)
+            self._follow(found, [(note, roll.events[note][0], roll.events[note][3])])
             self._write_included(path, out, mine)
         except (OSError, NotesError) as exc:
             return f"resize: {exc}"
@@ -2653,7 +2685,8 @@ class Session:
         `resize` for a group in one rewrite — what a hand on the end of
         any note of the group runs when it lets go.  Refused whole if
         any one of them cannot be resized or would be shorter than a
-        tick; the selection is spent with the commit, as `carry`'s is.
+        tick; the group is held by key across the commit's rebuild, as
+        `carry`'s is (2026-09-08).
         """
         from pathlib import Path
 
@@ -2707,12 +2740,11 @@ class Session:
                     #: leave it shorter than one
                     raise NotesError(f"{place} would be shorter than a tick")
                 out, _word = retune(out, row, "len", one.length, one.length + ticks)
+            self._follow(found, [(n, roll.events[n][0], roll.events[n][3]) for n in group])
             self._write_included(path, out, mine)
         except (OSError, NotesError) as exc:
             return f"stretch: {exc}"
         first = min(roll.events[n][0] for n in group)
-        self.group.pop(found.box, None)
-        self.selected.pop(found.box, None)
         self.bench.audition(self.view.text())
         heard = ("" if getattr(self.bench, "playing", False)
                  else self._hear_at(first, self.view.text()))
@@ -4582,6 +4614,7 @@ class Session:
             self.selected[found.box] = note
             if note not in self.group.get(found.box, ()):
                 self.group[found.box] = (note,)
+            self._hold(found)
             on, off, _k, was, _v, _m = roll.events[note]
             # **A press in a note's last `EDGE_PX` takes its end** — for
             # a note wider than twice that — and the drag along is a
@@ -5065,7 +5098,7 @@ class Session:
         self._journal().add("released", (name,), "")
         return said or ""
 
-    def _retune_included(self, roll, note: int, key: int, origins) -> str | None:
+    def _retune_included(self, found, note: int, key: int, origins) -> str | None:
         """A drag on a note an included `.notes` wrote — or `None`.
 
         **Rung 4 of `spec/drawnscores.md`**, and the first time this
@@ -5092,6 +5125,7 @@ class Session:
         from .notes import NotesError, doubled, parse, retune
         from .scorebox import RefusedError, pitch_atom
 
+        roll = found.roll
         line, _col, _width, was = pitch_atom(roll, note)
         where = origins.get(line)
         if where is None:
@@ -5110,6 +5144,7 @@ class Session:
                     f"{place} is written twice over, so a drag cannot "
                     "tell which line it means")
             out, said = retune(text, at, "key", was, key)
+            self._follow(found, [(note, roll.events[note][0], key)])
             self._write_included(path, out, mine)
         except (OSError, NotesError) as exc:
             return f"transpose: {exc}"
@@ -5131,11 +5166,141 @@ class Session:
                 and Path(getattr(self.bench, "path", "")).name == name)
 
     def _write_included(self, path, out: str, mine: bool) -> None:
+        """Write a `.notes` file a gesture edited — **in the file's own
+        order** (`notes.canonical`; Henri, 2026-09-08: the note sorts to
+        the order agreed for the file).  One seam, so every gesture's
+        write is a canonical one and the buffer's lines say where the
+        notes sound, not where they were typed."""
+        from .notes import canonical
+
+        out = canonical(out, Path(path).name)
         if mine:
             if not self.view.replace(out):
                 raise OSError("nowhere to put it")
         else:
             path.write_text(out)
+
+    def _follow(self, found, notes) -> None:
+        """Hold the selection by key across the rebuild a commit causes.
+
+        `notes` is `[(note, new tick, new key), …]` — the roll's notes as
+        they were, and where the write put them.  The voice is read off
+        the file, because on a piece with unison doublings the key alone
+        names two lines (seven such places on `arc.notes`).
+        """
+        keys = []
+        for note, tick, key in notes:
+            keys.append((int(tick), int(key), self._voice_of(found, note)))
+        # The roll itself, not its `id`: a rebuilt roll can land at the
+        # freed address, and did, which made a settled selection look
+        # unsettled.  Holding the object keeps the address taken.
+        self.pending[found.box] = (found.roll, keys)
+
+    def _voice_of(self, found, note: int) -> str | None:
+        """The voice a roll's note is written in, or `None` for a note
+        no `.notes` line wrote."""
+        from .notes import NotesError, parse
+        from .scorebox import RefusedError, pitch_atom
+
+        try:
+            line, _c, _w, _k = pitch_atom(found.roll, int(note))
+        except (RefusedError, Exception):                # noqa: BLE001
+            return None
+        where = (getattr(self.bench, "origins", None) or {}).get(line)
+        if where is None:
+            return None
+        name, row = where
+        try:
+            text = (self.view.text() if self._is_document(name)
+                    else (Path(getattr(self.bench, "path", ".")).parent / name).read_text())
+            return next((n.voice for n in parse(text, name).notes if n.line == row), None)
+        except (OSError, NotesError):
+            return None
+
+    def _hold(self, found) -> None:
+        """Write the group as keys — what it is (`held`) — from the
+        numbers it has in this roll.  The voice is read only where the
+        key alone is two notes, because reading it parses the file."""
+        roll = found.roll
+        keys = []
+        for note in self.group.get(found.box, ()):
+            if not 0 <= note < len(roll.events):
+                continue
+            tick, key = roll.events[note][0], roll.events[note][3]
+            twice = sum(1 for e in roll.events if e[0] == tick and e[3] == key) > 1
+            keys.append((tick, key, self._voice_of(found, note) if twice else None))
+        if keys:
+            self.held[found.box] = keys
+        else:
+            self.held.pop(found.box, None)
+
+    def _settle(self) -> None:
+        """After a rebuild: the selection, found again by key in the new
+        roll — where a commit sent it (`pending`) or where it was
+        (`held`) — and outlined; or dropped when the keys find nothing.
+
+        A key that finds nothing — the note was deleted by hand, or the
+        file moved under the picture — leaves nothing selected, and says
+        nothing: a selection is a convenience, not a claim.  Called on
+        every rebuild, so a typed edit that leaves the notes where they
+        are keeps the selection too, and one that moves them drops it
+        rather than guessing (Kale's lesson, `card:gui-is-difficult.md`
+        Q7: a reference the person cannot predict is worse than none).
+        """
+        regions = getattr(self.bench, "note_regions", None) or {}
+        for name, found in list(regions.items()):
+            if not getattr(found, "on_rail", False):
+                continue
+            box = found.box
+            sent = self.pending.get(box)
+            if sent is not None:
+                if sent[0] is found.roll:
+                    continue               # the rebuild has not landed here yet
+                del self.pending[box]
+                keys = sent[1]
+            else:
+                keys = self.held.get(box)
+                if keys is None:
+                    continue
+            roll = found.roll
+            got = []
+            for tick, key, voice in keys:
+                hits = [j for j, e in enumerate(roll.events)
+                        if e[0] == tick and e[3] == key]
+                if len(hits) > 1 and voice is not None:
+                    hits = [j for j in hits if self._voice_of(found, j) == voice] or hits
+                if hits:
+                    got.append(hits[0])
+            if got:
+                self.group[box] = tuple(got)
+                self.selected[box] = got[0]
+                self.held[box] = keys
+                self._unpreview(found)
+            else:
+                self.group.pop(box, None)
+                self.selected.pop(box, None)
+                self.held.pop(box, None)
+
+    def _note_named(self, found, tick: int, key: int) -> int:
+        """`scorebox.note_of`, with the selection as the tiebreak.
+
+        A typed address is (tick, key) and has no voice, so on a piece
+        where two voices double a note it names two; the press that
+        selected one of them says which — the gesture always has, and a
+        typed command with the doubling still selected does too.  With
+        nothing selected it refuses, as before, and says so.
+        """
+        from .scorebox import RefusedError, note_of
+
+        try:
+            return note_of(found.roll, int(tick), int(key))
+        except RefusedError as exc:
+            chosen = self.selected.get(found.box)
+            if chosen is not None and 0 <= chosen < len(found.roll.events):
+                on, off, _l, k, _v, _m = found.roll.events[chosen]
+                if on <= int(tick) < off and k == int(key):
+                    return chosen
+            raise RefusedError(f"{exc} — press the one you mean first")
 
     def _reveal(self, found, note: int) -> str:
         """Where the note under a click is written — and go there.

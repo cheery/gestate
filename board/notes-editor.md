@@ -316,3 +316,20 @@ library".  And then idea 3, at his *"tehdään myös"*: the body is one pad, thr
 hands a box where there were a hundred and thirty, the page at eight
 thousand characters, `spec/drawnscores.md` §"The body is one pad".
 The evening's list is done.
+
+## The file is a table, and the selection follows — 2026-09-08
+
+*From `card:gui-is-difficult.md` Q7, Henri: "nuotti saisi lajittua
+siihen järjestykseen mikä on tiedostolle sovittu."*  A note's identity
+is its content: every gesture's write goes through `notes.canonical`,
+so after a rail drag the line sorts to where the note sounds — the
+first gesture here that moves text the person is not looking at, and
+the status line names the line it landed on.  The selection is a set
+of keys and is found again after the rebuild a commit causes, so a
+note or a group is nudged twice without a second press or sweep —
+the *kept, as Reaper keeps it* this card's slice 4 said it did not do.
+A unison doubling (seven on `arc.notes`) is transposed through the
+selection.  `spec/drawnscores.md` §"And the order is kept by every
+gesture" is the rule; the tests are the four at the foot of
+`test/test_drawnscores.py`.
+
