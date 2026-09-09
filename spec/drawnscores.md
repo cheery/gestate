@@ -433,6 +433,18 @@ own words, *"the layouter references the files relative to the score
 that included them"* — which `session.py` already does for `open`,
 nearest first.
 
+**And since 2026-09-09 it says one thing and not two.**  `include` used
+to be the only place a program named a document, so it carried both
+*this program plays these notes* and, implicitly, *and this is what a
+`.notes` is*.  The second half is now the document's own: what a
+`.notes` is, is declared in the `.ges` **of the document's own name,
+beside it** (`gestate/facts.py` `beside`), falling back to the kinds
+gestate ships in `gestate/notes.ges`.  Henri chose that split over
+dropping `include` altogether — reading 2 of `card:gui-is-difficult.md`
+§"Landed — 2026-09-09: the declaration is the file beside it" — so a
+program still says in one line which document it plays, and says
+nothing about how that document is read.
+
 **And the provenance comes free.**  `audiospans.py` merges `prelude.ges`
 as a module already, parsed separately *"so its spans are in its own
 coordinates and start again at 1"*, and every `Site` carries both a

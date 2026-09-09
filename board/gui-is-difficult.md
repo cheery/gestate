@@ -2393,8 +2393,17 @@ collides on `arc`.  So the fork is his:
    a session would reach for and is two ways to say one thing.
 
 *Session's reading:* 2 is honest and 3 is the trap; 1 is the one his
-sentence asked for and the only one that costs a file its name.  **Not
-built, and not a session's to choose.**
+sentence asked for and the only one that costs a file its name.
+
+**Henri, the same evening: *"(2)"***  So `include` stays and means one
+thing rather than two: **a program says which document it plays; a
+document says how it is read.**  That split is what landed above, so
+the slice is finished as it stands and no file is renamed.  What it
+costs is the line his sentence wanted gone; what it buys is that the
+two jobs stop travelling under one word, which is the reason the
+sentence was worth asking about at all.  `spec/drawnscores.md`
+§"The include door" carries it where a reader of the format will meet
+it.
 
 ## What is next — 2026-09-08, evening; his to reorder
 
@@ -2447,8 +2456,9 @@ is a design and no build:
    to `notes.py` by nine tests.  **The one source landed the same
    day** — §"Landed — 2026-09-09: one source, and the defect deriving
    it found": `notes.py` reads the declaration and the four
-   hand-written sets are gone.  What remains is the `<file>.ges`
-   pairing and the drop of `include`, which changes files on disk.
+   hand-written sets are gone.  **And the pairing the same evening**,
+   §"Landed — 2026-09-09: the declaration is the file beside it" —
+   with `include` kept for the data, his *"(2)"*.  **Done.**
 7. **Assert and retract**, the two primitive verbs, with `set` as the
    pair — so that adding and deleting a note stop being *typing* and
    become commands the transcript holds.
