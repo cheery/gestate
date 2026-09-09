@@ -80,7 +80,7 @@ noteKey = "section" :: "bar" :: "voice" :: "at" :: "key" :: Nil
 #: a time-drag moves a note among its own few lines.  `Along` is the
 #: form that exists for this line.
 noteOrder : List Sort
-noteOrder = By "section"
+noteOrder = Among "section" "section"
     :: By "bar"
     :: Along "voice" "section" "voices"
     :: By "at"

@@ -105,6 +105,8 @@ def _sort(term) -> tuple:
         return ("By", _text(args[0]))
     if head == "Along":
         return ("Along", _text(args[0]), _text(args[1]), _text(args[2]))
+    if head == "Among":
+        return ("Among", _text(args[0]), _text(args[1]))
     raise FactsError(f"`{head}` is not an order")
 
 
@@ -118,34 +120,49 @@ def _kind(term) -> Kind:
                 order=tuple(_sort(o) for o in order))
 
 
-def sort_key(kind: Kind, record: dict, along=None) -> tuple:
+def sort_key(kind: Kind, record: dict, along=None, among=None) -> tuple:
     """Where a record stands in its kind's own order.
 
-    **The first thing derived from a declaration rather than written a
+    **What the canonical writer sorts by, derived rather than written a
     second time.**  `record` is the record's fields, already read — a
-    number as an `int`, a word as a `str`.  `along(kind, field, record)`
-    answers the sequence an `Along` term orders by, which is the one
-    case that reads another record: the voice order is the section's
-    own, not alphabetical, because that is the order the roll stacks
-    them in.
+    number as an `int`, a word as a `str`.
 
-    A value absent from that sequence sorts last rather than raising:
-    an unknown voice is a fact about the file, and refusing it belongs
-    to the parser, which names the line.
+    Two of the three terms read *another* record, and each takes a
+    callback rather than a document, so this stays a function of the
+    declaration and nothing else:
+
+    * `along(kind, field, record)` — the sequence an `Along` orders by.
+      The voice order is the section's own, not alphabetical, because
+      that is the order the roll stacks them in.
+    * `among(kind, value)` — where the record a reference names stands
+      among its own kind.  A note's section sorts by the section's place
+      in the file, because a section is put where the author put it.
+
+    A value absent from an `Along` sequence sorts last rather than
+    raising: an unknown voice is a fact about the file, and refusing it
+    belongs to the parser, which names the line.
     """
     out = []
     for term in kind.order:
         if term[0] == "By":
             out.append(record[term[1]])
-            continue
-        _along, field, other, ofield = term
-        if along is None:
-            raise FactsError(
-                f"`{kind.name}` orders along `{other} {ofield}` and nothing "
-                f"was given to look it up in")
-        sequence = list(along(other, ofield, record))
-        value = record[field]
-        out.append(sequence.index(value) if value in sequence else len(sequence))
+        elif term[0] == "Along":
+            _t, field, other, ofield = term
+            if along is None:
+                raise FactsError(
+                    f"`{kind.name}` orders along `{other} {ofield}` and "
+                    f"nothing was given to look it up in")
+            sequence = list(along(other, ofield, record))
+            value = record[field]
+            out.append(sequence.index(value) if value in sequence
+                       else len(sequence))
+        else:
+            _t, field, other = term
+            if among is None:
+                raise FactsError(
+                    f"`{kind.name}` orders among `{other}` and nothing was "
+                    f"given to find it in")
+            out.append(among(other, record[field]))
     return tuple(out)
 
 

@@ -2253,6 +2253,67 @@ truth and a test holding them together, which is one more than there
 should be — the point of the slice is that the second one now exists
 and is checked, so the first can go.
 
+### Landed — 2026-09-09: one source, and the defect deriving it found
+
+*"tee se seuraava askel."*  The four hand-written sets are gone from
+`gestate/notes.py` and the parser reads `gestate/notes.ges` instead.
+What moved:
+
+- **which fields a kind takes, and which it must have** — `_fields`
+  takes the kind and names the declared fields in its refusal;
+- **which words are records** — the list in *`x` is not a record; a line
+  is …* is the declaration's;
+- **at most one of a kind with no key** — the `bpm is declared twice`
+  refusal was written for `bpm` by name and is now what an empty key
+  means, for any kind;
+- **a `Bare` line is two tokens**, and *takes one **number*** is the
+  field's declared `Number` speaking;
+- **the canonical order** — `ordered` is `facts.sort_key` over the
+  declaration.
+
+`notes.record` is the new seam and the only place the two halves meet:
+a `Note` is what a note *means* to `notes.py`, and a record is what it
+*is* to the declaration, each field as the token on the line.
+
+**And deriving it found a defect in the declaration.**  `noteOrder`
+began `By "section"` — sort by the field — and the parser had always
+sorted by *where the section stands in the file*.  The two agree on
+`arc.notes` and nowhere else, because it happens to name its sections
+A, B and C.  A file whose sections are written Z then A would have had
+its notes reordered by a rewrite, silently, and nine parity tests had
+just passed over it.  So `Sort` has a third form, `Among`, for a
+reference ordered by **where the record it names stands** — a section
+is put where the author put it — and `test_facts.py` pins it with Z
+before A.
+
+*The class of the mistake is worth naming:* a declaration derived from
+a working implementation is checked against the one file that exists,
+and the one file is a witness to the rule and not to its boundary.
+The defect appeared the moment the implementation was made to *obey*
+the declaration rather than be compared with it.  That is an argument
+for the direction of this whole slice, arriving as a bug.
+
+**One more thing the step added:** a kind that is declared and that
+`notes.py` cannot build now earns *`x` is declared in the kinds, and
+this version does not know how to read one*.  The gap between a
+declaration and its implementation says so out loud instead of dropping
+the record; `test_facts.py` builds a `.ges` with a fourth kind to make
+it fire.
+
+**Held by** thirteen tests in `test/test_facts.py` — behavioural now,
+since comparing the parser with the declaration it is derived from
+would prove nothing — and 434 green across `test_drawnscores`,
+`test_scorebox`, `test_audionotes` and `test_session`.  The gates pass
+with `doc/ref/facts.md` and `doc/complaints.md` regenerated.
+
+**What it costs:** `notes.py` reaches the compiler now, lazily — 0.27 s
+once per process, 14 µs a call after.  It imports nothing at module
+level, so the module stays cheap to import and the coupling is paid by
+whoever first reads a file.
+
+**What is left of the slice:** the `<file>.ges` pairing and the drop of
+`include` — which is the part that changes files on disk, and his.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
@@ -2301,9 +2362,11 @@ is a design and no build:
    `<file>.ges` beside `<file>.notes`, with the kinds gestate ships as
    a prelude; `include` drops.  **The declaration landed on
    2026-09-09** — §"Landed — 2026-09-09: the facts, declared": it is held
-   to `notes.py` by nine tests.  What remains of it is the one source —
-   `notes.py` parsing and writing *from* the declaration — and then the
-   `<file>.ges` pairing and `include`.
+   to `notes.py` by nine tests.  **The one source landed the same
+   day** — §"Landed — 2026-09-09: one source, and the defect deriving
+   it found": `notes.py` reads the declaration and the four
+   hand-written sets are gone.  What remains is the `<file>.ges`
+   pairing and the drop of `include`, which changes files on disk.
 7. **Assert and retract**, the two primitive verbs, with `set` as the
    pair — so that adding and deleting a note stop being *typing* and
    become commands the transcript holds.

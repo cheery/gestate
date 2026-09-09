@@ -83,17 +83,24 @@ D  bars 8` is this, and the bare one is the record's own name.
 ### `Sort`  <sub>data</sub>
 
 ```
-Sort := By Text | Along Text Text Text
+Sort := By Text | Along Text Text Text | Among Text Text
 ```
 
 How the lines of a kind are sorted when the file is written back.
 
-`By` is the ordinary case: this field, ascending.  `Along` is the one
-the roll forced — the voice order is *the section's own*, not
-alphabetical, because that is the order the roll stacks them in
-(`notes.py` §"The canonical order", Henri 2026-09-05).  So it names
-the field, the kind that writes the order down, and that kind's
-field holding it.
+`By` is the ordinary case: this field, ascending.
+
+`Along` is the one the roll forced — the voice order is *the
+section's own*, not alphabetical, because that is the order the roll
+stacks them in (Henri, 2026-09-05).  So it names the field, the kind
+that writes the order down, and that kind's field holding it.
+
+`Among` is where a reference is ordered by **where the record it
+names stands**: a note's `section` sorts by the section's place in
+the file and not by its name, because a section is put where the
+author put it.  Found 2026-09-09 by deriving the writer from this
+declaration and noticing that `By "section"` agreed with the parser
+only because `arc.notes` happens to name its sections A, B, C.
 
 
 ### `Kind`  <sub>data</sub>

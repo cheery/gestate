@@ -171,25 +171,47 @@ class NotesFile:
 
 # ── Parsing ─────────────────────────────────────────────────────────────────
 
-#: What each record kind may carry, and what it must.  Named here rather
-#: than scattered through the parser so that the refusal for an unknown
-#: field can *list* the ones that exist — the shape `audiovoices.py`'s
-#: `voices.NAME` refusal already has.
-_SECTION_FIELDS = {"key", "mode", "bars", "beats", "voices"}
-_SECTION_REQUIRED = {"bars", "beats", "voices"}
-_NOTE_FIELDS = {"section", "bar", "at", "len", "voice", "key", "spell", "vel",
-                "manner"}
-_NOTE_REQUIRED = {"section", "bar", "at", "len", "voice", "key", "vel"}
+#: **What a `.notes` is, is declared in `gestate/notes.ges`** — the
+#: kinds, their fields, which are required, the key, and the order.  It
+#: used to be four sets here; since 2026-09-09 there is one statement of
+#: it and this reads it (`card:gui-is-difficult.md` §"Landed —
+#: 2026-09-09").  What stays in this file is what a note *means*: a
+#: dynamic is a name, a manner is a bit, a bar has at least one beat.
+#:
+#: Loaded lazily and cached by `facts.load`, so importing this module
+#: still costs nothing and the compile — 0.27 s, once per process — is
+#: paid by whoever first reads a file.
+def _kinds():
+    from .facts import load
+
+    return load("notes")
 
 
-def _fields(tokens: list[str], allowed: set[str], place: str) -> dict[str, str]:
+#: How a value's shape is said in a refusal — `Bare` lines are the only
+#: place a person is told what one token has to be.
+_AS = {"Number": "number", "Word": "word", "Names": "names"}
+
+
+def _oneof(items: list[str]) -> str:
+    """`a`, `b` or `c` — a list a person reads, from a list a
+    declaration gives."""
+    if len(items) < 2:
+        return "".join(items)
+    return ", ".join(items[:-1]) + " or " + items[-1]
+
+
+def _fields(tokens: list[str], kind, place: str) -> dict[str, str]:
     """`key value key value …` into a dict, refusing what a person mistypes.
 
     Positional values are refused outright, which is gate two of
     `spec/drawnscores.md` §"The four gates" — *the failure that made
     `manner` unfindable was two fields of one shape telling apart only by
     position*.
+
+    **The list a refusal names is the declaration's**, so a field added
+    there is offered here without this function being touched.
     """
+    allowed = set(kind.named)
     out: dict[str, str] = {}
     rest = list(tokens)
     while rest:
@@ -203,15 +225,11 @@ def _fields(tokens: list[str], allowed: set[str], place: str) -> dict[str, str]:
         if not rest:
             raise NotesError(f"{place}: `{key}` has no value")
         out[key] = rest.pop(0)
-    missing = sorted(r for r in _required(allowed) if r not in out)
+    missing = sorted(r for r in kind.required if r not in out)
     if missing:
         raise NotesError(
             f"{place}: missing " + ", ".join(f"`{m}`" for m in missing))
     return out
-
-
-def _required(allowed: set[str]) -> set[str]:
-    return _SECTION_REQUIRED if allowed is _SECTION_FIELDS else _NOTE_REQUIRED
 
 
 #: A `#` opens a comment only where a **token** could start — at the
@@ -253,9 +271,11 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
     `fixme.md` F200, and `spec/drawnscores.md` §"The prose belongs to
     the record below it" is the rule and its one limit.
     """
+    document = _kinds()
     out = NotesFile(name=name)
     note_lines: list[tuple[int, list[str], tuple, str | None]] = []
     above: list[str] = []
+    alone: set[str] = set()
 
     for number, raw in enumerate(text.splitlines(), start=1):
         record, beside = _uncomment(raw)
@@ -271,25 +291,43 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
             continue
         tokens = line.split()
         place = f"{name}:{number}"
-        kind = tokens[0]
-        if kind == "section":
+        word = tokens[0]
+        declared = document.kind(word)
+        if declared is None:
+            raise NotesError(
+                f"{place}: `{word}` is not a record; a line is "
+                + _oneof([f"`{k} …`" for k in document.names]))
+        #: **A kind with no key is one a document has at most one of** —
+        #: `facts.ges` says that is what an empty key means, and `bpm`
+        #: is the one that has it.  The refusal used to be written here
+        #: for `bpm` alone.
+        if not declared.key:
+            if word in alone:
+                raise NotesError(f"{place}: `{word}` is declared twice")
+            alone.add(word)
+        #: `Bare` is one value and no name, so the line is two tokens.
+        if declared.shape[0] == "Bare" and len(tokens) != 2:
+            written = declared.field(declared.shape[1])
+            raise NotesError(
+                f"{place}: `{word}` takes one {_AS[written.value]}")
+        if word == "section":
             out.sections.append(
-                _section(tokens[1:], number, place, tuple(above), beside))
-        elif kind == "note":
+                _section(tokens[1:], declared, number, place,
+                         tuple(above), beside))
+        elif word == "note":
             note_lines.append((number, tokens[1:], tuple(above), beside))
-        elif kind == "bpm":
-            if out.bpm is not None:
-                raise NotesError(f"{place}: `bpm` is declared twice")
-            if len(tokens) != 2:
-                raise NotesError(f"{place}: `bpm` takes one number")
+        elif word == "bpm":
             out.bpm = _int(tokens[1], "bpm", place)
             if out.bpm < 1:
                 raise NotesError(f"{place}: `bpm {tokens[1]}` — a tempo is at least one")
             out.bpm_line, out.bpm_above, out.bpm_beside = number, tuple(above), beside
         else:
+            #: The gap between a declaration and this file, said out
+            #: loud the day somebody widens the first without the
+            #: second — silence here would drop the record.
             raise NotesError(
-                f"{place}: `{kind}` is not a record; a line is `section …`, "
-                "`note …` or `bpm …`")
+                f"{place}: `{word}` is declared in the kinds, and this "
+                "version does not know how to read one")
         above = []
     out.closing = tuple(above)
 
@@ -300,20 +338,22 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
             raise NotesError(f"{place}: section `{one.name}` is declared twice")
         seen.add(one.name)
 
+    note_kind = document["note"]
     for number, tokens, above, beside in note_lines:
         out.notes.append(
-            _note(tokens, number, f"{name}:{number}", out, above, beside))
+            _note(tokens, note_kind, number, f"{name}:{number}", out,
+                  above, beside))
 
     return out
 
 
-def _section(tokens: list[str], number: int, place: str,
+def _section(tokens: list[str], kind, number: int, place: str,
              above: tuple = (), beside: str | None = None) -> Section:
     if not tokens or not _NAME.match(tokens[0]):
         raise NotesError(
             f"{place}: `section` needs a name — `section A key D bars 8 "
             "beats 4 voices melody,roots`")
-    got = _fields(tokens[1:], _SECTION_FIELDS, place)
+    got = _fields(tokens[1:], kind, place)
     bars = _int(got["bars"], "bars", place)
     beats = _int(got["beats"], "beats", place)
     if bars < 1:
@@ -341,9 +381,9 @@ def _section(tokens: list[str], number: int, place: str,
                    key=key, mode=mode, line=number, above=above, beside=beside)
 
 
-def _note(tokens: list[str], number: int, place: str, out: NotesFile,
+def _note(tokens: list[str], kind, number: int, place: str, out: NotesFile,
           above: tuple = (), beside: str | None = None) -> Note:
-    got = _fields(tokens, _NOTE_FIELDS, place)
+    got = _fields(tokens, kind, place)
     section = out.section(got["section"])
     if section is None:
         raise NotesError(
@@ -488,11 +528,38 @@ def ordered(out: NotesFile) -> list[Note]:
     view; it is a property of the bytes.**  So the trade is the right way
     round, and it was made while exactly one `.notes` file existed.
     """
-    rank = {(s.name, v): i for s in out.sections for i, v in enumerate(s.voices)}
+    #: **The order is the declaration's**, since 2026-09-09: `Among`
+    #: the sections as the file places them, then the bar, then the
+    #: voice `Along` the section's own list, then the tick and the key.
+    #: The sentences above are why it says that; this is where it is
+    #: obeyed rather than said a second time.
+    from .facts import sort_key
+
+    kind = _kinds()["note"]
     place = {s.name: i for i, s in enumerate(out.sections)}
-    return sorted(out.notes, key=lambda n: (place[n.section], n.bar,
-                                            rank[(n.section, n.voice)],
-                                            n.at, n.key))
+    voices = {s.name: s.voices for s in out.sections}
+    return sorted(out.notes, key=lambda one: sort_key(
+        kind, record(one),
+        along=lambda _kind, _field, one: voices[one["section"]],
+        among=lambda _kind, named: place[named]))
+
+
+def record(one: Note) -> dict:
+    """A note as its **fields** — the record `gestate/notes.ges`
+    describes, with each value as the file writes it.
+
+    The one place the two halves meet: a `Note` is what a note *means*
+    to this file, and this is what it *is* to the declaration.  A
+    dynamic comes back as its name and the manners as the comma list
+    they are written as, so a field's value here is exactly the token
+    on the line.
+    """
+    asked = [m for m, bit in sorted(MANNERS.items(), key=lambda kv: kv[1])
+             if one.manners & bit]
+    return {"section": one.section, "bar": one.bar, "at": one.at,
+            "len": one.length, "voice": one.voice, "key": one.key,
+            "spell": one.spell, "vel": LEVELS[one.level],
+            "manner": ",".join(asked) or None}
 
 
 def write(out: NotesFile) -> str:
