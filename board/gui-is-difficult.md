@@ -2006,6 +2006,55 @@ and the remainder is not a hole but exactly the ideas this card already
 lists apart: the layout algebra, the constraints, and the photograph as
 the only oracle for an eye.
 
+### Where a kind is declared — open, his lean recorded 2026-09-09
+
+The first thing framing needs, and the last question of the sitting.
+Today `.notes`' kinds and fields are in `notes.py`, by hand.  **Henri,
+leaning and saying so:** *"houkuttaa tuo itsensä kuvaava, .ges tiedosto
+rinnallaan.  Tämä on sitä paitsi muoto mikä meillä jo on.. ja olisi
+järkevää että esim. gex-sheetin kaavat eläisivät .ges-tiedostossa..
+olen hiukan epävarma tästä, mutta se tuntuu järkeenkäyvältä."*
+
+**The two halves of that are not in tension, which may be where the
+uncertainty is.**  They answer different questions.  *The form* is
+self-describing: every line names its kind and every field names
+itself, so `note section A bar 1 at 0 …` comes apart into kind and
+fields with no schema at all — which `.desk` already relies on, being
+*"forgiving on purpose"*, an unknown name skipped rather than refused.
+*The schema* — which fields are required, what the key is, what the
+order is — is a declaration, and it is what would live in the `.ges`
+beside.  And the arrangement exists: `arc.notes` is included by
+`arcnotes.ges`, and `<piece>.desk` sits beside `<piece>.ges`.
+
+**Three things that would kill it, session's, each with the shape of
+an answer:**
+
+1. **A document with no program beside it.**  `python tools/bars.py
+   examples/audio/arc.notes` opens a `.notes` alone today.  *Shape of
+   an answer:* the kinds gestate ships — `note`, `section`, `knob` —
+   are a prelude `.ges`, the way `signal.ges` and `roll.ges` already
+   are, so a bare document is checked by the standard declaration and
+   only a person's own kinds need their own file.
+2. **A broken program must not make the document unreadable.**  If the
+   schema is a program, a syntax error in it would take the notes with
+   it.  *Shape of an answer:* parsing never consults the schema;
+   checking is a separate step that may fail on its own.
+3. **Two programs declaring one kind differently**, both including one
+   document.  Unanswered, and it is the argument that pushes back
+   towards the document saying which declaration it is written to.
+
+**And the fork inside his gex sentence, which is his:** when a sheet's
+formulas *live in the `.ges`*, does that mean **(i)** a cell holds its
+own expression and the program beside supplies the vocabulary it calls
+— the way `arc.notes` holds notes and `arcnotes.ges` holds the
+instruments — or **(ii)** the formulas are named in the program and a
+cell references one, so the document is data only?  *Session's
+recommendation: (i), with anything named and reused in the `.ges`.*
+Under (ii) a reference inside a formula points across a file boundary
+at the thing it means, which is the one move
+`doc/memory/identity-is-the-models-key.md` was written against; and a
+`.gex` with no expressions in it is a CSV.  *Open.*
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
