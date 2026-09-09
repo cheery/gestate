@@ -1889,3 +1889,94 @@ writing the helper — is `why-models-hallucinate`'s *fluency is no
 evidence* and `henri-working-style`'s *reuse existing machinery*,
 already carried.  What is new is the number, and the number belongs to
 the card.
+
+## The clean board, and what it turned into — 2026-09-09
+
+*A whole day on `card:gui-is-difficult.md`, which he had taken the
+evening before as a clean-board sitting.  It began as design and ended
+with four things built, and the turn in the middle was his.*
+
+**The morning was the design he asked for.**  A target source for
+`examples/gui/tic-tac-toe.ges` — the same game written as if the
+framework had been designed for it — put the difference at 99 lines
+against 66, the hand at 22 against 3.  Then the roll, because he said
+*ristinolla on loppuen lopuksi vain demo*, and the roll said it
+harder: nothing visible on it is pressable (a `Gap 0 0` over the whole
+body), one straight line is written five times in two languages, and
+the clamp had deformed the picture — the pad is drawn 24 semitones
+taller than the roll so a hand can carry a note off the top, and the
+box's clip hides it.  `tools/pressable.py` measured the one thing that
+could not be read off the tree: a pressable element per note costs
+6–14 %, and today's only mechanism costs 80 % and quadruples the
+source.
+
+**Then he struck the framing, and that is the day's hinge.**  *"Mikä on
+malli, mikä on komento, ja mikä on näkymä?  ristinolla-esimerkissä
+malli oli gestate:n tietotyyppi… Mielestäni tämä vie metsään ja
+kovaa."*  The tree agreed with him twice, unasked: `gui.ges` says of
+itself that it is *not a drawing library*, and `desk.py` says a knob's
+value has to live outside the program because a declaration is not a
+value.  A gestate value lives inside one evaluation; a rebuild ends it.
+
+**What replaced it was already in the tree, written twice and never
+named.**  `.notes` and `.desk` are one grammar — a text of record
+lines, a kind word and its fields, one to a line.  The roll's seven
+verbs turned out to be three shapes, and the record algebra's *add* and
+*remove* turned out to be **typing**, in the buffer, outside the
+command language, which is exactly why they were the two edits a
+selection could not survive.  He named it: **facts**, *"etenkin jos
+tästä jatketaan logiikkakieliin myöhemmin"* — and the name paid for
+itself in the same minute, because assert and retract are two
+operations and `set` is the pair.
+
+**And then his conclusion, which is his own rule of two days earlier
+with its content filled in:** *"Näen tässä yhtenäisen mallin,
+itseasiassa!  Miten GUI-ongelmat ratkotaan on kenties se, että luodaan
+selkeä malli, ja selkeä komentokieli.  Ja sitten GUI on mitä siitä
+putoaa."*  Scored against the card's own four hard things, it removes
+*two machines must agree* outright, makes *a gesture is state over
+time* testable as a chart, and leaves *geometry is continuous* and *the
+oracle is an eye* standing.  So the deliverable is a method and a
+substrate, not a toolkit — which is also the line a guest session had
+handed him that morning (`doc/notes/notes-on-the-model.md`), and the
+sitting here is **not** a second witness, because his questions in it
+came after that conversation.
+
+**Four things were then built, in one order that repeated itself.**
+
+1. **`gestate/facts.ges` and `gestate/notes.ges`** — what a `.notes`
+   *is*, said in the language, a kind being a value the way a chart is.
+2. **`notes.py` reading it** — the four hand-written field sets gone,
+   the kind list, the at-most-one rule, the bare arity and the
+   canonical order all derived.
+3. **`assert` and `retract`** — the two primitive edits as commands
+   taking the document's own syntax.
+4. **`Meaning`/`onPress`** — an element that says what it *is*, wired
+   in both machines, with tic-tac-toe rewritten on it and every note of
+   a score box carrying its own number.
+
+**The order that repeated is the lesson.**  *Declare, hold to parity,
+derive.*  Each time: write the second statement, hold it to the working
+one by a test, and only then let the working one obey it.  Its value
+showed the first time it was used — deriving the canonical writer from
+the declaration exposed that `By "section"` was wrong where the parser
+had always sorted by *where the section stands in the file*, an error
+that agrees with the truth on `arc.notes` and nowhere else, and that
+nine parity tests had just passed over.  **The defect appeared the
+moment the implementation was made to obey rather than to be compared
+with.**
+
+**Two defects found by looking, not by testing.**  `Display::grabbed`
+in the panel took hold only of a `Kind::Chan`, so a meaning would have
+been walked, drawn, hit-tested and then dropped at the grab — the
+window silent and the reference machine right, which is F213's shape
+exactly.  And the `Meaning` around a note had to go **inside** the
+`Shift` and **around the bar**: outside it the region is the parent's
+centre, and around the whole note it reaches from the note to the top
+of the box.
+
+**What the day did not settle**, and both are his: whether `note_under`
+can be deleted, which is a question about how near a press has to be
+rather than one a test can answer; and which note a press means where
+two are drawn over each other, which the measurement put at 8 pairs on
+his own piece, all of them across voices.

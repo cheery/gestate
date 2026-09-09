@@ -2663,6 +2663,65 @@ start:* §"What a session does now" still holds, and the practice the
 sitting settled on — model first, commands, then the GUI falls out of
 them — is the order they would be built in anyway.
 
+---
+
+## What the next session picks up — written 2026-09-09, at his ask
+
+*"kirjoittaisitko ylös ohjeet seuraavalle sessiolle?"*  The list above
+is the shape of the work; this is where it actually stands after
+2026-09-09 and what a session does first.  **Read the card whole** —
+his rule, and it is longer than it was.
+
+**Two decisions of his are waiting, and nothing below them should be
+built past them.**
+
+1. **How near is near enough.**  A press a pixel above a note's bar
+   misses the picture and `note_under` finds the note anyway, with the
+   roll's own tolerance.  Until that is answered the picture leads and
+   the model's lookup is the floor, and both run
+   (`Session.agreed`/`disagreed`).  Answering it is what lets the
+   lookup — and the geometry under it — go.  **It is a question for a
+   hand**, so the way to ask it is to put one on the roll, not to
+   reason about it.
+2. **Which note a press means where two are drawn over each other.**
+   8 pairs on `arc.notes`, all across voices, 5 notes wholly covered
+   (`python tools/pressable.py --overlap`).  His own answer so far is
+   a **layer** arrangement — the open layer drawn on top and pressed
+   first — and he deferred *which field a kind layers by* to the
+   implementation on purpose: *"antaa toteutuksen tuoda esille mikä on
+   järkevintä."*  So it is sediment, not debt.
+
+**What is built and green**, so a session does not re-derive it: a
+document is **facts** and `gestate/notes.ges` says what a `.notes` is;
+`notes.py` reads that declaration rather than carrying it; `assert` and
+`retract` are commands; `Meaning`/`onPress` is a word of the substrate
+in both machines; every note of a score box carries its own number and
+the inspector reads it back.  `python tools/suite.py --gates` is green,
+and the targeted suites the day touched are 740 + 174 + 38 + 34 + 212 +
+68 Rust + 9 web.
+
+**The next steps, in the order the form implies:**
+
+1. **The note hand stops inverting.**  It still receives the rail's
+   fraction and the pitch's and turns them into a tick and a key, and
+   the end-of-note decision is still `EDGE_PX` against `x_of`.  That is
+   where the five spellings of one straight line actually leave the
+   tree, and it waits on decision 1 above.
+2. **A driven run over the roll.**  The hit path changed today and the
+   one instrument not applied to it is a real window
+   (`tools/driven.py`).  It takes his screen, so it is his to call —
+   and it is the only oracle for the half a test cannot see.
+3. **Layers**, when the implementation says what a kind layers by.
+4. **`bpm` in the document algebra**, and a *gesture* that runs
+   `assert`/`retract` — a press that creates a note is the meaning
+   word's next client.
+
+**And the method that repeated three times today, because a session
+should reach for it rather than rediscover it:** *declare, hold to
+parity, derive.*  Write the second statement of a thing, hold it to the
+working one by a test on his own piece, and only then let the working
+one obey it — `doc/memory/declare-parity-derive.md`.
+
 *Not on the list:* the grid over `.notes`, anything drawn from
 scratch, and the two shelved clients, for the reasons §"The first
 slice" gave and the notes page's warning against building for the
