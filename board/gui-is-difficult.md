@@ -2226,6 +2226,32 @@ remaining hands.  After it:
 5. **Q7's open half** — the verbs on a doubled address — waits on him
    asking for it, per the midday note.
 
+**And the clean-board sitting of 2026-09-09 changed what is open.**
+*Session's summary, his to reorder or strike.*  The list above is
+yesterday's, and three of its five are closed; what the sitting left
+is a design and no build:
+
+6. **The facts, declared** — a kind's fields, its key, its order, in
+   `<file>.ges` beside `<file>.notes`, with the kinds gestate ships as
+   a prelude; `include` drops.  Nothing of `notes.py`'s hand-written
+   `_fields` moves until this exists.
+7. **Assert and retract**, the two primitive verbs, with `set` as the
+   pair — so that adding and deleting a note stop being *typing* and
+   become commands the transcript holds.
+8. **An element carries a meaning** — `On` beside `Rect`, the press
+   naming the fact's key; measured at 6–14 % (`tools/pressable.py`),
+   and it is what takes the five spellings of one straight line out of
+   the roll.
+9. **Layers**, deferred on purpose — *"antaa toteutuksen tuoda esille
+   mikä on järkevintä"*, his call 2026-09-09.  Waiting on an event and
+   not on a decision (`board/README.md` §"The priority"), the event
+   being a first implementation.
+
+*Every one of these is unbuilt, and none of them is a session's to
+start:* §"What a session does now" still holds, and the practice the
+sitting settled on — model first, commands, then the GUI falls out of
+them — is the order they would be built in anyway.
+
 *Not on the list:* the grid over `.notes`, anything drawn from
 scratch, and the two shelved clients, for the reasons §"The first
 slice" gave and the notes page's warning against building for the
