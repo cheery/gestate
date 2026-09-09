@@ -1,0 +1,128 @@
+# facts.ges — what a document is made of, said in the language.
+#
+# **A document is facts**: a text of record lines, a line being a kind
+# word and its fields, in an agreed order, with a key per kind.  Henri,
+# 2026-09-09, `card:gui-is-difficult.md` §"The document, decided" and
+# §"The name, and what falls out".  `.notes` and `.desk` were both
+# already written this way and neither said so; this is where they say
+# it.
+#
+# **A kind is a value, the way a chart is a value.**  `chart.ges` made
+# that choice first and it is the same reason here: one value is
+# executed, printed, and enumerated for checking, and nothing has to be
+# added to the language for a document to describe itself.  A file that
+# owns a document declares
+#
+#     kinds : List Kind
+#     kinds = notesKinds
+#
+# and what puts a kind there is an expression in the file, where you can
+# read it — `gui.ges`' rule, kept.
+#
+# **What this does not decide.**  Nothing here parses or writes; it says
+# what the parser and the writer are to be held to.  The first use of it
+# is a parity test against `gestate/notes.py`, which has carried these
+# facts by hand since the format existed.
+
+#: `command.ges` declares this too, and for the same reason: it is not
+#: in the core prelude and a file that wants strings has to say so.
+type Text = List Char
+
+# ── A field ──────────────────────────────────────────────────────────────
+
+#: What a field's value is written as.  Every value in this format is
+#: one whitespace-free token (`notes.py`, F203), so this says how to
+#: read that token and nothing about layout.
+#:
+#: `Names` is the comma-separated list `voices melody,upper,bass`
+#: already writes — one token still, and the only shape beyond a word
+#: and a number that the two formats in the tree use.
+Value := Word | Number | Names
+
+#: Whether a record of this kind has to carry the field.  The refusal a
+#: missing one earns names it, so this is what makes that message
+#: derivable rather than written twice.
+Need := Must | May
+
+Field := Field Text Value Need
+
+# ── A kind ───────────────────────────────────────────────────────────────
+
+#: What the tokens after the kind word are.
+#:
+#: `Named` — `key value key value …`, and nothing positional, which is
+#: gate two of `spec/drawnscores.md`: *two fields of one shape telling
+#: apart only by position* is the failure that made `manner`
+#: unfindable.  `note` is this.
+#:
+#: `Bare` — one value and no name, under the field name given.  `bpm 96`
+#: is this, and so is every singleton line of a `.desk`.
+#:
+#: `Headed` — one bare value first, then named fields.  `section A  key
+#: D  bars 8` is this, and the bare one is the record's own name.
+Shape := Named | Bare Text | Headed Text
+
+#: How the lines of a kind are sorted when the file is written back.
+#:
+#: `By` is the ordinary case: this field, ascending.  `Along` is the one
+#: the roll forced — the voice order is *the section's own*, not
+#: alphabetical, because that is the order the roll stacks them in
+#: (`notes.py` §"The canonical order", Henri 2026-09-05).  So it names
+#: the field, the kind that writes the order down, and that kind's
+#: field holding it.
+Sort := By Text | Along Text Text Text
+
+#: One kind of fact: its word, the shape of its line, its fields, the
+#: fields that are its **key**, and the order its lines are written in.
+#:
+#: **An empty key means at most one record of this kind in a
+#: document** — `bpm` is declared twice is a refusal, not a second fact.
+#: **An empty order means the order they were written in**, which is
+#: what `section` has: a section list is the author's sequence and
+#: sorting it would be a second thing to be canonical about.
+Kind := Kind Text Shape (List Field) (List Text) (List Sort)
+
+# ── Reading one ──────────────────────────────────────────────────────────
+#
+# Plain projections, so a host reads a kind without knowing the
+# constructor's shape — `chart.ges`' `initial`/`advance` are the same
+# courtesy.
+
+kindName : Kind -> Text
+kindName k = case k of
+    Kind n s fs ks os -> n
+
+kindShape : Kind -> Shape
+kindShape k = case k of
+    Kind n s fs ks os -> s
+
+kindFields : Kind -> List Field
+kindFields k = case k of
+    Kind n s fs ks os -> fs
+
+kindKey : Kind -> List Text
+kindKey k = case k of
+    Kind n s fs ks os -> ks
+
+kindOrder : Kind -> List Sort
+kindOrder k = case k of
+    Kind n s fs ks os -> os
+
+fieldName : Field -> Text
+fieldName f = case f of
+    Field n v d -> n
+
+#: The fields a record of this kind must carry — the list a refusal
+#: names, derived rather than written a second time.
+required : Kind -> List Text
+required k = map fieldName (filter mustHave (kindFields k))
+
+mustHave : Field -> Bool
+mustHave f = case f of
+    Field n v d -> case d of
+        Must -> True
+        May -> False
+
+#: The kind of this name, if the document has one.
+kindOf : List Kind -> Text -> List Kind
+kindOf ks name = filter (k => kindName k == name) ks

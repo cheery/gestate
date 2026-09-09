@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**468 complaints**, in 47 files.
+**476 complaints**, in 48 files.
 
 | | |
 |---|---|
-| `author` | 248 |
+| `author` | 256 |
 | `command` | 43 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 162 |
-| say `nowhere`, on purpose | 41 |
+| say `nowhere`, on purpose | 49 |
 | `unplaced`, with a defect that owns it | 59 |
 
 ## A place that could exist, and does not
@@ -117,16 +117,24 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:525` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
 | `audioscore.py:591` | `ScoreError` | a note names a bank the piece does not declare |
 | `audioscore.py:1381` | `ScoreError` | the piece names a bank that was given no allocator |
-| `charts.py:49` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:72` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:78` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:90` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:56` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:79` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:85` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:97` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `desugar.py:180` | `DesugarError` | which libraries the program was assembled with, which is a fact about the assembly and not about a line of it |
 | `desugar.py:379` | `DesugarError` | an implicit nothing supplies is an absence, and an absence is not written anywhere |
 | `export.py:752` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
+| `facts.py:82` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:92` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:98` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:108` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:114` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:143` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:161` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:167` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:605` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
@@ -412,10 +420,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 49 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{missing.args[0]}`' |
-| 72 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
-| 78 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
-| 90 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
+| 56 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{name}`' |
+| 79 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
+| 85 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
+| 97 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
 
 ### `coherence.py`
 
@@ -569,6 +577,21 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 742 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
 | 752 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
 | 797 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
+
+### `facts.py`
+
+*a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line*
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 82 | `FactsError` | `author` | *nowhere, on purpose* | 'not a text: {term!r}' |
+| 92 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a shape' |
+| 98 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a field' |
+| 108 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not an order' |
+| 114 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a kind' |
+| 143 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders along `{other} {ofield}` and nothing was given to look it up in' |
+| 161 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
+| 167 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
 
 ### `gmachine.py`
 

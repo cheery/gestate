@@ -30,27 +30,34 @@ class ChartError(Exception):
     """A chart that could not be loaded, or a term it does not know."""
 
 
-class Chart:
-    """One subsystem's chart, compiled, with its terms readable from Python."""
+class Terms:
+    """A library and one file, compiled, with values readable from Python.
 
-    def __init__(self, path: Path, name: str):
-        self.path, self.name = Path(path), name
-        source = (LIBRARY.read_text(encoding="utf-8") + "\n"
+    **Not chart-specific**, which is why it is its own class: a
+    statechart was the first `.ges` value the host read back and it is
+    not the last — `gestate/facts.py` reads a document's kinds through
+    exactly this.  What is chart-specific is `Chart` below.
+    """
+
+    def __init__(self, path: Path, library: Path):
+        self.path, self.library = Path(path), Path(library)
+        source = (self.library.read_text(encoding="utf-8") + "\n"
                   + self.path.read_text(encoding="utf-8")
                   + "\nmain : Int\nmain = 0\n")
         self.state = compile_program(source)
         self._tag = {k: v.tag for k, v in self.state.cons.items()}
         self._name = {v.tag: k for k, v in self.state.cons.items()}
+
+    def declared(self, name: str):
+        """The global `name`, or a refusal that says which file lacks it."""
         try:
-            self._chart = self.state.globals[name]
-            self._advance = self.state.globals["advance"]
-            self._initial = self.state.globals["initial"]
-        except KeyError as missing:
-            raise ChartError(f"{self.path.name} declares no `{missing.args[0]}`")
+            return self.state.globals[name]
+        except KeyError:
+            raise ChartError(f"{self.path.name} declares no `{name}`") from None
 
     @property
     def constructors(self) -> set:
-        """Every constructor name the chart's file and the library declare."""
+        """Every constructor name the file and the library declare."""
         return set(self._tag)
 
     # -- terms ----------------------------------------------------------------
@@ -111,6 +118,17 @@ class Chart:
         self.state.code = [gm.Eval()]
         run(self.state)
         return self.state.stack[0]
+
+
+class Chart(Terms):
+    """One subsystem's chart, compiled, with its terms readable from Python."""
+
+    def __init__(self, path: Path, name: str):
+        super().__init__(path, LIBRARY)
+        self.name = name
+        self._chart = self.declared(name)
+        self._advance = self.declared("advance")
+        self._initial = self.declared("initial")
 
     # -- running it -----------------------------------------------------------
 

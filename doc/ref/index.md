@@ -63,6 +63,7 @@ Each renderer writes it, so **a program that defines its own `now` keeps it** an
 - **[Canvas](gui.md)** — Programs with a `substrate` — `gui`, and the editor's canvas tab.
 - **[Roll](roll.md)** — A score box's editing scale — what a `.notes` page is drawn with; in front of the page's program, after `gui.ges`.
 - **[Charts](chart.md)** — Executable statecharts, one per subsystem — in front of a chart file such as `transport.ges`, which the editor runs.
+- **[Facts](facts.md)** — What a document is made of — in front of a file that declares `kinds`, such as `notes.ges`, which says what a `.notes` is.
 
 - **[Commands](commands.md)** — What the editor can be asked to do — the list `Ctrl-K` opens.  Not in scope in a program.  Generated from `gestate/command.ges`, which is the same file the editor's own `Ctrl-K` list is derived from — so the page and the palette cannot disagree.
 

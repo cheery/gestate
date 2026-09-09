@@ -65,6 +65,9 @@ LIBRARIES = (
     ("chart.ges", "Charts",
      "Executable statecharts, one per subsystem — in front of a chart "
      "file such as `transport.ges`, which the editor runs."),
+    ("facts.ges", "Facts",
+     "What a document is made of — in front of a file that declares "
+     "`kinds`, such as `notes.ges`, which says what a `.notes` is."),
 )
 
 #: **The editor's vocabulary, and it is not a library.**

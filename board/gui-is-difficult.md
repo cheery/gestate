@@ -2187,6 +2187,72 @@ would make the voices visible at all.
 *Not built, and the field to layer by is `voice` for `note` and
 undecided for every other kind.*
 
+### Landed — 2026-09-09: the facts, declared
+
+*"voitaisiiin aloittaa toteutus kaiketi tässä?  Vielä kun se on
+selkeänä kontekstissa.  Eli faktojen ilmoituksesta aloitetaan."*
+Postcondition, written first: **when the kinds are declared beside the
+document, gestate reads, refuses and writes `arc.notes` exactly as it
+does now — so what a `.notes` *is* is written where a person can read
+it, and not only inside the tool.**
+
+**The first slice is the declaration and its parity, not a
+replacement.**  `notes.py` still parses and still writes; what is new
+is a second statement of the same facts, in the language, held to the
+first by a test.  Nothing in the editor changed.
+
+- **`gestate/facts.ges`** — the vocabulary.  `Value` (`Word`, `Number`,
+  `Names`), `Need` (`Must`, `May`), `Field`, `Shape` (`Named`,
+  `Bare`, `Headed`), `Sort` (`By`, `Along`), and `Kind` — a name, a
+  shape, its fields, its key, its order.  **A kind is a value, the way
+  a chart is a value**, so nothing was added to the language for a
+  document to describe itself.
+- **`gestate/notes.ges`** — what a `.notes` is: `bpm`, `section`,
+  `note`, and `kinds = notesKinds`, which is the name a document's own
+  file will declare.
+- **`gestate/facts.py`** — `Document`, `Kind`, `Field`, and `sort_key`,
+  the first thing derived from a declaration rather than written twice.
+- **`test/test_facts.py`**, nine tests, all of them a comparison with
+  `notes.py` on `arc.notes`.
+
+**What it found, and three of the four were forced rather than
+designed.**
+
+- **The term reader was not chart-specific and never had been.**
+  `charts.py` compiles a library in front of one file and reads the
+  value back as plain Python; that is the whole of the plumbing a
+  document needs too.  It came out as `Terms`, with `Chart` a subclass
+  — twenty lines moved, no new machinery, and `advance`/`initial` still
+  refused at load for a chart.
+- **Three shapes, and the set is closed by the two formats that
+  exist.**  `note` is `Named`; `bpm 96` is `Bare`; `section A  key D
+  bars 8` is `Headed`, a bare name and then named fields.  Every line
+  of a `.desk` is `Bare` too, so nothing was invented for a format that
+  is not here.
+- **`Along` — an order that reads another record.**  The voice order is
+  *the section's own*, not alphabetical (Henri, 2026-09-05).  A
+  declaration that could only say *by this field* would have quietly
+  re-created F199, where five lines of `arc.notes` moved for one
+  dragged note.  So the form exists because the file does, and the test
+  refuses a caller that gives nothing to look the sequence up in.
+- **`manner` and `voices` are comma lists**, not words — found by
+  reading `_line`, and the reason `Value` has three cases and not two.
+- **An empty key means at most one record of this kind; an empty order
+  means the order they were written in.**  `bpm` needed the first and
+  `section` the second, so neither reading is speculative.
+
+**Held by:** the nine, and the targeted runs the change reaches —
+`test_drawnscores`, the three chart models, `test_session`,
+`test_scorebox`, `test_audionotes`: 465 green.  The gates pass with
+`doc/ref/facts.md` generated, `facts` given a lane in the atlas beside
+`charts`, and `doc/complaints.md` regenerated.
+
+**What is *not* done, and it is the next step, not a gap:** nothing
+parses or writes from the declaration.  There are two statements of one
+truth and a test holding them together, which is one more than there
+should be — the point of the slice is that the second one now exists
+and is checked, so the first can go.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
@@ -2233,8 +2299,11 @@ is a design and no build:
 
 6. **The facts, declared** — a kind's fields, its key, its order, in
    `<file>.ges` beside `<file>.notes`, with the kinds gestate ships as
-   a prelude; `include` drops.  Nothing of `notes.py`'s hand-written
-   `_fields` moves until this exists.
+   a prelude; `include` drops.  **The declaration landed on
+   2026-09-09** — §"Landed — 2026-09-09: the facts, declared": it is held
+   to `notes.py` by nine tests.  What remains of it is the one source —
+   `notes.py` parsing and writing *from* the declaration — and then the
+   `<file>.ges` pairing and `include`.
 7. **Assert and retract**, the two primitive verbs, with `set` as the
    pair — so that adding and deleting a note stop being *typing* and
    become commands the transcript holds.

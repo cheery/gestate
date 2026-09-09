@@ -1,0 +1,96 @@
+# notes.ges — what a `.notes` file is, declared.
+#
+# The three kinds gestate ships, said in the vocabulary of
+# `gestate/facts.ges`.  A document's own file declares
+#
+#     kinds : List Kind
+#     kinds = notesKinds
+#
+# and adds its own to that list; these are the ones every `.notes` has,
+# so they are here rather than in each piece.
+#
+# **Held to `gestate/notes.py`, which has carried these facts by hand
+# since the format existed** — `test/test_facts.py` compares the fields,
+# the required ones, the key and the order against the parser and the
+# canonical writer on `examples/audio/arc.notes`.  While both exist the
+# Python is the one that runs; this is what it is checked against.
+
+# ── The whole file's one fact ────────────────────────────────────────────
+
+#: `bpm 96`.  A bare value, and **no key**, which is how a kind says
+#: there is at most one of it in a document: `notes.py` refuses a second
+#: as *`bpm` is declared twice*.
+bpmKind : Kind
+bpmKind = Kind "bpm" (Bare "bpm") bpmFields Nil Nil
+
+bpmFields : List Field
+bpmFields = Field "bpm" Number Must :: Nil
+
+# ── The grid a section's notes are placed on ─────────────────────────────
+
+#: `section A  key D  mode lydian  bars 8  beats 4  voices melody,bass`.
+#: Headed, because the name is written bare after the kind word; keyed
+#: by that name, which `notes.py` refuses a second of; and **unordered
+#: on purpose** — a section list is the author's sequence, and sorting
+#: it would give the file a second thing to be canonical about.
+sectionKind : Kind
+sectionKind = Kind "section" (Headed "name") sectionFields sectionKey Nil
+
+sectionFields : List Field
+sectionFields = Field "key" Word May
+    :: Field "mode" Word May
+    :: Field "bars" Number Must
+    :: Field "beats" Number Must
+    :: Field "voices" Names Must
+    :: Nil
+
+sectionKey : List Text
+sectionKey = "name" :: Nil
+
+# ── The note ─────────────────────────────────────────────────────────────
+
+#: `note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff`.
+#:
+#: **The key is Q7's**, 2026-09-08 — *a note's identity is its content* —
+#: written out at the file's level, where a tick is a section, a bar and
+#: an offset: `section bar voice at key`.  A doubled line is one note
+#: said twice, which `notes.doubled` decided.
+noteKind : Kind
+noteKind = Kind "note" Named noteFields noteKey noteOrder
+
+noteFields : List Field
+noteFields = Field "section" Word Must
+    :: Field "bar" Number Must
+    :: Field "at" Number Must
+    :: Field "len" Number Must
+    :: Field "voice" Word Must
+    :: Field "key" Number Must
+    :: Field "spell" Word May
+    :: Field "vel" Word Must
+    :: Field "manner" Names May
+    :: Nil
+
+noteKey : List Text
+noteKey = "section" :: "bar" :: "voice" :: "at" :: "key" :: Nil
+
+#: **Voice before tick, and the voice order is the section's own** —
+#: Henri, 2026-09-05, and it is a trade `notes.py` records: tick-major
+#: read like a score and cost five moved lines for one dragged note
+#: (F199); voice-major keeps a voice's notes contiguous inside a bar, so
+#: a time-drag moves a note among its own few lines.  `Along` is the
+#: form that exists for this line.
+noteOrder : List Sort
+noteOrder = By "section"
+    :: By "bar"
+    :: Along "voice" "section" "voices"
+    :: By "at"
+    :: By "key"
+    :: Nil
+
+# ── The document ─────────────────────────────────────────────────────────
+
+notesKinds : List Kind
+notesKinds = bpmKind :: sectionKind :: noteKind :: Nil
+
+kinds : List Kind
+kinds = notesKinds
