@@ -963,6 +963,17 @@ class Session:
     #: and `resizing` below are readings of this, kept for the tests
     #: that ask a fact of the hand.
     hand: dict = field(default_factory=dict)
+    #: **What the picture said a press landed on**, per box: the note
+    #: number its own bar wrote (`gui.ges`' `Meaning`).  Written by the
+    #: note channel, which speaks before the pad's two halves, and
+    #: consumed by the pitch touch that follows — so it never outlives
+    #: the press that set it.
+    named_note: dict = field(default_factory=dict)
+    #: How often the picture and the model named the same note under a
+    #: press, and every press where they did not — the parity this
+    #: slice is held by until the model's lookup is deleted.
+    agreed: dict = field(default_factory=dict)
+    disagreed: list = field(default_factory=list)
     #: **The group**, per score box — every note a band selected, or the
     #: one the last press picked (`card:notes-editor.md` slice 4: *drag
     #: and select multiple and move them around*).  `selected` still
@@ -4722,6 +4733,16 @@ class Session:
         if found is None:
             return None
         self._journal().slid("touched", (name, down))
+        if getattr(found, "on_note", False):
+            #: **The picture named a note.**  A press on a note's own bar
+            #: writes the note's number to the box's note channel before
+            #: the pad's two halves speak (`gui.ges`' `Meaning`,
+            #: `card:gui-is-difficult.md` 2026-09-09), so what is under
+            #: the hand arrives from the thing that drew it instead of
+            #: being recovered from two coordinates.  Held for the pitch
+            #: touch that follows, and consumed there.
+            self.named_note[found.box] = int(down)
+            return ""
         if getattr(found, "on_ruler", False):
             return self._ruler_touched(found, name, down)
         if self.sizing is not None:
@@ -4742,12 +4763,28 @@ class Session:
         from .scorebox import EDGE_PX, RefusedError, note_under, x_of
 
         state = self.hand.get(found.box, ("Free",))
+        named = self.named_note.pop(found.box, None)
         if state[0] != "Railed":
             return ("OnRoll",)
         roll, tick = found.roll, state[1]
         try:
             note = note_under(roll, tick, key)
         except RefusedError:
+            note = None
+        #: **The picture's own answer, beside the model's** — the note
+        #: whose bar was pressed wrote its number
+        #: (`card:gui-is-difficult.md`, 2026-09-09).  The model still
+        #: decides, and the two are *compared* rather than reconciled:
+        #: the same move the inspector made, and the same order the
+        #: facts declaration took — declare, hold to parity, and derive
+        #: only once the disagreements are known.  `agreed` counts them
+        #: so a test can say how often the two say one thing on a real
+        #: piece, and where they part.
+        if named is not None or note is not None:
+            self.agreed[named == note] = self.agreed.get(named == note, 0) + 1
+            if named != note:
+                self.disagreed.append((found.box, tick, key, named, note))
+        if note is None:
             return ("OnRoll",)
         on, off = roll.events[note][:2]
         edge = (x_of(roll, off) - x_of(roll, tick) <= EDGE_PX
@@ -6645,6 +6682,17 @@ def describe_touch(bench, name: str, value: float, ticks: dict | None = None) ->
     found = regions.get(name)
     if found is not None:
         roll, box = found.roll, found.box
+        if getattr(found, "on_note", False):
+            #: **The note said which note it is** — the picture's own
+            #: answer, needing no tick and no key inverted from a
+            #: fraction (`gui.ges`' `Meaning`,
+            #: `card:gui-is-difficult.md` 2026-09-09).
+            i = int(value)
+            events = found.roll.events
+            if not 0 <= i < len(events):
+                return f"a note that is not in this roll any more — {i}"
+            on, _off, _leaf, key, _vel, _m = events[i]
+            return f"note {key} at tick {on} — the note itself said so"
         if getattr(found, "on_ruler", False):
             return (f"the ruler — the section's end; hand at tick "
                     f"{tick_at(roll, value)}, a drag carries it by bars")

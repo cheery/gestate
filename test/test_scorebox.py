@@ -286,7 +286,14 @@ def test_the_roll_is_an_ordinary_substrate_that_draws():
     assert len(ground) == 1, "on a ground"
     assert len(labels) == len(rules) + 1, "a caption, and a name per ruled octave"
     assert sub.crossing is not None, "the window could not walk it"
-    assert hands == ["__nb_rail_0__", "__nb_pitch_0__"], "one pad: the rail and the pitch hand"
+    #: **One pad and the notes' own** — the rail and the pitch hand say
+    #: *where* along the body a hand is, and since 2026-09-09 each note
+    #: says *which note it is* (`gui.ges`' `Meaning`,
+    #: `card:gui-is-difficult.md`).  The channel is one for every note,
+    #: because a `Chan` is a declaration and a list cannot build one per
+    #: note.
+    assert hands == ["__nb_rail_0__", "__nb_pitch_0__", "__nb_note_0__"], \
+        "one pad, and the notes' own channel"
 
 
 def test_two_boxes_do_not_share_a_hand():
@@ -741,10 +748,16 @@ def test_a_note_dragged_by_hand_is_written_where_it_was_dropped():
     # **The pad's two hands**, the rail first and then the pitch hand;
     # the pitch hand's press is the one that names the note.
     meant = view.touch_all("press", x, y)
-    assert len(meant) == 2 and all(m[1] in regions for m in meant), meant
+    #: Three now: the note its own bar named, and the pad's two halves
+    #: around it — a *thing inside a place*.
+    assert len(meant) == 3 and all(m[1] in regions for m in meant), meant
     said = [seat.touched(m[1], m[2]) for m in meant][-1]
     assert said.startswith("line "), said
-    chan, down = meant[1][1], meant[1][2]
+    #: **The pitch hand is last** whatever else spoke — a press answers
+    #: the note, the rail and then the pitch; a drag answers the two
+    #: places only, since a thing writes on the press and on nothing
+    #: else.  Indexed from the end for that reason.
+    chan, down = meant[-1][1], meant[-1][2]
     note = seat.holding[1]
     was = roll.events[note][3]
     assert seat.view.text() == source, "the press wrote to the file"
@@ -752,7 +765,7 @@ def test_a_note_dragged_by_hand_is_written_where_it_was_dropped():
     # Carry it upward until the hand has travelled three semitones.
     grabbed = key_at(roll, down)
     up = next((yy for yy in range(y, -ROLL_H, -1)
-               if key_at(roll, view.touch_all("drag", x, yy)[1][2]) == grabbed + 3),
+               if key_at(roll, view.touch_all("drag", x, yy)[-1][2]) == grabbed + 3),
               None)
     assert up is not None, "the box has no room for a third"
     moving = [seat.touched(m[1], m[2]) for m in view.touch_all("drag", x, up)][-1]

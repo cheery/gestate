@@ -1211,6 +1211,10 @@ PITCH = -3
 #: its bars hands one out; the compact box beside a `.ges` line does
 #: not, having no section to resize.
 RULER = -2
+#: The notes' own — each note says which note it is, where the two
+#: above say where along the body the hand is
+#: (`card:gui-is-difficult.md`, 2026-09-09).
+NOTE = -4
 
 #: **A drag in time snaps to the roll's own grid**, and never finer
 #: than a thirty-second: the largest tick that divides every onset and
@@ -1304,6 +1308,11 @@ class Region(NamedTuple):
     def on_rail(self) -> bool:
         return self.hand == RAIL
 
+    @property
+    def on_note(self) -> bool:
+        """A press that named a note rather than a place."""
+        return self.hand == NOTE
+
 
 def regions_of(rolls: list) -> dict:
     """`{channel: Region}` for a page of rolls."""
@@ -1313,6 +1322,7 @@ def regions_of(rolls: list) -> dict:
             continue
         out[_rail(box)] = Region(roll, RAIL, box)
         out[_pitch(box)] = Region(roll, PITCH, box)
+        out[_note(box)] = Region(roll, NOTE, box)
         if roll.bars:
             out[_ruler(box)] = Region(roll, RULER, box)
     return out
@@ -1321,6 +1331,19 @@ def regions_of(rolls: list) -> dict:
 def _rail(box: int) -> str:
     """The channel the box's time rail writes."""
     return f"__nb_rail_{box}__"
+
+
+def _note(box: int) -> str:
+    """The channel the box's **notes** write — each note says which note
+    it is when it is pressed (`gui.ges`' `Meaning`, 2026-09-09).
+
+    A third name beside the rail's and the pitch's, and the difference
+    is the one `card:gui-is-difficult.md` names: those two report a
+    *place* — how far along the body the hand is — and this reports a
+    *thing*.  One channel for every note of the box, because a `Chan`
+    is a declaration and a list cannot build one per note.
+    """
+    return f"__nb_note_{box}__"
 
 
 def _ruler(box: int) -> str:
@@ -1757,8 +1780,9 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
     beat = roll.beat or TICKS_PER_BEAT
     bars = list(roll.bars or ())
     kx = -(geo.w // 2) + geo.keys // 2 - 1
-    rail_c, pitch_c = _rail(box), _pitch(box)
-    named = [rail_c, pitch_c] + ([_ruler(box)] if roll.bars else [])
+    rail_c, pitch_c, note_c = _rail(box), _pitch(box), _note(box)
+    named = ([rail_c, pitch_c, note_c]
+             + ([_ruler(box)] if roll.bars else []))
     N = lambda k: f"__nb_{k}_{box}__"
     held_c, lift_c, sel_c, slide_c = N("held"), N("lift"), N("sel"), N("slide")
     grow_c, endx_c, sels_c, band_c = N("grow"), N("endx"), N("sels"), N("band")
@@ -1800,8 +1824,8 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
             + f"{hands_g} : Sub\n{hands_g} = Over (Over (Gap 0 0) ({ruler})) ({body})\n\n"
             + (_layers(N, f"{rows_c}_s", f"{sel_c}_s", f"{sels_c}_s", f"{held_c}_s",
                        f"{lift_c}_s", f"{slide_c}_s", f"{grow_c}_s",
-                       still=f"rollStill {_n(rail_y)}",
-                       moving=f"rollMoving (floor h) (floor v) (floor dx) (floor gg) {_n(rail_y)}")
+                       still=f"rollStill {note_c} {_n(rail_y)}",
+                       moving=f"rollMoving {note_c} (floor h) (floor v) (floor dx) (floor gg) {_n(rail_y)}")
                if live else "")
             + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Sub\n"
                f"{pic_g} still moving bd ex = " if live else
@@ -1810,7 +1834,7 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
             + f"Sized {geo.w} {geo.h} (Over (Over (Over\n"
             + f"    (Over {ground_g} (rollBand bd))\n"
             + (f"    (Over (Over still moving) (rollEnd {body_g} (floor ex))))\n" if live else
-               f"    (Over (rollNotesBaked (floor h) (floor v) (floor s) "
+               f"    (Over (rollNotesBaked {note_c} (floor h) (floor v) (floor s) "
                f"(floor dx) ss (floor gg) {_n(rail_y)} {N('rows')}) "
                f"(rollEnd {body_g} (floor ex))))\n")
             + f"    (Shift {_n(left + body_w // 2)} {geo.h // 2 - geo.foot // 2 - 1} "
@@ -1960,7 +1984,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     low, high = reach_of(roll)
     reach_top, reach_bottom = y_of(high), y_of(low)
     bcx, bcy = left + body_w // 2, (reach_top + reach_bottom) // 2
-    rail_c, pitch_c = _rail(box), _pitch(box)
+    rail_c, pitch_c, note_c = _rail(box), _pitch(box), _note(box)
     body = (f"(Shift {_n(bcx)} {_n(bcy)} (TouchY {pitch_c} (TouchX {rail_c} "
             f"(Sized {body_w} {reach_bottom - reach_top} (Gap 0 0)))))")
     # **The ruler is the section's handle** where there is a section:
@@ -1977,7 +2001,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     if roll.cut:
         caption += " · CUT"
 
-    named = [rail_c, pitch_c]
+    named = [rail_c, pitch_c, note_c]
     # **And two the model writes**: the note a hand has hold of, and how
     # far it has carried it, in this picture's own pixels.  A drag used
     # to show nothing at all until the file had been rebuilt — half a
@@ -2162,9 +2186,16 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # is drawn `gr` wider, so its centre moves by half of that.
             + f"{one_g}_ : Int -> Int -> Int -> Int -> Bool -> "
               f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
-            + f"{one_g}_ h v dx gr on i x y w t d m = Shift (x + {shift_g} on h dx + (gr / 2)) "
+            # **And the note says which note it is** — `gui.ges`'
+            # `Meaning`, carrying the row's own `i` to the box's note
+            # channel, so a press names it instead of the host
+            # inverting two coordinates and looking the answer up
+            # (`card:gui-is-difficult.md`, 2026-09-09).
+            + f"{one_g}_ h v dx gr on i x y w t d m = "
+              f"Shift (x + {shift_g} on h dx + (gr / 2)) "
               f"(y + {shift_g} on h v) (Over (Over ({seln_g} on (w + gr)) "
-              f"(Rect (w + gr) {geo.note_h} ({hue_g} t d))) (Over ({dot_g} m t d (w + gr)) "
+              f"(Meaning {note_c} (toFloat i) (Rect (w + gr) {geo.note_h} ({hue_g} t d)))) "
+              f"(Over ({dot_g} m t d (w + gr)) "
               f"({mark_g} on ({_n(rail_y)} - y - {shift_g} on h v) t d)))\n\n"
             + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> Int -> List Float -> Sub\n"
                f"{all_g} h v s dx ss gg es = case es of\n"

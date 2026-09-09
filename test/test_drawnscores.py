@@ -2419,12 +2419,18 @@ def test_the_body_is_one_pad_and_every_note_is_found_at_its_own_place():
     `TouchY` around a `TouchX` over the whole body, three hands a box
     with the ruler where there were a hundred and thirty, and every
     note found by its tick and key."""
-    from gestate.scorebox import PITCH, RAIL, RULER, note_under, regions_of
+    from gestate.scorebox import (NOTE, PITCH, RAIL, RULER, note_under,
+                                  regions_of)
 
     rolls, _b, _l = _live_and_baked()
     roll = rolls[0]
     regions = regions_of(rolls)
-    assert sorted(r.hand for k, r in regions.items() if r.box == 0) == sorted([PITCH, RAIL, RULER])
+    #: **And a fourth since 2026-09-09**, which is not a hand over the
+    #: body but the notes' own: each note says *which note it is* when
+    #: it is pressed, where the three above say *where* the hand is
+    #: (`card:gui-is-difficult.md`, `gui.ges`' `Meaning`).
+    assert sorted(r.hand for k, r in regions.items() if r.box == 0) \
+        == sorted([NOTE, PITCH, RAIL, RULER])
     for i, (on, off, _k, key, _v, _m) in enumerate(roll.events):
         assert note_under(roll, on, key) == i or roll.events[note_under(roll, on, key)][3] == key
 
@@ -2541,8 +2547,14 @@ def test_a_hand_takes_a_note_by_its_row_and_the_body_around_it():
         if not meant:
             continue
         hit += 1
-        rail, pitch = meant
-        assert regions[rail[1]].on_rail, "the rail first"
+        #: **The note first, then the place around it** — its own bar is
+        #: the deepest attachment and the pad encloses it, which is the
+        #: *thing inside a place* both machines grab
+        #: (`card:gui-is-difficult.md`, 2026-09-09).
+        *notes, rail, pitch = meant
+        assert notes and all(regions[n[1]].on_note for n in notes), \
+            "the note it landed on — or the two, where two overlap"
+        assert regions[rail[1]].on_rail, "then the rail"
         assert regions[pitch[1]].on_pitch, "then the pitch hand around it"
         try:
             note_under(roll, tick_at(roll, rail[2]), key_at(roll, pitch[2]))
@@ -3021,6 +3033,38 @@ def test_a_typed_resize_names_the_note_as_transpose_does():
     assert "len 480" in seat.view.text(), "past the bar line is written as it is"
 
 
+def test_the_picture_and_the_model_name_the_same_note_under_every_press():
+    """**The parity this slice is held by** — `card:gui-is-difficult.md`,
+    2026-09-09.  Each note now carries its own number and writes it when
+    its bar is pressed; the model still decides, and the two are
+    *compared* rather than reconciled — the same order the inspector
+    took and the facts declaration took: declare, hold to parity, and
+    derive only once the disagreements are known.
+
+    Pressed at the centre of every note of his own piece.  Where they
+    part it is the overlap already measured (`tools/pressable.py
+    --overlap`): two notes of different voices drawn over each other at
+    one pitch, where the picture's deepest is not always the model's
+    answer.  That is the open question of *which note did I press*, and
+    it is his; what this pins is that it is the **only** place they
+    part.
+    """
+    from gestate.scorebox import x_of, y_of
+
+    _here, seat, view, roll = _page_seat()
+    for i, (on, off, _k, key, _v, _m) in enumerate(roll.events):
+        x = (x_of(roll, on) + x_of(roll, off)) // 2
+        _feed(seat, view, "press", x, y_of(roll, key))
+        _feed(seat, view, "release", x, y_of(roll, key))
+    agreed, parted = seat.agreed.get(True, 0), seat.agreed.get(False, 0)
+    assert agreed + parted == len(roll.events), (seat.agreed, len(roll.events))
+    assert agreed >= len(roll.events) - 8, seat.disagreed
+    for _box, _tick, _key, named, note in seat.disagreed:
+        assert named is not None and note is not None, "both named a note"
+        assert roll.events[named][3] == roll.events[note][3], \
+            "and they parted only where two notes share a pitch"
+
+
 def test_a_hand_on_the_end_of_any_note_of_the_group_stretches_them_all():
     """Sweep bar 1, take the end of one of the melody's notes, carry it
     along one beat: six lines change their `len` by the same ticks,
@@ -3376,7 +3420,8 @@ def test_ask_is_the_press_without_the_grab():
     pressed = [(n, v) for _k, n, v in view.touch_all("press", cx, cy)]
     view.touch_all("release", cx, cy)
     assert asked == pressed, (asked, pressed)
-    assert {n for n, _ in asked} == {"__nb_rail_0__", "__nb_pitch_0__"}
+    assert {n for n, _ in asked} == {"__nb_note_0__", "__nb_rail_0__",
+                                     "__nb_pitch_0__"}
 
     class Bench:
         substrate = view

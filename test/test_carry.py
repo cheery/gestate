@@ -55,6 +55,14 @@ from gestate.workbench import _carry                             # noqa: E402
 #: field whose reason cannot be written is a field somebody has to look
 #: at, which is the whole point of being made to write one.
 DELIBERATELY_FRESH = {
+    "named_note": "what the picture said a press landed on, in the *old* "
+                  "file's roll — it never outlives the press that set it, "
+                  "let alone a file switch (`gui.ges`' `Meaning`)",
+    "agreed": "a count of how often the picture and the model named one "
+              "note, over the old file's presses; a measurement of this "
+              "slice and not state a window needs",
+    "disagreed": "the presses where they parted, in the old roll's own "
+                 "note numbers, which mean nothing in the new one",
     "said": "the status line's history, and the switch says `opened <name>` "
             "as its first line — carrying the old file's sentences would "
             "make the new window claim things about a piece it never had",

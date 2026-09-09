@@ -2553,10 +2553,42 @@ reference machine right, and F213's shape exactly.  A press now takes
 the **thing and the place around it**, which is a note inside a pad and
 is what the roll will need.
 
-**Not built:** the roll's generator does not emit `Meaning` yet, and
-the note hand still takes a fraction and inverts it.  That is the rest
-of 8, and it is where the five spellings of one straight line actually
-leave the tree.
+**And then the roll — 2026-09-09, the same evening.**  Every note of a
+score box now carries its own number, on a third channel beside the
+rail's and the pitch's: `__nb_note_<box>__`, written by the note's own
+bar when it is pressed.  The `Meaning` sits **around the bar and inside
+the `Shift`**, which is where it had to go — wrapped outside, its
+region is the parent's centre and a press finds nothing; wrapped around
+the whole note it would take in the ruler mark a selected note draws
+and be a region from the note to the top of the box.  So the pressable
+area is exactly the drawn bar, which is idea 2 said properly.
+
+**Measured on his piece: 86 of 88 presses name exactly one note**, and
+the two that name two are the overlap already counted
+(`tools/pressable.py --overlap`: 8 pairs, all cross-voice).  A press
+now answers *the note, the rail, and the pitch* — a **thing inside a
+place**, which is the grab both machines were taught this afternoon.
+
+**The model still decides, and the two are compared.**  `Session.agreed`
+counts the presses where the picture and `note_under` name one note and
+`disagreed` keeps the rest; `test_drawnscores.py` presses every note of
+`arc.notes` and holds that they part **only** where two notes share a
+pitch.  That is deliberately the same order as the two slices before
+it: declare, hold to parity, derive once the disagreements are known.
+Deleting the model's lookup is a decision about *how near is near
+enough* — a press a pixel above a bar misses the picture and the model
+finds it anyway — and that is a question for a hand, not for a test.
+
+**And the inspector learned the third kind.**  A Ctrl-press on a note
+now reads *note 62 at tick 0 — the note itself said so*, where the
+pitch hand still says what it inverted.  The two sentences beside each
+other are the point.
+
+**Not built:** the note hand still receives the rail's fraction and the
+pitch's and inverts them for the tick and the key it needs, and the
+end-of-note decision is still `EDGE_PX` against `x_of`.  Those are the
+places the five spellings actually leave, and they wait on the
+tolerance question above.
 
 ## What is next — 2026-09-08, evening; his to reorder
 

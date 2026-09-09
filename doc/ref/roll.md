@@ -516,24 +516,38 @@ The selected note's marker up on the ruler.
 ### `rollOne`
 
 ```
-rollOne h v dx gr on ry i x y w t d m : Int -> Int -> Int -> Int -> Bool -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub
+rollOne c h v dx gr on ry i x y w t d m : Chan Float -> Int -> Int -> Int -> Int -> Bool -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub
 ```
 
 One note: its bar, `gr` wider from its start when held, its outline
 when selected, its marks, its marker on the ruler at `ry`.
 
+**And it says which note it is** — `gui.ges`' `Meaning`, carrying the
+note's own number to the channel `c`, so a press on it names it
+instead of the host inverting two coordinates and looking the answer
+up in the model (`card:gui-is-difficult.md`, 2026-09-09).  The number
+is the row's `i`, which is the note's place in *this build's* roll —
+an index crossing the wire inside one build, which the card's
+identity law allows and `previewing` already does; the model's key is
+what a commit records, and that is `_follow`'s job and not the
+picture's.
+
+The channel is a plain argument and not a lifted one: a `Chan` is
+what this element *is* rather than anything it shows, which is the
+same reason `onTouchX` takes one and `label` closes over its text.
+
 
 ### `rollNote`
 
 ```
-rollNote h v s dx ss gg ry i x y w t d m : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub
+rollNote c h v s dx ss gg ry i x y w t d m : Chan Float -> Int -> Int -> Int -> Int -> List Float -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub
 ```
 
 
 ### `rollNotes`
 
 ```
-rollNotes h v s dx ss gg ry es : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> List Float -> Sub
+rollNotes c h v s dx ss gg ry es : Chan Float -> Int -> Int -> Int -> Int -> List Float -> Int -> Int -> List Float -> Sub
 ```
 
 Every note of a live roll, seven numbers each, as the reading arrives.
@@ -542,7 +556,7 @@ Every note of a live roll, seven numbers each, as the reading arrives.
 ### `rollNotesBaked`
 
 ```
-rollNotesBaked h v s dx ss gg ry es : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollNotesBaked c h v s dx ss gg ry es : Chan Float -> Int -> Int -> Int -> Int -> List Float -> Int -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
 ```
 
 The same over a baked list of rows.
@@ -551,7 +565,7 @@ The same over a baked list of rows.
 ### `rollRow7`
 
 ```
-rollRow7 h v s dx ss gg ry row : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollRow7 c h v s dx ss gg ry row : Chan Float -> Int -> Int -> Int -> Int -> List Float -> Int -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
 ```
 
 One baked row, taken apart — its own `case`, because a tuple pattern
@@ -639,7 +653,7 @@ Which rows stand still: the others.
 ### `rollStill`
 
 ```
-rollStill ry rows : Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollStill c ry rows : Chan Float -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
 ```
 
 The unselected notes, drawn where they are — `ry` is the ruler's y for
@@ -650,14 +664,14 @@ the marker a selected note would wear, unused here but the shape is
 ### `rollStillOne`
 
 ```
-rollStillOne ry row : Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollStillOne c ry row : Chan Float -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
 ```
 
 
 ### `rollMoving`
 
 ```
-rollMoving h v dx gg ry rows : Int -> Int -> Int -> Int -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollMoving c h v dx gg ry rows : Chan Float -> Int -> Int -> Int -> Int -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
 ```
 
 The selected notes, outlined and carried by the hand — `h` the note
@@ -668,7 +682,7 @@ end.  Recomputed per motion, over these rows alone.
 ### `rollMovingOne`
 
 ```
-rollMovingOne h v dx gg ry row : Int -> Int -> Int -> Int -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollMovingOne c h v dx gg ry row : Chan Float -> Int -> Int -> Int -> Int -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
 ```
 
 
