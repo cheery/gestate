@@ -1,6 +1,6 @@
 ---
 name: gui-command-language-first
-description: "Henri, 2026-09-07: the command language and a clear model come before any GUI, and it must be stressed — every gesture has a command under it, the picture is never where the model lives"
+description: "Henri, 2026-09-07: the command language and a clear model come before any GUI — and 2026-09-09, the same rule with its content: the model is facts, the verbs are assert and retract, and the GUI is what falls out, minus layout and the eye"
 metadata:
   type: feedback
 ---
@@ -31,6 +31,29 @@ the roll's hands on 2026-09-06 cost the tests and not the commands:
 all along.  Working examples he and the tree already lean on: Tcl
 before Tk, Blender's operators, Emacs, acme, AutoCAD, Reaper's
 actions, his own oscillseq ([[henri-prior-tools]]).
+
+**And on 2026-09-09 it came back with its content filled in, from the
+other end.**  A clean-board sitting struck the framing that model,
+command and view all live inside a `.ges` program — *"substraattia ei
+suunniteltu tämän skaalan asioille.  Eikä gestaten tietotyyppejä ole
+suunniteltu vastaavasti tallentamaan mallia"* — and what replaced it
+was already in the tree, written twice and never named: `.notes` and
+`.desk` are one grammar, a text of **facts**, a fact being a kind word
+and its fields, one to a line, with the kind declaring its key and a
+reference declaring whether it means a thing, a place or a set.  The
+command algebra is **assert and retract**; setting a field is the pair.
+Then: *"Näen tässä yhtenäisen mallin, itseasiassa!  Miten GUI-ongelmat
+ratkotaan on kenties se, että luodaan selkeä malli, ja selkeä
+komentokieli.  Ja sitten GUI on mitä siitä putoaa."*
+
+**What that claim is worth, scored against the card's four hard
+things:** it removes *two machines must agree* outright — an element
+carrying a fact's key leaves one machine — and makes *a gesture is
+state over time* testable as a chart.  It does **not** remove
+*geometry is continuous* (nothing in a table of notes says piano roll
+rather than list or grid) or *the oracle is an eye*.  So the model and
+the verbs make the GUI's mechanism fall out and leave its picture to be
+designed.  Do not repeat the claim without the second half.
 
 **How to apply:** for any UI work, name the nouns and the verbs first,
 make them run headless, and only then draw.  A gesture that has no

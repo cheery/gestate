@@ -1948,6 +1948,64 @@ So, and each of these is now settled:
 **Open: what these documents are called.**  His question, unanswered
 here on purpose.
 
+### The name, and what falls out — 2026-09-09
+
+**Named: facts.**  Henri, of four candidates and two ruled out because
+the tree already spends them (`fixme.md` is *the ledger*,
+`doc/consent.md` is *the register*): *"facts olisi hyvä.  Etenkin jos
+tästä jatketaan logiikkakieliin myöhemmin."*  So a document is
+**facts**, a line is **a fact**, a kind declares its key and a
+reference declares whether it means a thing, a place or a set.  The
+extension stays with the content — `.notes`, `.desk`, `.gex` — because
+`vision.md`'s *plain files you can read without it* lives in a suffix
+that says what is inside.
+
+**And the name paid for itself the same minute: the algebra is two
+operations, not three.**  Assert and retract.  Setting a field is
+retracting the old fact and asserting the new one — which is what the
+tree already does either way, `notes.retune` rewriting the line in
+place and reading E editing the record and writing the file.  So the
+gap named above is not *two operations missing of three*; it is **the
+two primitive ones missing, with the derived one built**.
+
+**His reading of the whole, and it is the day's conclusion:**
+
+> *"Näen tässä yhtenäisen mallin, itseasiassa!  Miten GUI-ongelmat
+> ratkotaan on kenties se, että luodaan selkeä malli, ja selkeä
+> komentokieli.  Ja sitten GUI on mitä siitä putoaa."*
+
+**This is his own rule of 2026-09-07 coming back with its content
+filled in.**  Then it was an ordering — *the command language and a
+clear model before the GUI, and it must be stressed*.  Now it says
+what a clear model **is** (facts: kinds, fields, keys, an agreed order)
+and what a clear command language **is** (assert, retract, over
+references that declare their kind), and it makes a claim that can be
+checked instead of only obeyed.
+
+**So it is checked here, against this card's own four hard things.
+*Session's reading, marked as its own.***
+
+| | falls out? |
+|---|---|
+| 4. **Two machines must agree** — the one that draws and the one that decides what a press hit | **Removed outright.**  An element that carries a fact's key leaves one machine; `third`, `tick_at`, `key_at` and the five spellings have nothing to invert |
+| 3. **A gesture is state spread across time** | **Made testable, not removed.**  It is the chart — the third form, already declared, and not derivable from the other two |
+| 2. **Geometry is continuous while code is discrete** | **No.**  Nothing in a table of notes says *piano roll* rather than list, grid or staff.  Layout is ideas 4 and 5 and is its own design |
+| 1. **The oracle is an eye** | **No.**  Which of the model's states have distinct pictures, whether the control is where the effect is, whether an eight-pixel end is a target — none of it is derivable, and idea 8 is why |
+
+What *does* fall out, once the facts and the verbs exist: the picture's
+**content** (a query over the facts, decided 2026-09-08), what a press
+**means** (the element carries the key the kind declared), the
+**selection** (a set of references, three kinds already in the model),
+**undo and replay** (the commands are text and assert/retract invert
+each other), **persistence** (the file is the facts in the agreed
+order), and **identity across a rebuild** (the key).
+
+So the honest score is that the model and the command language make the
+GUI's *mechanism* fall out and leave its *picture* to be designed —
+and the remainder is not a hole but exactly the ideas this card already
+lists apart: the layout algebra, the constraints, and the photograph as
+the only oracle for an eye.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
