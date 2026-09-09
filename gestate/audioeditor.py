@@ -3898,8 +3898,11 @@ class NotesKind:
         """The piece as records — `(onset, offset, bank, ((key, level,
         manners),))` in ticks, the shape `perform_voices` answers, read
         off the parsed file: sections in the order written, each bar
-        `beats` long, a note clipped at its bar line as `long` clips it.
-        Held to `perform_voices` on `arc.notes` by `test_drawnscores.py`."""
+        `beats` long, and a note whole — a `long` box refuses onsets
+        past it and never an end, so a note written past its bar line
+        rings past it, as the compiled road plays it (`fixme.md` F220).
+        Held to `perform_voices` on `arc.notes` by `test_drawnscores.py`,
+        and on a note that crosses its bar line."""
         from .midi import TICKS_PER_BEAT
         from .notes import ordered
 
@@ -3913,7 +3916,7 @@ class NotesKind:
         for one in ordered(parsed):
             bar = ticks[one.section]
             on = starts[one.section] + (one.bar - 1) * bar + one.at
-            off = min(on + one.length, starts[one.section] + one.bar * bar)
+            off = on + one.length
             out.append((on, off, one.voice, ((one.key, one.level, one.manners),)))
         return out
 

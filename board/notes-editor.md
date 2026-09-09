@@ -333,3 +333,15 @@ selection.  `spec/drawnscores.md` §"And the order is kept by every
 gesture" is the rule; the tests are the four at the foot of
 `test/test_drawnscores.py`.
 
+## The bar line was a knife — 2026-09-09
+
+**Henri**, verifying the drag on the window: *"When I shift the note
+playing 4 beats, right 2 beats, it clips against the bar marker and
+appears as if it was 2 beats long.  That should not happen."*  It did
+not on the compiled road — `long` refuses onsets past its box and
+never an end — and both readers of the parsed file, the picture's and
+the performer's, cut the note at the bar line on a comment that had
+misread `Clip`.  One line in each; `fixme.md` **F220**, and the
+boundary the `arc.notes` parity never reached is a two-bar file
+written into the test.  `spec/drawnscores.md` §"The eighth slice"
+said the wrong thing and says the right one now.

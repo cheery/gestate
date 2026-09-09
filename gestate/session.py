@@ -2811,7 +2811,8 @@ class Session:
         sounds at — and only a note written in a `.notes` file can be
         resized, where its length is one named field on one line.  A
         length past the bar line is written as it is: the format allows
-        it and the bar clips it when it sounds.  Refused by name: no
+        it and the note rings past the bar line, as a tied note does.
+        Refused by name: no
         such note, a `.ges`-written one, and a length under one tick.
         """
         from pathlib import Path

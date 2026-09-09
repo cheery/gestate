@@ -1364,8 +1364,10 @@ start (`__nb_grow_k__`, pixels), and the release commits **`resize
 <column> key len`** for one note — named as `transpose` names one —
 or **`stretch <rail> ticks`** for a group, every selected line's `len`
 by the same ticks in one rewrite.  A length past the bar line is
-written as it is: the format allows it and the bar clips it when it
-sounds.  Refused by name: a `.ges`-written note, a length under a
+written as it is: the format allows it and the note rings past the
+bar line — a `long` box refuses onsets past it, never an end.  *The
+two file roads clipped it anyway until 2026-09-09, `fixme.md` F220.*
+Refused by name: a `.ges`-written note, a length under a
 tick, and for a group the whole if any one of them would be.
 
 **Measured, headless:** the whole-bar `upper` note of bar 1, its end

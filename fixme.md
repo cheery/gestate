@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 220 entries, **175 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 221 entries, **176 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,37 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F220. **[resolved]** the two file roads cut a note at its bar line where the language plays it whole, so a four-beat note moved two beats right drew and sounded as two
+
+Found 2026-09-09 by Henri, on the window, verifying the `.notes` drag:
+*"When I shift the note playing 4 beats, right 2 beats, it clips against
+the bar marker and appears as if it was 2 beats long.  That should not
+happen."*  It did not happen on the compiled road: `music.ges`'s `Clip`
+— what `long` is — keeps every event that *starts* inside the box and
+lets it ring past the end (§"Clipping": *a section may ring past its
+box, it may not begin past it*).  Both readers of the parsed file said
+the opposite in a comment and did it in a line: `scorebox.notes_rolls`
+drew the offset as `min(on + len, bar end)`, and `NotesKind.events`
+handed the performer the same clipped record, so the picture and the
+sound agreed with each other and both disagreed with the language.
+The claim *the bar clips it when it sounds* stood in four places —
+`scorebox.py`, `session.py`, `command.ges` and `spec/drawnscores.md`
+§"The eighth slice" — and its generated copy in `doc/ref/commands.md`.
+
+**Why two parity tests held it for three days:** both are run over
+`arc.notes`, and no note in `arc.notes` crosses a bar line, so the
+clip and the whole note gave the same numbers on every event either
+test ever compared.  A parity checked against the one file that exists
+is checked against a witness, not a boundary
+(`doc/memory/declare-parity-derive.md`, the same lesson two days on).
+The repair is one line in each reader; the boundary is a two-bar file
+written into the test, whose first note starts on beat 3 and is four
+beats long.
+
+gate: `test/test_drawnscores.py::test_a_note_written_past_its_bar_line_is_drawn_whole_on_both_roads`
+and `::test_a_note_written_past_its_bar_line_sounds_whole_off_the_records`
+— each red with its own clip put back, restored, 2026-09-09.
 
 ### F219. **[resolved]** an attachment record grew an eighth word and two readers still strode seven, so only the one piece with two channels went red
 

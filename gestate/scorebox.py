@@ -1471,10 +1471,13 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
                 if line is None or not 0 < line <= len(lines):
                     continue
                 on = starts[section.name] + (one.bar - 1) * bar_ticks + one.at
-                # `long beats (…)` clips the bar, so a note written past
-                # the bar line sounds to the bar line — the same clip.
-                off = min(on + one.length,
-                          starts[section.name] + one.bar * bar_ticks)
+                # **Whole, past the bar line if it is written so.**  A
+                # `long` box refuses onsets past it and never an end
+                # (`music.ges` §"Clipping": *a section may ring past its
+                # box, it may not begin past it*), and this read the box
+                # as a knife for three days — a four-beat note moved two
+                # beats right drew as two beats long (`fixme.md` F220).
+                off = on + one.length
                 m = _FROM_NOTE.search(lines[line - 1])
                 atoms = ()
                 if m:

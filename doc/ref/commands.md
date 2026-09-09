@@ -399,7 +399,7 @@ a note's end runs when it lets go (`card:notes-editor.md` slice 4).
 The note is named as `transpose` names one — the column, the voice,
 the tick and the key it sounds at.  Only a note written in a `.notes` file, where its
 length is one named field on one line; a length past the bar line is
-written as it is, and the bar clips it when it sounds.  Refuses by
+written as it is, and the note rings past the bar line.  Refuses by
 name no such note, a `.ges`-written one, and a length under a tick.
 
 

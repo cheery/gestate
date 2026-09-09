@@ -932,14 +932,14 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 2764 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
 | 2769 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
 | 2787 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2849 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2917 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2921 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 3061 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 3072 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5282 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5450 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5456 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 2850 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2918 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2922 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 3062 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 3073 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5283 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5451 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5457 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `tempo.py`
 

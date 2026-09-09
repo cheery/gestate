@@ -3140,6 +3140,66 @@ def test_the_picture_draws_the_held_selection_longer_from_its_start():
     assert before - was == after - now, "an unselected note is untouched"
 
 
+# ── F220 — a note past its bar line rings past it, on every road ───────────
+
+
+OVERHANG = """section A  key D  mode lydian  bars 2  beats 4  voices melody
+note  section A  bar 1  at 192  len 384  voice melody  key 62  vel mf
+note  section A  bar 2  at 0  len 96  voice melody  key 64  vel mf
+"""
+
+
+def _overhang():
+    """A two-bar file whose first note starts on beat 3 and is four
+    beats long: the shape `arc.notes` never writes, which is why the
+    parity above held for three days over a clip it could not see."""
+    import tempfile
+    from pathlib import Path
+
+    here = Path(tempfile.mkdtemp()) / "over.notes"
+    here.write_text(OVERHANG)
+    return here
+
+
+def test_a_note_written_past_its_bar_line_is_drawn_whole_on_both_roads():
+    """**Henri, 2026-09-09**, on the window: *"When I shift the note
+    playing 4 beats, right 2 beats, it clips against the bar marker and
+    appears as if it was 2 beats long.  That should not happen."*  It
+    did not on the compiled road — a `long` box refuses onsets past it
+    and never an end — and the data road read the box as a knife
+    (`fixme.md` F220).  The boundary the parity on `arc.notes` never
+    reached: a note that crosses its bar line."""
+    from gestate.scorebox import asks, build_rolls, notes_rolls
+
+    here = _overhang()
+    text = notes.wrapper(here)
+    source, origins = notes.expanded(text, here.parent)
+    parsed = notes.parse(here.read_text(), here.name)
+    page = asks(source)
+    fast = notes_rolls(source, page, origins, parsed)
+    slow = build_rolls(source, page, 44100, 0)
+    assert [e[:4] for e in fast[0].events] == [e[:4] for e in slow[0].events]
+    on, off, _leaf, key, _vel, _manner = fast[0].events[0]
+    assert (on, off, key) == (192, 576, 62), "four beats long, over the bar line at 384"
+    assert fast[0].bars == (0, 384)
+
+
+def test_a_note_written_past_its_bar_line_sounds_whole_off_the_records():
+    """The same boundary on the sound side: the records `NotesKind.events`
+    hands the performer, held to `perform_voices` where `arc.notes`
+    could not hold them."""
+    from gestate.audioeditor import NotesKind, Workbench
+    from gestate.audioscore import perform_voices
+
+    here = _overhang()
+    bench = Workbench(here, rate=22050, block=256)
+    program = bench.program()
+    data = NotesKind.events(bench)
+    _bpm, played = perform_voices(program, "", 44100, 0)
+    assert sorted(data) == sorted(played)
+    assert sorted(data)[0][:2] == (192, 576)
+
+
 # ── Slice 4, continued — the section resized on its ruler ──────────────────
 
 
