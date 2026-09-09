@@ -22,6 +22,8 @@
              each already answered one of these once
              doc/memory/gui-command-language-first.md — the rule below,
              as a memory
+             doc/notes/notes-on-the-model.md — his 09:33 line, and the
+             relational model as the candidate with four failure modes
              doc/notes/notes-on-gui.md — the card read from outside,
              2026-09-07 to 2026-09-08: identity named as the missing
              decision before the morning that decided it, and the
@@ -41,6 +43,22 @@ It is not the substrate, which stands and which most of the ideas
 below are already partly true of.  And it is **not a session's to
 design**: the critical parts are Henri's, by his own sentence, and
 day one of this card is a dialogue, not code.
+
+**And after three days of it, what the thing being built turned out to
+be — Henri, 2026-09-09:**
+
+> *The model and its command language are the framework; the general
+> part is only the substrate, and successes are always relative to a
+> model.*
+
+His line, from `doc/notes/notes-on-the-model.md`, and the same morning
+as *"Ehkä erillistä kehystä ei tarvita.  Kehys on tämä muoto mitä me
+noudatetaan"* below.  It is why a text editor is a solved GUI and a
+node editor is not: the buffer's model is settled, so vi, emacs, acme
+and sam differ in every picture and agree in their verbs.  So the
+deliverable is **a method and a substrate**, not a toolkit — and the
+sections below that read as a framework's parts are the method's, each
+built when a client needed it.
 
 ## The postcondition — Henri, 2026-09-08
 

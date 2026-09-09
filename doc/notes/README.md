@@ -1,6 +1,7 @@
 # doc/notes/ — the conversations several rules came out of
 
-Twelve transcripts from five evenings and five days, kept because this
+Eighteen files, the first twelve transcripts from five evenings and
+five days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
 distilled from the first four, and until now the distillate was public
@@ -45,6 +46,7 @@ produced it rather than take the summary on trust.
 | [notes-on-prerequisites.md](notes-on-prerequisites.md) | not a conversation — a page: what a person needs before the method works in their hands, four prerequisites and four disqualifiers, drafted from one month and marked suspected · what of it this tree can show |
 | [notes-on-cues.md](notes-on-cues.md) | *Thinking, Fast and Slow* against the tree — the fast generator, the cached slow thinking, the live keeper · knowledge is cued, not scoped, so the question is the retrieval key · an introspective index, and the three things that can be built instead, measured |
 | [notes-on-gui.md](notes-on-gui.md) | the GUI card read from outside — identity as the missing decision · Kale, and the pin to set before building · the vision verbalised at 10:49, and the filter it makes · generality when it is cheaper than the special case · why the earlier toolkits became gunk, and why this one started from the roll |
+| [notes-on-the-model.md](notes-on-the-model.md) | the model and its command language *are* the framework · why text editors are a solved GUI and node editors are not · there is no general framework, only a substrate · the relational model as the candidate, with four failure modes to watch |
 | [notes-on-reviews.md](notes-on-reviews.md) | why the guest's reviews worked and how to keep one — a role, not a tool · a fresh context is transferable, being outside the tree is not · the loop cannot audit itself · what the reviewed party owes |
 
 ## Provenance, and what to distrust
@@ -110,6 +112,17 @@ section does the checking the page could not: every number it quotes
 is found in the card, one of its warnings had already been overtaken
 by a landed command, and one question it asked to be settled first was
 settled the other way, in a docstring.
+
+**The eighteenth, `notes-on-the-model.md`, is the third kind again**,
+from a guest session outside the tree on the morning of 2026-09-09,
+while a different session worked `card:gui-is-difficult.md` here.  Two
+exchanges, his words verbatim with their times, the answers condensed
+by the answerer, copied unchanged with a front note and a closing
+section.  The closing section does what the page could not: it says
+which of the page's four failure modes the tree has since decided,
+which is open, and — the part worth having — that the sitting in this
+tree reached the same conclusions the same day and that this is **not**
+two witnesses, because his questions there came after this conversation.
 
 **The seventeenth, `notes-on-reviews.md`, is the third kind again**,
 from the same guest session as the sixteenth and the same day, about
@@ -211,6 +224,10 @@ The seventeenth, `notes-on-reviews.md`, went in the same evening at
 his ask — *"there's associated note: ~/misc/notes/notes-on-reviews.md"*
 — and nobody but the author and a session speaks in it; no third party
 is named.
+The eighteenth, `notes-on-the-model.md`, went in on 2026-09-09 at his
+ask — *"~/misc/notes/notes-on-the-model.md could be added into the
+notes and to card:gui-is-difficult.md"* — and nobody but the author and
+a session speaks in it; no third party is named.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as
