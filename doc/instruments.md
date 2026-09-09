@@ -408,6 +408,22 @@ query on change, and the hand per frame*.  Its docstring carries the
 two traps that cost the evening an hour: the compiler takes the deep
 stack itself, and the language has no unary minus.
 
+### `tools/pressable.py` — what a pressable note costs
+
+    python tools/pressable.py           # the stacked roll of arcnotes.ges
+    python tools/pressable.py --page    # every roll of the page
+    python tools/pressable.py --n 600   # the rows repeated, for growth
+
+`card:gui-is-difficult.md`'s clean-board sitting asks whether an element
+can carry *what it is* instead of a pad carrying *where you touched it*.
+Three pictures of the same real rows, differing only in what is
+attached: today's one pad, one extra `Sub` node per note (the floor —
+what a meaning-carrying element costs the walk), and a `TouchX`/`TouchY`
+with two `chan` declarations per note (the ceiling — the only mechanism
+there is today).  The answer on 2026-09-09 was that the floor is 6–14 %
+and the ceiling +80 %.  What it cannot see is the window's own walk,
+which is Rust; the reference's number is that walk's ceiling.
+
 ### `tools/wasmcheck.py` — the graph as wasm, held to the native render
 
 `python tools/wasmcheck.py examples/audio/twinkle.ges` compiles the graph

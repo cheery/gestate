@@ -1709,6 +1709,164 @@ charged to every shift before a session knows what it is working on.  A
 card is charged to the sitting that opens it.  The two are not the same
 budget and the instinct does not carry across.
 
+### The clean board, first sitting — 2026-09-09
+
+**His order:** *"puhtaalta pöydältä tutkimista, joka sitten lopulta
+tuodaan gestateen.  Ensin tic-tac-toe esimerkin kautta ja sitten
+.notes -editorin miettimistä."*  What follows is what the two halves
+produced — and his objection at the end, which puts the framing of the
+whole of it in question.
+
+**The method was a target source.**  *"kyllä, kirjoita tavoitelähde"*:
+the same program, written as if the framework had been designed for it,
+so that the difference between what he called *going through the hoops*
+and what it should have been is countable rather than arguable.
+Neither sketch compiles, and neither is in the tree; both are
+reproducible from what is written here.
+
+**Tic-tac-toe, retold.**  Counted by the rule that reproduces the 99
+above (non-blank, non-comment):
+
+| | shipped | target |
+|---|---|---|
+| the model and the game's rules | 37 | 24 |
+| **the hand** | **22** | **3** |
+| the picture | 40 | 39 |
+| | **99** | **66** |
+
+Three decisions, each with what would kill it:
+
+- **D1 — an element carries a meaning, not a channel.**  `On` beside
+  `Rect` and `Label`, so what a press means is a value the program
+  computed, from the same `k` that chose what to draw.  Out go the pad,
+  `third`, `cellOf`, the x/y pairing, the arrival count, the `n > seen`
+  guard and the idempotence trick — and hard thing 4 leaves the
+  program, because nothing re-derives the geometry.  *Killed by* the
+  fader, where the meaning **is** the fraction.
+- **D2 — the board is a table, not a list.**  `markAt` and `putAt` were
+  the game's only recursions about the container rather than about
+  tic-tac-toe.  *Killed by* nothing, except that the language has no
+  indexed collection.
+- **D3 — the program declares a model, an update and a view**, and the
+  framework runs them; no wiring step.  *Killed by* a program that also
+  animates or sounds: `Board -> Move -> Board` has no room for `now`,
+  so the split between events and signals is hidden behind the
+  composition rather than answered — the seam last night's `scanE`
+  found, met from the other side.
+
+**And the roll refused D1 as written.**  A press on a note needs *both*
+the thing and the place — which note, and where along it the hand took
+hold.  So `on` does not replace `onTouchX`: the element says what it
+is, the touch still says where in it, one combinator and one event, and
+thing / place / set is what the program *does* with the place.  That is
+this card's own Kale reading one layer down — **attachment has the same
+three kinds as a reference, and gestate has one of them.**  A note is a
+thing, the rail is a place, the band is a set, and the first and third
+live in Python.
+
+**What looking at the roll found:**
+
+- **Nothing visible on the roll is pressable.**  What a hand touches is
+  `(TouchY … (TouchX … (Sized … (Gap 0 0))))`, one invisible pad over
+  the whole body.  Idea 2's *what is visible is what is pressable, by
+  construction* is not true at the one place it exists for; the pad and
+  its hit table are in parity with each other, which is a different
+  property.
+- **One straight line, five spellings, two languages.**  `rollX` and
+  `rollY` draw it in `roll.ges`; `x_of` and `y_of` repeat it in
+  `scorebox.py`; `tick_at` and `key_at` invert it; `across_of` inverts
+  it back.  `y_of`'s own docstring warns that *"three spellings of a
+  straight line is how a picture and a gesture come to disagree"* and
+  counts only the ones on its own side of the border.  F204 was this.
+- **The clamp deformed the picture.**  A fraction is clamped to the
+  element's own extent, so a hand carrying a note above the roll would
+  stop; the pad is therefore drawn `DRAG_REACH = 24` semitones taller
+  than the roll it covers, *"so a hand has room to carry one; the box's
+  own clip hides it"*.  That, and not the window's truth about extents,
+  is why the inspector's halo does not match the roll.
+- **The chart shrinks with the events.**  One event carrying both axes
+  takes `hand.ges` from 8 states and 32 arrows to 7 and 23, and
+  `Railed` — *the rail speaks first* — has nothing left to be between.
+  F211 was the axis split: a diagonal drag was two `Shift`s and so two
+  commands at the release, the second naming a line the first had
+  moved.  Under one event per motion that defect has no shape to take.
+- **What does not shrink: the acts.**  `Grab`, `Shift`, `Carry`,
+  `Select` still snap to the grid, read the group, raise the preview
+  and run the command — about 150 lines.  The prize is not that they
+  get smaller; it is that they would be *in the program*.
+
+**Measured — `python tools/pressable.py`** (`--page`, `--n`), because
+the one thing that could not be read off the tree was what per-note
+pressability costs.  Three pictures of the same rows of `arcnotes.ges`,
+differing only in what is attached: `padded` is today's shape, `marked`
+adds one `Sub` node per note — the **floor**, what an `On` costs the
+walk — and `channelled` gives each note a `TouchX`/`TouchY` and two
+`chan` declarations, the **ceiling**, since a channel's identity is its
+declaration and so cannot travel in the list the notes travel in.
+
+| notes | | picture | press (`ask`) | source |
+|---|---|---|---|---|
+| 88, the roll of line 127 | padded | 1.47 ms | 1.47 ms | 2,659 |
+| | marked | 1.56 | 1.62 | 2,671 |
+| | channelled | 2.65 | 2.69 | 11,924 |
+| 152, the page | padded | 2.49 | 2.47 | 4,083 |
+| | marked | 2.76 | 2.75 | 4,095 |
+| | channelled | 4.73 | 4.76 | 20,636 |
+| 600, synthetic | padded | 10.8 | 10.9 | — |
+| | marked | 12.3 | 12.3 | — |
+| | channelled | 20.5 | 20.6 | — |
+
+**The kill condition does not fire.**  The floor is 6–14 % — 0.09 ms on
+the roll, 0.27 on the page, 1.5 at six hundred notes.  The ceiling is
++80 %, quadruples the source, and at six hundred notes passes the
+frame; it does compile, where `scorebox.py`'s note about chopin's
+hundred and forty overflowing the parser predicted it would not,
+because a balanced `Over` keeps the depth logarithmic.  **The drawn
+wire does not change at all** — the same bytes in all three, since an
+attachment is not a drawn shape.  *Unmeasured:* the window's own walk,
+which is Rust and is where *felt* is decided; the reference's number is
+its ceiling and not its floor, and measuring it needs the generator to
+emit the attachments, which is building and not measuring.
+
+**And one thing found that is nobody's decision yet.**  A press grabs
+the deepest attachment *and every attachment around it*, and siblings
+are not around: overlapping notes both answer — median 4 attachments,
+6 on the roll and 8 on the page, which is two and three notes at once.
+*Which note did I press* has no answer today for stacked voices.  Q7
+settled identity for the file and for the command; this is the same
+question in the picture, and it is **open**.
+
+**His objection, and it is the day's important part — 2026-09-09:**
+
+> *"Mikä on malli, mikä on komento, ja mikä on näkymä?
+> ristinolla-esimerkissä malli oli gestate:n tietotyyppi, ja komento
+> oli kanssa, sekä näkymä on substraatti.  Mielestäni tämä vie metsään
+> ja kovaa.  substraattia ei suunniteltu tämän skaalan asioille.  Eikä
+> gestaten tietotyyppejä ole suunniteltu vastaavasti tallentamaan
+> mallia."*
+
+Not a hunch: the tree says both halves of it about itself, unasked.
+
+- *The substrate says it of itself.*  `gui.ges`: *"Two shapes and a
+  spacer.  Deliberately few: the point is to see layout and attachment
+  working, **not to be a drawing library**."*  A text editor was
+  withdrawn from it outright, because the language cannot measure text.
+  And no person writes the roll in it — `scorebox.py` generates it,
+  2,232 lines of generator in front of 493 of library.
+- *The model already had to be kept outside the program, and that was
+  paid for in August.*  `gestate/desk.py`: *"A knob is declared in the
+  file and its value is not, so this is the only place a turned knob
+  survives a close."*  The one piece of a canvas program's state that
+  must outlive a build is held in Python, keyed by name, and written to
+  `<piece>.desk`.  A gestate value lives inside one evaluation and a
+  rebuild ends it — which is reading E's kill condition on this card,
+  *the second writer*, arriving from the other side.
+
+So both target sources above put all three — model, command, view — in
+the program, and the program is the right container for one of them.
+**Where each of the three lives is his question, and it is not answered
+here.**
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
