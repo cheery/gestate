@@ -4,6 +4,7 @@
     python tools/pressable.py            # the stacked roll of line 127, 88 notes
     python tools/pressable.py --page     # every roll of arcnotes.ges at once
     python tools/pressable.py --n 291    # the rows repeated up to a size
+    python tools/pressable.py --overlap  # where two notes are drawn over each other
 
 `card:gui-is-difficult.md`'s clean-board sitting asks whether an
 element can carry *what it is* — a note — instead of a pad carrying
@@ -224,6 +225,58 @@ def measure(name: str, text: str, points: list) -> None:
 WIDE, TALL = 1000, 500
 
 
+def overlap(rolls: list) -> None:
+    """**Which note did I press, when two are drawn over each other.**
+
+    Asked by `card:gui-is-difficult.md`'s clean-board sitting after the
+    press above grabbed six attachments where it should have grabbed
+    four: a press takes the deepest attachment *and every attachment
+    around it*, and two notes side by side are neither.  Rows are
+    `SEMI_H` apart and a note is `SEMI_H - 2` tall, so two notes can
+    only overlap at the **same key** — which makes this the unison
+    doubling of Q7, measured as pixels rather than as onsets.
+    """
+    from gestate.scorebox import rows_of
+
+    for k, rl in enumerate(rolls):
+        if isinstance(rl, Exception):
+            continue
+        rows = [(x, y, w) for (_i, x, y, w, _t, _d, _m) in rows_of(rl)]
+        if not rows:
+            continue
+        pairs, covered, ambiguous = 0, set(), 0
+        for i, (x, y, w) in enumerate(rows):
+            for j in range(i + 1, len(rows)):
+                (u, v, q) = rows[j]
+                if v != y:
+                    continue
+                if x < u + q and u < x + w:
+                    pairs += 1
+                    covered.add(i)
+                    covered.add(j)
+        # The columns of pixels where two or more notes are drawn.
+        spans = {}
+        for (x, y, w) in rows:
+            spans.setdefault(y, []).append((x, x + w))
+        both = 0
+        total = 0
+        for y, ss in spans.items():
+            edges = sorted({e for s in ss for e in s})
+            for a, b in zip(edges, edges[1:]):
+                n = sum(1 for (s, e) in ss if s <= a and b <= e)
+                if n:
+                    total += b - a
+                if n > 1:
+                    both += b - a
+        print(f"roll {k}: {len(rows):4d} notes  "
+              f"{pairs:3d} overlapping pairs  "
+              f"{len(covered):3d} notes in one  "
+              f"{both}/{total} px drawn twice "
+              f"({100.0 * both / max(1, total):.1f}%)")
+
+
+
+
 def main(argv=None) -> int:
     args = list(argv if argv is not None else sys.argv[1:])
     page = "--page" in args
@@ -232,6 +285,11 @@ def main(argv=None) -> int:
         want = int(args[args.index("--n") + 1])
 
     rolls = rolls_of_piece()
+    if "--overlap" in args:
+        print(f"{PIECE.name}: where two notes are drawn over each other, "
+              f"so a press names both")
+        overlap(rolls)
+        return 0
     rows = rows_for(rolls, page)
     if want:
         rows = (rows * (want // max(1, len(rows)) + 1))[:want]

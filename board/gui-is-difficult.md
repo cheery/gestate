@@ -2070,6 +2070,78 @@ value there is a literal — and it is the line `.gex` will meet on its
 first formula, since a cell's address is its key and its content is
 its expression.  Checkable, and unbuilt.
 
+### His four answers, and two measurements under them — 2026-09-09
+
+**1. The kind lives in `<file>.ges`, beside `<file>.notes`.**  *"Silloin
+olisi yksi lähde joka ilmoittaa lajin, eikä meillä olisi enää 'include'
+-lausetta."*  Kill condition 3 dies by construction: one document, one
+program, paired by name, nothing to disagree.
+
+*Measured against the tree, and it is nearly true already.*  There are
+two `.notes` files and each is included by exactly one program, so the
+ambiguity has never happened here.  `untitled.notes` and
+`untitled.ges` **already pair by name**.  `arc.notes` does not — its
+program is `arcnotes.ges`, and `arc.ges` exists separately as another
+piece — so the rule renames one of those three files, and that is the
+whole cost in this tree.  `include "…"` appears in those two files and
+nowhere else, so the form exists for exactly this and drops with it.
+
+*One tension worth carrying, not an objection.*  `gui.ges`'s rule is
+that **what puts a thing there is that some expression put it there,
+in the file, where you can read it** — and a pairing by filename
+arrives without an expression.  The tree already has both conventions:
+`<piece>.desk` arrives by name, an included document by an expression.
+The reading that reconciles them: *state pairs by name, content is
+named by an expression* — and a schema is neither, it is the
+document's meaning, so by name is defensible.  Said out loud because
+the next person will ask.
+
+**2. The overlap is answered by measurement.**  *"se voisi olla
+mittauksesta vastattu."*  `python tools/pressable.py --overlap`, on
+`arcnotes.ges`' three rolls.  Rows are `SEMI_H` apart and a note is
+`SEMI_H - 2` tall, so two notes can overlap **only at the same key** —
+this is Q7's unison doubling measured as pixels rather than as onsets:
+
+| roll | notes | overlapping pairs | notes in one | pixels drawn twice |
+|---|---|---|---|---|
+| 0 | 32 | 0 | 0 | 0 % |
+| 1 | 32 | 0 | 0 | 0 % |
+| 2, the stacked roll | 88 | 8 | 13 | **4.0 %** |
+
+**The rule the measurement points at is free: painter's order.**  The
+picture already decides — `over a b` puts `b` on top, and a person
+presses what they *see*, which is idea 2 kept rather than a new rule
+invented.  Where a press names several, the topmost is the one meant.
+
+**And the measurement then refuses its own answer, on his own piece:
+5 of the 88 notes are wholly covered by notes drawn after them.**
+Under painter's order those five cannot be pressed at all.  So the
+overlap is **not an identity problem** — the model knows perfectly well
+that there are two notes — it is a **layout** problem: the picture is
+hiding a thing that has to be pressable.  Which lands it in his own
+answer 3, and it is the first concrete case there rather than an
+aesthetic one.
+
+**3. Layout is left to be met.**  *"Asettelu on vaikea kysymys, ja
+haluaisin nähdä mitä me kohdataan sen kanssa."*  Nothing designed, on
+purpose.  The first thing met is the five buried notes above.
+
+**4. And the framework is the form, not a thing to build.**
+
+> *"Ehkä erillistä kehystä ei tarvita.  Kehys on tämä muoto mitä me
+> noudatetaan: eli malli ensin, komennot, sitten pudotetaan GUI
+> siitä."*
+
+Which answers this card's own title.  What was asked for on 2026-09-07
+was *"a GUI framework for gestate"*; what the clean board produced is a
+**practice with a shape** — facts, then assert and retract, then the
+picture as a query over them and the press as a key the picture
+carries — and the parts that do not fall out (layout, and the eye)
+stay named as the separate designs they always were.  `chart.ges`,
+`roll.ges` and the two words `set`/`elems` are what a framework of it
+looks like: small pieces the form needs, built when the form needs
+them, and no toolkit.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
