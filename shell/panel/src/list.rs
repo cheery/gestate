@@ -145,6 +145,12 @@ pub struct Hit {
 /// The `param` of a hit that writes no parameter.
 pub const NO_PARAM: u32 = u32::MAX;
 
+/// Whether a hit is a **substrate attachment** — a place or a thing —
+/// as opposed to the panel's own furniture.
+fn attaches(kind: Kind) -> bool {
+    matches!(kind, Kind::Chan(..) | Kind::Means(_))
+}
+
 impl Hit {
     pub fn contains(&self, x: i32, y: i32) -> bool {
         let (x0, y0, x1, y1) = self.region;
@@ -239,18 +245,25 @@ impl Display {
     /// cy rect)`, is two attachments on one extent and both are taken
     /// (`fixme.md` F204: until 2026-09-06 one was, in both machines);
     /// two faders side by side share no extent, and a press on one
-    /// leaves the other alone.  A deepest hit that is not a channel —
-    /// a button, a toggle — takes nothing here; those are the panel's.
+    /// leaves the other alone.  A deepest hit that is not a substrate
+    /// attachment — a button, a toggle — takes nothing here; those are
+    /// the panel's.
+    ///
+    /// **A `Means` is one of the two attachments**, and is grabbed
+    /// beside `Chan` rather than instead of it: a note inside a pad is
+    /// a thing inside a place, and a press on it takes both.  That is
+    /// the same *deepest and everything around it* rule, with the two
+    /// kinds of reference `card:gui-is-difficult.md` names.
     pub fn grabbed(&self, x: i32, y: i32) -> Vec<Hit> {
         let Some(at) = self.hits.iter().position(|h| h.contains(x, y))
         else { return Vec::new() };
-        if !matches!(self.hits[at].kind, Kind::Chan(..)) {
+        if !attaches(self.hits[at].kind) {
             return Vec::new();
         }
         let (dx0, dy0, dx1, dy1) = self.hits[at].region;
         self.hits.iter().enumerate().filter_map(|(i, h)| {
             let (x0, y0, x1, y1) = h.region;
-            let around = i > at && matches!(h.kind, Kind::Chan(..))
+            let around = i > at && attaches(h.kind)
                 && x0 <= dx0 && y0 <= dy0 && x1 >= dx1 && y1 >= dy1;
             (i == at || around).then_some(*h)
         }).collect()
@@ -260,6 +273,25 @@ impl Display {
 #[cfg(test)]
 mod grab_tests {
     use super::*;
+
+    fn means(id: i64, v: f64, r: (i32, i32, i32, i32)) -> Hit {
+        Hit { kind: Kind::Means(id), param: NO_PARAM, region: r, means: v }
+    }
+
+    #[test]
+    fn a_thing_inside_a_place_is_grabbed_with_it() {
+        // A note inside a pad: the cell says *which one*, the pad says
+        // *where along it* — the two kinds of reference
+        // `card:gui-is-difficult.md` names, and a press takes both.
+        let mut d = Display::new();
+        d.hits.push(means(9, 4.0, (10, 0, 40, 30)));
+        d.hits.push(chan(Axis::X, 3, (0, 0, 100, 30)));
+        let took = d.grabbed(20, 15);
+        assert_eq!(took.len(), 2, "the thing, and the place around it");
+        assert_eq!(took[0].kind, Kind::Means(9));
+        assert_eq!(took[0].fraction(20, 15), 4.0, "what it is, not where");
+        assert_eq!(took[1].kind, Kind::Chan(Axis::X, 3));
+    }
 
     fn chan(axis: Axis, id: i64, r: (i32, i32, i32, i32)) -> Hit {
         Hit { kind: Kind::Chan(axis, id), param: NO_PARAM, region: r, means: 0.0 }

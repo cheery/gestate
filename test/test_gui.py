@@ -445,14 +445,21 @@ substrate = rect (map (t => 40 + t) now) !40 (colour !255 !0 !0)
     assert scenes(mine, [("Tick",)])
 
 
-# ── `tic-tac-toe.ges` — a pad, a fold, and no release ───────────────────────
+# ── `tic-tac-toe.ges` — nine cells, each saying which cell it is ────────────
 #
 # Henri, 2026-09-08, writing his own first GUI: *"can you implement that
 # so I see how complex it is?"*  What these hold is the part that is not
 # the game — how a press reaches a program at all
 # (`card:gui-is-difficult.md` §"What his own GUI found on its first
-# evening").  `scenes` cannot drive a pad, so these use `Substrate`,
-# which is what the workbench holds.
+# evening").  `scenes` cannot drive an attachment, so these use
+# `Substrate`, which is what the workbench holds.
+#
+# **Rewritten 2026-09-09** on `onPress`: each cell carries its own
+# number and a press writes it.  What these tests used to hold — that
+# the x half of a press places nothing on its own — is gone with the
+# mechanism it described, and what replaces it is that a *drag* writes
+# nothing, which is the same property arriving from the vocabulary
+# instead of from a counter in the program.
 
 
 #: The centre of each cell, in the canvas's own pixels — three 60-wide
@@ -492,11 +499,11 @@ def test_a_press_puts_a_mark_in_the_cell_it_landed_on():
 
 
 def test_the_second_write_of_one_press_changes_nothing():
-    """**Idempotence stands in for the release the canvas cannot see.**
-    A drag writes on every motion and `released` never reaches a `.ges`
-    program, so `play` is written to be a no-op on a cell that is taken
-    — which makes a jittery press harmless without any rule about time.
-    """
+    """A cell that is taken is not a move — the game's own rule, and it
+    no longer has a second job.  It used to stand in for the release
+    the canvas could not see; now a press writes once and a drag writes
+    nothing, so a jittery press is harmless before this rule is
+    reached."""
     view = _game()
     _press(view, 0)
     was, foot = _marks(view), _foot(view)
@@ -505,21 +512,24 @@ def test_the_second_write_of_one_press_changes_nothing():
     assert _marks(view) == was and _foot(view) == foot
 
 
-def test_the_x_half_of_a_press_places_nothing_on_its_own():
-    """**One press is two instants, x first**, and acting on the first
-    marks the wrong row.  The fold waits for the down half, and knows it
-    by an integer that changed rather than by comparing two floats —
-    `gestate/hand.ges` calls the same state `Railed`.
+def test_a_press_names_the_cell_and_a_drag_over_the_board_says_nothing():
+    """**A press on a thing is the commit** — `gui.ges`' `onPress`.
 
-    Written straight to the channels, because that is the only way to
-    deliver half a press.
+    One press is one instant now, carrying the number the program gave
+    the cell, so there is nothing to pair and nothing to count.  And a
+    hand that keeps moving after the press writes nothing at all: a
+    meaning does not change while the hand moves over it, which is what
+    used to need `play` to be idempotent and a counter beside it.
     """
     view = _game()
-    view.write("across", 0.5)
-    view.write("across", 0.9)
-    assert _marks(view) == [], "x alone is a hand moving, not a move"
-    view.write("down", 0.5)
-    assert len(_marks(view)) == 1, "the down half is what commits"
+    view.touch_all("press", CELL_X[0], CELL_Y[0])
+    assert len(_marks(view)) == 1, "the press is the whole of it"
+    was = _marks(view)
+    for cell in (1, 2, 5, 8):
+        view.touch_all("drag", CELL_X[cell % 3], CELL_Y[cell // 3])
+    assert _marks(view) == was, "a sweep across the board marks nothing"
+    view.touch_all("release", CELL_X[2], CELL_Y[2])
+    assert _marks(view) == was, "and letting go writes nothing either"
 
 
 def test_the_turn_is_read_off_the_board_and_a_win_stops_the_game():

@@ -2518,12 +2518,45 @@ commit.
   cell — and the 67 panel tests, 9 web tests, 34 `test_gui.py` and the
   gates, all green.
 
-**Where it stopped, 2026-09-09** (*"täytyy keskeyttää"*): the word is
-wired and nothing writes it yet.  `examples/gui/tic-tac-toe.ges` is
-still the pad-and-pairing version, and rewriting it on `onPress` is the
-measurement this slice owes — the 18 hand-lines against what they
-become.  The roll's generator and the hand chart are after that, and
-neither is started.
+**And the measurement, on the file that produced the complaint.**
+`examples/gui/tic-tac-toe.ges`, rewritten on `onPress` — same game,
+same picture, same tests but one:
+
+| | pad and pairing | each cell says which it is |
+|---|---|---|
+| the model and the game's rules | 37 | 37 |
+| **the hand** | **22** | **5** |
+| the picture | 40 | 42 |
+| | **99** | **84** |
+
+The hand is `pressing : Chan Float` and one `scan` over cell numbers.
+Gone with it: `third`, `cellOf`, the two channels, the two half-signals,
+the `zip`, the arrival counter and the `n > seen` guard — and with them
+the whole of what §"His reading of the working program" called *going
+through the hoops*.  The picture gains two lines, which is the meaning
+being carried: `cellPic k m = Meaning pressing (toFloat k) …`, built
+from the same `k` that chose what to draw.
+
+**And idempotence stopped being load-bearing.**  A cell that is taken
+is still not a move — the game's own rule — but it no longer stands in
+for a release the canvas could not see: a press writes once and a drag
+over the board writes nothing, which `test_gui.py` now pins by sweeping
+four cells after a press and finding one mark.  The test that held the
+old mechanism — *the x half of a press places nothing on its own* — is
+gone with the mechanism it described.
+
+**One defect found by looking**, and it is the reason the word was not
+committed on the first pass: `Display::grabbed` in the panel took hold
+only of a `Kind::Chan`, so a meaning would have been walked, drawn and
+hit-tested and then dropped at the grab — the window silent, the
+reference machine right, and F213's shape exactly.  A press now takes
+the **thing and the place around it**, which is a note inside a pad and
+is what the roll will need.
+
+**Not built:** the roll's generator does not emit `Meaning` yet, and
+the note hand still takes a fraction and inverts it.  That is the rest
+of 8, and it is where the five spellings of one straight line actually
+leave the tree.
 
 ## What is next — 2026-09-08, evening; his to reorder
 

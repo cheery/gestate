@@ -14,29 +14,25 @@
 #
 # ── Where the input comes from, which is the part worth reading ─────────
 #
-# **A program is reached by one road: a channel a pad writes.**  A press
-# on `onTouchX c` writes the fraction of that element's own extent, 0 at
-# the left edge and 1 at the right, and `onTouchY` the same downwards.
-# That is the whole of it — `events` carries `Press` and `Release`
-# constructors, but only the standalone runner ever sends them, and in
-# the workbench that stream is `Tick` and nothing else.
+# **Each cell says which cell it is, and a press writes that.**
+# `onPress c v` attaches the number `v` to an element: press it and `v`
+# goes to the channel `c`, once, and a drag over it writes nothing.  So
+# a press *names the cell* and the game is a fold over cell numbers.
 #
-# **One press writes both halves of a pad, x first and then y**, as two
-# separate instants.  So a fold over the two sees the new x beside the
-# *old* y before it sees the pair, and acting on the first instant marks
-# the wrong cell.  The fold below waits for y, and knows y has spoken
-# because `pressed` counts its arrivals: an integer that changed, not two
-# floats compared.  `gestate/hand.ges` holds the same pairing for the
-# roll and calls the state between the two touches `Railed`.
+# **One channel, nine cells**, which is what makes this writable at all.
+# A `Chan` is a declaration — its identity is where it is written — so
+# nine cells could never be nine channels built from a list; nine
+# meanings on one channel is what a list can build.
 #
-# **And a program cannot see the end of a gesture** — `released` reaches
-# the model, in Python, and never a `.ges` file.  A drag writes on every
-# motion, so a fold that places a mark would place one per motion event.
-# The answer here needs no mechanism: **`play` is idempotent.**  Putting a
-# mark in a cell that is taken changes nothing, and the turn is *read off
-# the board* rather than carried, so it only advances when a mark
-# actually lands.  A press that jitters inside one cell is harmless; only
-# a deliberate sweep across cells misbehaves, and nobody sweeps a board.
+# **What this file used to do, and it is the measurement the word was
+# added for** (`card:gui-is-difficult.md`, 2026-09-09).  There was one
+# pad over the whole board and the program worked the cell out from
+# where the press landed: `third f = clamp 0 2 (floor (f * 3.0))`, two
+# axes arriving as two separate instants, an arrival counter to tell
+# them apart, and `play` made idempotent to survive a drag's motions.
+# All of it was the program re-deriving geometry the layout already
+# knew — and it agreed with the layout by coincidence rather than by
+# construction, which is hard thing 4 living inside the program.
 
 # ── The model ────────────────────────────────────────────────────────────
 
@@ -96,61 +92,28 @@ winner b = case filter (m => m /= Empty) (map (w => owner b w) ways) of
     m :: rest -> m
     Nil -> Empty
 
-#: **The move, and it is idempotent.**  A cell that is taken, an index
-#: off the board, or a game already won all leave the board as it was —
-#: so a second write of the same press changes nothing, which is what
-#: stands in for the release the canvas cannot see.
+#: **The move.**  A cell that is taken, an index off the board, or a
+#: game already won all leave the board as it was — the game's own
+#: rules, and no longer standing in for a release the canvas could not
+#: see.
 play : List Mark -> Int -> List Mark
 play b k = case all (m => m == Empty) (winner b :: markAt b k :: Nil) of
     True -> putAt b k (turn b)
     False -> b
 
-#: Which cell a point of the board means.  A fraction is 0 … 1 of the
-#: pad's own extent and the board is three cells across, so the column is
-#: `floor (f * 3)` — clamped, because the right and bottom edges are
-#: exactly 1.0 and would name a fourth column that is not there.
-third : Float -> Int
-third f = clamp 0 2 (floor (f * 3.0))
-
-cellOf : Float -> Float -> Int
-cellOf x y = third y * 3 + third x
-
 # ── The hand ─────────────────────────────────────────────────────────────
 
-across : Chan Float
-across = chan
+#: The channel every cell writes, and the only one this program has.
+pressing : Chan Float
+pressing = chan
 
-down : Chan Float
-down = chan
-
-#: Where the hand is along the board, as it arrives.
-handX : Sig Float
-handX = 0.0 ::: mkSig (wait across)
-
-#: The down half, **with a count of its own arrivals**.  The count is the
-#: whole trick: one press writes `across` and then `down`, in two
-#: instants, and this is how the fold knows which of the two it is
-#: looking at without comparing floats.
-pressed : Sig (Int, Float)
-pressed = scan (p v => (fst p + 1, v)) (0, 0.0) (0.0 ::: mkSig (wait down))
-
-#: The two halves, instant by instant.
-hand : Sig (Float, (Int, Float))
-hand = zip (a b => (a, b)) handX pressed
-
-#: **The game is one scan.**  Its state is the board and the number of
-#: down-touches it has already answered; every instant where that number
-#: has not moved is the x half speaking, and is ignored.
-step : (Int, List Mark) -> (Float, (Int, Float)) -> (Int, List Mark)
-step (seen, b) (x, (n, y)) = case n > seen of
-    True -> (n, play b (cellOf x y))
-    False -> (seen, b)
-
-game : Sig (Int, List Mark)
-game = scan step (0, start) hand
-
+#: **The game is one scan over cell numbers.**  It starts on a number
+#: that is no cell, so the first instant plays nothing — `play` already
+#: leaves the board alone for an index off the board, which is the
+#: game's rule and not a guard written for this.
 board : Sig (List Mark)
-board = map snd game
+board = scan (b k => play b (floor k)) start
+             ((0.0 - 1.0) ::: mkSig (wait pressing))
 
 # ── The picture ──────────────────────────────────────────────────────────
 
@@ -169,13 +132,13 @@ oInk = RGB 235 178 110
 footInk : Colour
 footInk = RGB 120 124 134
 
-#: One cell: a tile, and the mark on it.  Its `Sized` is what makes the
-#: thirds exact — the pad's extent is three of these across, so the
-#: arithmetic in `third` and the arithmetic the walk does agree by
-#: construction rather than by two numbers being kept in step.
-cellPic : Mark -> Sub
-cellPic m = Sized cellSide cellSide
-    (Over (Rect (cellSide - 4) (cellSide - 4) tileInk) (markPic m))
+#: One cell: a tile, the mark on it, and **which cell it is**.  The
+#: meaning is built from the same `k` that chose what to draw, so what
+#: a press means and what it looks like come from one expression.
+cellPic : Int -> Mark -> Sub
+cellPic k m = Meaning pressing (toFloat k)
+    (Sized cellSide cellSide
+        (Over (Rect (cellSide - 4) (cellSide - 4) tileInk) (markPic m)))
 
 markPic : Mark -> Sub
 markPic m = case m of
@@ -184,9 +147,11 @@ markPic m = case m of
     O -> Label 26 26 "O" oInk
 
 rowPic : List Mark -> Int -> Sub
-rowPic b r = Row (cellPic (markAt b (r * 3)))
-                 (Row (cellPic (markAt b (r * 3 + 1)))
-                      (cellPic (markAt b (r * 3 + 2))))
+rowPic b r = Row (tile b (r * 3))
+                 (Row (tile b (r * 3 + 1)) (tile b (r * 3 + 2)))
+
+tile : List Mark -> Int -> Sub
+tile b k = cellPic k (markAt b k)
 
 boardPic : List Mark -> Sub
 boardPic b = Column (rowPic b 0) (Column (rowPic b 1) (rowPic b 2))
@@ -205,11 +170,11 @@ turnPic m = case m of
     X -> Label 90 14 "X TO PLAY" xInk
     _ -> Label 90 14 "O TO PLAY" oInk
 
-#: **The pad is on the board and on nothing else**, so the fractions the
-#: hand writes are fractions of the nine cells and the foot is not part
-#: of the arithmetic.
+#: **Nothing is attached here.**  What listens is each cell, inside the
+#: picture, which is idea 2 kept: what is visible is what is pressable,
+#: by construction.
 substrate : Sig Sub
-substrate = column (onTouchY down (onTouchX across (map boardPic board)))
+substrate = column (map boardPic board)
                    (sized (!190) (!24) (map saying board))
 
 sound : Sig Float
