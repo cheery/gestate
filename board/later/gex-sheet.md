@@ -76,9 +76,15 @@ So a `.gex` is not a format of its own: a cell is a record, its
 address is its key, and the sheet's kinds sit beside `note`, `section`
 and `knob` in one grammar.  Kale's three reference kinds — `Col[0]` a
 thing, `Col[+1]` a place, a query a set — are the second half of that
-decision and were already this card's open question.  What stays this
-card's own: where time lives in a sequencer sheet, and how long the
-G-machine takes over a few hundred cells.
+decision and were already this card's open question.  **And where a formula lives, his lean the same day:** a cell holds its
+own expression and the `.ges` beside supplies the vocabulary it calls —
+reading (i), *"Minä arvelen että (i) on hyvä.."* — the way `arc.notes`
+holds the notes and `arcnotes.ges` the instruments.  With it comes one
+rule: a cell's **address is its key and must be literal**, its content
+is its expression; a key that is an expression has no identity until it
+is evaluated.  What stays this card's own: where time lives in a
+sequencer sheet, and how long the G-machine takes over a few hundred
+cells.
 
 ## Questions — day one, when it wakes
 

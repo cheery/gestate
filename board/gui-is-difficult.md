@@ -2053,7 +2053,22 @@ recommendation: (i), with anything named and reused in the `.ges`.*
 Under (ii) a reference inside a formula points across a file boundary
 at the thing it means, which is the one move
 `doc/memory/identity-is-the-models-key.md` was written against; and a
-`.gex` with no expressions in it is a CSV.  *Open.*
+`.gex` with no expressions in it is a CSV.
+
+**Henri, same day — a lean and not the plain word:** *"Minä arvelen
+että (i) on hyvä.."*  So (i) is the reading to build against and the
+hedge is recorded as a hedge, `board/README.md`'s own rule about
+`card:git-lesson.md`'s *taitaa olla tarpeeton*.
+
+**And (i) has a consequence that had better be said now.**  If a
+field may hold an expression, then **a key field may not** — a fact
+whose key is an expression has no identity until it is evaluated, and
+identity is what the whole of Q7 is about.  So the rule that falls
+out: *a kind's key fields are literals; its other fields may be
+expressions.*  It is already true of `.notes` by accident — every
+value there is a literal — and it is the line `.gex` will meet on its
+first formula, since a cell's address is its key and its content is
+its expression.  Checkable, and unbuilt.
 
 ## What is next — 2026-09-08, evening; his to reorder
 
