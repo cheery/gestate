@@ -2332,6 +2332,70 @@ whoever first reads a file.
 **What is left of the slice:** the `<file>.ges` pairing and the drop of
 `include` — which is the part that changes files on disk, and his.
 
+### Landed — 2026-09-09: the declaration is the file beside it — and what `include` still does
+
+**His pairing, built.**  *"entä jos laji eläisi `<file>.ges` -nimisessä
+dokumentissa, joka olisi `<file>.notes` ja jne. ohella?  Silloin olisi
+yksi lähde joka ilmoittaa lajin."*  `facts.beside(path)` is that rule:
+the `.ges` of the document's own name, next to it.  One document, one
+declaration, nothing to disagree — which is kill condition 3 dying by
+construction rather than being answered.
+
+Two things it needed that the rule did not say:
+
+- **What makes a sibling a declaration, cheaply.**  It says `kinds` —
+  a regex, not a compile.  `examples/audio/arc.ges` sits beside
+  `arc.notes` and is a *piece*: five hundred lines that want the audio
+  preludes, which `facts.ges` in front of them would neither compile
+  nor should.  So a sibling that says nothing about kinds is left
+  alone and the document falls back to the ones gestate ships.
+- **A declaration that will not load is refused by name**, not skipped,
+  because a document read by a schema nobody could load is a document
+  read by the wrong schema.  That is kill condition 2 answered the
+  other way from the shape proposed the day before — and it is the
+  right way, now that parsing *does* consult the schema.
+
+`notes.parse` takes `where` — the document's path when the caller has
+one — and the three callers that hold one pass it.  A text with no file
+behind it gets the shipped kinds.  Sixteen tests, and the pairing's own
+is proof by refusal: a sibling that makes `spell` required refuses a
+note without one, where the shipped kinds accept it.
+
+**And the drop of `include` is where the rule met a file it cannot
+have.**  Measured, since it is the whole of the cost:
+
+- `untitled.notes` and `untitled.ges` **already pair by name**, and
+  that program's `include "untitled.notes"` is the redundant line his
+  rule predicts.
+- `arc.notes`' program is `arcnotes.ges`, and the stem `arc` is taken
+  by `arc.ges` — the exhibit `doc/notes/notes-on-writing-a-piece.md`
+  was written from, which `arcnotes.ges`' own header says is *"kept
+  exactly as it was … overwriting it would have destroyed the
+  measurement."*  So the pairing cannot reach `arc.notes` without
+  renaming it to `arcnotes.notes`, which is a rename of his piece's
+  data and a tree-wide rewrite of every citation of it.
+
+**And the reason it is not merely a rename: `include` does two jobs.**
+It says *which declaration this document is read by* — replaced by the
+pairing, built above — and it brings *the data into the program*, a
+source-to-source expansion into score declarations.  The second is not
+replaced by anything: a program still has to say which document it
+plays, unless that too is found by name, which is exactly what
+collides on `arc`.  So the fork is his:
+
+1. **Rename `arc.notes` to `arcnotes.notes`** and let a program's
+   document be found by name, `include` gone.  The exhibit is
+   untouched; the citations are mechanical.
+2. **Keep `include` for the data** and let the pairing carry only the
+   declaration — one line per program, saying what it plays, and no
+   rename.
+3. **Pairing by default and `include` as the override**, which is what
+   a session would reach for and is two ways to say one thing.
+
+*Session's reading:* 2 is honest and 3 is the trap; 1 is the one his
+sentence asked for and the only one that costs a file its name.  **Not
+built, and not a session's to choose.**
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?

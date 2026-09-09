@@ -178,13 +178,21 @@ class NotesFile:
 #: 2026-09-09").  What stays in this file is what a note *means*: a
 #: dynamic is a name, a manner is a bit, a bar has at least one beat.
 #:
-#: Loaded lazily and cached by `facts.load`, so importing this module
-#: still costs nothing and the compile — 0.27 s, once per process — is
-#: paid by whoever first reads a file.
-def _kinds():
-    from .facts import load
+#: **And which declaration is *this* file's is its own name** — Henri,
+#: 2026-09-09: the kinds live in `<file>.ges` beside `<file>.notes`, so
+#: one document has one declaration and there is nothing to disagree.  A
+#: sibling that does not say `kinds` is a piece and not a declaration
+#: (`examples/audio/arc.ges` is one), and the document falls back to the
+#: ones gestate ships.  `where` is the document's path when the caller
+#: has one; a text with no file behind it gets the shipped kinds.
+#:
+#: Loaded lazily and cached by `facts`, so importing this module still
+#: costs nothing and the compile — 0.27 s, once per process — is paid by
+#: whoever first reads a file.
+def _kinds(where=None):
+    from .facts import beside
 
-    return load("notes")
+    return beside(where)
 
 
 #: How a value's shape is said in a refusal — `Bare` lines are the only
@@ -257,7 +265,7 @@ def _int(text: str, key: str, place: str) -> int:
         raise NotesError(f"{place}: `{key} {text}` is not a whole number") from None
 
 
-def parse(text: str, name: str = "<notes>") -> NotesFile:
+def parse(text: str, name: str = "<notes>", where=None) -> NotesFile:
     """Read a `.notes` file.  Every refusal names the file and the line.
 
     Two passes, because a note may be written above the section it names
@@ -271,7 +279,7 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
     `fixme.md` F200, and `spec/drawnscores.md` §"The prose belongs to
     the record below it" is the rule and its one limit.
     """
-    document = _kinds()
+    document = _kinds(where)
     out = NotesFile(name=name)
     note_lines: list[tuple[int, list[str], tuple, str | None]] = []
     above: list[str] = []
@@ -910,7 +918,7 @@ def rows_of_notes(path) -> list:
     wrote no spelling, which is almost everywhere.
     """
     path = Path(path)
-    out = parse(path.read_text(), path.name)
+    out = parse(path.read_text(), path.name, where=path)
     modes = {s.name: (s.key, s.mode) for s in out.sections}
     said = spellings(out)
     return [(s, b, keys) + modes[s]
@@ -1095,7 +1103,7 @@ def expanded(source: str, base: Path | None = None,
             raise NotesError(
                 f'{place}: include "{one}" — no such file beside {root}')
         else:
-            parsed = parse(path.read_text(), name=one)
+            parsed = parse(path.read_text(), name=one, where=path)
         for section in parsed.sections:
             if section.name in known:
                 raise NotesError(
@@ -1221,7 +1229,7 @@ def wrapper(path: Path | str, *, notes: bool = True) -> str:
     path.parent)`, as any program with an `include`.
     """
     path = Path(path)
-    out = parse(path.read_text(encoding="utf-8"), path.name)
+    out = parse(path.read_text(encoding="utf-8"), path.name, where=path)
     return _wrapper_of(out, path.name, notes=notes)
 
 

@@ -16,6 +16,7 @@ before anything is asked to trust it.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -196,15 +197,61 @@ class Document:
 
 _LOADED: dict = {}
 
+#: **What makes a `.ges` beside a document its declaration**, cheaply
+#: and without compiling it: the file says `kinds`.  Every other `.ges`
+#: next to a document is a *piece* — `examples/audio/arc.ges` is one —
+#: and compiling those with `facts.ges` in front would be expensive and
+#: would fail, since a piece wants the audio preludes and not this one.
+_DECLARES = re.compile(r"^kinds\s*[:=]", re.M)
+
+
+def _document(path: Path) -> Document:
+    """The kinds of one file, compiled once per edit of it or of the
+    library — `charts.load`'s shape, and for its reason: the compile is
+    a fifth of a second and the answer never changes while the files do
+    not."""
+    path = Path(path)
+    key = str(path)
+    stamp = (path.stat().st_mtime_ns, LIBRARY.stat().st_mtime_ns)
+    found = _LOADED.get(key)
+    if found is None or found[0] != stamp:
+        found = _LOADED[key] = (stamp, Document(path))
+    return found[1]
+
 
 def load(name: str = "notes") -> Document:
-    """The kinds of `gestate/<name>.ges`, compiled once per edit of
-    either file — `charts.load`'s shape, and for its reason: the compile
-    is a fifth of a second and the answer never changes while the files
-    do not."""
-    path = HERE / f"{name}.ges"
-    stamp = (path.stat().st_mtime_ns, LIBRARY.stat().st_mtime_ns)
-    found = _LOADED.get(name)
-    if found is None or found[0] != stamp:
-        found = _LOADED[name] = (stamp, Document(path))
-    return found[1]
+    """The kinds gestate ships, from `gestate/<name>.ges`."""
+    return _document(HERE / f"{name}.ges")
+
+
+def beside(path) -> Document:
+    """The kinds a document is read by — **the `.ges` of its own name,
+    next to it**.
+
+    Henri, 2026-09-09: *"entä jos laji eläisi `<file>.ges` -nimisessä
+    dokumentissa, joka olisi `<file>.notes` ja jne. ohella?  Silloin
+    olisi yksi lähde joka ilmoittaa lajin."*  One document, one
+    declaration, paired by name, nothing to disagree — which is what
+    kills the question of two programs declaring one kind differently.
+
+    A sibling that does not say `kinds` is not a declaration at all: it
+    is a piece, and the document falls back to the ones gestate ships.
+    A sibling that *does* say it and will not compile is refused by
+    name rather than skipped, because a document read by a schema
+    nobody could load is a document read by the wrong schema.
+    """
+    if path is None:
+        return load("notes")
+    beside_it = Path(path).with_suffix(".ges")
+    try:
+        text = beside_it.read_text(encoding="utf-8")
+    except OSError:
+        return load("notes")
+    if not _DECLARES.search(text):
+        return load("notes")
+    try:
+        return _document(beside_it)
+    except Exception as why:                                # noqa: BLE001
+        raise FactsError(
+            f"{beside_it.name} declares the kinds of {Path(path).name} and "
+            f"will not load: {why}") from None

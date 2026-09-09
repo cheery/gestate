@@ -163,6 +163,58 @@ def test_a_kind_declared_and_unbuilt_is_refused_out_loud(tmp_path, monkeypatch):
                  'kinds = Kind "lyric" (Bare "text") '
                  "(Field \"text\" Word Must :: Nil) Nil Nil :: notesKinds"))
     wider = facts.Document(beside)
-    monkeypatch.setattr(notes, "_kinds", lambda: wider)
+    monkeypatch.setattr(notes, "_kinds", lambda where=None: wider)
     with pytest.raises(notes.NotesError, match="does not know how to read"):
         notes.parse("lyric hello\n")
+
+
+# ── The declaration is the one beside the document ──────────────────────
+
+
+def _sibling(directory: Path, stem: str, edit=lambda t: t) -> Path:
+    """A `<stem>.ges` next to a `<stem>.notes`, from the shipped kinds."""
+    shipped = (Path(notes.__file__).parent / "notes.ges").read_text()
+    beside = directory / f"{stem}.ges"
+    beside.write_text(edit(shipped))
+    return beside
+
+
+def test_the_kinds_come_from_the_ges_of_the_same_name(tmp_path):
+    """**His pairing, 2026-09-09** — one document, one declaration, by
+    name.  Here the sibling makes `spell` required, which the shipped
+    kinds do not, so a note without one is refused: the refusal is proof
+    that the file beside the document is the one in force."""
+    _sibling(tmp_path, "song",
+             lambda t: t.replace('Field "spell" Word May',
+                                 'Field "spell" Word Must'))
+    song = tmp_path / "song.notes"
+    song.write_text("section A  bars 1  beats 4  voices a\n"
+                    "note  section A  bar 1  at 0  len 96  voice a  key 60  vel mf\n")
+    with pytest.raises(notes.NotesError, match="missing `spell`"):
+        notes.parse(song.read_text(), song.name, where=song)
+    #: and the same text with no path behind it gets the shipped kinds
+    assert len(notes.parse(song.read_text(), song.name).notes) == 1
+
+
+def test_a_sibling_that_is_a_piece_is_not_a_declaration():
+    """`examples/audio/arc.ges` sits beside `arc.notes` and is a piece —
+    five hundred lines of music that wants the audio preludes.  It says
+    no `kinds`, so it is left alone and the shipped ones are used;
+    compiling every sibling to find out would be expensive and would
+    fail."""
+    from gestate import facts as F
+
+    assert F.beside(PIECE).path.name == "notes.ges"
+
+
+def test_a_declaration_that_will_not_load_is_refused_by_name(tmp_path):
+    """A sibling that *says* `kinds` and cannot be loaded is named
+    rather than skipped: a document read by a schema nobody could load
+    is a document read by the wrong schema."""
+    from gestate import facts as F
+
+    _sibling(tmp_path, "broken",
+             lambda t: t.replace("kinds = notesKinds", "kinds = ((("))
+    (tmp_path / "broken.notes").write_text("bpm 96\n")
+    with pytest.raises(F.FactsError, match="will not load"):
+        F.beside(tmp_path / "broken.notes")
