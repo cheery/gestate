@@ -218,3 +218,106 @@ def test_a_declaration_that_will_not_load_is_refused_by_name(tmp_path):
     (tmp_path / "broken.notes").write_text("bpm 96\n")
     with pytest.raises(F.FactsError, match="will not load"):
         F.beside(tmp_path / "broken.notes")
+
+
+# ── Assert and retract, the two primitive edits ─────────────────────────
+
+ONE_BAR = """\
+section A  bars 1  beats 4  voices melody,bass
+section B  bars 1  beats 4  voices melody
+
+note  section A  bar 1  at 0  len 96  voice melody  key 60  vel mf
+"""
+
+
+def test_asserting_a_note_adds_it_and_leaves_the_file_canonical():
+    made, said = notes.asserted(
+        ONE_BAR, "note  section A  bar 1  at 96  len 96  voice bass  key 48  vel f")
+    assert "asserted note 48" in said
+    assert len(notes.parse(made, "t.notes").notes) == 2
+    assert notes.write(notes.parse(made, "t.notes")) == made, "and writing it again is a no-op"
+
+
+def test_asserting_a_note_that_is_already_written_is_refused():
+    """Q7: **a doubled line is one note said twice**, so asserting one
+    that is there is a gesture with nothing to do."""
+    with pytest.raises(notes.NotesError, match="already written"):
+        notes.asserted(
+            ONE_BAR,
+            "note  section A  bar 1  at 0  len 96  voice melody  key 60  vel mf")
+
+
+def test_asserting_a_record_the_document_refuses_says_why():
+    """The parser's own words, because the assert is checked *in this
+    document* rather than on its own."""
+    with pytest.raises(notes.NotesError, match="no section `Z`"):
+        notes.asserted(
+            ONE_BAR,
+            "note  section Z  bar 1  at 0  len 96  voice melody  key 60  vel mf")
+
+
+def test_retracting_a_note_takes_every_line_that_said_it():
+    """Two identical lines are one note said twice, so retracting the
+    note retracts the saying of it — both lines, and the sentence says
+    how many."""
+    twice = ONE_BAR + ONE_BAR.splitlines()[-1] + "\n"
+    assert len(notes.parse(twice, "t.notes").notes) == 2
+    made, said = notes.retracted(
+        twice, "note section A bar 1 voice melody at 0 key 60")
+    assert "2 lines" in said
+    assert notes.parse(made, "t.notes").notes == []
+
+
+def test_retracting_by_half_a_key_is_refused_naming_the_whole_one(declared):
+    """The key is the declaration's, so a retraction cannot half-name a
+    record and take the wrong one."""
+    with pytest.raises(notes.NotesError) as why:
+        notes.retracted(ONE_BAR, "note section A bar 1 voice melody")
+    said = str(why.value)
+    for field in declared["note"].key:
+        assert f"`{field}`" in said
+
+
+def test_a_records_prose_travels_with_it():
+    """`fixme.md` F200 decided the lines above a record **belong** to
+    it.  A retraction that left them behind would re-attach somebody's
+    sentence to the next note down."""
+    text = ONE_BAR + ("# the one that matters\n"
+                      "note  section A  bar 1  at 96  len 96  voice bass  key 48  vel f\n")
+    made, _said = notes.retracted(
+        text, "note section A bar 1 voice bass at 96 key 48")
+    assert "the one that matters" not in made
+
+
+def test_retracting_a_section_its_notes_still_name_is_refused():
+    """**The cascade question, answered without a dependency graph.**
+    Nothing in a `.notes` stores a derived fact, so the only dependency
+    inside it is one record naming another — and the parser already
+    refuses a note whose section is not there.  So the document is
+    retracted from, written, read back, and the refusal it earns is the
+    answer."""
+    with pytest.raises(notes.NotesError) as why:
+        notes.retracted(ONE_BAR, "section A")
+    said = str(why.value)
+    assert "would leave the file unreadable" in said
+    assert "no section `A`" in said
+
+
+def test_retracting_a_section_nothing_names_goes_through():
+    """`B` has no notes, so it goes and the file still reads."""
+    made, said = notes.retracted(ONE_BAR, "section B")
+    assert said == "retracted section B"
+    assert [one.name for one in notes.parse(made, "t.notes").sections] == ["A"]
+
+
+def test_assert_then_retract_is_the_file_it_started_from():
+    """On his own piece, 291 notes: the pair leaves the document byte
+    for byte where it was, in canonical order."""
+    text = PIECE.read_text()
+    made, _ = notes.asserted(
+        text, "note  section A  bar 1  at 0  len 96  voice melody  key 72  vel mf",
+        PIECE.name, where=PIECE)
+    back, _ = notes.retracted(
+        made, "note section A bar 1 voice melody at 0 key 72",
+        PIECE.name, where=PIECE)
+    assert back == notes.canonical(text, PIECE.name)

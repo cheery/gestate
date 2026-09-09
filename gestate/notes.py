@@ -548,8 +548,12 @@ def ordered(out: NotesFile) -> list[Note]:
     voices = {s.name: s.voices for s in out.sections}
     return sorted(out.notes, key=lambda one: sort_key(
         kind, record(one),
-        along=lambda _kind, _field, one: voices[one["section"]],
-        among=lambda _kind, named: place[named]))
+        along=lambda _kind, _field, one: voices.get(one["section"], ()),
+        #: A section that is not there sorts last rather than raising —
+        #: `facts.sort_key`'s own rule for the other term, and what
+        #: lets a retraction *write* the file it would leave and then
+        #: be refused by the parser reading it back.
+        among=lambda _kind, named: place.get(named, len(place))))
 
 
 def record(one: Note) -> dict:
@@ -611,6 +615,170 @@ def write(out: NotesFile) -> str:
         lines.append(_line(one))
     lines += list(out.closing)
     return "\n".join(lines) + "\n"
+
+
+#: **The two primitive edits — `card:gui-is-difficult.md`, 2026-09-09.**
+#: A document's algebra is *assert*, *retract* and *set*, and setting a
+#: field is the pair; `retune` above is the derived one and had been
+#: built for a year of afternoons before either of these existed,
+#: because a gesture on the roll can only move a note that is already
+#: there.  Adding and deleting were **typing**, in the buffer, outside
+#: the command language and outside the gesture language — which is why
+#: they are the two edits that drop a selection.
+#:
+#: Both go through `parse` and `write` rather than through the text, so
+#: a record's own prose travels with it: `fixme.md` F200 decided that
+#: the lines above a record *belong* to it, and a retraction that left
+#: them behind would silently re-attach somebody's sentence to the next
+#: note down.
+
+
+def asserted(text: str, record: str, name: str = "<notes>",
+             where=None) -> tuple:
+    """`(text, said)` — the document with one record added.
+
+    `record` is a line in the document's own syntax, which is the whole
+    of the argument: the command language does not restate the fields,
+    because the declaration beside the document already has them.
+
+    Refused when the line does not parse *in this document* — a note
+    naming no section, a bar past the section's end — with the parser's
+    own words, and when the key is already written: **a doubled line is
+    one note said twice** (`notes.doubled`, his *"the middle one"*), so
+    asserting one that is already there is a gesture with nothing to do.
+    """
+    out = parse(text, name, where=where)
+    document = _kinds(where)
+    line, _beside = _uncomment(record)
+    tokens = line.split()
+    place = f"{name}: the asserted record"
+    if not tokens:
+        raise NotesError(f"{place} is empty")
+    word = tokens[0]
+    place = f"{name}: the asserted `{word}`"
+    kind = document.kind(word)
+    if kind is None:
+        raise NotesError(
+            f"{place}: `{word}` is not a record; a line is "
+            + _oneof([f"`{k} …`" for k in document.names]))
+    if word not in ("note", "section"):
+        raise NotesError(
+            f"{place}: `{word}` cannot be added by hand; this version "
+            "asserts a note or a section")
+    if word == "section":
+        one = _section(tokens[1:], kind, 0, place)
+        if out.section(one.name) is not None:
+            raise NotesError(f"{place}: section `{one.name}` is already written")
+        out.sections.append(one)
+        said = f"section {one.name}"
+    else:
+        one = _note(tokens[1:], kind, 0, place, out)
+        for other in out.notes:
+            if _key(kind, other) == _key(kind, one):
+                raise NotesError(
+                    f"{place}: that note is already written, on line "
+                    f"{other.line} — a doubled line is one note said twice")
+        out.notes.append(one)
+        said = f"note {one.key} at {one.at} in bar {one.bar}, voice {one.voice}"
+    return write(out), f"asserted {said}"
+
+
+def retracted(text: str, key: str, name: str = "<notes>",
+              where=None) -> tuple:
+    """`(text, said)` — the document with one record's fact removed.
+
+    `key` is the record's **key**, written in the document's own
+    syntax: `note section A bar 1 voice melody at 0 key 62`, or
+    `section A`.  Which fields those are is the declaration's, so this
+    refuses a key with a field too many or too few and names the ones
+    it wanted.
+
+    **And a retraction that would leave the document unreadable is
+    refused, with the parser as the oracle.**  Nothing in a `.notes`
+    stores a derived fact — the roll, the sound and the picture are all
+    recomputed from it — so the only dependency inside the document is
+    one record naming another, and the parser already refuses a note
+    whose section is not there.  So there is no cascade to write and no
+    dependency graph to keep: *the document is retracted from, re-read,
+    and the refusal it earns is the answer.*  Henri, 2026-09-09:
+    *"retraktoidun faktan johdetut faktat pitää jotenkin kadottaa.
+    retraktio saattaa tarkoittaa uudelleenlaskentaa."*  Outside the
+    document it does mean exactly that, and nothing here has to know.
+    """
+    out = parse(text, name, where=where)
+    document = _kinds(where)
+    line, _beside = _uncomment(key)
+    tokens = line.split()
+    place = f"{name}: the retracted record"
+    if not tokens:
+        raise NotesError(f"{place} is empty")
+    word = tokens[0]
+    place = f"{name}: the retracted `{word}`"
+    kind = document.kind(word)
+    if kind is None:
+        raise NotesError(
+            f"{place}: `{word}` is not a record; a line is "
+            + _oneof([f"`{k} …`" for k in document.names]))
+    wanted = _given_key(kind, tokens[1:], place)
+    if word == "section":
+        gone = [one for one in out.sections if one.name == wanted["name"]]
+        out.sections = [one for one in out.sections if one not in gone]
+    elif word == "note":
+        gone = [one for one in out.notes
+                if all(str(record(one)[f]) == wanted[f] for f in kind.key)]
+        out.notes = [one for one in out.notes if one not in gone]
+    else:
+        raise NotesError(
+            f"{place}: `{word}` cannot be retracted by hand; this version "
+            "retracts a note or a section")
+    if not gone:
+        raise NotesError(f"{place}: no `{word}` here says that")
+    made = write(out)
+    try:
+        parse(made, name, where=where)
+    except NotesError as why:
+        raise NotesError(
+            f"{place}: retracting it would leave the file unreadable — "
+            f"{why}") from None
+    #: **Every line that said it goes**, not the first: two identical
+    #: lines are one note said twice, so retracting the note retracts
+    #: the saying of it.
+    lines = "" if len(gone) == 1 else f", written on {len(gone)} lines"
+    return made, f"retracted {word} {' '.join(tokens[1:])}{lines}"
+
+
+def _key(kind, one: Note) -> tuple:
+    """A note's key, as the declaration names it."""
+    return tuple(str(record(one)[f]) for f in kind.key)
+
+
+def _given_key(kind, tokens: list[str], place: str) -> dict:
+    """The key a person wrote, read against the declaration's.
+
+    A `Headed` kind's key is the bare name after the word; a `Named`
+    kind's is field-and-value pairs.  Exactly the key fields, so a
+    retraction cannot half-name a record and take the wrong one.
+    """
+    if kind.shape[0] == "Headed":
+        if len(tokens) != 1:
+            raise NotesError(
+                f"{place}: name one `{kind.name}` — its key is its "
+                f"`{kind.shape[1]}`")
+        return {kind.shape[1]: tokens[0]}
+    got: dict[str, str] = {}
+    rest = list(tokens)
+    while rest:
+        field = rest.pop(0)
+        if not rest:
+            raise NotesError(f"{place}: `{field}` has no value")
+        got[field] = rest.pop(0)
+    if set(got) != set(kind.key):
+        raise NotesError(
+            f"{place}: a `{kind.name}` is named by "
+            + ", ".join(f"`{f}`" for f in kind.key)
+            + " and this says "
+            + (", ".join(f"`{f}`" for f in sorted(got)) or "nothing"))
+    return got
 
 
 def canonical(text: str, name: str = "<notes>") -> str:

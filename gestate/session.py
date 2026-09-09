@@ -2462,6 +2462,91 @@ class Session:
             return said + self._hear_from(roll, note, text)
         return said
 
+    def _document_of(self, found):
+        """`(path, name, mine, text)` — the `.notes` a box's notes are
+        written in, or `None`.
+
+        Found by the origin of any line the box's roll came from, which
+        is the same map `_retune_included` reads for one note.  A box
+        drawing a `.ges` score has no document and says so: `assert` and
+        `retract` are edits to a **document**, and a `.ges` note is a
+        line and an atom rather than a record (Q7's C).
+        """
+        from pathlib import Path as _Path
+
+        origins = getattr(self.bench, "origins", None) or {}
+        for leaf in getattr(found.roll, "leaves", ()):
+            where = origins.get(getattr(leaf, "line", None))
+            if where is None:
+                continue
+            name, _at = where
+            path = _Path(getattr(self.bench, "path", ".")).parent / name
+            mine = self._is_document(name)
+            return path, name, mine, (self.view.text() if mine
+                                      else path.read_text())
+        return None
+
+    def do_assert(self, region: str, record: str) -> str:
+        """Add a record to the document a score box draws.
+
+        **The first of the two primitive edits to reach the command
+        language** — `card:gui-is-difficult.md`, 2026-09-09.  Until now
+        a note was made by typing its line, which is why creating one
+        was the edit a selection could not survive: nothing named it, so
+        nothing could follow it.
+
+        The record is the document's own line, checked by the document's
+        own parser, and written through `_write_included` like every
+        other gesture — so the file comes back canonical and the note
+        sorts to where it sounds.
+        """
+        from .notes import NotesError, asserted
+
+        found = (getattr(self.bench, "note_regions", None) or {}).get(region)
+        if found is None:
+            return f"assert: no score box region called `{region}`"
+        got = self._document_of(found)
+        if got is None:
+            return "assert: this box draws no note a `.notes` file wrote"
+        path, name, mine, text = got
+        try:
+            out, said = asserted(text, record, name, where=path)
+            self._write_included(path, out, mine)
+        except (OSError, NotesError) as exc:
+            return f"assert: {exc}"
+        self.bench.audition(self.view.text())
+        return f"assert: {name} — {said}"
+
+    def do_retract(self, region: str, key: str) -> str:
+        """Take a record out of the document a score box draws.
+
+        The other primitive.  `key` names the record the way the
+        declaration says a record is named, and **a retraction that
+        would leave the document unreadable is refused in the words the
+        parser would have used reading it back** — which is the whole of
+        the cascade rule, and it needs no dependency graph because a
+        `.notes` stores nothing derived.  What *is* derived — the roll,
+        the picture, the sound — is recomputed by the rebuild this
+        write causes, which is what Henri meant by *retraktio saattaa
+        tarkoittaa uudelleenlaskentaa*.
+        """
+        from .notes import NotesError, retracted
+
+        found = (getattr(self.bench, "note_regions", None) or {}).get(region)
+        if found is None:
+            return f"retract: no score box region called `{region}`"
+        got = self._document_of(found)
+        if got is None:
+            return "retract: this box draws no note a `.notes` file wrote"
+        path, name, mine, text = got
+        try:
+            out, said = retracted(text, key, name, where=path)
+            self._write_included(path, out, mine)
+        except (OSError, NotesError) as exc:
+            return f"retract: {exc}"
+        self.bench.audition(self.view.text())
+        return f"retract: {name} — {said}"
+
     def do_move(self, region: str, was: int, at: int) -> str:
         """Move the note a score box has selected, in time.
 

@@ -3500,6 +3500,41 @@ def test_a_group_follows_through_the_rebuild_and_can_be_carried_twice():
     assert seat.run("carry", "__nb_rail_0__", 2, 0).startswith("carry: arc.notes —"), "a second carry, no second sweep"
 
 
+def test_a_note_is_asserted_and_retracted_through_the_commands():
+    """**The two primitive edits, reachable from the command language**
+    — `card:gui-is-difficult.md`, 2026-09-09.  Until this landed a note
+    was created by typing its line, outside the vocabulary and outside
+    the transcript, which is why creating one was an edit no selection
+    could survive.
+
+    The record is the document's own line and the key is the
+    declaration's, so neither command restates what a note may carry.
+    """
+    _here, seat, view, roll = _page_seat()
+    before = len(roll.events)
+    said = seat.run("assert", "__nb_rail_0__",
+                    "note  section A  bar 1  at 0  len 96  voice melody  key 72  vel mf")
+    assert said.startswith("assert: arc.notes — asserted note 72"), said
+    grown = _rebuilt(seat)
+    assert len(grown.events) == before + 1
+    said = seat.run("retract", "__nb_rail_0__",
+                    "note section A bar 1 voice melody at 0 key 72")
+    assert said.startswith("retract: arc.notes — retracted note"), said
+    assert len(_rebuilt(seat).events) == before
+
+
+def test_a_retraction_that_would_break_the_file_is_refused_by_the_parser():
+    """The cascade rule with the parser as its oracle: nothing in a
+    `.notes` stores a derived fact, so the only dependency inside it is
+    one record naming another, and the file is retracted from, written,
+    read back, and the refusal it earns is the answer."""
+    _here, seat, view, roll = _page_seat()
+    before = len(roll.events)
+    said = seat.run("retract", "__nb_rail_0__", "section A")
+    assert "would leave the file unreadable" in said and "no section `A`" in said, said
+    assert len(_rebuilt(seat).events) == before, "and nothing was written"
+
+
 def test_a_unison_doubling_is_transposed_through_the_selection():
     """Seven places on `arc.notes` where two voices sound one key at one
     tick.  **The voice is the address** (Henri, 2026-09-08: "laita

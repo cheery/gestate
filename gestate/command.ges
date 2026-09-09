@@ -280,6 +280,46 @@ resize region voice tick key len = Stated
 stretch : Text -> Int -> Command
 stretch region ticks = Stated
 
+#: **Add a record to the document a score box draws** — the first of
+#: the two primitive edits, `card:gui-is-difficult.md` §"The document,
+#: decided".  Until now a note was created by *typing its line* in the
+#: buffer, outside this vocabulary and outside the gesture language,
+#: which is why a typed edit is the one that drops a selection.
+#:
+#: `record` is the line itself, in the document's own syntax —
+#: `note  section A  bar 1  at 0  len 96  voice melody  key 62  vel mf`.
+#: The fields are not restated here on purpose: what a `note` may carry
+#: is declared beside the document (`gestate/notes.ges`), and a command
+#: language that listed them again would be a second place to be wrong.
+#:
+#: Refused in the document's own words when the line does not parse
+#: *there* — a section it does not have, a bar past the end — and when
+#: the record is already written, since a doubled line is one note said
+#: twice and asserting it again has nothing to do.
+assert : Text -> Text -> Command
+assert region record = Stated
+
+#: **Take a record out of the document a score box draws** — the other
+#: primitive, and `transpose` is the two of them together.
+#:
+#: `key` is the record's **key**, in the document's own syntax:
+#: `note section A bar 1 voice melody at 0 key 62`, or `section A`.
+#: Which fields those are is the declaration's, so a key with a field
+#: too many or too few is refused and told which ones name a record.
+#: Every line that says it goes, because two identical lines are one
+#: note said twice.
+#:
+#: **And a retraction that would leave the document unreadable is
+#: refused, with the parser as the oracle.**  Nothing in a `.notes`
+#: stores a derived fact, so the only dependency inside it is one
+#: record naming another; retracting a section its notes still name is
+#: refused in the words the parser would have used reading the file
+#: back.  Everything derived *outside* the document — the roll, the
+#: picture, the sound — is recomputed, which is what a retraction means
+#: there.
+retract : Text -> Text -> Command
+retract region key = Stated
+
 #: Give the section a score box draws a new length in bars — what a
 #: hand on the box's **ruler** runs when it lets go (`card:notes-editor.md`
 #: slice 4, *resize the clip*, which Henri answered as the section's

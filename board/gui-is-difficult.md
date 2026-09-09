@@ -2405,6 +2405,74 @@ sentence was worth asking about at all.  `spec/drawnscores.md`
 §"The include door" carries it where a reader of the format will meet
 it.
 
+### Landed — 2026-09-09: assert and retract, and what a retraction turned out to be
+
+*"tehdään 7. assert ja retract, retraktoidun faktan johdetut faktat
+pitää jotenkin kadottaa.  retraktio saattaa tarkoittaa
+uudelleenlaskentaa.  katso mitä siitä tulee."*
+
+**The two primitive edits, and they are commands now.**  `assert
+<region> <record>` takes the document's own line — `note  section A
+bar 1  at 0  len 96  voice melody  key 62  vel mf` — and `retract
+<region> <key>` takes the record's **key** in the same syntax, `note
+section A bar 1 voice melody at 0 key 62`, or `section A`.  Neither
+restates what a record may carry: the fields are the declaration's, and
+a key with a field too many or too few is refused and told which fields
+name a record.  Both write through `_write_included`, so the file comes
+back canonical like every other gesture.
+
+**Until today adding and deleting a note were *typing*** — in the
+buffer, outside the command language and outside the gesture language,
+which is exactly why they were the two edits a selection could not
+survive.  Now the transcript holds them.
+
+**And his question answered itself, from both ends, with nothing new
+written for it.**
+
+- *Inside the document there is no dependency graph to keep*, because a
+  `.notes` stores nothing derived: the roll, the picture and the sound
+  are all recomputed from it, so the only dependency is **one record
+  naming another**.  And the parser already refuses a note whose
+  section is not there.  So the rule is: **retract, write, read back,
+  and the refusal it earns is the answer.**  Retracting `section A` on
+  his own piece says *retracting it would leave the file unreadable —
+  arc.notes:223: no section `A`; this file has `B`, `C`*, in the
+  parser's own words, and nothing is written.
+- *Outside the document, retraction **is** recomputation* — his guess,
+  and the card had already measured that the machine has no other
+  option: `tools/retraction.py`, 2026-09-07, *there is no retraction;
+  every evaluation is whole, and a row gone costs the same as the row
+  kept*.  What looked like the open question of the relational model
+  (`doc/notes/notes-on-the-model.md`, failure mode 3) was answered at
+  both ends by things already in the tree, at opposite ends of it.
+
+**One thing it needed on the way, and it is the same rule twice.**
+`ordered` raised on a note whose section had just been retracted, so a
+retraction could not even *write* the file it would leave.  It now
+sorts such a note last — which is `facts.sort_key`'s own stated rule
+for `Along` (*a value absent from that sequence sorts last rather than
+raising: refusing it belongs to the parser, which names the line*),
+applied to `Among`.  The declaration's rule and the parser's division
+of labour turned out to be the thing that made the refusal possible.
+
+**Two smaller decisions, each following something already decided.**  A
+record's **prose travels with it** — F200 says the lines above a record
+belong to it, and a retraction that left them behind would re-attach
+somebody's sentence to the next note down.  And **every line that says
+it goes**, not the first: two identical lines are one note said twice
+(Q7), so retracting the note retracts the saying of it, and the
+sentence says how many lines went.
+
+**Held by** twenty-five tests in `test/test_facts.py` and two in
+`test/test_drawnscores.py` that drive the commands on his piece
+through the real regions, and 533 green across the parser's users.
+`doc/ref/commands.md` regenerated.
+
+**Not built:** `bpm` is neither asserted nor retracted (it is `Bare`
+and `tempo` writes it), and **no gesture runs either command yet** — a
+person types them.  A press that *creates* a note is idea 8's, where an
+element carries a meaning and the empty roll is a thing you can press.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
@@ -2461,7 +2529,9 @@ is a design and no build:
    with `include` kept for the data, his *"(2)"*.  **Done.**
 7. **Assert and retract**, the two primitive verbs, with `set` as the
    pair — so that adding and deleting a note stop being *typing* and
-   become commands the transcript holds.
+   become commands the transcript holds.  **It landed on 2026-09-09** —
+   §"Landed — 2026-09-09: assert and retract"; what is left of it is a
+   *gesture* that runs them, which is 8.
 8. **An element carries a meaning** — `On` beside `Rect`, the press
    naming the fact's key; measured at 6–14 % (`tools/pressable.py`),
    and it is what takes the five spellings of one straight line out of
