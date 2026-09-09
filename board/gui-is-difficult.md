@@ -1867,6 +1867,87 @@ the program, and the program is the right container for one of them.
 **Where each of the three lives is his question, and it is not answered
 here.**
 
+### The document, decided — 2026-09-09
+
+*The clean board's first answer, and it came from him striking the
+framing rather than the design.*  **Henri:** *"Haluaisin jotakin
+yleiskäyttöistä, mutta tuntuu että sitä ei ole, jokainen GUI-asia
+tuntuu vaativan samat asiat, mutta eri muodoissa.  Suunnitellaanko se
+dokumentti, eli mikä malli on, miten se säilyy, mitä komento
+editoi?"*
+
+**What the tree already does twice, unsaid.**  `.notes` and `.desk`
+are one grammar: comment lines and record lines, a record being a kind
+word and its fields, one record to a line, the file plain text.
+`.desk` is that with positional fields, `.notes` with named ones.
+Three things vary and nothing else — **the kinds and their fields, the
+key of each kind, and the order** — and all three are written by hand,
+in Python, once per format.
+
+**And what a command edits was already this, measured.**  The roll's
+seven verbs are three shapes:
+
+| shape | the verbs | |
+|---|---|---|
+| set one field of one record | `transpose` (`key`), `mark` (`manner`), `resize` (`len`) | one address, `region voice tick was` |
+| set one field of a set | `move` (`at`), `carry` (`key`+`at`), `stretch` (`len`) | the same, over the selection |
+| define the set | `select` | the band as a query |
+
+Three verbs sharing an address and differing by *which field* are one
+verb with a field argument; the musical names are sugar over it, which
+is Q2's finding again — the framework provides structure and no verbs.
+
+**The algebra has three operations and gestate has one.**  Add, remove,
+set — and only `set` is a command.  A note is created and destroyed by
+**typing the line**, in the buffer, outside the command language and
+outside the gesture language.  Those are exactly the edits that drop a
+*thing* reference (Q7, *G never*).  The form named a gap nobody had
+listed, which is the best evidence for it there is.
+
+**So the answer to *why the same things keep arriving in different
+forms*: there are three forms, all three are already in the tree, and
+only two of them have ever been declared.**
+
+| | what it is | where it lives | declared? |
+|---|---|---|---|
+| **records** | what persists, and what a command edits | the text, and the parsed records | **no** — `notes.py` and `desk.py`, by hand |
+| **charts** | what is transient and spread over time | four charts on `chart.ges` | yes, 2026-09-07/08 |
+| **queries** | what is derived and drawn | the roll's two layers | yes, 2026-09-08 |
+
+`scorebox.py`'s 2,232 lines are what one hand-written record
+declaration costs.
+
+**What would kill the record line:** it is **flat**.  `.notes` carries
+hierarchy by denormalising — `section A` repeats on every note line.  A
+table fits; a tree does not.
+
+**His decisions, 2026-09-09:**
+
+> *"Se voisi olla yhdentyyppinen dokumentti jota gestate muokkaa.
+> kyllä, tietuerivi voisi olla se muoto.  ja molemmat avaimet.  .ges
+> jää editoitavaksi ohjelmana, eikä ole tällainen dokumentti.  Vielä
+> yksi asia tosin: me voitaisiin ottaa se gex-spreadsheet ja sovittaa
+> se tähän dokumenttityyppiin mukaan."*
+
+So, and each of these is now settled:
+
+1. **One kind of document, and gestate edits it.**  Not a document
+   type per client.
+2. **The record line is the form.**  Kinds and fields, one record to a
+   line, plain text, an agreed order.
+3. **Both keys.**  The *kind* declares what its key is — Q7's B for a
+   note — and a *reference* declares which kind of reference it is —
+   Kale's thing, place or set.  They are two questions and both are
+   answered.
+4. **`.ges` stays outside**, edited as a program.  Its identity is the
+   line and the atom (Q7's C), and that is not this.
+5. **`card:gex-sheet.md` joins it**: the sheet is fitted to this
+   document type rather than given one of its own, which answers that
+   card's Q1 — *what is the model* — before it comes off the shelf.
+
+**Open: what these documents are called.**  His question, unanswered
+here on purpose.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?

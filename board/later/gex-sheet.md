@@ -62,6 +62,24 @@ grid view too**, his ask — a notes file is already a table.
 3. **Drawn before modelled** — the score box's hundred and thirty
    hands.  The framework first, this as its first client.
 
+## Fitted to gestate's one document type — Henri, 2026-09-09
+
+**Q1 below is answered before this card wakes.**  In
+`card:gui-is-difficult.md`'s clean-board sitting he took `.notes` and
+`.desk` as one form — a text of **record lines**, a record being a kind
+word and its fields, with the kind declaring its key and a reference
+declaring whether it means a thing, a place or a set — and then:
+*"me voitaisiin ottaa se gex-spreadsheet ja sovittaa se tähän
+dokumenttityyppiin mukaan."*
+
+So a `.gex` is not a format of its own: a cell is a record, its
+address is its key, and the sheet's kinds sit beside `note`, `section`
+and `knob` in one grammar.  Kale's three reference kinds — `Col[0]` a
+thing, `Col[+1]` a place, a query a set — are the second half of that
+decision and were already this card's open question.  What stays this
+card's own: where time lives in a sequencer sheet, and how long the
+G-machine takes over a few hundred cells.
+
 ## Questions — day one, when it wakes
 
 1. **What is the model?**  Sheet := a relation from address to
