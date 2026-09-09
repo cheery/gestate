@@ -2142,6 +2142,51 @@ stay named as the separate designs they always were.  `chart.ges`,
 looks like: small pieces the form needs, built when the form needs
 them, and no toolkit.
 
+### Layers, and the measurement that says they are enough — 2026-09-09
+
+**Henri, on the five buried notes:** *"ne hautautuneet nuotit ovat
+asianmukaisia ja kuuluvat kappaleeseen.  Voisimme tehdä jonkinsortin
+layer-järjestelyn kuten piirto-ohjelmissa on.  Eli käyttäjä muokkaa
+kerrosta ja avattu kerros olisi näkyvillä ensi sijassa."*
+
+**Measured, and it answers completely on his own piece.**  Every one of
+the stacked roll's 8 overlapping pairs is **cross-voice**; **not one is
+within a voice**.  And all five buried notes are `melody`, buried under
+`lower` and `middle`:
+
+| buried note | its voice | drawn over it by |
+|---|---|---|
+| 6 | melody | lower |
+| 14 | melody | lower |
+| 15 | melody | middle |
+| 16 | melody | middle |
+| 23 | melody | lower |
+
+So with the open layer drawn on top, **every note of the open layer is
+whole and pressable** — because there are no same-voice overlaps to
+bury one of its own.  Painter's order then decides the rest, and idea
+2 is exactly true again *within the layer you are editing*, which is
+the only place a press has to be right.
+
+**And a layer needs no new mechanism: it is a value of a field.**  The
+open layer is `voice == melody` — a **set** reference in Kale's sense,
+a query re-run, the third of the three kinds this card already carries.
+Nothing is added to the document; which field a kind layers by is one
+more line of the schema that will live in `<file>.ges`, beside `key`
+and `order`.  The picture is then drawn in two passes, the others and
+then the open layer, which is structurally the split
+`scorebox._layers` already makes for standing and carried notes.
+
+**One thing the measurement turned up on the way, and it sharpens the
+proposal.**  On this roll every note is drawn in **one hue**: the leaf
+`bank` is `None` for all 88, so `tone` is 0 throughout.  A voice is
+invisible in the picture today — five voices, one colour.  So the layer
+is not only how a press is disambiguated; it is the first thing that
+would make the voices visible at all.
+
+*Not built, and the field to layer by is `voice` for `note` and
+undecided for every other kind.*
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
