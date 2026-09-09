@@ -2682,7 +2682,13 @@ built past them.**
    (`Session.agreed`/`disagreed`).  Answering it is what lets the
    lookup — and the geometry under it — go.  **It is a question for a
    hand**, so the way to ask it is to put one on the roll, not to
-   reason about it.
+   reason about it.  **Answered, Henri, 2026-09-09, evening**, after a
+   hand on the roll verifying the drag: *"I think, when I tried it,
+   that the way it is now is ok."*  So the picture leads, the model's
+   lookup with the roll's tolerance stays as the floor, and both keep
+   running; deleting the lookup is not asked for.  *"I think I let
+   this sit for a moment and go to sleep."*  — the card sits, on his
+   word, and nothing below is started on it.
 2. **Which note a press means where two are drawn over each other.**
    8 pairs on `arc.notes`, all across voices, 5 notes wholly covered
    (`python tools/pressable.py --overlap`).  His own answer so far is
@@ -2706,7 +2712,9 @@ and the targeted suites the day touched are 740 + 174 + 38 + 34 + 212 +
    fraction and the pitch's and turns them into a tick and a key, and
    the end-of-note decision is still `EDGE_PX` against `x_of`.  That is
    where the five spellings of one straight line actually leave the
-   tree, and it waits on decision 1 above.
+   tree, and it waited on decision 1 above — answered 2026-09-09:
+   the tolerance stays, so what this step removes is the inversion
+   and not the lookup.
 2. **A driven run over the roll.**  The hit path changed today and the
    one instrument not applied to it is a real window
    (`tools/driven.py`).  It takes his screen, so it is his to call —
