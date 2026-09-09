@@ -187,7 +187,7 @@ fn subtags(t: &[i64]) -> SubTags {
     SubTags { rect: t[0], circle: t[1], gap: t[2], over: t[3], row: t[4],
               column: t[5], shift: t[6], sized: t[7], pad: t[8],
               touch_x: t[9], touch_y: t[10], label: t[11],
-              cons: t[12], nil: t[13] }
+              meaning: t[12], cons: t[13], nil: t[14] }
 }
 
 impl Walker {

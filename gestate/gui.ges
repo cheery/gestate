@@ -45,6 +45,7 @@ Sub := Rect Int Int Colour
      | TouchX (Chan Float) Sub
      | TouchY (Chan Float) Sub
      | Label Int Int String Colour
+     | Meaning (Chan Float) Float Sub
 
 # ── What can arrive ──────────────────────────────────────────────────────
 #
@@ -284,6 +285,38 @@ onTouchX c s = map (p => TouchX c p) s
 onTouchY : Chan Float -> Sig Sub -> Sig Sub
 onTouchY c s = map (p => TouchY c p) s
 
+#: **Say what this element *is*, and write that when it is pressed.**
+#:
+#: The other kind of attachment, and the difference is the whole of it:
+#: `onTouchX` reports a **place** — where in this element the hand is,
+#: as a fraction — and this reports a **thing**, the number the program
+#: gave the element when it built it.  A fader wants the first; one of
+#: nine cells, or one of three hundred notes, wants the second.
+#: `card:gui-is-difficult.md`, 2026-09-09, and Kale's reading one layer
+#: down: *a reference names its kind*.
+#:
+#: **Why a number and not the program's own type.**  There is no
+#: `Sub a` — the note above `TouchX` says why — so what an element
+#: carries is a `Float`, and what that number *means* is the program's
+#: business.  For a board it is the cell; for a roll it would be the
+#: note's key, encoded; the rule the card states is that it is the
+#: model's key and never the picture's index, and that rule lives in
+#: the program because the number does.
+#:
+#: **One channel, many elements**, which is the point.  A `Chan` is a
+#: declaration and there is one per program line, so nine cells could
+#: never be nine channels built from a list; nine `Meaning`s on one
+#: channel is what a list can build.
+#:
+#: **It writes on the press and on nothing else** — not on a drag's
+#: motion, not on the release.  A thing does not change while the hand
+#: moves over it, and a program that folded over a drag would place
+#: nine marks between two cells.  That is idea 3's *a gesture writes
+#: nothing until it commits*, arriving for free: a press on a thing
+#: **is** the commit.
+onPress : Chan Float -> Sig Float -> Sig Sub -> Sig Sub
+onPress c v s = !(meaning c) v s
+
 # ── Numbers beside a substrate ───────────────────────────────────────────
 
 #: What a bare number means beside a substrate: the same number, always —
@@ -306,3 +339,12 @@ internal
 #: lift the three arguments that may vary.  A program writes `label`.
 labelAt : String -> Int -> Int -> Colour -> Sub
 labelAt s w h c = Label w h s c
+
+# ── What `onPress` is built out of ───────────────────────────────────────
+
+#: `Meaning` with its channel first, for `labelAt`'s reason: the channel
+#: is closed over and the two that may vary are lifted.  A program
+#: writes `onPress`, or the constructor itself where it is already
+#: building a `Sub` by hand.
+meaning : Chan Float -> Float -> Sub -> Sub
+meaning c v s = Meaning c v s

@@ -2473,6 +2473,58 @@ and `tempo` writes it), and **no gesture runs either command yet** — a
 person types them.  A press that *creates* a note is idea 8's, where an
 element carries a meaning and the empty roll is a thing you can press.
 
+### Slice 8, opened — 2026-09-09: an element carries a meaning
+
+**Postcondition, written before anything is built:** *a press on one of
+many things made from data says **which one**, without the program
+working it out from where the press landed — so the arithmetic that
+turns a place into a thing is gone from the program and the two
+machines have nothing left to disagree about.*
+
+**And the concern, stated before starting.**  This is a change to the
+substrate's vocabulary, and a vocabulary is two machines: `gui.py`
+walks it and so does the window, in Rust, in three crates, with the
+constructor tags carried positionally in six places.  A word a person
+may write that the window ignores is `fixme.md` F213's exact shape —
+`bounce.ges` folds over `Press` events the workbench never sends — so
+this lands **wired in both machines or not at all**.
+
+**The word, wired in both — 2026-09-09.**  `Meaning (Chan Float) Float
+Sub`, appended to `Sub` so every tag before it stays where the hosts
+had it, and `onPress c v s` in front of it.  It reports a **thing**
+where `onTouchX` reports a **place**: the number the program gave the
+element when it built it, not a fraction of where the hand landed.
+One channel serves many elements, which is the whole point — a `Chan`
+is a declaration, so nine cells could never be nine channels, and nine
+meanings on one channel is what a list can build.  **It writes on the
+press and on nothing else**, which is idea 3's *a gesture writes
+nothing until it commits* arriving for free: a press on a thing is the
+commit.
+
+- *The reference machine:* `gui.py`'s `_extent`, `_walk` and
+  `_gesture_value`; the hit's region is the declared extent, so what is
+  drawn and what is pressable come from one arithmetic.  Checked by
+  hand on a three-cell row — the regions are the drawn rectangles, and
+  a press answers 0, 1, 2 while a drag and a release answer nothing.
+- *The window:* `SubTags.meaning` and the `extent`/`walk` arms in
+  `shell/panel/src/substrate.rs`; `Kind::Means` and `Hit.means` in
+  `list.rs`; `Grab` in `canvas.rs`, where a motion filters the things
+  out and leaves the places.  The editor gets it through `Canvas`
+  unchanged.  The tag list is `export.py`'s `_SUB_CONS`, appended, and
+  the five host-side tag tables follow it; the web wire's hit record is
+  eight words now, the eighth the meaning's `f32` bits.
+- *Held by* a Rust test — three cells on one channel, the regions laid
+  out by the row, and the same number answered at either edge of a
+  cell — and the 67 panel tests, 9 web tests, 34 `test_gui.py` and the
+  gates, all green.
+
+**Where it stopped, 2026-09-09** (*"täytyy keskeyttää"*): the word is
+wired and nothing writes it yet.  `examples/gui/tic-tac-toe.ges` is
+still the pad-and-pairing version, and rewriting it on `onPress` is the
+measurement this slice owes — the 18 hand-lines against what they
+become.  The roll's generator and the hand chart are after that, and
+neither is started.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?

@@ -20,14 +20,14 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**492 complaints**, in 48 files.
+**493 complaints**, in 48 files.
 
 | | |
 |---|---|
 | `author` | 272 |
 | `command` | 43 |
 | `world` | 27 |
-| `machine` | 150 |
+| `machine` | 151 |
 | say where | 176 |
 | say `nowhere`, on purpose | 51 |
 | `unplaced`, with a defect that owns it | 59 |
@@ -70,7 +70,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `elaborate.py:224` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
 | `elaborate.py:256` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
 | `elaborate.py:264` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
-| `export.py:742` | `ExportError` | fixme.md F156: a control channel the author declared, named by the channel and not by the line |
+| `export.py:746` | `ExportError` | fixme.md F156: a control channel the author declared, named by the channel and not by the line |
 | `gmachine.py:1248` | `GmError` | fixme.md F159: a signal read out of turn is the program's mistake, and the instruction that reads it carries no span the way `Hole` does |
 | `gmachine.py:1346` | `GmError` | fixme.md F159: a match that covers nothing is the program's mistake; exhaustiveness catches most of them and this is what catches the rest |
 | `gmachine.py:1371` | `GmError` | fixme.md F159: dividing by zero is a program's own doing and the instruction carries no span |
@@ -79,8 +79,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:621` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:624` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:650` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:653` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1155` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
@@ -126,7 +126,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `desugar.py:180` | `DesugarError` | which libraries the program was assembled with, which is a fact about the assembly and not about a line of it |
 | `desugar.py:379` | `DesugarError` | an implicit nothing supplies is an absence, and an absence is not written anywhere |
-| `export.py:752` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
+| `export.py:756` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
 | `facts.py:83` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:93` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:99` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
@@ -139,9 +139,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:255` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:605` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:903` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:925` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:634` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:932` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:954` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -574,11 +574,11 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 726 | `ExportError` | `world` | — | 'no clang to build the graph with' |
-| 728 | `ExportError` | `world` | — | 'no cargo to build the shell with — the CLAP shell is Rust (`shell/clap/`)' |
-| 742 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
-| 752 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
-| 797 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
+| 730 | `ExportError` | `world` | — | 'no clang to build the graph with' |
+| 732 | `ExportError` | `world` | — | 'no cargo to build the shell with — the CLAP shell is Rust (`shell/clap/`)' |
+| 746 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
+| 756 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
+| 801 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
 
 ### `facts.py`
 
@@ -649,21 +649,22 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 112 | `GuiError` | `author` | *nowhere, on purpose* | 'this program declares a `scene`, which the canvas no longer draws. Rename it `substrate` and b… |
 | 256 | `GuiError` | `machine` | — | 'null indirection while reading a scene' |
 | 274 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
-| 286 | `GuiError` | `machine` | — | 'expected a list cell, got {type(node).__name__}' |
-| 290 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
-| 298 | `GuiError` | `machine` | — | 'expected an RGB colour' |
-| 352 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 395 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 423 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 499 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 511 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 605 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 621 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 624 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 648 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 903 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 925 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1236 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 284 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
+| 296 | `GuiError` | `machine` | — | 'expected a list cell, got {type(node).__name__}' |
+| 300 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
+| 308 | `GuiError` | `machine` | — | 'expected an RGB colour' |
+| 362 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 409 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 437 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 528 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 540 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
+| 634 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 650 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 653 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 677 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 932 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 954 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1273 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 

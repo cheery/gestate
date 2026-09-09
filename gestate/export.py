@@ -266,6 +266,10 @@ def program_of(source: str, rate: int):
 #: the shell cannot derive one — same reasoning as the cue tags above.
 _SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
              "Shift", "Sized", "Pad", "TouchX", "TouchY", "Label",
+             # **Appended, not inserted**: the hosts index this list
+             # positionally, so a new constructor goes on the end and
+             # every tag before it stays where they already had it.
+             "Meaning",
              # Not `Sub` constructors: a `Label` carries a `String` and
              # a `String` is `List Char`, so the walk needs the two tags
              # any list needs.  That is the whole cost of text crossing

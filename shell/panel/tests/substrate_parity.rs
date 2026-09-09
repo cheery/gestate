@@ -45,7 +45,7 @@ fn tags() -> SubTags {
         rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
         row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
         pad: raw[8], touch_x: raw[9], touch_y: raw[10], label: raw[11],
-        cons: raw[12], nil: raw[13],
+        meaning: raw[12], cons: raw[13], nil: raw[14],
     }
 }
 
@@ -395,7 +395,7 @@ fn lantern() -> CanvasProgram {
             rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
             row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
             pad: raw[8], touch_x: raw[9], touch_y: raw[10],
-            label: raw[11], cons: raw[12], nil: raw[13],
+            label: raw[11], meaning: raw[12], cons: raw[13], nil: raw[14],
         },
         chans: vec!["warmthChan".into(), "glowChan".into(), "peak".into()],
         // The slots `export.substrate_of` reports for this file.
@@ -551,7 +551,7 @@ fn lantern_tags() -> SubTags {
         rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
         row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
         pad: raw[8], touch_x: raw[9], touch_y: raw[10], label: raw[11],
-        cons: raw[12], nil: raw[13],
+        meaning: raw[12], cons: raw[13], nil: raw[14],
     }
 }
 

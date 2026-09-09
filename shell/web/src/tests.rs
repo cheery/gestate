@@ -66,7 +66,7 @@ enum Read {
     Text(i32, i32, i32, i32, String),
 }
 
-fn wire(w: *mut Web) -> (Vec<Read>, Vec<[i32; 7]>) {
+fn wire(w: *mut Web) -> (Vec<Read>, Vec<[i32; 8]>) {
     let p = unsafe { web_display(w) };
     assert!(!p.is_null(), "no wire");
     let at = |i: usize| unsafe { *p.add(i) };
@@ -99,12 +99,12 @@ fn wire(w: *mut Web) -> (Vec<Read>, Vec<[i32; 7]>) {
     }
     let mut listening = Vec::new();
     for _ in 0..hits {
-        let mut h = [0i32; 7];
+        let mut h = [0i32; 8];
         for (i, slot) in h.iter_mut().enumerate() {
             *slot = at(c + i);
         }
         listening.push(h);
-        c += 7;
+        c += 8;
     }
     (drawn, listening)
 }

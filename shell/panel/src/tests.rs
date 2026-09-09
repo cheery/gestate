@@ -153,10 +153,10 @@ fn an_integer_knob_steps() {
 fn x_grows_rightward_and_y_grows_upward() {
     use crate::list::Hit;
     let hx = Hit { kind: Kind::Fader(Axis::X), param: 0,
-                   region: (0, 0, 100, 20) };
+                   region: (0, 0, 100, 20), means: 0.0 };
     assert!(hx.fraction(10, 10) < hx.fraction(90, 10));
     let hy = Hit { kind: Kind::Fader(Axis::Y), param: 0,
-                   region: (0, 0, 20, 100) };
+                   region: (0, 0, 20, 100), means: 0.0 };
     assert!(hy.fraction(10, 90) < hy.fraction(10, 10),
             "a fader grows upward where screen y grows downward");
 }
@@ -165,7 +165,7 @@ fn x_grows_rightward_and_y_grows_upward() {
 fn a_point_outside_the_track_clamps() {
     use crate::list::Hit;
     let h = Hit { kind: Kind::Fader(Axis::X), param: 0,
-                  region: (0, 0, 100, 20) };
+                  region: (0, 0, 100, 20), means: 0.0 };
     assert_eq!(h.fraction(-50, 10), 0.0);
     assert_eq!(h.fraction(500, 10), 1.0);
 }

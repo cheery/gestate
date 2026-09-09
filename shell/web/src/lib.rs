@@ -45,10 +45,15 @@
 //!       0 RECT   x y w h rgb
 //!       1 DOT    cx cy r rgb
 //!       2 TEXT   x y scale rgb len  then `len` code points
-//!   then `hits` records, each seven words:
-//!       kind axis extra x0 y0 x1 y1
-//!   where kind is 0 fader, 1 toggle, 2 button, 3 channel, and `extra`
-//!   is the parameter, the button's action, or the channel id.
+//!   then `hits` records, each eight words:
+//!       kind axis extra x0 y0 x1 y1 means
+//!   where kind is 0 fader, 1 toggle, 2 button, 3 channel, 4 meaning,
+//!   and `extra` is the parameter, the button's action, or the channel
+//!   id.  `means` is the number a **meaning** writes when it is pressed
+//!   — an element that says what it *is* rather than where it was
+//!   touched (`gui.ges`' `onPress`) — as the bits of an `f32`, which a
+//!   page reads with a `Float32Array` view over the same buffer.  Zero
+//!   for every other kind, and unread.
 //! ```
 //!
 //! A record's length is implied by its kind, so the reader walks with a
@@ -159,7 +164,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
         park_opening("web: open without a program");
         return std::ptr::null_mut();
     }
-    let t = std::slice::from_raw_parts(tags, 14);
+    let t = std::slice::from_raw_parts(tags, 15);
     let program = CanvasProgram {
         text: text_at(text, text_len),
         entry: {
@@ -170,7 +175,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
             rect: t[0], circle: t[1], gap: t[2], over: t[3],
             row: t[4], column: t[5], shift: t[6], sized: t[7],
             pad: t[8], touch_x: t[9], touch_y: t[10], label: t[11],
-            cons: t[12], nil: t[13],
+            meaning: t[12], cons: t[13], nil: t[14],
         },
         chans: text_at(chans, chans_len)
             .split('\0')
@@ -362,9 +367,11 @@ pub unsafe extern "C" fn web_display(w: *mut Web) -> *const i32 {
             Kind::Toggle => (1, 0, hit.param as i32),
             Kind::Button(code) => (2, 0, code as i32),
             Kind::Chan(a, chan) => (3, axis_of(a), chan as i32),
+            Kind::Means(chan) => (4, 0, chan as i32),
         };
         let (x0, y0, x1, y1) = hit.region;
-        wire.extend_from_slice(&[kind, axis, extra, x0, y0, x1, y1]);
+        let means = (hit.means as f32).to_bits() as i32;
+        wire.extend_from_slice(&[kind, axis, extra, x0, y0, x1, y1, means]);
     }
     web.wire = wire;
     web.wire.as_ptr()

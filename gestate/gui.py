@@ -275,6 +275,16 @@ def _int(node, state) -> int:
     return node.n
 
 
+def _float(node, state) -> float:
+    """A number a program computed, as a `Float` — what a `Meaning`
+    carries.  `_int` beside it is for the coordinates, which are
+    `Int` in the vocabulary and would round a meaning."""
+    node = _force(node, state)
+    if not isinstance(node, NNum):
+        raise GuiError(f"expected a number, got {type(node).__name__}")
+    return float(node.n)
+
+
 def _list(node, state) -> list:
     """A cons-list as a Python list, forcing the spine cell by cell."""
     cons_tag = state.cons["Cons"].tag
@@ -392,6 +402,10 @@ def _extent(node, state) -> tuple[int, int]:
         return w + 2 * n, h + 2 * n
     if tag in (cons["TouchX"].tag, cons["TouchY"].tag):
         return _extent(args[1], state)
+    if tag == cons["Meaning"].tag:
+        # The child's, like every other attachment: saying what a thing
+        # *is* does not change how much room it takes.
+        return _extent(args[2], state)
     raise GuiError(f"unknown substrate tag {tag}")
 
 
@@ -492,6 +506,21 @@ def _walk(node, state, cx: int, cy: int, out: list, hits: list) -> None:
         _walk(args[1], state, cx, cy, out, hits)
         hits.append({
             "axis": "x" if tag == cons["TouchX"].tag else "y",
+            "chan": _chan_id(args[0], state),
+            "region": (x0, y0, x0 + w, y0 + h),
+        })
+        return
+    if tag == cons["Meaning"].tag:
+        # **A thing, not a place** — `gui.ges`' `onPress`.  The region is
+        # the extent for `TouchX`'s reason, and what it answers is the
+        # number the program built the element with rather than anything
+        # about where the hand landed.
+        w, h = _extent(node, state)
+        x0, y0 = cx - w // 2, cy - h // 2
+        _walk(args[2], state, cx, cy, out, hits)
+        hits.append({
+            "axis": None,
+            "means": _float(args[1], state),
             "chan": _chan_id(args[0], state),
             "region": (x0, y0, x0 + w, y0 + h),
         })
@@ -1167,6 +1196,14 @@ def _gesture_value(target: dict, kind: str, x: int, y: int):
     """
     if kind == "release":
         return None
+    #: **A thing answers what it is, on the press and on nothing else.**
+    #: A meaning does not change while the hand moves over it, and a
+    #: program folding over a drag would place nine marks between two
+    #: cells — so a motion writes nothing here, which is idea 3's *a
+    #: gesture writes nothing until it commits* arriving for free: a
+    #: press on a thing **is** the commit.
+    if target.get("axis") is None:
+        return target["means"] if kind == "press" else None
     x0, y0, x1, y1 = target["region"]
     if target["axis"] == "x":
         here, low, span = x, x0, x1 - x0

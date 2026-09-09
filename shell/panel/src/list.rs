@@ -105,6 +105,17 @@ pub enum Kind {
     /// the structure").  Collapsing them would make a canvas element
     /// into an automatable plugin parameter, which is not what it is.
     Chan(Axis, i64),
+    /// **A substrate element that says what it *is***: press it and the
+    /// number the program built it with is written to the channel.
+    ///
+    /// `Chan` above reports a **place** — where in the element the hand
+    /// landed, as a fraction.  This reports a **thing**, and the two
+    /// are different kinds of reference rather than two spellings of
+    /// one (`card:gui-is-difficult.md`, 2026-09-09).  A fader wants the
+    /// first; one of nine cells, or one of three hundred notes, wants
+    /// the second.  The value is on the `Hit`, because it belongs to
+    /// the element and not to the kind.
+    Means(i64),
 }
 
 /// A region that listens, and what it writes to.
@@ -116,13 +127,19 @@ pub enum Kind {
 /// it to the host's id.  When the canvas lands it brings the channel
 /// spelling with it and this becomes a two-case enum; today one case
 /// honestly stated beats a second case with no producer.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Hit {
     pub kind: Kind,
     /// The parameter this writes, or `NO_PARAM` for a `Button`.
     pub param: u32,
     /// `(x0, y0, x1, y1)`, half-open at the far edge.
     pub region: (i32, i32, i32, i32),
+    /// What a `Means` writes when it is pressed; 0.0 and unread for
+    /// every other kind.  **On the hit and not in the `Kind`** because
+    /// it is this element's number rather than a property of the sort
+    /// of thing it is — and because a float in the kind would cost the
+    /// enum its `Eq`.
+    pub means: f64,
 }
 
 /// The `param` of a hit that writes no parameter.
@@ -157,6 +174,9 @@ impl Hit {
             // Neither a toggle nor a button has a position to read:
             // one's value is its own, the other has no value at all.
             Kind::Toggle | Kind::Button(_) => 0.0,
+            // **A thing answers what it is**, and the clamp below would
+            // be wrong for it: a cell number is not a fraction.
+            Kind::Means(_) => return self.means,
         };
         f.clamp(0.0, 1.0)
     }
@@ -194,7 +214,14 @@ impl Display {
 
     pub fn hit(&mut self, kind: Kind, param: u32,
                region: (i32, i32, i32, i32)) {
-        self.hits.push(Hit { kind, param, region });
+        self.hits.push(Hit { kind, param, region, means: 0.0 });
+    }
+
+    /// An element that says what it is — `gui.ges`' `Meaning`.
+    pub fn means(&mut self, chan: i64, value: f64,
+                 region: (i32, i32, i32, i32)) {
+        self.hits.push(Hit { kind: Kind::Means(chan), param: NO_PARAM,
+                             region, means: value });
     }
 
     /// The deepest region containing a point, or nothing.
@@ -235,7 +262,7 @@ mod grab_tests {
     use super::*;
 
     fn chan(axis: Axis, id: i64, r: (i32, i32, i32, i32)) -> Hit {
-        Hit { kind: Kind::Chan(axis, id), param: NO_PARAM, region: r }
+        Hit { kind: Kind::Chan(axis, id), param: NO_PARAM, region: r, means: 0.0 }
     }
 
     #[test]
@@ -274,7 +301,7 @@ mod grab_tests {
     #[test]
     fn a_button_under_the_point_takes_no_channel() {
         let mut d = Display::new();
-        d.hits.push(Hit { kind: Kind::Button(3), param: NO_PARAM, region: (0, 0, 40, 40) });
+        d.hits.push(Hit { kind: Kind::Button(3), param: NO_PARAM, region: (0, 0, 40, 40), means: 0.0 });
         d.hits.push(chan(Axis::X, 1, (0, 0, 40, 40)));
         assert!(d.grabbed(5, 5).is_empty());
     }

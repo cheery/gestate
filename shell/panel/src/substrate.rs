@@ -44,6 +44,10 @@ pub struct SubTags {
     pub touch_x: i64,
     pub touch_y: i64,
     pub label: i64,
+    /// `Meaning` — an element that says what it *is*.  **Last in `Sub`
+    /// on purpose**: a tag is a position, and appending keeps every
+    /// tag before it where the hosts already had it.
+    pub meaning: i64,
     /// `Cons` and `Nil` — **not `Sub` constructors**, and they are here
     /// because a `Label` carries a `String` and a `String` is
     /// `List Char`.  That is the whole cost of text crossing: no new
@@ -78,6 +82,18 @@ fn int_at(m: &mut Machine, node: usize) -> R<i32> {
     let n = m.force_node(node);
     match m.heap_at(n) {
         Node::Num(Num::I(v)) => Ok(*v as i32),
+        other => err(format!("expected a number, got {other:?}")),
+    }
+}
+
+/// A `Float` a program computed — what a `Meaning` carries.  `int_at`
+/// beside it is for the coordinates, which are `Int` in the vocabulary
+/// and would round a meaning.
+fn float_at(m: &mut Machine, node: usize) -> R<f64> {
+    let n = m.force_node(node);
+    match m.heap_at(n) {
+        Node::Num(Num::I(v)) => Ok(*v as f64),
+        Node::Num(Num::F(v)) => Ok(*v),
         other => err(format!("expected a number, got {other:?}")),
     }
 }
@@ -217,6 +233,10 @@ pub fn extent(m: &mut Machine, t: &SubTags, node: usize) -> R<(i32, i32)> {
         Ok((w + 2 * n, h + 2 * n))
     } else if tag == t.touch_x || tag == t.touch_y {
         extent(m, t, args[1])
+    } else if tag == t.meaning {
+        // The child's, like every other attachment: saying what a thing
+        // *is* does not change how much room it takes.
+        extent(m, t, args[2])
     } else {
         err(format!("unknown substrate tag {tag}"))
     }
@@ -304,6 +324,17 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
         let axis = if tag == t.touch_x { Axis::X } else { Axis::Y };
         d.hit(Kind::Chan(axis, chan), crate::list::NO_PARAM,
               (x0, y0, x0 + w, y0 + h));
+    } else if tag == t.meaning {
+        // **A thing, not a place** — `gui.ges`' `onPress`.  The region
+        // is the extent for `touch_x`'s reason, and what it answers is
+        // the number the program built the element with rather than
+        // anything about where the hand landed.
+        let (w, h) = extent(m, t, node)?;
+        let (x0, y0) = (cx - half(w), cy - half(h));
+        let chan = chan_at(m, args[0])?;
+        let value = float_at(m, args[1])?;
+        walk(m, t, args[2], cx, cy, d)?;
+        d.means(chan, value, (x0, y0, x0 + w, y0 + h));
     } else {
         return err(format!("unknown substrate tag {tag}"));
     }
@@ -343,7 +374,7 @@ mod tests {
     const T: SubTags = SubTags {
         rect: 10, circle: 11, gap: 12, over: 13, row: 14, column: 15,
         shift: 16, sized: 17, pad: 18, touch_x: 19, touch_y: 20,
-        label: 21, cons: 1, nil: 0,
+        label: 21, meaning: 22, cons: 1, nil: 0,
     };
 
     fn machine() -> Machine {
@@ -501,6 +532,42 @@ mod tests {
         assert_eq!(hit.region, (40, 50, 60, 150), "the declared box");
         // And it grows upward, where screen y grows down.
         assert!(hit.fraction(50, 140) < hit.fraction(50, 60));
+    }
+
+    #[test]
+    fn a_meaning_answers_what_it_is_and_hears_no_drag() {
+        // **An element that says what it is** — `gui.ges`' `onPress`.
+        // Three cells side by side on one channel, which is the whole
+        // point: a `Chan` is a declaration and nine cells could never
+        // be nine channels, and nine meanings on one channel is what a
+        // list can build.
+        let mut m = machine();
+        let mut cells = Vec::new();
+        for k in 0..3 {
+            let body = rect(&mut m, 28, 28);
+            let (w, h) = (int(&mut m, 30), int(&mut m, 30));
+            let boxed = con(&mut m, T.sized, vec![w, h, body]);
+            let ch = m.alloc(Node::Chan(5));
+            let v = m.alloc(Node::Num(Num::F(k as f64)));
+            cells.push(con(&mut m, T.meaning, vec![ch, v, boxed]));
+        }
+        let pair = con(&mut m, T.row, vec![cells[1], cells[2]]);
+        let row = con(&mut m, T.row, vec![cells[0], pair]);
+
+        let d = view(&mut m, &T, row, 90, 30).unwrap();
+        assert_eq!(d.hits.len(), 3);
+        let regions: Vec<_> = d.hits.iter().map(|h| h.region).collect();
+        assert_eq!(regions, vec![(0, 0, 30, 30), (30, 0, 60, 30),
+                                 (60, 0, 90, 30)],
+                   "the region is the declared box, laid out by the row");
+        for (k, hit) in d.hits.iter().enumerate() {
+            assert_eq!(hit.kind, Kind::Means(5));
+            assert_eq!(hit.means, k as f64);
+            // **What it answers is what it is**, not where the hand
+            // landed: the same number at either edge of the cell.
+            assert_eq!(hit.fraction(regions[k].0, 15), k as f64);
+            assert_eq!(hit.fraction(regions[k].2 - 1, 29), k as f64);
+        }
     }
 
     #[test]

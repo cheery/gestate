@@ -306,16 +306,31 @@ impl Canvas {
         }).collect()
     }
 
-    fn taken(&self, x: i32, y: i32) -> Vec<(Axis, i64, (i32, i32, i32, i32))> {
+    fn taken(&self, x: i32, y: i32) -> Vec<Grab> {
         self.display.grabbed(x, y).into_iter()
             .filter_map(|hit| match hit.kind {
-                Kind::Chan(axis, chan) => Some((axis, chan, hit.region)),
+                Kind::Chan(axis, chan) =>
+                    Some(Grab { axis: Some(axis), chan, region: hit.region,
+                                means: 0.0 }),
+                // **A thing among the places.**  A press takes it like
+                // any other attachment; what differs is what it
+                // answers, and that a motion leaves it alone.
+                Kind::Means(chan) =>
+                    Some(Grab { axis: None, chan, region: hit.region,
+                                means: hit.means }),
                 _ => None,
             }).collect()
     }
 
+    /// A drag.  **A thing hears nothing from it** — a meaning does not
+    /// change while the hand moves over it, and a program folding over
+    /// a drag would place nine marks between two cells.  That is idea
+    /// 3's *a gesture writes nothing until it commits* arriving for
+    /// free: a press on a thing **is** the commit.
     pub fn motion(&mut self, x: i32, y: i32) -> Vec<(i64, f64)> {
-        self.value_at(x, y)
+        let places: Vec<Grab> = self.held.iter().copied()
+            .filter(|g| g.axis.is_some()).collect();
+        fractions(&places, x, y)
     }
 
     /// A release writes nothing — **a fader stays where it was let
@@ -393,10 +408,15 @@ impl Canvas {
 /// The fraction of its own extent each held attachment reads at a
 /// point, clamped there — `gui._gesture_value`, the one rule both
 /// machines run.
-fn fractions(held: &[(Axis, i64, (i32, i32, i32, i32))], x: i32, y: i32)
-    -> Vec<(i64, f64)>
-{
-    held.iter().map(|&(axis, chan, (x0, y0, x1, y1))| {
+fn fractions(held: &[Grab], x: i32, y: i32) -> Vec<(i64, f64)> {
+    held.iter().filter_map(|g| {
+        let (x0, y0, x1, y1) = g.region;
+        // **A thing answers what it is** and a fraction is not it —
+        // `gui.py`'s `_gesture_value`, the one rule both machines run.
+        let axis = match g.axis {
+            Some(a) => a,
+            None => return Some((g.chan, g.means)),
+        };
         let (here, low, span) = match axis {
             Axis::X => (x, x0, x1 - x0),
             Axis::Y => (y, y0, y1 - y0),
@@ -409,6 +429,19 @@ fn fractions(held: &[(Axis, i64, (i32, i32, i32, i32))], x: i32, y: i32)
         } else {
             (((here - low) as f64) / span as f64).clamp(0.0, 1.0)
         };
-        (chan, f)
+        Some((g.chan, f))
     }).collect()
+}
+
+/// One attachment a press took hold of.
+///
+/// **`axis` is what tells the two kinds apart**: `Some` is a place —
+/// where in the element the hand is — and `None` is a thing, which
+/// answers the number the program built it with.
+#[derive(Clone, Copy, Debug)]
+struct Grab {
+    axis: Option<Axis>,
+    chan: i64,
+    region: (i32, i32, i32, i32),
+    means: f64,
 }
