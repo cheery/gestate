@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 216 entries, **171 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 220 entries, **175 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,115 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F219. **[resolved]** an attachment record grew an eighth word and two readers still strode seven, so only the one piece with two channels went red
+
+Found 2026-09-09, chasing F217.  `shell/web/src/lib.rs`'s wire writes a
+hit as **eight** `i32`s since `means` joined it (`onPress`) —
+`kind axis extra x0 y0 x1 y1 means` — and both readers of that wire,
+`test_gallery.py`'s `Tab.display` and `test_online.py`'s in-page probe,
+advanced the cursor by seven.
+
+**The off-by-one only bites from the second record on**, so six of the
+seven gallery pieces were green and `lantern.ges` — the only one that
+declares two channels — read its second attachment out of the middle of
+the first and failed with *"a substrate's attachments are channels"*,
+which is a true sentence about a cursor and says nothing about
+attachments.  A reader that walks a record whose length it copies is the
+same defect as F216 one floor down: the length is written in two places
+and only one of them was edited.
+
+gate: `test/test_gallery.py::test_every_piece_draws_in_wasm_what_the_reference_draws`
+over `lantern.ges`, which is the case that has two of them.
+
+### F218. **[resolved]** the gallery page draws nothing: fourteen slots allocated for a fifteen-word tag table, and `.set` threw where nobody was reading
+
+Found 2026-09-09, chasing F217.  `gestate/online-canvas.js` wrote
+`web_alloc(14 * 8)` and a `BigInt64Array` view of length 14, then
+`.set(spec.tags…)` with the fifteen tags `export.substrate_of` now
+produces.  `.set` throws `RangeError` on a source longer than the view,
+`open` never reached `web_open`, and every piece in the gallery reported
+*"no picture on the page"* — twelve tests in `test_online.py` and one in
+`test_gallery.py`, all of them saying the page was blank and none of
+them saying why.
+
+The repair is not the number: `nTags = spec.tags.length`.  **A length
+copied beside the data it describes is the whole of F216**, and this
+copy sat in the one language where writing past a view is an exception
+rather than a compile error.
+
+gate: `test/test_online.py::test_the_page_draws_what_the_desk_draws`,
+which was already red and named the symptom; the length is now the
+table's own.
+
+### F217. **[resolved]** `gestate-panel` does not compile, so the workbench cannot start at all: `held` kept the tuple type `Grab` replaced
+
+Reported 2026-09-09 by Henri — *"when I try to start gestate workbench,
+it throws an error on build"* — and it is the whole of what he saw:
+`python -m gestate.workbench <file>` builds the editor on first run,
+`cargo` returns four errors from `shell/panel/src/canvas.rs`, and
+`editor.py` re-raises them as `EditorError`.  There is no window.
+
+`Grab` arrived with `onPress` and `canvas.rs`'s `taken`, `motion` and
+`fractions` were converted to it; the field they all read,
+`held: Vec<(Axis, i64, (i32, i32, i32, i32))>`, and `grabbed()`'s
+`|&(_, c, _)|` were not.
+
+**Nothing in the tree compiles Rust before a commit.**  `tools/suite.py`
+runs `cargo test --workspace`, and the pre-commit hook runs the gates,
+which are document checks — so a commit touching four Rust crates landed
+red and stayed red for three commits.  That is not this entry's repair
+to make, but it is why this one reached Henri instead of a test.
+
+gate: `cargo build --workspace`, which is not run at commit time — see
+the note above, and `card:cheap-gates.md` for the argument about what
+belongs beside the edit.
+
+### F216. **[resolved]** `Meaning` was appended to `_SUB_CONS` and every copy of the table's length stayed at fourteen — in seven places, four languages
+
+Found 2026-09-09, under F217.  `gestate/export.py`'s `_SUB_CONS` is the
+constructor table a canvas crosses on; it is fifteen long since
+`Meaning` joined it, and its length is written down again in seven
+other places, every one of which still said fourteen:
+
+| where | what it said | what it cost |
+|---|---|---|
+| `shell/editor/src/walk.rs` | `pub const TAGS: usize = 14` | `Walk::read` refuses every payload — the window walks nothing |
+| `shell/editor/tests/*.walk` | the fourteen-tag table, in three fixtures | 9 Rust tests red |
+| `shell/panel/tests/{substrate,lantern}.{tags,program}` | ditto, plus the renumbered `Pack` | 20 Rust tests red |
+| `shell/clap/src/engine.rs` | `pub tags: [i64; 14]` | an exported plugin with a canvas does not compile |
+| `gestate/online-canvas.js` | `14 * 8` | F218 |
+| `test/test_export.py` | `assert len(sub["tags"]) == 14` | 1 test red, and the one that *should* have said so first |
+| `test/test_online.py` | `assert len(canvas["tags"]) == 14` | 1 more, saying *"all fourteen"* in its own message |
+
+The comment on `_SUB_CONS` is right and was followed — *appended, not
+inserted*, so every tag before it kept its number.  What appending does
+not do is renumber the tags *after* the table: `Tick` moved 21 → 22 and
+every `Pack` with it, which is why the committed fixtures went stale as
+well as short.
+
+**`walk.rs`'s `TAGS` is the interesting one.** `Walk::read` refuses a
+payload whose table is not `TAGS` long, on purpose — *a table of another
+size is another program's idea of `Sub`* — so a stale constant does not
+crash and does not draw wrong.  It quietly stops the window walking
+anything, and the model keeps drawing the canvas itself, which looks the
+same on screen.  Photographed both ways on 2026-09-09: the picture is
+there either way.
+
+And `ticker.walk` had drifted from its own source some time *before*
+this, with nothing to say so — the payload for `TICKING` is 600 program
+lines today against the committed 293.  A fixture nobody regenerates is
+a fixture nobody is checking.
+
+gate: two, both mutation-checked.
+`test_panel_fixtures.py::test_every_shell_counts_the_constructor_table_the_same`
+holds all three written-out lengths — `walk.rs`'s `TAGS`, the plugin's
+`[i64; N]`, the page shell's `from_raw_parts` — to `len(_SUB_CONS)`.
+And `test/test_walk_fixtures.py` is the editor's half of the seam
+`test_panel_fixtures.py` already pins for the panel: it regenerates each
+`.walk` from the source `walk.rs` names.  `test_export.py` and
+`test_online.py` now count against `_SUB_CONS` instead of against a
+number, and `online-canvas.js` reads `spec.tags.length`.
 
 ### F215. **[resolved]** `tools/arrivals.py` under-counted, because a date-bounded `git log` truncates its walk — and it drifted downwards as history grew
 

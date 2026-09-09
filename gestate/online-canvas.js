@@ -67,9 +67,16 @@ export class Picture {
     const enc = new TextEncoder();
     const [text, textLen] = this.bytes(enc.encode(spec.text));
     const [entry, entryLen] = this.bytes(enc.encode(spec.entry || "main"));
-    const tagsP = this.ex.web_alloc(14 * 8);
-    this.owned.push([tagsP, 14 * 8]);
-    new BigInt64Array(this.ex.memory.buffer, tagsP, 14)
+    // **The table's own length, never a number written here.**  This
+    // said 14 twice and `web_open` read 15 the day `Meaning` joined
+    // `export._SUB_CONS`: `.set` threw on a source too large for the
+    // view, the canvas never opened, and the page drew nothing
+    // (`fixme.md` F218).  `spec.tags` is the table; its length is the
+    // only honest word for how long it is.
+    const nTags = spec.tags.length;
+    const tagsP = this.ex.web_alloc(nTags * 8);
+    this.owned.push([tagsP, nTags * 8]);
+    new BigInt64Array(this.ex.memory.buffer, tagsP, nTags)
       .set(spec.tags.map((t) => BigInt(t)));
     const names = spec.chans.map((n) => n + "\0").join("");
     const [chans, chansLen] = this.bytes(enc.encode(names));

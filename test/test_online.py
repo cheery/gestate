@@ -369,7 +369,7 @@ setTimeout(() => {
   }
   for (let n = 0; n < hits; n++) {
     out.push(`hit ${"xy"[at(c+1)]} ${at(c+2)} ${at(c+3)} ${at(c+4)} ${at(c+5)} ${at(c+6)}`);
-    c += 7;
+    c += 8;   // eight words since `means` joined the record — fixme.md F219
   }
   post(out.join("\\n"));
 }, 3000);
@@ -493,7 +493,12 @@ def test_a_piece_that_draws_carries_its_substrate_and_its_meters():
         assert (site / online.webshell.NAME).exists()
         assert (site / "canvas.js").exists()
     canvas = data["canvas"]
-    assert len(canvas["tags"]) == 14, "the walk decodes cells with all fourteen"
+    # **Counted against the table, never against a number written here**
+    # — this said 14 and went red the day `Meaning` was appended to
+    # `_SUB_CONS` (`fixme.md` F216).
+    from gestate.export import _SUB_CONS
+    assert len(canvas["tags"]) == len(_SUB_CONS), \
+        "the walk decodes cells with all of them"
     assert canvas["chans"] == [f"band{k}" for k in range(8)]
     assert canvas["meters"]["bands"] == list(range(8))
     assert canvas["meters"]["peak"] is False, "spectrum declares no peak"

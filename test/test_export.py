@@ -1137,19 +1137,24 @@ def test_the_canvas_crosses_with_its_tags_and_its_channels():
     guessed would draw a `Row` as whatever shared its number — and the
     channel ids, which are allocation order and equally underivable.
     """
-    from gestate.export import host_graph, substrate_of
+    from gestate.export import _SUB_CONS, host_graph, substrate_of
 
     source = _substrate_source()
     graph = host_graph(source, 48000)
     sub = substrate_of(source, 48000, graph, _knobs_of(source, graph))
     assert sub is not None, "substrate.ges declares a `substrate`"
     assert sub["entry"] == "main"
-    # Twelve `Sub` constructors, then `Cons` and `Nil` — not
-    # constructors of `Sub` at all, and carried because a `Label` holds
-    # a `String` and a `String` is `List Char`.  That is the whole cost
-    # of text crossing: no new node kind, no new instruction, two tags.
-    assert len(sub["tags"]) == 14
-    assert len(set(sub["tags"])) == 14, "and every tag distinct"
+    # The `Sub` constructors, then `Cons` and `Nil` — not constructors
+    # of `Sub` at all, and carried because a `Label` holds a `String`
+    # and a `String` is `List Char`.  That is the whole cost of text
+    # crossing: no new node kind, no new instruction, two tags.
+    #
+    # **Counted against the table, not against a number written here.**
+    # This said 14 twice and went red the day `Meaning` joined
+    # `_SUB_CONS` — a copy of a length is the thing this whole seam
+    # keeps getting wrong (`fixme.md` F216).
+    assert len(sub["tags"]) == len(_SUB_CONS)
+    assert len(set(sub["tags"])) == len(_SUB_CONS), "and every tag distinct"
     assert sub["chans"] == ["cutoff", "peak"], \
         "the declarations, in the order the file writes them"
 

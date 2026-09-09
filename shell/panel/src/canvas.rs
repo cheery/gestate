@@ -108,7 +108,7 @@ pub struct Canvas {
     /// Every attachment the press took hold of, innermost first: one
     /// for a fader, two for a pad, a column and the body around it
     /// for a note on a roll (`press`).
-    held: Vec<(Axis, i64, (i32, i32, i32, i32))>,
+    held: Vec<Grab>,
     /// `input`'s channel, when the program has one — where a frame's
     /// `Tick` arrives, which is the only clock a canvas has.
     input: Option<i64>,
@@ -401,7 +401,7 @@ impl Canvas {
     /// What the grab is writing, for the caller that has to close it —
     /// every channel a press took hold of, innermost first.
     pub fn grabbed(&self) -> Vec<i64> {
-        self.held.iter().map(|&(_, c, _)| c).collect()
+        self.held.iter().map(|g| g.chan).collect()
     }
 }
 

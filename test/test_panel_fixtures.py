@@ -171,3 +171,46 @@ def test_the_channels_and_bridge_the_rust_suite_carries_are_todays():
         "substrate_parity.rs lantern() carries these chans"
     assert sub["bridge"] == [("warmthChan", 4), ("glowChan", 29)], \
         "substrate_parity.rs lantern() carries this bridge"
+
+
+#: Every place a shell writes down **how long the constructor table is**,
+#: with the pattern that finds the number.  `export._SUB_CONS` is the
+#: table; each of these is a copy of its length in another language, and
+#: a copy is only ever as current as whatever compares it.
+#:
+#: **They were all wrong at once on 2026-09-09** (`fixme.md` F216), the
+#: day `Meaning` was appended: `walk.rs` refused every payload, the
+#: plugin's array would not take the literal the exporter writes, and
+#: `web_open` read one word past a view the page had allocated at the
+#: old size.  Nothing in the suite said so — the two that should have,
+#: `test_export.py` and `test_online.py`, were themselves asserting 14.
+TABLE_LENGTHS = {
+    "shell/editor/src/walk.rs": r"pub const TAGS: usize = (\d+);",
+    "shell/clap/src/engine.rs": r"pub tags: \[i64; (\d+)\]",
+    "shell/web/src/lib.rs": r"from_raw_parts\(tags, (\d+)\)",
+}
+
+
+def test_every_shell_counts_the_constructor_table_the_same():
+    """One table, four languages, and only one of them can be the source.
+
+    A shell cannot derive these: a tag is a position in the program's own
+    table and the length is the ABI.  So the number is written out, and
+    this is what keeps the four spellings of it the same one.
+    """
+    import re
+
+    from gestate.export import _SUB_CONS
+
+    wrong = []
+    for path, pattern in TABLE_LENGTHS.items():
+        text = (ROOT / path).read_text()
+        m = re.search(pattern, text)
+        assert m, f"{path} no longer spells its table length as {pattern}"
+        if int(m.group(1)) != len(_SUB_CONS):
+            wrong.append(f"{path} says {m.group(1)}")
+    assert not wrong, (
+        f"export._SUB_CONS has {len(_SUB_CONS)} constructors and "
+        + ", ".join(wrong)
+        + " — a payload whose table is the wrong length is refused whole, "
+          "so these disagreeing is a canvas that quietly stops crossing")

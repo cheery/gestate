@@ -1980,3 +1980,63 @@ can be deleted, which is a question about how near a press has to be
 rather than one a test can answer; and which note a press means where
 two are drawn over each other, which the measurement put at 8 pairs on
 his own piece, all of them across voices.
+
+## Seven copies of one number — 2026-09-09
+
+*Henri, at the desk: "when I try to start gestate workbench, it throws
+an error on build."  It did, and the error was the shallowest of six
+things wrong, all of them the same edit half-finished.*
+
+**What he saw.**  `python -m gestate.workbench examples/super/dubgate.ges`
+builds the editor on its first run; `cargo` returned four errors from
+`shell/panel/src/canvas.rs` and `editor.py` re-raised them as an
+`EditorError`.  No window.  `Grab` had arrived the day before with
+`onPress` — `taken`, `motion` and `fractions` all converted to it — and
+the field they read, `held`, plus `grabbed()`'s destructuring, had kept
+the tuple it replaced (F217).  Two lines.
+
+**Then the rest of it.**  With the build going, `cargo test` was red in
+two crates and `pytest` red in thirteen more places, and every one of
+them was the same fact written down twice: `export._SUB_CONS` gained a
+fifteenth constructor and seven other copies of *how long that table
+is* stayed at fourteen (F216).  `walk.rs`'s `TAGS`, three `.walk`
+fixtures, four panel fixtures, the CLAP plugin's `[i64; 14]`, the page's
+`web_alloc(14 * 8)`, and a `== 14` in each of `test_export.py` and
+`test_online.py` — the two that should have said so first.  Four
+languages.
+
+**Two of them are worth keeping.**  The page's copy (F218) threw a
+`RangeError` inside `.set` where nothing was catching, so thirteen tests
+reported *"no picture on the page"* and none of them reported why; the
+repair is `spec.tags.length`, because the table is right there.  And an
+attachment record had separately grown an eighth word, `means`, while
+two readers still strode seven (F219) — which only shows from the
+*second* record on, so six of seven gallery pieces were green and
+`lantern.ges`, the one with two channels, was not.  An off-by-one that
+hides behind arity is worse than one that does not.
+
+**`TAGS` is the one that taught something.**  `Walk::read` refuses a
+payload whose table is the wrong length, deliberately: *a table of
+another size is another program's idea of `Sub`*.  So the stale constant
+did not crash and did not draw wrong — the window simply stopped walking
+anything and the model kept drawing the canvas itself.  Photographed
+both ways on Xvfb: the picture is there either way.  A poka-yoke that
+fails safe is a poka-yoke whose failure nobody notices, and that is the
+argument for the gate rather than against the refusal.
+
+**Nothing in this tree compiles Rust before a commit.**  The pre-commit
+hook runs the gates and the gates are document checks; `cargo test`
+lives in the full pass, once a shift.  So a commit touching four Rust
+crates landed red and stayed red for three commits, and the thing that
+found it was Henri trying to start the program.  `test_panel_fixtures.py`
+already pins the panel's half of this seam and says at length why an
+unregenerated fixture is the F101 shape; the editor's half had no such
+pin, which is also how `ticker.walk` came to drift from its own source
+long before this week — 600 program lines today against the committed
+293, with nothing to say so.  `test/test_walk_fixtures.py` is that pin
+now, mutation-checked against both defects it would have caught.
+
+*Left open for him: whether `cargo build --workspace` belongs in the
+gates, and whether the two fixture-pinning tests do.  Both are seconds;
+neither is a session's call to make.*
+

@@ -19,11 +19,11 @@
 //! canvas draws somebody's artwork wrong rather than not at all.
 
 /// How many constructor tags the walk needs: `gestate_panel`'s
-/// `SubTags` twelve, then `Cons` and `Nil` — not `Sub` constructors,
-/// but what a `Label`'s `String` is made of.  The same fourteen
+/// `SubTags` thirteen, then `Cons` and `Nil` — not `Sub` constructors,
+/// but what a `Label`'s `String` is made of.  The same fifteen
 /// `export._SUB_CONS` counts, in the same order, and the count is the
 /// check: a table of another size is another program's idea of `Sub`.
-pub const TAGS: usize = 14;
+pub const TAGS: usize = 15;
 
 /// A canvas this window has been handed to walk.
 #[derive(Clone, PartialEq, Debug)]
@@ -380,7 +380,7 @@ mod tests {
     use super::*;
 
     const SOME: &str = "entry\tmain\n\
-        tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+        tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
         chan\tdragged\t0.75\n\
         chan\tuntouched\n\
         program\n\
@@ -414,14 +414,14 @@ mod tests {
         // other without a sentinel.
         let two = "box\tsubstrate\n\
             entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
             chan\tdragged\t0.75\n\
             program\t2\n\
             crust 1\n\
             I PushInt 3\n\
             box\t__canvas_0__\n\
             entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
             program\t1\n\
             crust 1";
         let walks = Walk::read_all(two);
@@ -451,7 +451,7 @@ mod tests {
             crust 1\n\
             box\t__canvas_0__\n\
             entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
             program\t1\n\
             crust 1";
         let walks = Walk::read_all(mixed);
@@ -463,12 +463,12 @@ mod tests {
     fn half_a_canvas_refuses_whole() {
         // Walking with a truncated tag table would draw the artwork
         // wrong rather than not at all.
-        let short = SOME.replace("tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14",
+        let short = SOME.replace("tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15",
                                  "tags\t1 2 3");
         assert_eq!(Walk::read(&short), None);
         // And no program is nothing to walk, whatever the header says.
         let headless = "entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\nprogram\n";
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\nprogram\n";
         assert_eq!(Walk::read(headless), None);
     }
 

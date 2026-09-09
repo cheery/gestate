@@ -167,7 +167,12 @@ pub struct Substrate {
     /// not `Sub` constructors but are what a `Label`'s `String` is made
     /// of.  A tag is a position in this program's own table, so it
     /// cannot be derived — only carried.
-    pub tags: [i64; 14],
+    ///
+    /// **The length is `export._SUB_CONS`'s**, and the exporter writes
+    /// the literal — so a constructor appended there and not counted
+    /// here is a generated `descriptor.rs` that does not compile
+    /// (`fixme.md` F216, the day `Meaning` was appended).
+    pub tags: [i64; 15],
     /// Every `name : Chan …` the file declares, **in the order
     /// written**.
     ///

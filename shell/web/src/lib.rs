@@ -137,8 +137,8 @@ unsafe fn text_at(p: *const u8, n: usize) -> String {
 
 /// Open one piece's canvas.
 ///
-/// `tags` is the fourteen-word table `gestate.export.substrate_of`
-/// writes — the twelve `Sub` constructors in `SubTags` order, then
+/// `tags` is the fifteen-word table `gestate.export.substrate_of`
+/// writes — the thirteen `Sub` constructors in `SubTags` order, then
 /// `Cons` and `Nil`.  **A tag is a position in this program's own
 /// table**, so a page cannot derive one and must carry it; guessing
 /// would draw a `Row` as whatever happened to share its number.
@@ -153,7 +153,7 @@ unsafe fn text_at(p: *const u8, n: usize) -> String {
 ///
 /// # Safety
 /// Every pointer must be readable for its stated length; `tags` must
-/// hold fourteen `i64`.
+/// hold fifteen `i64`.
 #[no_mangle]
 pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
                                   entry: *const u8, entry_len: usize,

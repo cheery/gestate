@@ -188,7 +188,13 @@ class Tab:
             x0, y0, x1, y1 = (at(c + i) for i in range(3, 7))
             lines.append(
                 f"hit {'xy'[axis]} {extra} {x0} {y0} {x1} {y1}")
-            c += 7
+            # **Eight, and the eighth is `means`** — the number a
+            # `Meaning` writes, added to every hit record when `onPress`
+            # arrived.  This strode seven, so the cursor slipped a word
+            # per attachment and the *second* hit read as a rect: only
+            # `lantern.ges`, the one piece here with two channels, was
+            # red (`fixme.md` F219).
+            c += 8
         return lines
 
 
