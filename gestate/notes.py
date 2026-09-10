@@ -410,8 +410,20 @@ def records(text: str, name: str = "<notes>", where=None) -> list:
         else:
             got = _fields(tokens, kind, place)
         for f in kind.fields:
-            if f.value == "Number" and got.get(f.name) is not None:
-                got[f.name] = _int(got[f.name], f.name, place)
+            value = got.get(f.name)
+            if value is None:
+                continue
+            if f.value == "Number":
+                value = got[f.name] = _int(value, f.name, place)
+            elif f.value == "Names":
+                value = tuple(v for v in value.split(",") if v)
+            #: The domain's refusal, derived from the declaration's
+            #: bound — `facts.Field.outside`.  `parse` still says the
+            #: same thing in the author's terms, and the test holds the
+            #: two to one boundary.
+            why = f.outside(value)
+            if why is not None:
+                raise NotesError(f"{place}: {why}")
         out.append((number, kind, got, above, beside))
     return out
 

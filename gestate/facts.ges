@@ -37,7 +37,17 @@ type Text = List Char
 #: `Names` is the comma-separated list `voices melody,upper,bass`
 #: already writes — one token still, and the only shape beyond a word
 #: and a number that the two formats in the tree use.
-Value := Word | Number | Names
+#:
+#: **And the domains** — `card:relational-model.md` Q2, 2026-09-10.
+#: Codd put domains in the schema and practice forgot them; a `key`
+#: that is really a MIDI key number, a `vel` that is one of eight
+#: names, a `len` that is at least one tick used to be four rules a
+#: parser remembered.  `Range lo hi` and `AtLeast n` are numbers with
+#: a bound; `OneOf names` is a word from a list; `Each names` is
+#: names, each from a list.  The token's shape is unchanged — a
+#: `Range` is still one number on the line — and what a reader does
+#: with the bound is derive the refusal from it.
+Value := Word | Number | Names | Range Int Int | AtLeast Int | OneOf (List Text) | Each (List Text)
 
 #: Whether a record of this kind has to carry the field.  The refusal a
 #: missing one earns names it, so this is what makes that message

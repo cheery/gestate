@@ -34,10 +34,38 @@ class FactsError(Exception):
 @dataclass(frozen=True)
 class Field:
     """One field of one kind: what it is called, how its one token is
-    read, and whether a record has to carry it."""
+    read, whether a record has to carry it, and the domain its value
+    is drawn from — `None` when the declaration gives no bound."""
     name: str
     value: str                      # "Word" | "Number" | "Names"
     need: str                       # "Must" | "May"
+    domain: tuple | None = None     # ("Range", lo, hi) | ("AtLeast", n) | ("OneOf", names) | ("Each", names)
+
+    def outside(self, value) -> str | None:
+        """Why `value` — already typed — is not in this field's domain,
+        or `None`.  **The refusal, derived from the bound** rather than
+        written per field; the sentence names the field and the bound
+        and nothing a parser would have to remember."""
+        if self.domain is None:
+            return None
+        head = self.domain[0]
+        if head == "Range":
+            _h, lo, hi = self.domain
+            if not lo <= value <= hi:
+                return f"`{self.name} {value}` is not within {lo}–{hi}"
+        elif head == "AtLeast":
+            if value < self.domain[1]:
+                return f"`{self.name} {value}` is less than {self.domain[1]}"
+        elif head == "OneOf":
+            if value not in self.domain[1]:
+                return (f"`{self.name} {value}` is not one of "
+                        + " ".join(self.domain[1]))
+        elif head == "Each":
+            for one in value:
+                if one not in self.domain[1]:
+                    return (f"`{self.name} {one}` is not one of "
+                            + " ".join(self.domain[1]))
+        return None
 
 
 @dataclass(frozen=True)
@@ -117,11 +145,24 @@ def _shape(term) -> tuple:
     raise FactsError(f"`{head}` is not a shape")
 
 
+#: A domain's token shape: what the line carries, under the bound.
+_SHAPE = {"Range": "Number", "AtLeast": "Number", "OneOf": "Word", "Each": "Names"}
+
+
 def _field(term) -> Field:
     head, name, value, need = term
     if head != "Field":
         raise FactsError(f"`{head}` is not a field")
-    return Field(_text(name), value[0], need[0])
+    form, *args = value
+    if form in ("Word", "Number", "Names"):
+        return Field(_text(name), form, need[0])
+    if form not in _SHAPE:
+        raise FactsError(f"`{form}` is not a value")
+    if form in ("OneOf", "Each"):
+        domain = (form, tuple(_text(a) for a in args[0]))
+    else:
+        domain = (form, *args)
+    return Field(_text(name), _SHAPE[form], need[0], domain)
 
 
 def _sort(term) -> tuple:

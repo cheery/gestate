@@ -24,7 +24,7 @@ bpmKind : Kind
 bpmKind = Kind "bpm" (Bare "bpm") bpmFields Nil Nil
 
 bpmFields : List Field
-bpmFields = Field "bpm" Number Must :: Nil
+bpmFields = Field "bpm" (AtLeast 1) Must :: Nil
 
 # ── The grid a section's notes are placed on ─────────────────────────────
 
@@ -39,8 +39,8 @@ sectionKind = Kind "section" (Headed "name") sectionFields sectionKey Nil
 sectionFields : List Field
 sectionFields = Field "key" Word May
     :: Field "mode" Word May
-    :: Field "bars" Number Must
-    :: Field "beats" Number Must
+    :: Field "bars" (AtLeast 1) Must
+    :: Field "beats" (AtLeast 1) Must
     :: Field "voices" Names Must
     :: Nil
 
@@ -60,15 +60,27 @@ noteKind = Kind "note" Named noteFields noteKey noteOrder
 
 noteFields : List Field
 noteFields = Field "section" Word Must
-    :: Field "bar" Number Must
-    :: Field "at" Number Must
-    :: Field "len" Number Must
+    :: Field "bar" (AtLeast 1) Must
+    :: Field "at" (AtLeast 0) Must
+    :: Field "len" (AtLeast 1) Must
     :: Field "voice" Word Must
-    :: Field "key" Number Must
+    :: Field "key" (Range 0 127) Must
     :: Field "spell" Word May
-    :: Field "vel" Word Must
-    :: Field "manner" Names May
+    :: Field "vel" (OneOf levels) Must
+    :: Field "manner" (Each manners) May
     :: Nil
+
+#: **The domains, said once** — `card:relational-model.md` Q2, decided
+#: 2026-09-10.  `notes.py` carried these as `LEVELS` and `MANNERS`
+#: and refused by hand; while it still runs, `test/test_notes_relations.py`
+#: holds its refusals to these bounds.  The eight dynamics are in the
+#: order the roll ranks them, softest first, and that order is what
+#: `vel` sorts by.
+levels : List Text
+levels = "ppp" :: "pp" :: "p" :: "mp" :: "mf" :: "f" :: "ff" :: "fff" :: Nil
+
+manners : List Text
+manners = "staccato" :: "accent" :: "portamento" :: Nil
 
 noteKey : List Text
 noteKey = "section" :: "bar" :: "voice" :: "at" :: "key" :: Nil

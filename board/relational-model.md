@@ -58,7 +58,10 @@ three marks: *paid* with the place it is paid, *refused* with his word
 and a date, or *built* with the test that holds it.  Eight scars, and
 today the marks stand at
 
-    paid 0 · refused 0 · built 0 · open 8
+    paid 0 · refused 0 · built 1 · open 7
+
+*Built 2026-09-10:* scar 2, held by `test/test_notes_relations.py` —
+§"Built" says what and what it does not cover.
 
 — the six already-paid lessons in §"Already paid" are not counted,
 because they need no decision.
@@ -133,7 +136,7 @@ what practice did.  Numbers are from `examples/audio/arc.notes` on
 | # | the scar | where it lands | practice's fix | mark |
 |---|---|---|---|---|
 | 1 | a rename is a set edit | voice and section names are natural keys referenced by value from every note; the one-field-one-line law cannot rename one | one command, many lines, one log entry, one undo | open |
-| 2 | integrity kept in the application is lost at the rewrite | seven rules live only in `notes.py`; the declaration has `Among` for *sort by a reference* and nothing for *the reference must resolve* | foreign keys and checks in the schema | open |
+| 2 | integrity kept in the application is lost at the rewrite | seven rules live only in `notes.py`; the declaration has `Among` for *sort by a reference* and nothing for *the reference must resolve* | foreign keys and checks in the schema | **built** 2026-09-10 — `test/test_notes_relations.py` |
 | 3 | content-keyed identity is git's rename-detection scar | a key-field edit renames the thing it edited; two snapshots cannot tell *moved* from *deleted and created* | the command carries the before and after keys; never derive continuity from two files | open |
 | 4 | a list in a value has nowhere to hang a second fact | `voices melody,upper,…` works with one reader; a voice's colour, instrument or mute has no row to sit on | a `voice` kind, headed by name, with section and rank | open |
 | 5 | the second writer skips the constraints | every write ends in the parser today, because the canonical rewrite parses the text back | keep it a rule in one sentence: no write path that does not reparse | open |
@@ -587,6 +590,68 @@ so that each slice is a parity the suite holds:
 
 Q1, Q3, Q4 and Q5 build nothing until their trigger; their shape is
 on this card so that the day it fires nothing has to be re-decided.
+
+## Built — 2026-09-10, the three slices
+
+Commits `d39c518` and the one after it.  What each slice is, in the
+tree, and the number that holds it:
+
+**Slice 1, the two roads** (Q6).  `notes._lines` is the structural
+pass factored out of `parse`; `notes.records` reads a file by the
+declaration alone; `facts.relations` derives a kind's relations by the
+one rule in §"The sketch"; `notes.relations_of` and `notes.relations`
+are the two roads and agree on `arc.notes`, relation for relation.
+`facts.Relation` is a heading and a frozenset of rows, and every value
+in the model is one `int` or one `str` — the information principle,
+measured.  What is not the model comes out beside it: `line`, `above`
+and `beside`, keyed by the record.
+
+    python -m pytest test/test_notes_relations.py -q     → 26 passed
+
+**Slice 2, the references and the rules** (Q2).  `facts.Kind.refers`
+derives the two foreign keys from `Among` and `Along` — nothing was
+added to `notes.ges` for them.  `facts.dangling` runs them over the
+relations; `notes.refused` adds the three assertions — `overBars`,
+`pastBar`, `misspelt` — and its union is empty on `arc.notes`.  Each
+of the parser's five integrity refusals lands the same key in
+`refused`, which is the parity while `_note` still runs.
+
+**Slice 3, the domains** (Q2).  `facts.ges` gained `Range`, `AtLeast`,
+`OneOf` and `Each`; `notes.ges` declares nine bounds — `bpm`, `bars`,
+`beats`, `bar`, `at`, `len`, `key`, `vel`, `manner` — and `levels`
+and `manners` as lists, said once.  `facts.Field.outside` derives the
+refusal from the bound, and `records` refuses with it.  The parser's
+sentences stay — *a note lasts at least one tick* is better than
+*less than 1*, and `card:error-messages.md` paid for them — so the
+parity is a test derived from the declaration: for every field with a
+domain, the value one step outside it is refused by both roads.  And
+`LEVELS`/`MANNERS` in `notes.py` are held equal to the declaration's.
+
+**Where the seven rules are now**, against scar 2's list — the
+"after" column of §"The sketch", as built:
+
+| rule | before | now |
+|---|---|---|
+| `section` names a section | `_note` | derived from `Among` — `Kind.refers`, `facts.dangling` |
+| `voice` is in that section's `voices` | `_note` | derived from `Along` — the same |
+| `bar` within the section's `bars` | `_note` | `refused`, a rule over the relations |
+| `at` within the bar | `_note` | `refused` |
+| `len` at least one | `_note` | `AtLeast 1`, declared |
+| `key` 0–127 | `_note` | `Range 0 127`, declared |
+| `vel` named; `spell` agrees with `key` | `_note`, `Note.__post_init__` | `OneOf levels`, declared; `refused` |
+
+**What it does not cover, said plainly.**  The parser still runs and
+still carries every rule by hand; what changed is that each now has a
+second home the suite holds it to, so the day `_note` goes nothing is
+forgotten.  The three rules are Python over `facts.Relation`, not
+Datafun over `Set` — the comprehensions in §"The sketch" are the
+shape, and the language form waits for the relations to reach the
+G-machine.  A section's `key` and `mode` keep their lists in
+`notes.py` (`_PITCH_CLASS`, `_MODES`), because `mode` is matched
+case-insensitively and a `OneOf` is not.  And nothing reads the
+relations yet but the tests: the roll, the performer and `outside`
+still read `NotesFile`, which is Q6's second half and the trigger for
+retiring the record classes.
 
 ## The relational model, recalled
 

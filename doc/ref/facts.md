@@ -27,7 +27,7 @@ in the core prelude and a file that wants strings has to say so.
 ### `Value`  <sub>data</sub>
 
 ```
-Value := Word | Number | Names
+Value := Word | Number | Names | Range Int Int | AtLeast Int | OneOf (List Text) | Each (List Text)
 ```
 
 What a field's value is written as.  Every value in this format is
@@ -37,6 +37,16 @@ read that token and nothing about layout.
 `Names` is the comma-separated list `voices melody,upper,bass`
 already writes — one token still, and the only shape beyond a word
 and a number that the two formats in the tree use.
+
+**And the domains** — `card:relational-model.md` Q2, 2026-09-10.
+Codd put domains in the schema and practice forgot them; a `key`
+that is really a MIDI key number, a `vel` that is one of eight
+names, a `len` that is at least one tick used to be four rules a
+parser remembered.  `Range lo hi` and `AtLeast n` are numbers with
+a bound; `OneOf names` is a word from a list; `Each names` is
+names, each from a list.  The token's shape is unchanged — a
+`Range` is still one number on the line — and what a reader does
+with the bound is derive the refusal from it.
 
 
 ### `Need`  <sub>data</sub>

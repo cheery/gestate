@@ -12,6 +12,7 @@ or adjacency — and that the integrity rules, run over the relations,
 refuse what the parser refuses and nothing the parser accepts.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -162,3 +163,43 @@ def test_records_reads_structure_and_nothing_else():
     assert [kind.name for _n, kind, *_ in got] == ["section", "note"]
     with pytest.raises(notes.NotesError, match="missing `vel`"):
         notes.records(HEAD + "note  section A  bar 1  at 0  len 96  voice lead  key 60\n")
+
+
+# ── The domains, declared once and held to the parser ───────────────────────
+
+
+def test_the_parser_s_lists_are_the_declaration_s():
+    """`LEVELS` and `MANNERS` were the parser's own; `notes.ges` now says
+    them, and while both exist they are one list."""
+    note = facts.load()["note"]
+    assert note.field("vel").domain == ("OneOf", notes.LEVELS)
+    assert note.field("manner").domain == ("Each", tuple(notes.MANNERS))
+
+
+def _boundary(field):
+    """A value just outside the declared domain, derived from it."""
+    head = field.domain[0]
+    if head == "Range":
+        return field.domain[2] + 1
+    if head == "AtLeast":
+        return field.domain[1] - 1
+    return "nosuchthing"
+
+
+@pytest.mark.parametrize("kind,field", [
+    (k.name, f.name) for k in facts.load().kinds for f in k.fields if f.domain])
+def test_the_parser_refuses_what_the_domain_refuses(kind, field):
+    """For every field with a domain, the value one step outside it is
+    refused by the parser in its own sentence *and* by the declaration
+    road in the derived one — the parity while both run."""
+    declared = facts.load()[kind].field(field)
+    bad = _boundary(declared)
+    good = ("section A  bars 2  beats 4  voices lead\n"
+            "note  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf  manner accent\n"
+            "bpm 96\n")
+    text = re.sub(rf"\b{field} \S+", f"{field} {bad}", good, count=1)
+    assert f"{field} {bad}" in text
+    with pytest.raises(notes.NotesError):
+        notes.parse(text, "edge.notes")
+    with pytest.raises(notes.NotesError, match=f"`{field} {bad}`"):
+        notes.records(text, "edge.notes")
