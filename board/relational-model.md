@@ -92,6 +92,20 @@ Then:
 
 > actually, write everything you told me into that card.
 
+He continued the same day, in the evening.  On the five questions he
+asked what the practice says, and where the declaration and its seven
+constraints travel; then:
+
+> I think the data should be normalized for use, is this a reasonable
+> request?  I mean.  Sure..  The data can be displayed like it's shown
+> in the file, today.  But it should reach the reader of that data
+> normalized.
+
+> yes. it goes to the card..  Also, show me how things would change in
+> gestate/notes.ges and arc.notes if we did what we plan here?
+
+Q6 and §"The sketch" are that evening's.
+
 ## The two files, read as relations
 
 `arc.notes` is three kinds of fact.  `note` is a relation with a
@@ -306,6 +320,205 @@ is it the notes editor's data path or this card's?  *Default:* look
 first (`scorebox.transposed`), and if absent it belongs to
 `card:notes-editor.md`'s data path, with this card holding the shape.
 *Trigger:* the first multi-note gesture the roll gets.
+
+*Looked, the same evening.*  There is none.  `scorebox.transposed`
+(`gestate/scorebox.py:1025`) replaces one atom's characters, byte-exact,
+and `notes.retune` is one field of one line.  So the default's second
+half stands: the data path is the editor's, the shape is here.  Two
+things practice adds to the shape.  A uniform transpose keeps every
+note's place in the sort, because `key` is the last sort field, so a
+set transpose is still byte-exact with no reflow; a set time-move
+reorders lines and is not.  And the log entry carries the row images,
+before and after per note, grouped as one — never the predicate.
+Statement-based logs were MySQL's scar, non-deterministic on replay;
+row-based is the one that survived.  That is scar 3's before-key and
+after-key, arrived at from the other side.
+
+**Q6 — normalized for use.**  His ask, 2026-09-10 evening, quoted in
+§"The ask": the file stays as it is shown, and the data reaches a
+reader normalized.  It has a name in practice — ANSI/SPARC's three
+schemas, 1975: the external form for the eye and for git, the
+conceptual form a program queries, the physical form underneath — and
+nobody has argued for the opposite since.  Measured against Codd's
+information principle, what a reader gets today (`notes.NotesFile`)
+carries facts four ways the model forbids: **by nesting** (a section's
+voices are a tuple inside the record), **by encoding** (manners are a
+bitmask), **by position** (every record carries its line number as a
+field), **by adjacency** (prose rides on the record below it, F200).
+*Default:* yes — the relations of §The sketch below, derived from the file
+at every read, the file staying the one source; the line number and
+the prose become a derived index and a keyed relation, dropped and
+rebuilt at every write.  Held the way `declare-parity-derive` says:
+declared, held to `NotesFile` on `arc.notes`, and then the record
+classes become a view over them or go.  *Trigger:* already met, by his word the same evening, quoted in
+§The ask: it goes to the card.  *What it moves:* Q3 half dissolves, the
+reader gets a `voice` relation with a rank before the file needs a
+new kind; Q2 gets its home, since a reference rule over relations is a
+subset test and one line of Datafun; Q5's command is an update on a
+relation, projected back onto the file by the writer.  *Two
+cautions:* a reader usually wants the joined form — the performer
+wants an absolute tick — and that is a view, derived and never stored;
+and the file must stay the source, because the day the relations are
+the source and the file is a print, git stops being the history.
+
+## The sketch — what changes where
+
+His ask: *show me how things would change in gestate/notes.ges and
+arc.notes if we did what we plan here.*  "What we plan" is the
+defaults of Q1–Q6 as they stand; where a trigger would change the
+picture it is shown after.  This is a sketch in the tree's own
+vocabulary (`facts.ges`' forms and the comprehension syntax of
+`examples/gui/patchbay.ges`), not a design: the names are placeholders
+and the language is his.
+
+### `examples/audio/arc.notes` — zero lines change
+
+That is the point of Q6, and it is worth saying as a number:
+
+    0 of 322 lines change
+
+The file is the external form and it stays.  Its named fields on every
+line are the denormalization that makes it readable with no schema
+beside it, and that is kept on purpose.  Two events would touch it:
+
+- **Q1 fires** (a voice is renamed): 124 lines change and the schema
+  does not — `grep -c "voice melody"` is 123 and the section list is
+  one more.  The command that does it is one log entry and one undo.
+- **Q3 fires** (a second per-voice fact, say an instrument): the
+  section line keeps its list, because the list is the ordering
+  relation and practice never found a better one, and a `voice` kind
+  arrives beside it carrying the attributes —
+
+      section A  key D  mode lydian  bars 8  beats 4  voices melody,upper,middle,lower,bass
+      voice melody  section A  instrument piano
+      voice bass    section A  instrument contrabass
+
+  A voice line naming a voice its section's list does not hold is a
+  reference rule, derived the same way as the note's.
+
+### `gestate/notes.ges` — three additions, and where the seven rules go
+
+The kinds stay as declared.  What is added is the answer to Q2 and
+Q6, in three parts, each held by `test/test_facts.py`'s parity against
+`notes.py` on `arc.notes` while both exist.
+
+**1. Domains** (`facts.ges` gains two value forms; three of the seven
+rules move here).  A field that is really a key number or a dynamic
+says so, and the refusal is derivable from the domain rather than
+written in the parser:
+
+    # facts.ges
+    Value := Word | Number | Names | Range Int Int | OneOf (List Text)
+
+    # notes.ges
+    levels : List Text
+    levels = "ppp" :: "pp" :: "p" :: "mp" :: "mf" :: "f" :: "ff" :: "fff" :: Nil
+
+    manners : List Text
+    manners = "staccato" :: "accent" :: "portamento" :: Nil
+
+    noteFields = Field "section" Word Must
+        :: Field "bar" Number Must
+        :: Field "at" Number Must
+        :: Field "len" (Range 1 4294967295) Must        -- rule: len ≥ 1
+        :: Field "voice" Word Must
+        :: Field "key" (Range 0 127) Must               -- rule: a MIDI key
+        :: Field "spell" Word May
+        :: Field "vel" (OneOf levels) Must              -- rule: a named level
+        :: Field "manner" Names May                     -- OneOf manners, each
+        :: Nil
+
+**2. References** (two of the seven; nothing is added).  The two
+reference rules are already in the file, read the other way: `Among
+"section" "section"` cannot order a note by where its section stands
+unless the section exists, and `Along "voice" "section" "voices"`
+cannot order a voice along a list it is not in.  So the reference
+rules are *derived* from the sort declaration —
+
+    # facts.ges: a sort that names another record is a reference it requires
+    refersOf : Kind -> List Refer
+    refersOf (Kind _ _ _ _ sorts) =
+        for (s in sorts) (case s of
+            Among field kind      -> {Refer field kind}
+            Along field kind list -> {Within field kind list}
+            By _                  -> {})
+
+— and the check that this derivation agrees with `notes.py`'s two
+refusals is the parity test's next row.  Practice's warning about
+implicit constraints is noted: a sort leaking meaning is exactly the
+row-order scar.  The answer is that the derivation is written down,
+in the declaration language, and enumerated for checking, which is
+what makes it explicit.
+
+**3. What a reader gets** (Q6; and the last two rules, which no schema
+holds, become rules over it).  One derivation from a kind: the key
+plus every `Must` word-or-number field is the base relation; each
+`May` field is a relation of its own, so absence is no row; each
+`Names` field is a relation with a rank.  Written out for `.notes`, so
+a reader can see what the derivation says:
+
+    #: What a reader gets.  Nothing here is carried by nesting, encoding,
+    #: position or adjacency; the file is the source and these are read
+    #: from it every time.
+    type NoteKey = (Text, Int, Text, Int, Int)        -- section bar voice at key
+
+    note    : Set (NoteKey, Int, Text)                -- len vel
+    spell   : Set (NoteKey, Text)                     -- absent is no row
+    manner  : Set (NoteKey, Text)                     -- one row per manner
+    section : Set (Text, Int, Int)                    -- name bars beats
+    tonic   : Set (Text, Text)                        -- section key, when said
+    mode    : Set (Text, Text)                        -- section mode, when said
+    voice   : Set (Text, Int, Text)                   -- section rank name
+    bpm     : Set Int                                 -- at most one
+
+    #: Not the model — the index.  Dropped at every write and rebuilt at
+    #: the next read; the byte-exact writer looks a key up here.
+    line    : Set (NoteKey, Int)
+    prose   : Set (NoteKey, Text)                     -- keyed, not adjacent
+
+The two cross-row rules, and the one that needs a function, are what
+SQL called assertions and never implemented; here they are one
+comprehension each over the relations above, and the set they produce
+is what the parser refuses today in words:
+
+    overBars  = {k | (k, _, _) in note, (s, b, _, _, _) = k,
+                     (s', bars, _) in section, s == s', b > bars}
+    pastBar   = {k | (k, _, _) in note, (s, _, _, t, _) = k,
+                     (s', _, beats) in section, s == s', t >= beats * 96}
+    misspelt  = {k | (k, sp) in spell, (_, _, _, _, key) = k,
+                     not (spells sp key)}
+
+    refused   = overBars \/ pastBar \/ misspelt
+
+**The number that says the declaration holds:** `refused` is empty on
+`arc.notes`, and every fixture `test_drawnscores.py` refuses today puts
+its key in it.  That is the parity row for these three, and the day
+`notes.py` stops running it is the only thing that remembers them.
+
+**Where the seven rules end up**, against scar 2's list:
+
+| rule | today | after |
+|---|---|---|
+| `section` names a section | `_note` | derived from `Among` |
+| `voice` is in that section's `voices` | `_note` | derived from `Along` |
+| `bar` within the section's `bars` | `_note` | `overBars`, a rule |
+| `at` within the bar | `_note` | `pastBar`, a rule |
+| `len` at least one | `_note` | domain `Range 1 …` |
+| `key` 0–127 | `_note` | domain `Range 0 127` |
+| `vel` named; `spell` agrees with `key` | `_note`, `Note.__post_init__` | domain `OneOf levels`; `misspelt`, a rule |
+
+### `untitled.desk` — one line, when Q4's trigger moves
+
+Q6's derivation is one rule over kinds, and a rule checked against one
+document is checked against a witness.  A `desk.ges` of four `Bare`
+singletons is the second document, and it is four lines:
+
+    deskKinds = Kind "line" (Bare "line") (Field "line" Number Must :: Nil) Nil Nil
+    :: Kind "column" (Bare "column") (Field "column" Number Must :: Nil) Nil Nil
+    :: Kind "zoom" (Bare "zoom") (Field "zoom" Number Must :: Nil) Nil Nil
+    :: Kind "seed" (Bare "seed") (Field "seed" Number Must :: Nil) Nil Nil :: Nil
+
+The `.desk` file itself does not change either.
 
 ## The relational model, recalled
 
