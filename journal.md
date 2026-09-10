@@ -2040,3 +2040,45 @@ now, mutation-checked against both defects it would have caught.
 gates, and whether the two fixture-pinning tests do.  Both are seconds;
 neither is a session's call to make.*
 
+## The sweep closes on its schedule and not on its postcondition — 2026-09-10
+
+`card:ungated-fixes.md` is done, thirteen batches from 2026-08-19 to
+2026-09-04, and it leaves **92 `gate:` lines** in `fixme.md` where it
+found none.  The card's `## Done` is the ledger.  This entry is the one
+thing worth carrying out of it.
+
+**The tail shrank and the head refilled.**  The card opened on a proxy
+count — 62 repairs named by no test — and swept them five a session.
+Counted the card's own way six days after the last batch, with a gate
+line naming an instrument counting as held and a gate line saying
+`none` counting as not:
+
+    python tools/gatecount.py
+    220 entries — 41 that nothing would catch
+      25 from before card:ungated-fixes.md, 16 since
+      of them 15 were read and marked `none` by the sweep
+
+So the sweep worked and the file grew under it.  **Sixteen of the
+forty-one arrived after the card was written**, which is after the rule
+was settled: bind every new closure, an instrument counts, not only a
+test.  The rule was answered in August and enforced by nothing since, so
+every entry written since has been free to close without one.  That is
+not a failure of the sweep; it is the difference between doing a thing
+and installing it, and this file is where the difference shows up as a
+number.
+
+**And fifteen of the forty-one are not a backlog.**  They were read and
+marked *nothing in the tree would say so* — the sweep's fourth verdict,
+written after looking.  An honest `none` is worth more than silence
+because it tells the next person where an afternoon would pay, and
+counting it as a failure would teach a sweep to write tests that pass
+rather than tests that would have caught the defect.  The real
+remainder is 26 never looked at.
+
+**What is left undone is question 3 of the card**, *does the suite
+enforce it?*, answered in shape — an accepted baseline that may shrink
+and never grow — and never built.  `tools/gatecount.py` is the
+measurement; turning it into a gate is the step that would meet the
+postcondition, and a session closing a card does not open one.  Left for
+Henri.
+

@@ -1,6 +1,6 @@
 # ungated-fixes — a defect closes, and nothing fires if it comes back
 
-    status   open
+    status   done — 2026-09-10
     because  "we need computer systems that are learning from their
              failures and get stronger and stronger by same mechanism
              that they are pummeled" — 79 of `fixme.md`'s 161 entries
@@ -991,3 +991,45 @@ commit each, so the progress is visible in `git log` and a session
 picking this up cold can see exactly where the last one stopped — which
 is the property the schedule needs most, since thirteen sessions is more
 than any one context will hold.
+
+## Done — 2026-09-10
+
+**The thirteen batches ran**, 2026-08-19 to 2026-09-04, and the sweep's
+list is cleared.  `fixme.md` carries **92 `gate:` lines** where it
+carried none, each naming the instrument that would go red — or saying,
+in the entry's own words after looking, that nothing would.
+`journal.md` has the batches; this is the ledger.
+
+**What the card decided, and it stands:** a gate is an *instrument*, not
+only a test (his answer to question 1), and the rule binds closures made
+from 2026-08-18 on rather than retroactively (question 2).  The 62 were
+read, not converted, which is what he asked for.
+
+**Where the file stands now**, and the measurement is a command:
+
+    python tools/gatecount.py
+    220 entries — 41 that nothing would catch
+      25 from before card:ungated-fixes.md, 16 since
+      of them 15 were read and marked `none` by the sweep; the rest
+      were never looked at
+
+So the card's 62 became **41**, and 15 of those 41 are not a backlog at
+all: they were read and answered *nothing in the tree would say so*,
+which is worth more than silence and is what the four verdicts exist
+for.  The real remainder is **26 never looked at, 16 of which arrived
+after this card was written.**
+
+**The postcondition is not met, and that is the closing fact.**  *A
+defect that was fixed once cannot come back without something in the
+tree going red first* — 41 of them still can.  The tail shrank and the
+head refilled, because **nothing enforces the rule on a new closure**:
+question 3, *does the suite enforce it?*, was answered in shape — an
+accepted baseline that may shrink and never grow — and never built.
+The card is closed on its schedule, not on its postcondition, and this
+paragraph is here so nobody reads the first as the second.
+
+`tools/gatecount.py` is the instrument that reading now needs, built the
+day the card closed so the next count is one line rather than an
+afternoon.  Turning it into a gate is the step that would meet the
+postcondition, and it is Henri's: a session closing a card does not open
+one.
