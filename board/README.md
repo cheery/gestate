@@ -78,6 +78,11 @@ still the tiebreak between two workable cards, and it is still his.
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
    dialogue.  *Arrived unplaced, 2026-09-07.*
+8. **[relational-model](relational-model.md)** — the `.notes` format is
+   a relation, and this holds it to what relational practice paid to
+   learn: eight scars, each to be paid, refused or built, and the
+   decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
+   dialogue he said he would continue.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
