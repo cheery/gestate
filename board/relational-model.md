@@ -544,6 +544,50 @@ relation from address to expression, which is scar 7's shape.  The
 whole of it is on `card:gex-sheet.md` §"Added 2026-09-10", with the
 one decision it creates: carried or beside, never both.
 
+## Decided — 2026-09-10, the six with their defaults
+
+Henri, the same evening: *"Answer Q1–Q6 with the defaults, and note it
+on the card.  Then lets move on to implementation if there's no
+further to resolve."*  So each question's default is its answer, and
+what separates them now is whether the trigger has fired:
+
+| q | decided | trigger | state |
+|---|---|---|---|
+| Q1 | a rename is a set command — one log line, one undo, refused when the new name is taken | the first time he renames a voice by hand | waits |
+| Q2 | reference rules into the declaration, derived from `Among` and `Along`; per-row domains into the declaration; the cross-row rules as rules over the relations, held to the parser while it runs | the parser reads `notes.ges` — **fired 2026-09-09** | live |
+| Q3 | the list, until a second per-voice attribute | the first per-voice fact with nowhere to go, or Q1 firing | waits |
+| Q4 | the `.desk` keeps no declaration | a second reader, or a fifth line | waits |
+| Q5 | the set command's data path is the editor's, its shape is here: row images logged, one entry, one undo | the first multi-note gesture | waits |
+| Q6 | the data reaches a reader normalized; the file stays the source | his word, the same evening | live |
+
+**What is built first, and in what order** — the two live ones, cut
+so that each slice is a parity the suite holds:
+
+1. **The two roads to one set of relations** (Q6).  A structural pass
+   that reads a file into records by the declaration alone, the
+   relations derived from those records by one rule over a kind (the
+   key plus the required scalars is the base, each `May` field its own
+   relation, each `Names` field a ranked one), and the same relations
+   derived from the parsed `NotesFile`.  The parity: the two roads
+   agree on `arc.notes`, and none of the four carriers the information
+   principle forbids is in the model — nesting, encoding, position,
+   adjacency.  The line index and the prose come out separately.
+2. **The references derived from the sort declaration, and the
+   cross-row rules as rules** (Q2).  `refers` on a kind, from `Among`
+   and `Along`; a `refused` set over the relations — dangling
+   references, `overBars`, `pastBar`, `misspelt`.  The parity: every
+   fixture the parser refuses for one of these reasons lands its key in
+   `refused`, and `refused` is empty on `arc.notes`.
+3. **Domains** (Q2).  `Range`, `AtLeast`, `OneOf` and `Each` as value
+   forms in `facts.ges`; `len`, `key`, `vel`, `manner`, `bars`, `beats`
+   and `bpm` declared with theirs in `notes.ges`; the parser's
+   per-token refusals derived from the domain rather than written per
+   field.  The parity: the same seven mistakes earn a refusal that
+   still names the field and the bound.
+
+Q1, Q3, Q4 and Q5 build nothing until their trigger; their shape is
+on this card so that the day it fires nothing has to be re-decided.
+
 ## The relational model, recalled
 
 What was said in the sitting before the scars, kept whole because he
