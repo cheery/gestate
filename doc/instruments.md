@@ -542,6 +542,23 @@ heading that never fires; he chooses, and a session proposes only in
 hindsight — the lamp at a commit that finishes a card asks what
 question would have helped at its start.  The install line is his.
 
+### `tools/notecost.py` — what one read of a `.notes` file costs
+
+    python tools/notecost.py [FILE.notes]
+
+Every line it prints is paid on a keystroke: the editor reparses the
+file it is looking at, redraws the page's rolls and rewrites the file a
+gesture touched.  A frame at 60 Hz is 16.7 ms, and the page marks any
+read that does not fit in one.
+
+Built 2026-09-10, when the record classes were retired and every reader
+moved onto the relations (`card:relational-model.md` Q6).  It caught
+what the tests could not see: a join that scanned a relation per note
+made one read eight times what it had been, on a file that still
+rendered correctly.  Guest fable's warning the same day is the reason
+it exists — *the query-cost-under-interaction problem is the one that
+has actually killed relational-UI attempts, not the modeling.*
+
 ### `tools/testimony.py` — what each memory's load-bearing claim rests on
 
     python tools/testimony.py [--kind session | --check]

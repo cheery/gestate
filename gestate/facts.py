@@ -84,11 +84,23 @@ class Kind:
     key: tuple
     order: tuple
 
+    def __post_init__(self):
+        """**The three lookups, made once.**  A kind is read for every
+        field of every record — 2,913 times per read of `arc.notes` —
+        and each was a scan over the field list, which is the same
+        query-per-row cost `Relation.by` exists for (`tools/notecost.py`,
+        2026-09-10).  Frozen, so the maps go in by the dataclass's own
+        back door, and nothing outside can tell."""
+        object.__setattr__(self, "_at", {f.name: f for f in self.fields})
+        object.__setattr__(self, "_required",
+                           tuple(f.name for f in self.fields if f.need == "Must"))
+        object.__setattr__(self, "_named", tuple(f.name for f in self.fields))
+
     @property
     def required(self) -> tuple:
         """The fields a record must carry, in declaration order — what a
         refusal names, derived rather than written a second time."""
-        return tuple(f.name for f in self.fields if f.need == "Must")
+        return self._required
 
     @property
     def named(self) -> tuple:
@@ -96,10 +108,10 @@ class Kind:
         bare first token is **not** one of these: it is positional by
         declaration, which is the one place `spec/drawnscores.md` gate
         two allows a position to mean something."""
-        return tuple(f.name for f in self.fields)
+        return self._named
 
     def field(self, name: str) -> Field | None:
-        return next((f for f in self.fields if f.name == name), None)
+        return self._at.get(name)
 
     @property
     def refers(self) -> tuple:
@@ -252,6 +264,23 @@ class Relation:
     def project(self, *names: str) -> set:
         at = tuple(self.column(n) for n in names)
         return {tuple(row[i] for i in at) for row in self.rows}
+
+    def by(self, *names: str) -> dict:
+        """`{those columns: [row as a dict, …]}` — **the index a reader
+        builds once** instead of scanning per row.
+
+        A relation is a set and a scan is fine at a few hundred rows;
+        the cost that bites is a scan *per row of another relation*,
+        which is O(n·m) and is the shape that has killed relational
+        UIs (guest fable, 2026-09-10).  So a reader that joins builds
+        this first, the way an engine builds a hash for a join.
+        """
+        at = tuple(self.column(n) for n in names)
+        out: dict = {}
+        for row in self.rows:
+            out.setdefault(tuple(row[i] for i in at), []).append(
+                dict(zip(self.heading, row)))
+        return out
 
     def where(self, **equal) -> list[dict]:
         """The rows whose named columns equal the values given, each as

@@ -70,9 +70,9 @@ def _arcnotes(text: str | None = None) -> str:
     if text is None:
         return notes.read(ARCNOTES)
     parsed = notes.parse(text, "arc.notes")
-    body, _ = notes.declarations(notes.relations(parsed))
+    body, _ = notes.declarations(parsed)
     source = ARCNOTES.read_text().replace('include "arc.notes"', "")
-    known = {s.name: set(s.voices) for s in parsed.sections}
+    known = {s["name"]: set(s["voices"]) for s in notes.sections_of(parsed)}
     return notes._dots(source + "\n" + body, known)
 
 
@@ -159,7 +159,7 @@ def test_a_tie_across_the_bar_line_is_a_length_and_is_allowed():
     text = ("section A  bars 2  beats 4  voices lead\n"
             "note  section A  bar 1  at 288  len 192  voice lead  key 60  vel mf\n")
     parsed = notes.parse(text, "tie.notes")
-    assert parsed.notes[0].length == 192
+    assert notes.notes_of(parsed)[0]["len"] == 192
 
 
 # ── 3.  The voices cannot drift ─────────────────────────────────────────────
@@ -248,20 +248,21 @@ def test_moving_one_note_in_time_moves_it_among_its_own_voice():
     text = NOTES.read_text()
     before = text.splitlines()
 
-    def moved(**change):
+    def moved(field, now):
+        """The gesture's own road — `retune` rewrites the field byte-exactly
+        and `canonical` puts the line where the file's order wants it."""
         parsed = notes.parse(text, "arc.notes")
-        one = notes.ordered(parsed)[40]
-        parsed.notes[parsed.notes.index(one)] = notes.Note(
-            **{**one.__dict__, **change})
-        after = notes.write(parsed).splitlines()
+        one = notes.notes_of(parsed)[40]
+        edited, _said = notes.retune(text, one["line"], field, one[field], now)
+        after = notes.canonical(edited, "arc.notes").splitlines()
         assert len(before) == len(after), "a drag must not change the length"
         return sum(1 for a, b in zip(before, after) if a != b)
 
-    assert moved(at=96 + 48) == 2, "half a beat: past one neighbour"
-    assert moved(at=288) == 3, "a whole beat: past two"
+    assert moved("at", 96 + 48) == 2, "half a beat: past one neighbour"
+    assert moved("at", 288) == 3, "a whole beat: past two"
     # And the property the whole format rests on is unaffected by any of
     # it: the note's own line still carries the whole of its own edit.
-    assert moved(key=64) == 1
+    assert moved("key", 64) == 1
 
 
 def test_moving_one_note_changes_exactly_one_line():
@@ -269,16 +270,15 @@ def test_moving_one_note_changes_exactly_one_line():
     for free rather than by careful implementation."""
     text = NOTES.read_text()
     parsed = notes.parse(text, "arc.notes")
-    one = notes.ordered(parsed)[40]
-    moved = notes.Note(**{**one.__dict__, "key": one.key + 2})
-    parsed.notes[parsed.notes.index(one)] = moved
+    one = notes.notes_of(parsed)[40]
+    edited, _said = notes.retune(text, one["line"], "key", one["key"], one["key"] + 2)
 
     before = text.splitlines()
-    after = notes.write(parsed).splitlines()
+    after = notes.canonical(edited, "arc.notes").splitlines()
     assert len(before) == len(after)
     differ = [i for i, (a, b) in enumerate(zip(before, after)) if a != b]
     assert len(differ) == 1, f"{len(differ)} lines changed for one note"
-    assert f"key {one.key + 2}" in after[differ[0]]
+    assert f"key {one["key"] + 2}" in after[differ[0]]
 
 
 # ── 6.  Every note is written down ──────────────────────────────────────────
@@ -302,20 +302,22 @@ def test_every_note_of_the_file_is_one_line_and_carries_its_own_pitch():
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     _, played = _events(_arcnotes())
 
-    assert len(parsed.notes) == len(played) == 291
+    written = notes.notes_of(parsed)
+    assert len(written) == len(played) == 291
     lines = NOTES.read_text().splitlines()
-    for one in parsed.notes:
-        written = lines[one.line - 1]
-        assert written.startswith("note "), one
-        assert f"key {one.key}" in written
+    for one in written:
+        wrote = lines[one["line"] - 1]
+        assert wrote.startswith("note "), one
+        assert f"key {one['key']}" in wrote
 
-    assert len({n.line for n in parsed.notes}) == len(parsed.notes), (
+    written = notes.notes_of(parsed)
+    assert len({n["line"] for n in written}) == len(written), (
         "two notes claim the same line")
 
-    _, where = notes.declarations(notes.relations(parsed))
-    assert len(where) == len(parsed.notes), (
+    _, where = notes.declarations(parsed)
+    assert len(where) == len(written), (
         "the expansion lost a note's line on the way into `.ges`")
-    assert sorted(where.values()) == sorted(n.line for n in parsed.notes)
+    assert sorted(where.values()) == sorted(n["line"] for n in written)
 
 
 # ── 7.  The mode lamp ───────────────────────────────────────────────────────
@@ -344,12 +346,13 @@ def test_the_mode_reports_and_does_not_refuse():
     # exactly why this reports and never refuses.
     assert len(outside) == 13, [(n.line, d) for n, d in outside]
     first = outside[0][0]
-    assert (first.section, first.bar, first.voice, first.key) == ("A", 3, "melody", 67)
+    assert (first["section"], first["bar"], first["voice"], first["key"]) == (
+        "A", 3, "melody", 67)
     assert outside[0][1] == 5, "the natural fourth, in a mode whose fourth is sharp"
-    assert any(n.voice == "bass" and n.key % 12 == 7 for n, _ in outside), (
+    assert any(n["voice"] == "bass" and n["key"] % 12 == 7 for n, _ in outside), (
         "the IV's own root is out of lydian, and that is the point of it")
     # And it loaded.  That is the other half of the assertion.
-    assert len(parsed.notes) == 291
+    assert len(notes.notes_of(parsed)) == 291
 
 
 def test_a_section_with_no_mode_says_nothing():
@@ -422,8 +425,8 @@ def test_the_same_note_written_twice_is_allowed_and_named():
             "note  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf\n"
             "note  section A  bar 1  at 0  len 48  voice lead  key 60  vel f\n")
     parsed = notes.parse(text, "twice.notes")
-    assert len(parsed.notes) == 2, "a hand-written file may say it twice"
-    assert [(a.line, b.line) for a, b in notes.doubled(parsed)] == [(2, 3)]
+    assert len(notes.notes_of(parsed)) == 2, "a hand-written file may say it twice"
+    assert [(a["line"], b["line"]) for a, b in notes.doubled(parsed)] == [(2, 3)]
 
     # And it still round-trips, which is what makes allowing it safe:
     # identical notes sort adjacently and `sorted` is stable.
@@ -1448,12 +1451,12 @@ def test_the_cadence_the_rule_could_not_spell_is_written_out():
     disagreed with it, on one file, at its cadence.
     """
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    one, = [n for n in parsed.notes
-            if n.section == "C" and n.bar == 8 and n.voice == "melody"
-            and n.at == 0]
-    assert one.key == 73
+    one, = [n for n in notes.notes_of(parsed)
+            if n["section"] == "C" and n["bar"] == 8 and n["voice"] == "melody"
+            and n["at"] == 0]
+    assert one["key"] == 73
     assert notes.spell(73, "D", "phrygian") == "des5", "the rule is unchanged"
-    assert one.spell == "cis5", "and the file overrules it, on this note"
+    assert one["spell"] == "cis5", "and the file overrules it, on this note"
     assert notes.degree_of(73, "D", "phrygian") == "7", (
         "the two columns of one report now agree about this note")
 
@@ -1467,12 +1470,13 @@ def test_one_pitch_is_spelled_by_the_section_it_is_in():
     per file could not say this and neither can a rule.
     """
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    at_b = [n for n in parsed.notes if n.section == "B" and n.key == 61]
-    at_c = [n for n in parsed.notes if n.section == "C" and n.key == 61]
+    written = notes.notes_of(parsed)
+    at_b = [n for n in written if n["section"] == "B" and n["key"] == 61]
+    at_c = [n for n in written if n["section"] == "C" and n["key"] == 61]
     assert at_b and at_c
-    assert all(n.spell is None for n in at_b), "B's is what the rule says"
+    assert all(n["spell"] is None for n in at_b), "B's is what the rule says"
     assert notes.spell(61, "G", "locrian") == "des4"
-    assert [n.spell for n in at_c] == ["cis4"], "C's is written down"
+    assert [n["spell"] for n in at_c] == ["cis4"], "C's is written down"
 
 
 def test_the_report_prints_the_written_letter_where_there_is_one():
@@ -1503,16 +1507,18 @@ def test_a_spelling_travels_with_a_held_note_through_its_bars():
 
 
 def test_a_note_cannot_be_made_to_contradict_its_own_spelling():
-    """The refusal is on the record, so there is one rule and every
-    caller meets it — the parser, a drag, and anything that moves a note
-    by rebuilding it."""
+    """One rule, in one place — `notes._spelled`, which the parser calls
+    on every line and which anything building a note goes through.  It
+    used to sit on the `Note` record; the records went on 2026-09-10 and
+    the rule did not move."""
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    one, = [n for n in parsed.notes if n.spell == "cis5"]
+    one, = [n for n in notes.notes_of(parsed) if n["spell"] == "cis5"]
+    moved = notes._line({**one, "key": one["key"] + 2})
     with pytest.raises(notes.NotesError, match="names key 73"):
-        notes.Note(**{**one.__dict__, "key": one.key + 2})
+        notes.parse(NOTES.read_text().replace(notes._line(one), moved), "arc.notes")
     # and the same note, spelled by nobody, moves freely
-    plain = notes.Note(**{**one.__dict__, "spell": None})
-    assert notes.Note(**{**plain.__dict__, "key": 75}).key == 75
+    plain = notes._line({**one, "spell": None, "key": 75})
+    assert " key 75 " in f" {plain} " and "spell" not in plain
 
 
 def test_a_drag_in_pitch_drops_the_written_spelling_and_says_so():
@@ -1555,7 +1561,7 @@ def test_a_written_spelling_survives_the_four_gates():
 
     # one note per line, and the spelling is on the note's own line
     lines = [l for l in text.splitlines() if l.startswith("note ")]
-    assert len(lines) == len(parsed.notes)
+    assert len(lines) == len(notes.notes_of(parsed))
     assert sum(1 for l in lines if " spell " in l) == 3
 
     # named, never positional
@@ -1600,9 +1606,9 @@ def test_the_shipped_file_carries_prose_and_keeps_it():
     """
     text = NOTES.read_text()
     parsed = notes.parse(text, "arc.notes")
-    said = [n for n in parsed.notes if n.beside]
-    assert len(said) == 3 and {n.spell for n in said} == {"fis3", "cis4", "cis5"}
-    assert parsed.sections[0].above[0].startswith("# arc.notes")
+    said = [n for n in notes.notes_of(parsed) if n["beside"]]
+    assert len(said) == 3 and {n["spell"] for n in said} == {"fis3", "cis4", "cis5"}
+    assert notes.sections_of(parsed)[0]["above"][0].startswith("# arc.notes")
     assert notes.write(parsed) == text, "and a rewrite gives all seven back"
 
 
@@ -1628,19 +1634,20 @@ def test_prose_belongs_to_the_record_below_it_and_travels_with_it():
     and is the stated limit for a remark about a bar.
     """
     parsed = notes.parse(HAND, "hand.notes")
-    one, = [n for n in parsed.notes if n.key == 68]
-    assert one.beside == "# the sharp fourth"
-    two, = [n for n in parsed.notes if n.key == 62]
-    assert two.above == ("#: the melody opens on the tonic "
-                         "and reaches the sharp fourth",)
-    assert parsed.sections[0].beside == "# G# is the mode"
-    assert parsed.sections[0].above[0].startswith("# arc.notes")
-    assert parsed.closing == ("# and that is all of it",)
+    written = notes.notes_of(parsed)
+    one, = [n for n in written if n["key"] == 68]
+    assert one["beside"] == "# the sharp fourth"
+    two, = [n for n in written if n["key"] == 62]
+    assert two["above"] == ("#: the melody opens on the tonic "
+                            "and reaches the sharp fourth",)
+    head = notes.sections_of(parsed)[0]
+    assert head["beside"] == "# G# is the mode"
+    assert head["above"][0].startswith("# arc.notes")
+    assert notes._closing(parsed) == ("# and that is all of it",)
 
     #: and the prose moves with the note, not with the line number
-    moved = notes.Note(**{**one.__dict__, "at": 0, "key": 68, "spell": None})
-    parsed.notes[parsed.notes.index(one)] = moved
-    back = notes.write(parsed)
+    edited, _said = notes.retune(HAND, one["line"], "at", one["at"], 0)
+    back = notes.canonical(edited, "hand.notes")
     said = [l for l in back.splitlines() if l.endswith("# the sharp fourth")]
     assert len(said) == 1 and "key 68" in said[0] and " at 0 " in said[0], (
         "the remark rode with the note it was written beside")
@@ -1662,8 +1669,8 @@ def test_a_drag_rewrites_the_record_and_never_the_prose():
 def test_a_comment_only_file_still_parses_to_nothing():
     """Prose with no record under it is the file's, and is not lost."""
     parsed = notes.parse("# nothing here yet\n# but a plan\n", "empty.notes")
-    assert parsed.notes == [] and parsed.sections == []
-    assert parsed.closing == ("# nothing here yet", "# but a plan")
+    assert notes.notes_of(parsed) == [] and notes.sections_of(parsed) == []
+    assert notes._closing(parsed) == ("# nothing here yet", "# but a plan")
 
 
 @pytest.mark.parametrize("tonic", ["C#", "D#", "F#", "G#", "A#"])
@@ -1676,9 +1683,10 @@ def test_a_sharp_tonic_is_a_tonic_and_not_a_comment(tonic):
             "  voices lead  # and a real comment after it\n"
             "note  section A  bar 1  at 0  len 96  voice lead  key 61  vel mf\n")
     parsed = notes.parse(text, "sharp.notes")
-    assert parsed.sections[0].key == tonic
-    assert parsed.sections[0].mode == "lydian"
-    assert parsed.sections[0].beside == "# and a real comment after it"
+    head = notes.sections_of(parsed)[0]
+    assert head["key"] == tonic
+    assert head["mode"] == "lydian"
+    assert head["beside"] == "# and a real comment after it"
 
 
 # ── Rung 5, the first slice — the rail, the selection, `move` — 2026-09-06 ──
@@ -1982,10 +1990,10 @@ def test_a_lone_notes_file_is_lent_chopins_hammer_and_plays_every_note():
     bpm, raw = perform_voices(source, "", 48000, 0)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     assert bpm == notes.WRAPPER_BPM
-    assert len(raw) == len(parsed.notes), "every written note plays"
-    voices = {v for s in parsed.sections for v in s.voices}
+    assert len(raw) == len(notes.notes_of(parsed)), "every written note plays"
+    voices = {v for s in notes.sections_of(parsed) for v in s["voices"]}
     assert {b for _on, _off, b, _p in raw} == voices, "each voice its own bank"
-    assert text.count("\nnotes (") == len(parsed.sections), "a roll per section"
+    assert text.count("\nnotes (") == len(notes.sections_of(parsed)), "a roll per section"
 
 
 def test_the_wrapper_rests_a_voice_a_section_lacks():
@@ -2057,16 +2065,17 @@ def test_the_page_is_the_files_own_picture_stacked():
     here, bench = _opened_alone()
     bench._load_substrate(bench.program())
     parsed = notes.parse(here.read_text(), "arc.notes")
-    assert sorted(bench.canvases) == [f"__notes_{k}__" for k in range(len(parsed.sections))]
+    heads = notes.sections_of(parsed)
+    assert sorted(bench.canvases) == [f"__notes_{k}__" for k in range(len(heads))]
     assert bench.substrate is not None, "the page is the file's own picture"
     picture = bench.substrate.picture()
-    titles = [f"{s.name} {s.key} {s.mode}".upper() for s in parsed.sections]
+    titles = [f"{s['name']} {s['key']} {s['mode']}".upper() for s in heads]
     captions = [i for i in picture if i[0] == "text" and i[3] in titles]
-    assert len(captions) == len(parsed.sections), "one roll per section, stacked, each captioned with its section"
+    assert len(captions) == len(heads), "one roll per section, stacked, each captioned with its section"
     tops = sorted(i[2] for i in captions)
     assert len(set(tops)) == len(tops), "stacked, not overlaid"
     rails = [k for k, r in bench.note_regions.items() if r.hand == RAIL]
-    assert len(rails) == len(parsed.sections)
+    assert len(rails) == len(heads)
 
 
 def _clear_note(roll) -> int:
@@ -2197,7 +2206,7 @@ def _both_roads():
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     page = asks(source)
-    fast = notes_rolls(source, page, origins, notes.relations(parsed))
+    fast = notes_rolls(source, page, origins, parsed)
     slow = build_rolls(source, page, 44100, 0)
     return page, parsed, fast, slow
 
@@ -2222,15 +2231,15 @@ def test_the_data_road_says_what_the_file_says_about_loudness_and_manner():
     from gestate.notes import LEVELS
 
     _page, parsed, fast, _slow = _both_roads()
-    by_line = {n.line: n for n in parsed.notes}
+    by_line = {n["line"]: n for n in notes.notes_of(parsed)}
     text = notes.wrapper(NOTES)
     _source, origins = notes.expanded(text, NOTES.parent)
     accents = 0
     for roll in fast:
         for on, off, k, key, vel, manner in roll.events:
             note = by_line[origins[roll.leaves[k].line][1]]
-            assert manner == note.manners
-            assert vel == int((0.125 + note.level * 0.125) * 127.0)
+            assert manner == notes.bits_of(note["manner"])
+            assert vel == int((0.125 + notes.level_of(note["vel"]) * 0.125) * 127.0)
             accents += manner != 0
     assert accents > 0, "arc.notes writes accents, and they must reach the roll"
 
@@ -2246,7 +2255,7 @@ def test_the_data_road_is_milliseconds_and_the_bench_takes_it():
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     t0 = time.perf_counter()
-    rolls = notes_rolls(source, asks(source), origins, notes.relations(parsed))
+    rolls = notes_rolls(source, asks(source), origins, parsed)
     took = time.perf_counter() - t0
     assert len(rolls) == 3 and took < 0.5, f"{took:.2f} s for the page"
 
@@ -2265,7 +2274,7 @@ def test_an_ask_the_data_road_cannot_read_is_a_roll_error_in_its_slot():
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     out = notes_rolls(source, [(1, "notes_A_melody ++ notes_B_melody"),
                                (2, "notes_Q_nothing"),
-                               (3, "(notes_A_bass)")], origins, notes.relations(parsed))
+                               (3, "(notes_A_bass)")], origins, parsed)
     assert isinstance(out[0], RollError) and "names something else" in str(out[0])
     assert isinstance(out[1], RollError) and "no voice of this file" in str(out[1])
     assert not isinstance(out[2], RollError) and len(out[2].events) > 0
@@ -2357,7 +2366,7 @@ def _live_and_baked():
     text = notes.wrapper(NOTES)
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    rolls = notes_rolls(source, asks(source), origins, notes.relations(parsed))
+    rolls = notes_rolls(source, asks(source), origins, parsed)
     return rolls, page_program(rolls, stacked=True), page_program(rolls, stacked=True, live=True)
 
 
@@ -2372,7 +2381,7 @@ def test_a_live_rolls_text_holds_still_while_a_note_moves():
     moved_file = NOTES.read_text().replace("key 62", "key 64", 1)
     source, origins = notes.expanded(text, NOTES.parent, texts={"arc.notes": moved_file})
     parsed = notes.parse(moved_file, "arc.notes")
-    rolls2 = notes_rolls(source, asks(source), origins, notes.relations(parsed))
+    rolls2 = notes_rolls(source, asks(source), origins, parsed)
     assert page_program(rolls2, stacked=True, live=True)[0] == live
     assert page_program(rolls2, stacked=True)[0] != baked, "the baked text moves; that was the cost"
 
@@ -2404,10 +2413,10 @@ def test_the_data_roads_scale_is_the_sections_length_and_the_files_range():
 
     rolls, _b, _l = _live_and_baked()
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    keys = [n.key for n in parsed.notes]
-    for roll, section in zip(rolls, parsed.sections):
+    keys = [n["key"] for n in notes.notes_of(parsed)]
+    for roll, section in zip(rolls, notes.sections_of(parsed)):
         lo, hi, span = scale_of(roll)
-        assert span == section.bars * section.beats * TICKS_PER_BEAT
+        assert span == section["bars"] * section["beats"] * TICKS_PER_BEAT
         assert (lo, hi) == (min(keys), max(keys)), "one axis for the page"
         last = max(off for _on, off, *_r in roll.events)
         left, _top, width, _h = body_of(roll)
@@ -2506,7 +2515,7 @@ def test_the_page_names_its_keys_its_bars_and_its_sections():
     rolls, (baked, _r, entries), _l = _live_and_baked()
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     views = Substrate.several(baked, 44100, entries)
-    for roll, section, view in zip(rolls, parsed.sections, views):
+    for roll, section, view in zip(rolls, notes.sections_of(parsed), views):
         geo = geometry_of(roll)
         lo, hi, _span = scale_of(roll)
         items = view.picture()
@@ -2515,11 +2524,11 @@ def test_the_page_names_its_keys_its_bars_and_its_sections():
         names = sorted(i[3] for i in items if i[0] == "text" and i[3].startswith("C") and i[3][1:].lstrip("-").isdigit())
         assert names == sorted(f"C{k // 12 - 1}" for k in range(lo, hi + 1) if k % 12 == 0)
         numbers = sorted(int(i[3]) for i in items if i[0] == "text" and i[3].isdigit())
-        assert numbers == list(range(1, section.bars + 1)), "a number per bar"
+        assert numbers == list(range(1, section["bars"] + 1)), "a number per bar"
         _left, _top, _w, body_h = body_of(roll)
         lines = [i for i in items if i[0] == "rect" and i[3] == 1 and i[4] == body_h]
-        assert len(lines) == section.bars * section.beats + section.bars, "a line per beat, and a brighter one per bar"
-        caption = [i for i in items if i[0] == "text" and i[3] == f"{section.name} {section.key} {section.mode}".upper()]
+        assert len(lines) == section["bars"] * section["beats"] + section["bars"], "a line per beat, and a brighter one per bar"
+        caption = [i for i in items if i[0] == "text" and i[3] == f"{section['name']} {section['key']} {section['mode']}".upper()]
         assert len(caption) == 1, "captioned with what it is"
 
 
@@ -2576,16 +2585,16 @@ def test_two_sections_on_one_roll_follow_one_another():
     text = notes.wrapper(NOTES)
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    a, b = parsed.sections[0], parsed.sections[1]
-    ask = f"(notes_{a.name}_{a.voices[0]} || notes_{b.name}_{b.voices[0]})"
+    a, b = notes.sections_of(parsed)[:2]
+    ask = f"(notes_{a['name']}_{a['voices'][0]} || notes_{b['name']}_{b['voices'][0]})"
     line = next(i + 1 for i, l in enumerate(source.splitlines()) if l.startswith("notes "))
-    roll = notes_rolls(source, [(line, ask)], origins, notes.relations(parsed))[0]
-    first = a.bars * a.beats * TICKS_PER_BEAT
+    roll = notes_rolls(source, [(line, ask)], origins, parsed)[0]
+    first = a["bars"] * a["beats"] * TICKS_PER_BEAT
     _lo, _hi, span = scale_of(roll)
-    assert span == first + b.bars * b.beats * TICKS_PER_BEAT
-    assert roll.bars[a.bars] == first, "the second section's first bar line"
+    assert span == first + b["bars"] * b["beats"] * TICKS_PER_BEAT
+    assert roll.bars[a["bars"]] == first, "the second section's first bar line"
     assert any(on >= first for on, *_r in roll.events), "the second section's notes follow the first's"
-    assert roll.title == f"{a.name} {a.key} {a.mode}  {b.name} {b.key} {b.mode}"
+    assert roll.title == f"{a['name']} {a['key']} {a['mode']}  {b['name']} {b['key']} {b['mode']}"
 
 
 # ── F204 repaired — a pad is two on one element, and a note is carried in both axes ──
@@ -3176,7 +3185,7 @@ def test_a_note_written_past_its_bar_line_is_drawn_whole_on_both_roads():
     source, origins = notes.expanded(text, here.parent)
     parsed = notes.parse(here.read_text(), here.name)
     page = asks(source)
-    fast = notes_rolls(source, page, origins, notes.relations(parsed))
+    fast = notes_rolls(source, page, origins, parsed)
     slow = build_rolls(source, page, 44100, 0)
     assert [e[:4] for e in fast[0].events] == [e[:4] for e in slow[0].events]
     on, off, _leaf, key, _vel, _manner = fast[0].events[0]
@@ -3273,10 +3282,13 @@ def test_a_click_on_the_ruler_changes_nothing_and_the_compact_box_has_no_ruler()
 def test_a_notes_file_may_say_its_tempo_once_and_the_writer_puts_it_first():
     text = "section A  bars 1  beats 4  voices lead\nbpm 132\nnote  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf\n"
     parsed = notes.parse(text, "t.notes")
-    assert parsed.bpm == 132 and parsed.bpm_line == 2
+    assert notes.bpm_of(parsed) == 132
+    assert parsed["line"].where(kind="bpm")[0]["line"] == 2
     assert notes.write(parsed).splitlines()[0] == "bpm 132", "first, the one fact about the whole file"
-    assert notes.parse(notes.write(parsed), "t.notes").bpm == 132, "and it survives the round trip"
-    assert notes.parse("section A  bars 1  beats 4  voices lead\n", "t.notes").bpm is None
+    assert notes.bpm_of(notes.parse(notes.write(parsed), "t.notes")) == 132, (
+        "and it survives the round trip")
+    assert notes.bpm_of(notes.parse(
+        "section A  bars 1  beats 4  voices lead\n", "t.notes")) is None
     with pytest.raises(notes.NotesError, match="declared twice"):
         notes.parse("bpm 100\nbpm 120\nsection A  bars 1  beats 4  voices lead\n", "t.notes")
     with pytest.raises(notes.NotesError, match="takes one number"):

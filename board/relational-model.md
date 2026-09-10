@@ -58,10 +58,11 @@ three marks: *paid* with the place it is paid, *refused* with his word
 and a date, or *built* with the test that holds it.  Eight scars, and
 today the marks stand at
 
-    paid 0 · refused 0 · built 1 · open 7
+    paid 0 · refused 0 · built 3 · open 5
 
-*Built 2026-09-10:* scar 2, held by `test/test_notes_relations.py` —
-§"Built" says what and what it does not cover.
+*Built 2026-09-10:* scars 2, 4 and 7, held by
+`test/test_notes_relations.py` — §"Built" says what and what it does
+not cover.
 
 — the six already-paid lessons in §"Already paid" are not counted,
 because they need no decision.
@@ -138,10 +139,10 @@ what practice did.  Numbers are from `examples/audio/arc.notes` on
 | 1 | a rename is a set edit | voice and section names are natural keys referenced by value from every note; the one-field-one-line law cannot rename one | one command, many lines, one log entry, one undo | open |
 | 2 | integrity kept in the application is lost at the rewrite | seven rules live only in `notes.py`; the declaration has `Among` for *sort by a reference* and nothing for *the reference must resolve* | foreign keys and checks in the schema | **built** 2026-09-10 — `test/test_notes_relations.py` |
 | 3 | content-keyed identity is git's rename-detection scar | a key-field edit renames the thing it edited; two snapshots cannot tell *moved* from *deleted and created* | the command carries the before and after keys; never derive continuity from two files | open |
-| 4 | a list in a value has nowhere to hang a second fact | `voices melody,upper,…` works with one reader; a voice's colour, instrument or mute has no row to sit on | a `voice` kind, headed by name, with section and rank | open |
+| 4 | a list in a value has nowhere to hang a second fact | `voices melody,upper,…` works with one reader; a voice's colour, instrument or mute has no row to sit on | a `voice` kind, headed by name, with section and rank | **built** 2026-09-10 — a reader gets `voice` rows with a rank |
 | 5 | the second writer skips the constraints | every write ends in the parser today, because the canonical rewrite parses the text back | keep it a rule in one sentence: no write path that does not reparse | open |
 | 6 | schema change is the largest operational pain | adding a `May` field is free; renaming a field or changing a key rewrites every file that exists; `.desk` carries no declaration beside it | never rename, never reuse a name for a new meaning; only add and deprecate | open |
-| 7 | the generic record defeats the types, the checks and the eye | the temptation to let `note` carry arbitrary pairs when a new attribute is wanted | one kind, one line, named fields — and refuse EAV in text | open |
+| 7 | the generic record defeats the types, the checks and the eye | the temptation to let `note` carry arbitrary pairs when a new attribute is wanted | one kind, one line, named fields — and refuse EAV in text | **built** 2026-09-10 — a record is its declared fields, and the parser refuses any other |
 | 8 | row-at-a-time is how a set edit becomes thirty undo steps | the one primitive read today rewrites one field of one line | a command is a predicate and an update, applied and logged and undone as one | open |
 
 ### 1. A rename is a set edit, and the format has no set edit
@@ -663,6 +664,39 @@ joined the index so nothing of the file is outside the relations.
 
     python -m pytest test/test_notes_relations.py -q     → 30 passed
 
+**Slice 5, the record classes retired** (Q6, the rest).  His ask:
+*"retire the record classes."*  `Note`, `Section` and `NotesFile` are
+gone.  `notes.parse` answers **the relations** — the same relations
+`relations_of` derives, with the parser's own refusals in front of
+them — and a record anywhere in the tree is now a `dict` of the fields
+the declaration names.  The three classes were a third statement of
+what a `.notes` is, beside the declaration and the file, and each
+attribute renamed a field it already had: `length` for `len`, `level`
+for `vel`, `manners` for `manner`.  A reader had to know two
+vocabularies for one document; now there is one, and it is the file's.
+Converted with them: `write`, `doubled`, `outside`, `sounding`,
+`spellings`, `rows_of_notes`, `asserted`, `retracted`, and the
+editor's eight gestures in `session.py` — drag, carry, resize,
+stretch, tempo, bars, voice and the included-file drag — which look a
+note up through `notes.at_line`, the index, rather than by scanning
+for an attribute.
+
+**What the derivation found, and the parity could not.**  Prose was
+keyed by the *record*.  A doubled note — two identical lines, which
+the format allows on purpose and `doubled` names — is **one** fact and
+**two** writings, so keyed that way the two lines' comments merged
+onto one note and one of the two lines was lost on the next write.
+Nothing measured it, because `arc.notes` has no doubled note and the
+readers had never been derived from the relations. The index is keyed
+by the **line** now, which is F200 read exactly: a comment belongs to
+the writing below it, not to the fact. `notes_of` yields one entry per
+written line — the bag — and `rels["note"]` is the set, for whoever
+wants the facts. `test_a_doubled_line_is_one_fact_and_two_writings`
+is the gate.
+
+    python -m pytest test/test_notes_relations.py -q     → 32 passed
+    python tools/notecost.py                             → every read inside a frame
+
 **What it does not cover, said plainly.**  The parser still runs and
 still carries every rule by hand; what changed is that each now has a
 second home the suite holds it to, so the day `_note` goes nothing is
@@ -671,14 +705,91 @@ Datafun over `Set` — the comprehensions in §"The sketch" are the
 shape, and the language form waits for the relations to reach the
 G-machine.  A section's `key` and `mode` keep their lists in
 `notes.py` (`_PITCH_CLASS`, `_MODES`), because `mode` is matched
-case-insensitively and a `OneOf` is not.  What still reads
-`NotesFile`: the writer and the two primitive edits, which is right —
-the file is the source and they make it; `outside`, `sounding`,
-`spellings` and `doubled`, the report side; and `session.py`'s drag
-and move, which look a note up by line.  Those are the editor's, and
-they read the record classes because the record classes are still
-what the parser makes; retiring them is the day the parser reads
-`relations_of` and refuses from `refused`.
+case-insensitively and a `OneOf` is not.  **And the parser still
+carries its own sentences**: `_note` checks a line in the order a
+person would fix it and says *a note lasts at least one tick* where
+the declaration says *less than 1*.  That is deliberate —
+`card:error-messages.md` paid for those words — and the parity is a
+test derived from the declaration, one boundary per field.  The day
+the sentences can be derived from the bounds too, `_note` goes; not
+before.
+
+## Guest fable's three, 2026-09-10 — and where each one stands here
+
+Relayed by Henri while slice 5 was being built:
+
+> the query-cost-under-interaction problem is the one that has actually
+> killed relational-UI attempts, not the modeling.  The transient-state
+> question (does the caret live in the fact store or the statechart) is
+> the one every project answers late and regrets.  And retraction
+> cascade semantics is where the elegance meets the edge cases.  Those
+> three are what the literature and the shipped systems will tell you
+> about, and they're the same three the model sketch will surface if
+> you write the roll's model on paper first.
+
+All three are real and the tree stands differently on each.
+
+**1. Query cost under interaction — it bit, it was measured, it is
+fixed, and there is a command.**  `tools/notecost.py`, on his own
+piece, every line of it paid on a keystroke.  Retiring the record
+classes put the readers on the relations and the first shape of the
+join scanned a relation per note:
+
+| one read of `arc.notes` | records | relations, first shape | now |
+|---|---|---|---|
+| `parse` | 10.0 ms | 15.1 ms | **11.9 ms** |
+| the note view, 291 | 1.6 ms | 13.8 ms | **5.4 ms** |
+| `write` | 2.6 ms | 14.3 ms | **6.9 ms** |
+| the page's three rolls | — | 16.8 ms | **9.0 ms** |
+
+A frame at 60 Hz is 16.7 ms, and the whole of a read now fits in one.
+The cost was **not** the model: it was a query per row, O(n·m), twice
+over — `Relation.where` called once per note, and `Kind.field` scanning
+the field list 2,913 times per read.  `facts.Relation.by` indexes once
+before a join, the way an engine builds a hash, and a `Kind` indexes
+its own fields when it is made.  *That is the whole finding, and it is
+the one the literature gives:* Eve's lesson, failure mode 1 of
+`doc/notes/notes-on-the-model.md`.  **What is not yet measured** is the
+cost at ten times the piece — 2,910 notes — and whether an *incremental*
+read is needed rather than a fast whole one, which is where Datafun's
+seminaïve evaluation would come in (`spec/data.md`) and where this
+tree has an answer nobody else had.
+
+**2. Transient state — half-decided here, and the undecided half is
+his.**  gestate already split it, without calling it that: a `.desk`
+holds `line`, `column`, `zoom` and `seed`, so **the caret is a fact in
+a file**, while the selection, the drag in flight and the hover live in
+`session.py` and are gone when the window closes.  So the answer here
+is *both, by durability*, and the line is drawn where it should be.
+What is not decided is where a **selection** goes when a command
+language has to name it — `card:gui-is-difficult.md`'s question — and
+that is the one this warning is really about.  It is Q7 below.
+
+**3. Retraction cascade — answered, and the answer is in the code.**
+This one the tree has paid.  `notes.retracted` does not cascade and
+does not walk a dependency graph: it removes the record, writes the
+file it would leave, and **re-parses it**, and the parser's refusal is
+the answer — *"retracting it would leave the file unreadable — no
+section `A`"*.  Restrict, not cascade, which is §"Already paid" line
+one, and it works because nothing in a `.notes` stores a derived fact
+(Henri, 2026-09-09).  The edge cases guest fable means arrive when
+derived facts *are* stored, and the rule that keeps them away is
+`vision.md`'s: the roll, the sound and the picture are recomputed, never
+kept.
+
+**And the fourth thing he says** — *write the roll's model on paper
+first* — is `card:gui-is-difficult.md`'s Q1 and this card does not take
+it.
+
+**Q7 — where a selection lives.**  Is a selection a fact in the
+document (a `.desk` record, surviving the window), a fact in a store
+that is not the document, or session state the command language names
+but never stores?  *Default:* session state, named by the command
+language and never written — the caret is already the exception that
+proves it, and `.desk` is where a thing goes when it earns durability.
+*Trigger:* the first command that has to say *the selection* to
+something outside the window — a script, a second view, or an undo
+that must restore it.
 
 ## The relational model, recalled
 

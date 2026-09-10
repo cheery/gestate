@@ -85,88 +85,16 @@ _MODES = {
 _NAME = re.compile(r"^[A-Za-z_]\w*$")
 
 
-@dataclass(frozen=True)
-class Note:
-    """One note record, and the line it was written on."""
-    section: str
-    bar: int
-    at: int
-    length: int
-    voice: str
-    key: int
-    spell: str | None
-    level: int
-    manners: int
-    line: int
-    above: tuple[str, ...] = ()
-    beside: str | None = None
-
-    def __post_init__(self):
-        """A spelling that does not name this note's key is refused.
-
-        **On the record, so there is one rule and every caller meets
-        it.**  A `Note` is made by the parser and by anything that moves
-        one, and a spelling contradicting its own key is a file that
-        *lies* about the pitch it plays — which is worse than the
-        derived spelling it replaced, because a reader cannot tell it
-        from an intention.  So a drag that changes `key` has to say what
-        becomes of `spell` rather than carrying a stale letter forward.
-
-        The parser checks the same rule first, because it knows the file
-        as well as the line; this catches everyone else.
-        """
-        _spelled(self.spell, self.key, f"line {self.line}")
-
-
-@dataclass
-class Section:
-    """One section record: the grid its notes are placed on."""
-    name: str
-    bars: int
-    beats: int
-    voices: tuple[str, ...]
-    key: str | None
-    mode: str | None
-    line: int
-    above: tuple[str, ...] = ()
-    beside: str | None = None
-
-    @property
-    def bar_ticks(self) -> int:
-        return self.beats * TICKS_PER_BEAT
-
-
-@dataclass
-class NotesFile:
-    """A parsed `.notes` file — sections in the order written, and notes."""
-    name: str
-    sections: list[Section] = field(default_factory=list)
-    notes: list[Note] = field(default_factory=list)
-    #: Prose after the last record, which no record follows.  Everything
-    #: else belongs to the record under it — `spec/drawnscores.md` §"The
-    #: prose belongs to the record below it".
-    closing: tuple[str, ...] = ()
-    #: **The file's own tempo, when it says one** — a `bpm N` record,
-    #: at most one.  Henri, 2026-09-06 (`card:notes-editor.md` Q2):
-    #: *".notes could also have bpm marking, but it's not used if .ges
-    #: has one."*  So `notes.wrapper` reads it for a file played alone,
-    #: and an including `.ges` keeps its own `bpm`, the include bringing
-    #: notes only.  `None` says the file is silent about tempo.
-    bpm: int | None = None
-    bpm_line: int = 0
-    bpm_above: tuple[str, ...] = ()
-    bpm_beside: str | None = None
-
-    def section(self, name: str) -> Section | None:
-        for one in self.sections:
-            if one.name == name:
-                return one
-        return None
-
-    @property
-    def voice_names(self) -> list[tuple[str, str]]:
-        """`(section, voice)` for every voice every section declares."""
-        return [(s.name, v) for s in self.sections for v in s.voices]
+#: **The record classes are gone** — 2026-09-10,
+#: `card:relational-model.md` Q6.  A parsed document *is* its relations
+#: (`facts.Relation`), and a record is a `dict` of its fields as the
+#: declaration names them: `{"section": "A", "bar": 1, …}`.  `Note`,
+#: `Section` and `NotesFile` were a third statement of what a `.notes`
+#: is, beside the declaration and the file itself, and each of their
+#: attributes renamed a field it already had — `length` for `len`,
+#: `level` for `vel`, `manners` for `manner` — so a reader had to know
+#: two vocabularies for one document.  The views are `sections_of` and
+#: `notes_of`; the facts themselves are the relations.
 
 
 # ── Parsing ─────────────────────────────────────────────────────────────────
@@ -265,8 +193,9 @@ def _int(text: str, key: str, place: str) -> int:
         raise NotesError(f"{place}: `{key} {text}` is not a whole number") from None
 
 
-def parse(text: str, name: str = "<notes>", where=None) -> NotesFile:
-    """Read a `.notes` file.  Every refusal names the file and the line.
+def parse(text: str, name: str = "<notes>", where=None) -> dict:
+    """Read a `.notes` file into **its relations**.  Every refusal names
+    the file and the line.
 
     Two passes, because a note may be written above the section it names
     — which is the reflow gate: a file whose lines are shuffled has to
@@ -278,24 +207,39 @@ def parse(text: str, name: str = "<notes>", where=None) -> NotesFile:
     canonical rewrite puts every word back where its author put it —
     `fixme.md` F200, and `spec/drawnscores.md` §"The prose belongs to
     the record below it" is the rule and its one limit.
+
+    **What this refuses and `relations_of` does not** is integrity: a
+    note naming no section, a bar past the section's end, a spelling
+    that names another key.  Both roads read one file into one set of
+    relations; this one is the gate, and it says what is wrong in the
+    author's terms and at a line — which `refused` cannot, because a
+    set of keys is not a sentence.
     """
     document = _kinds(where)
-    out = NotesFile(name=name)
-    note_lines: list[tuple[int, list[str], tuple, str | None]] = []
-    entries, out.closing = _lines(text, name, document)
+    entries, closing = _lines(text, name, document)
+    sections: list[dict] = []
+    by_name: dict = {}
+    note_lines: list = []
+    kept: list = []
+
     for number, declared, tokens, above, beside in entries:
         word = declared.name
         place = f"{name}:{number}"
         if word == "section":
-            out.sections.append(
-                _section(tokens, declared, number, place, above, beside))
+            one = _section(tokens, declared, place)
+            if one["name"] in by_name:
+                raise NotesError(
+                    f"{place}: section `{one['name']}` is declared twice")
+            sections.append(one)
+            by_name[one["name"]] = one
+            kept.append((number, declared, one, above, beside))
         elif word == "note":
-            note_lines.append((number, tokens, above, beside))
+            note_lines.append((number, declared, tokens, above, beside))
         elif word == "bpm":
-            out.bpm = _int(tokens[0], "bpm", place)
-            if out.bpm < 1:
+            got = _int(tokens[0], "bpm", place)
+            if got < 1:
                 raise NotesError(f"{place}: `bpm {tokens[0]}` — a tempo is at least one")
-            out.bpm_line, out.bpm_above, out.bpm_beside = number, above, beside
+            kept.append((number, declared, {"bpm": got}, above, beside))
         else:
             #: The gap between a declaration and this file, said out
             #: loud the day somebody widens the first without the
@@ -304,20 +248,11 @@ def parse(text: str, name: str = "<notes>", where=None) -> NotesFile:
                 f"{place}: `{word}` is declared in the kinds, and this "
                 "version does not know how to read one")
 
-    seen: set[str] = set()
-    for one in out.sections:
-        if one.name in seen:
-            place = f"{name}:{one.line}"
-            raise NotesError(f"{place}: section `{one.name}` is declared twice")
-        seen.add(one.name)
+    for number, declared, tokens, above, beside in note_lines:
+        one = _note(tokens, declared, f"{name}:{number}", by_name, sections)
+        kept.append((number, declared, one, above, beside))
 
-    note_kind = document["note"]
-    for number, tokens, above, beside in note_lines:
-        out.notes.append(
-            _note(tokens, note_kind, number, f"{name}:{number}", out,
-                  above, beside))
-
-    return out
+    return _with_index(document, kept, closing)
 
 
 def _lines(text: str, name: str, document) -> tuple[list, tuple]:
@@ -380,9 +315,10 @@ def _lines(text: str, name: str, document) -> tuple[list, tuple]:
 # displayed like it's shown in the file, today.  But it should reach the
 # reader of that data normalized."*  Two roads lead to one set of
 # relations and `test/test_relations.py` holds them to each other on
-# `arc.notes`: `records` reads the file by the declaration alone and
-# `relations` derives the same from a parsed `NotesFile`.  The file is
-# the source on both; nothing here is stored.
+# `arc.notes`: `parse` reads a file in the author's terms and refuses
+# what it may not say, `relations_of` reads the same file by the
+# declaration alone.  The file is the source on both; nothing here is
+# stored.
 
 
 def records(text: str, name: str = "<notes>", where=None) -> list:
@@ -428,23 +364,21 @@ def records(text: str, name: str = "<notes>", where=None) -> list:
     return out
 
 
-def _record_of(kind, one) -> dict:
-    """A parsed record back as its fields, for the second road."""
-    if kind.name == "note":
-        return record(one)
-    if kind.name == "section":
-        return {"name": one.name, "key": one.key, "mode": one.mode,
-                "bars": one.bars, "beats": one.beats,
-                "voices": one.voices}
-    return {"bpm": one}
-
-
 def _with_index(document, entries, closing: tuple = ()) -> dict:
-    """The relations, plus what is **not** the model: `line`, `above`
-    and `beside`, keyed by the record they belong to.  A line number is
-    a physical locator — a rowid — dropped at every write and rebuilt
-    at the next read; prose keyed rather than adjacent is F200 without
-    the writer's sort holding it."""
+    """The relations, plus what is **not** the model — the index.
+
+    `line` maps a written line to the fact it says: `(kind, key, line)`,
+    one row per line, **and a key may have several**, because a doubled
+    line is one note said twice (`doubled`) and the file honestly holds
+    both.  A line number is a physical locator — a rowid — dropped at
+    every write and rebuilt at the next read.
+
+    **Prose is keyed by the line, not by the fact**, and that is F200
+    read exactly: a comment belongs to the *writing* below it, so two
+    identical notes with a sentence each keep a sentence each.  Keying
+    it by the record merged them, and the derivation is what found
+    that (`doc/memory/declare-parity-derive.md`).
+    """
     from .facts import Relation, relations as derive
 
     by_kind: dict = {}
@@ -458,18 +392,32 @@ def _with_index(document, entries, closing: tuple = ()) -> dict:
         key = tuple(typed[c] for c in kind.key)
         line.add((kind.name, key, number))
         for rank, text in enumerate(over, start=1):
-            above.add((kind.name, key, rank, text))
+            above.add((number, rank, text))
         if side is not None:
-            beside.add((kind.name, key, side))
+            beside.add((number, side))
     out: dict = {}
     for kind in document.kinds:
         out.update(derive(kind, by_kind.get(kind.name, [])))
     out["line"] = Relation(("kind", "key", "line"), frozenset(line))
-    out["above"] = Relation(("kind", "key", "rank", "text"), frozenset(above))
-    out["beside"] = Relation(("kind", "key", "text"), frozenset(beside))
+    out["above"] = Relation(("line", "rank", "text"), frozenset(above))
+    out["beside"] = Relation(("line", "text"), frozenset(beside))
     out["closing"] = Relation(("rank", "text"), frozenset(
         (rank, text) for rank, text in enumerate(closing, start=1)))
     return out
+
+
+def _prose_of(rels: dict):
+    """`line -> (above, beside)`, indexed once — see `Relation.by`."""
+    over = rels["above"].by("line")
+    side = rels["beside"].by("line")
+
+    def one(line: int) -> tuple:
+        at = (line,)
+        return (tuple(o["text"] for o in
+                      sorted(over.get(at, ()), key=lambda o: o["rank"])),
+                side[at][0]["text"] if at in side else None)
+
+    return one
 
 
 def relations_of(text: str, name: str = "<notes>", where=None) -> dict:
@@ -479,31 +427,14 @@ def relations_of(text: str, name: str = "<notes>", where=None) -> dict:
     return _with_index(document, records(text, name, where), closing)
 
 
-def relations(out: NotesFile, where=None) -> dict:
-    """The second road: the same relations, from a parsed `NotesFile`."""
-    document = _kinds(where)
-    entries = []
-    if out.bpm is not None:
-        entries.append((out.bpm_line, document["bpm"], {"bpm": out.bpm},
-                        out.bpm_above, out.bpm_beside))
-    for one in out.sections:
-        entries.append((one.line, document["section"],
-                        _record_of(document["section"], one),
-                        one.above, one.beside))
-    for one in out.notes:
-        entries.append((one.line, document["note"], record(one),
-                        one.above, one.beside))
-    return _with_index(document, entries, out.closing)
-
-
 # ── The two views a reader joins for itself ────────────────────────────────
 #
 # A reader usually wants the joined form — the performer wants a note
 # with its dynamic and its manners and the bar it sits in — and that
 # is a view, derived here at every read and stored nowhere
 # (`card:relational-model.md` Q6, the first caution).  The roll, the
-# performer and the compiled road's declarations read these and never
-# a `NotesFile`, since 2026-09-10.
+# performer and the compiled road's declarations read these, and no
+# reader anywhere holds a record class, since 2026-09-10.
 
 
 def sections_of(rels: dict) -> list[dict]:
@@ -512,46 +443,81 @@ def sections_of(rels: dict) -> list[dict]:
     the one fact this format carries by position on purpose
     (`notes.ges`: a section list is the author's sequence), so it is
     read off the `line` index and not off a sort."""
-    at = {row["key"][0]: row["line"] for row in rels["line"].where(kind="section")}
+    at = {row["key"][0]: row["line"]
+          for row in rels["line"].by("kind").get(("section",), ())}
+    voices = rels["section.voices"].by("name")
+    said = {field: rels[f"section.{field}"].by("name") for field in ("key", "mode")}
+    prose = _prose_of(rels)
     out = []
     for row in sorted(rels["section"].rows, key=lambda r: at[r[0]]):
         one = dict(zip(rels["section"].heading, row))
-        voices = rels["section.voices"].where(name=one["name"])
-        one["voices"] = tuple(v["value"] for v in sorted(voices, key=lambda v: v["rank"]))
+        one["voices"] = tuple(v["value"] for v in
+                              sorted(voices.get((one["name"],), ()), key=lambda v: v["rank"]))
         for field in ("key", "mode"):
-            said = rels[f"section.{field}"].where(name=one["name"])
-            one[field] = said[0]["value"] if said else None
+            found = said[field].get((one["name"],))
+            one[field] = found[0]["value"] if found else None
         one["line"] = at[one["name"]]
+        one["above"], one["beside"] = prose(one["line"])
         out.append(one)
     return out
 
 
 def notes_of(rels: dict) -> list[dict]:
-    """Every note with its spelling, its manners and its line, **in the
-    declared order** — `facts.sort_key` over the same declaration
-    `ordered` obeys, so the two agree note for note
-    (`test_notes_relations.py`)."""
+    """Every note **as the file writes it**, in the declared order —
+    one entry per written line, each joined with its spelling, its
+    manners and its prose.
+
+    **One per line and not one per fact**, because the file is a bag
+    and the model is a set: a doubled line is one row of `note` and two
+    of `line`, the renderer plays both, and a reader that drew one
+    would be drawing a file nobody wrote.  The set is `rels["note"]`,
+    for whoever wants the facts.
+
+    The order is `facts.sort_key` over the declaration `ordered` obeys,
+    then the line, so two identical notes keep the order they were read
+    in — which is what makes a rewrite a no-op.
+    """
+    kind = _kinds()["note"]
+    sections = sections_of(rels)
+    #: **Indexed once, then joined** — `facts.Relation.by`.  A `.where`
+    #: per note is a scan per row, and 291 notes on his piece made one
+    #: read of the file eight times what it had been (measured
+    #: 2026-09-10, `tools/notecost.py`).
+    fields = rels["note"].by(*kind.key)
+    spelt = rels["note.spell"].by(*kind.key)
+    manners = rels["note.manner"].by(*kind.key)
+    prose = _prose_of(rels)
+    out = []
+    for row in rels["line"].by("kind").get(("note",), ()):
+        key = row["key"]
+        one = dict(fields[key][0])
+        said = spelt.get(key)
+        one["spell"] = said[0]["value"] if said else None
+        one["manner"] = tuple(m["value"] for m in
+                              sorted(manners.get(key, ()), key=lambda m: m["rank"]))
+        one["line"] = row["line"]
+        one["above"], one["beside"] = prose(row["line"])
+        out.append(one)
+    return _in_order(sections, out)
+
+
+def _in_order(sections: list, notes_: list) -> list:
+    """Those notes in the file's declared order — `facts.sort_key` over
+    `notes.ges`, then the line, so two identical notes keep the order
+    they were read in and a rewrite is a no-op."""
     from .facts import sort_key
 
     kind = _kinds()["note"]
-    sections = sections_of(rels)
     place = {s["name"]: i for i, s in enumerate(sections)}
     voices = {s["name"]: s["voices"] for s in sections}
-    lines = {row["key"]: row["line"] for row in rels["line"].where(kind="note")}
-    out = []
-    for row in rels["note"].rows:
-        one = dict(zip(rels["note"].heading, row))
-        key = tuple(one[c] for c in kind.key)
-        spelt = rels["note.spell"].where(**dict(zip(kind.key, key)))
-        one["spell"] = spelt[0]["value"] if spelt else None
-        manners = rels["note.manner"].where(**dict(zip(kind.key, key)))
-        one["manner"] = tuple(m["value"] for m in sorted(manners, key=lambda m: m["rank"]))
-        one["line"] = lines[key]
-        out.append(one)
-    return sorted(out, key=lambda one: sort_key(
+    return sorted(notes_, key=lambda one: sort_key(
         kind, one,
         along=lambda _k, _f, one: voices.get(one["section"], ()),
-        among=lambda _k, named: place.get(named, len(place))))
+        #: A section that is not there sorts last rather than raising —
+        #: `facts.sort_key`'s own rule for the other term, and what
+        #: lets a retraction *write* the file it would leave and then
+        #: be refused by the parser reading it back.
+        among=lambda _k, named: place.get(named, len(place))) + (one["line"],))
 
 
 def level_of(vel: str) -> int:
@@ -604,8 +570,8 @@ def refused(rels: dict, where=None) -> set:
     return out
 
 
-def _section(tokens: list[str], kind, number: int, place: str,
-             above: tuple = (), beside: str | None = None) -> Section:
+def _section(tokens: list[str], kind, place: str) -> dict:
+    """One `section` record, checked in the author's terms."""
     if not tokens or not _NAME.match(tokens[0]):
         raise NotesError(
             f"{place}: `section` needs a name — `section A key D bars 8 "
@@ -634,40 +600,71 @@ def _section(tokens: list[str], kind, number: int, place: str,
         raise NotesError(
             f"{place}: `mode {mode}` is not one this knows; "
             + ", ".join(sorted(_MODES)))
-    return Section(name=tokens[0], bars=bars, beats=beats, voices=voices,
-                   key=key, mode=mode, line=number, above=above, beside=beside)
+    return {"name": tokens[0], "key": key, "mode": mode,
+            "bars": bars, "beats": beats, "voices": voices}
 
 
-def _note(tokens: list[str], kind, number: int, place: str, out: NotesFile,
-          above: tuple = (), beside: str | None = None) -> Note:
+def bar_ticks(section: dict) -> int:
+    """How many ticks one bar of this section is."""
+    return section["beats"] * TICKS_PER_BEAT
+
+
+def at_line(rels: dict, line: int) -> dict | None:
+    """The note written on that line of the file, or `None`.
+
+    **The one lookup a gesture makes**: the roll points at a line and
+    the editor asks what note is there.  It goes through the `line`
+    index rather than through a scan, because a line *is* the index —
+    `card:relational-model.md` scar 3, where the picture's row and the
+    model's key are held apart on purpose.
+    """
+    return next((one for one in notes_of(rels) if one["line"] == line), None)
+
+
+def named(rels: dict, name: str) -> dict | None:
+    """The section of that name, or `None`."""
+    return next((one for one in sections_of(rels) if one["name"] == name), None)
+
+
+def _note(tokens: list[str], kind, place: str, by_name: dict,
+          sections: list) -> dict:
+    """One `note` record, checked in the author's terms.
+
+    **The order of the refusals is the author's, not the
+    declaration's**: a line with two faults earns the one a person
+    would fix first.  `records` checks the same file by the declaration
+    alone, and `test_notes_relations.py` holds the two to one boundary
+    per field; what lives here is the *sentence*, which
+    `card:error-messages.md` paid for.
+    """
     got = _fields(tokens, kind, place)
-    section = out.section(got["section"])
+    section = by_name.get(got["section"])
     if section is None:
         raise NotesError(
             f"{place}: no section `{got['section']}`; this file has "
-            + (", ".join(f"`{s.name}`" for s in out.sections) or "none"))
+            + (", ".join(f"`{s['name']}`" for s in sections) or "none"))
     bar = _int(got["bar"], "bar", place)
-    if not 1 <= bar <= section.bars:
+    if not 1 <= bar <= section["bars"]:
         raise NotesError(
-            f"{place}: `bar {bar}` — section `{section.name}` has "
-            f"{section.bars} bars")
+            f"{place}: `bar {bar}` — section `{section['name']}` has "
+            f"{section['bars']} bars")
     tick = _int(got["at"], "at", place)
-    if not 0 <= tick < section.bar_ticks:
+    if not 0 <= tick < bar_ticks(section):
         #: The friction this refusal is: W3 of
         #: `doc/notes/notes-on-writing-a-piece.md` — *"a fifth note in `a3`
         #: would compile, shift everything after it by a beat, and be found
         #: by ear an hour later."*  It does not compile here.
         raise NotesError(
             f"{place}: `at {tick}` is not inside bar {bar} of section "
-            f"`{section.name}`, which is {section.beats} beats "
-            f"({section.bar_ticks} ticks) long")
+            f"`{section['name']}`, which is {section['beats']} beats "
+            f"({bar_ticks(section)} ticks) long")
     length = _int(got["len"], "len", place)
     if length < 1:
         raise NotesError(f"{place}: `len {length}` — a note lasts at least one tick")
-    if got["voice"] not in section.voices:
+    if got["voice"] not in section["voices"]:
         raise NotesError(
-            f"{place}: section `{section.name}` has no voice `{got['voice']}`; "
-            "it has " + ", ".join(f"`{v}`" for v in section.voices))
+            f"{place}: section `{section['name']}` has no voice `{got['voice']}`; "
+            "it has " + ", ".join(f"`{v}`" for v in section["voices"]))
     key = _int(got["key"], "key", place)
     if not 0 <= key <= 127:
         raise NotesError(f"{place}: `key {key}` is not a MIDI key number (0-127)")
@@ -675,12 +672,10 @@ def _note(tokens: list[str], kind, number: int, place: str, out: NotesFile,
         raise NotesError(
             f"{place}: `vel {got['vel']}` is not a dynamic; "
             + " ".join(LEVELS))
-    return Note(section=section.name, bar=bar, at=tick, length=length,
-                voice=got["voice"], key=key,
-                spell=_spelled(got.get("spell"), key, place),
-                level=LEVELS.index(got["vel"]),
-                manners=_manners(got.get("manner"), place), line=number,
-                above=above, beside=beside)
+    return {"section": section["name"], "bar": bar, "at": tick, "len": length,
+            "voice": got["voice"], "key": key,
+            "spell": _spelled(got.get("spell"), key, place),
+            "vel": got["vel"], "manner": _manners(got.get("manner"), place)}
 
 
 def _spelled(spell: str | None, key: int, place: str) -> str | None:
@@ -706,10 +701,13 @@ def _spelled(spell: str | None, key: int, place: str) -> str | None:
     return spell
 
 
-def _manners(text: str | None, place: str) -> int:
+def _manners(text: str | None, place: str) -> tuple:
+    """The manners a line asks for, in the file's own order and each
+    once — **the names, not a bitmask.**  `bits_of` makes the mask
+    where a reader needs one, at that reader."""
     if text is None:
-        return 0
-    bits = 0
+        return ()
+    out: list[str] = []
     for one in text.split(","):
         if not one:
             continue
@@ -717,13 +715,13 @@ def _manners(text: str | None, place: str) -> int:
             raise NotesError(
                 f"{place}: `{one}` is not a manner; "
                 + " ".join(sorted(MANNERS)))
-        if bits & MANNERS[one]:
+        if one in out:
             raise NotesError(f"{place}: `{one}` is asked for twice")
-        bits |= MANNERS[one]
-    return bits
+        out.append(one)
+    return tuple(out)
 
 
-def doubled(out: NotesFile) -> list:
+def doubled(rels: dict) -> list:
     """`[(first, second)]` — notes at one place a drag cannot tell apart.
 
     One voice, one bar, one tick, one key, twice.  **Allowed in the file
@@ -749,81 +747,20 @@ def doubled(out: NotesFile) -> list:
     and reading that back is a no-op.
     """
     seen: dict = {}
-    out_pairs = []
-    for one in out.notes:
-        spot = (one.section, one.bar, one.at, one.voice, one.key)
+    pairs = []
+    for one in notes_of(rels):
+        spot = tuple(one[c] for c in _kinds()["note"].key)
         if spot in seen:
-            out_pairs.append((seen[spot], one))
+            pairs.append((seen[spot], one))
         else:
             seen[spot] = one
-    return out_pairs
+    return pairs
 
 
-# ── The stable order, and writing one back ──────────────────────────────────
+# ── The stable order, and writing one back ──# ── The stable order, and writing one back ──────────────────────────────────
 
 
-def ordered(out: NotesFile) -> list[Note]:
-    """The canonical order: section, bar, **voice**, tick, then key.
-
-    Gate four of `spec/drawnscores.md` — *two writings of one phrase are
-    byte-identical, so a diff shows what changed and nothing else.*  The
-    voice order is the section's own rather than alphabetical, because
-    that is the order the roll stacks them in.
-
-    **Voice before tick, decided by Henri on 2026-09-05, and it is a
-    trade.**  Tick-major read like a score — everything sounding at beat
-    one together — and `fixme.md` F199 is what that cost: a note dragged
-    in *time* changes its place in the order, so **five lines of
-    `arc.notes` moved for one dragged note** where the gate claimed one.
-
-    Voice-major keeps a voice's notes contiguous inside a bar, so a
-    time-drag moves a note among its own few lines.  What is given up is
-    that the *file* no longer reads bar-wise — and that loss is
-    recoverable by a view, because `tools/bars.py` and its Read hook
-    reassemble the bar across voices from the parsed file rather than
-    from its line order.  **The editing property is not recoverable by a
-    view; it is a property of the bytes.**  So the trade is the right way
-    round, and it was made while exactly one `.notes` file existed.
-    """
-    #: **The order is the declaration's**, since 2026-09-09: `Among`
-    #: the sections as the file places them, then the bar, then the
-    #: voice `Along` the section's own list, then the tick and the key.
-    #: The sentences above are why it says that; this is where it is
-    #: obeyed rather than said a second time.
-    from .facts import sort_key
-
-    kind = _kinds()["note"]
-    place = {s.name: i for i, s in enumerate(out.sections)}
-    voices = {s.name: s.voices for s in out.sections}
-    return sorted(out.notes, key=lambda one: sort_key(
-        kind, record(one),
-        along=lambda _kind, _field, one: voices.get(one["section"], ()),
-        #: A section that is not there sorts last rather than raising —
-        #: `facts.sort_key`'s own rule for the other term, and what
-        #: lets a retraction *write* the file it would leave and then
-        #: be refused by the parser reading it back.
-        among=lambda _kind, named: place.get(named, len(place))))
-
-
-def record(one: Note) -> dict:
-    """A note as its **fields** — the record `gestate/notes.ges`
-    describes, with each value as the file writes it.
-
-    The one place the two halves meet: a `Note` is what a note *means*
-    to this file, and this is what it *is* to the declaration.  A
-    dynamic comes back as its name and the manners as the comma list
-    they are written as, so a field's value here is exactly the token
-    on the line.
-    """
-    asked = [m for m, bit in sorted(MANNERS.items(), key=lambda kv: kv[1])
-             if one.manners & bit]
-    return {"section": one.section, "bar": one.bar, "at": one.at,
-            "len": one.length, "voice": one.voice, "key": one.key,
-            "spell": one.spell, "vel": LEVELS[one.level],
-            "manner": ",".join(asked) or None}
-
-
-def write(out: NotesFile) -> str:
+def write(rels: dict) -> str:
     """A `.notes` file, in the canonical order and the canonical spelling.
 
     Reading a file this wrote and writing it again is a no-op, which is
@@ -837,36 +774,58 @@ def write(out: NotesFile) -> str:
     and a canonical writer that guessed at blank lines would have a
     second thing to be canonical about.
     """
+    return _rendered(sections_of(rels), notes_of(rels), _bpm_line(rels),
+                     tuple(one["text"] for one in
+                           sorted(rels["closing"].where(), key=lambda o: o["rank"])))
+
+
+def _bpm_line(rels: dict) -> dict | None:
+    """The `bpm` record with its prose, or `None` — the one fact a
+    document has at most one of."""
+    said = bpm_of(rels)
+    if said is None:
+        return None
+    at = rels["line"].where(kind="bpm")
+    line = at[0]["line"] if at else 0
+    above, beside = _prose_of(rels)(line)
+    return {"bpm": said, "line": line, "above": above, "beside": beside}
+
+
+def _rendered(sections: list, notes_: list, bpm: dict | None,
+              closing: tuple) -> str:
+    """The file those records make — the one writer, so that `write`
+    and the two primitive edits put a line together once."""
     lines: list[str] = []
-    if out.bpm is not None:
+    if bpm is not None:
         # First, as the one fact about the whole file — and so a
         # `tempo` that writes one into a file without it writes line 1.
-        lines += list(out.bpm_above)
-        lines.append(f"bpm {out.bpm}" + (f"  {out.bpm_beside}" if out.bpm_beside else ""))
-    for one in out.sections:
-        lines += list(one.above)
-        head = [f"section {one.name}"]
-        if one.key is not None:
-            head.append(f"key {one.key}")
-        if one.mode is not None:
-            head.append(f"mode {one.mode}")
-        head += [f"bars {one.bars}", f"beats {one.beats}",
-                 "voices " + ",".join(one.voices)]
-        lines.append("  ".join(head) + (f"  {one.beside}" if one.beside else ""))
+        lines += list(bpm["above"])
+        lines.append(f"bpm {bpm['bpm']}"
+                     + (f"  {bpm['beside']}" if bpm["beside"] else ""))
+    for one in sections:
+        lines += list(one["above"])
+        head = [f"section {one['name']}"]
+        if one["key"] is not None:
+            head.append(f"key {one['key']}")
+        if one["mode"] is not None:
+            head.append(f"mode {one['mode']}")
+        head += [f"bars {one['bars']}", f"beats {one['beats']}",
+                 "voices " + ",".join(one["voices"])]
+        lines.append("  ".join(head) + (f"  {one['beside']}" if one["beside"] else ""))
     lines.append("")
     at_bar = None
-    for one in ordered(out):
-        if (one.section, one.bar) != at_bar:
+    for one in notes_:
+        if (one["section"], one["bar"]) != at_bar:
             if at_bar is not None:
                 lines.append("")
-            at_bar = (one.section, one.bar)
-        lines += list(one.above)
+            at_bar = (one["section"], one["bar"])
+        lines += list(one["above"])
         lines.append(_line(one))
-    lines += list(out.closing)
+    lines += list(closing)
     return "\n".join(lines) + "\n"
 
 
-#: **The two primitive edits — `card:gui-is-difficult.md`, 2026-09-09.**
+#: **The two primitive edits#: **The two primitive edits — `card:gui-is-difficult.md`, 2026-09-09.**
 #: A document's algebra is *assert*, *retract* and *set*, and setting a
 #: field is the pair; `retune` above is the derived one and had been
 #: built for a year of afternoons before either of these existed,
@@ -882,11 +841,11 @@ def write(out: NotesFile) -> str:
 #: note down.
 
 
-def asserted(text: str, record: str, name: str = "<notes>",
+def asserted(text: str, written: str, name: str = "<notes>",
              where=None) -> tuple:
     """`(text, said)` — the document with one record added.
 
-    `record` is a line in the document's own syntax, which is the whole
+    `written` is a line in the document's own syntax, which is the whole
     of the argument: the command language does not restate the fields,
     because the declaration beside the document already has them.
 
@@ -896,9 +855,10 @@ def asserted(text: str, record: str, name: str = "<notes>",
     one note said twice** (`notes.doubled`, his *"the middle one"*), so
     asserting one that is already there is a gesture with nothing to do.
     """
-    out = parse(text, name, where=where)
+    rels = parse(text, name, where=where)
     document = _kinds(where)
-    line, _beside = _uncomment(record)
+    sections, notes_ = sections_of(rels), notes_of(rels)
+    line, _beside = _uncomment(written)
     tokens = line.split()
     place = f"{name}: the asserted record"
     if not tokens:
@@ -914,22 +874,31 @@ def asserted(text: str, record: str, name: str = "<notes>",
         raise NotesError(
             f"{place}: `{word}` cannot be added by hand; this version "
             "asserts a note or a section")
+    #: A record added by hand carries no prose and no line — it was not
+    #: written anywhere yet, and the line it lands on is the writer's to
+    #: decide.  `0` sorts it before an identical one, which cannot
+    #: happen, because a doubled key is refused just below.
+    fresh = {"line": 0, "above": (), "beside": None}
     if word == "section":
-        one = _section(tokens[1:], kind, 0, place)
-        if out.section(one.name) is not None:
-            raise NotesError(f"{place}: section `{one.name}` is already written")
-        out.sections.append(one)
-        said = f"section {one.name}"
+        one = {**_section(tokens[1:], kind, place), **fresh}
+        if any(s["name"] == one["name"] for s in sections):
+            raise NotesError(f"{place}: section `{one['name']}` is already written")
+        sections.append(one)
+        said = f"section {one['name']}"
     else:
-        one = _note(tokens[1:], kind, 0, place, out)
-        for other in out.notes:
+        by_name = {s["name"]: s for s in sections}
+        one = {**_note(tokens[1:], kind, place, by_name, sections), **fresh}
+        for other in notes_:
             if _key(kind, other) == _key(kind, one):
                 raise NotesError(
                     f"{place}: that note is already written, on line "
-                    f"{other.line} — a doubled line is one note said twice")
-        out.notes.append(one)
-        said = f"note {one.key} at {one.at} in bar {one.bar}, voice {one.voice}"
-    return write(out), f"asserted {said}"
+                    f"{other['line']} — a doubled line is one note said twice")
+        notes_.append(one)
+        notes_ = _in_order(sections, notes_)
+        said = (f"note {one['key']} at {one['at']} in bar {one['bar']}, "
+                f"voice {one['voice']}")
+    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels)),
+            f"asserted {said}")
 
 
 def retracted(text: str, key: str, name: str = "<notes>",
@@ -954,8 +923,9 @@ def retracted(text: str, key: str, name: str = "<notes>",
     retraktio saattaa tarkoittaa uudelleenlaskentaa."*  Outside the
     document it does mean exactly that, and nothing here has to know.
     """
-    out = parse(text, name, where=where)
+    rels = parse(text, name, where=where)
     document = _kinds(where)
+    sections, notes_ = sections_of(rels), notes_of(rels)
     line, _beside = _uncomment(key)
     tokens = line.split()
     place = f"{name}: the retracted record"
@@ -970,19 +940,19 @@ def retracted(text: str, key: str, name: str = "<notes>",
             + _oneof([f"`{k} …`" for k in document.names]))
     wanted = _given_key(kind, tokens[1:], place)
     if word == "section":
-        gone = [one for one in out.sections if one.name == wanted["name"]]
-        out.sections = [one for one in out.sections if one not in gone]
+        gone = [one for one in sections if one["name"] == wanted["name"]]
+        sections = [one for one in sections if one not in gone]
     elif word == "note":
-        gone = [one for one in out.notes
-                if all(str(record(one)[f]) == wanted[f] for f in kind.key)]
-        out.notes = [one for one in out.notes if one not in gone]
+        gone = [one for one in notes_ if _key(kind, one) == tuple(
+            wanted[f] for f in kind.key)]
+        notes_ = [one for one in notes_ if one not in gone]
     else:
         raise NotesError(
             f"{place}: `{word}` cannot be retracted by hand; this version "
             "retracts a note or a section")
     if not gone:
         raise NotesError(f"{place}: no `{word}` here says that")
-    made = write(out)
+    made = _rendered(sections, notes_, _bpm_line(rels), _closing(rels))
     try:
         parse(made, name, where=where)
     except NotesError as why:
@@ -996,9 +966,16 @@ def retracted(text: str, key: str, name: str = "<notes>",
     return made, f"retracted {word} {' '.join(tokens[1:])}{lines}"
 
 
-def _key(kind, one: Note) -> tuple:
-    """A note's key, as the declaration names it."""
-    return tuple(str(record(one)[f]) for f in kind.key)
+def _key(kind, one: dict) -> tuple:
+    """A record's key, as the declaration names it, written as a person
+    writes it — so that a key given on the command line compares."""
+    return tuple(str(one[f]) for f in kind.key)
+
+
+def _closing(rels: dict) -> tuple:
+    """The prose after the last record, which no record follows."""
+    return tuple(one["text"] for one in
+                 sorted(rels["closing"].where(), key=lambda o: o["rank"]))
 
 
 def _given_key(kind, tokens: list[str], place: str) -> dict:
@@ -1051,19 +1028,20 @@ def canonical(text: str, name: str = "<notes>") -> str:
         return text
 
 
-def _line(one: Note) -> str:
+def _line(one: dict) -> str:
     #: `spell` goes beside `key`, because it is about that field and
     #: nothing else — and it is absent on almost every line, which is
     #: the point: a spelling is written only where the rule would get it
     #: wrong.  Gate four holds either way, the order being fixed here.
-    out = (f"note  section {one.section}  bar {one.bar}  at {one.at}  "
-           f"len {one.length}  voice {one.voice}  key {one.key}  "
-           + (f"spell {one.spell}  " if one.spell else "")
-           + f"vel {LEVELS[one.level]}")
-    asked = [m for m, bit in sorted(MANNERS.items(), key=lambda kv: kv[1])
-             if one.manners & bit]
-    out += "  manner " + ",".join(asked) if asked else ""
-    return out + (f"  {one.beside}" if one.beside else "")
+    out = (f"note  section {one['section']}  bar {one['bar']}  at {one['at']}  "
+           f"len {one['len']}  voice {one['voice']}  key {one['key']}  "
+           + (f"spell {one['spell']}  " if one["spell"] else "")
+           + f"vel {one['vel']}")
+    #: **The manners in the file's own order**, which is the order they
+    #: were read in: `manner` is a `Names` field and its rank is a fact
+    #: (`facts.relations`), so nothing here sorts them.
+    out += "  manner " + ",".join(one["manner"]) if one["manner"] else ""
+    return out + (f"  {one['beside']}" if one["beside"] else "")
 
 
 # ── Rewriting one field of one line ─────────────────────────────────────────
@@ -1140,7 +1118,7 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
 # ── The lamp: what the mode says, and what it never does ────────────────────
 
 
-def outside(out: NotesFile) -> list[tuple[Note, int]]:
+def outside(rels: dict) -> list[tuple[dict, int]]:
     """Notes outside their section's declared mode — `(note, degree)`.
 
     **Reports, never refuses**, which is decision 3 of the spec.  A ♯11
@@ -1150,12 +1128,13 @@ def outside(out: NotesFile) -> list[tuple[Note, int]]:
     at.
     """
     found = []
-    for one in out.notes:
-        section = out.section(one.section)
-        if section is None or section.key is None or section.mode is None:
+    by_name = {s["name"]: s for s in sections_of(rels)}
+    for one in notes_of(rels):
+        section = by_name.get(one["section"])
+        if section is None or section["key"] is None or section["mode"] is None:
             continue
-        degree = (one.key - _PITCH_CLASS[section.key]) % 12
-        if degree not in _MODES[section.mode.lower()]:
+        degree = (one["key"] - _PITCH_CLASS[section["key"]]) % 12
+        if degree not in _MODES[section["mode"].lower()]:
             found.append((one, degree))
     return found
 
@@ -1280,7 +1259,7 @@ def spell(key: int, tonic: str, mode: str) -> str:
     return f"{letter}{_MARKS[delta]}{octave}"
 
 
-def sounding(out: NotesFile) -> list:
+def sounding(rels: dict) -> list:
     """`[(section, bar, [keys low to high])]` — what is heard in each bar.
 
     A note counts in every bar it is still sounding in, because a held
@@ -1289,19 +1268,21 @@ def sounding(out: NotesFile) -> list:
     `card:the-first-jam.md` item 2 exists.
     """
     heard: dict = {}
-    for one in out.notes:
-        section = out.section(one.section)
+    sections = sections_of(rels)
+    by_name = {s["name"]: s for s in sections}
+    for one in notes_of(rels):
+        section = by_name.get(one["section"])
         if section is None:
             continue
-        last = one.bar + (one.at + one.length - 1) // section.bar_ticks
-        for bar in range(one.bar, min(last, section.bars) + 1):
-            heard.setdefault((one.section, bar), set()).add(one.key)
-    order = {s.name: i for i, s in enumerate(out.sections)}
+        last = one["bar"] + (one["at"] + one["len"] - 1) // bar_ticks(section)
+        for bar in range(one["bar"], min(last, section["bars"]) + 1):
+            heard.setdefault((one["section"], bar), set()).add(one["key"])
+    order = {s["name"]: i for i, s in enumerate(sections)}
     return [(s, b, sorted(keys)) for (s, b), keys
             in sorted(heard.items(), key=lambda kv: (order[kv[0][0]], kv[0][1]))]
 
 
-def spellings(out: NotesFile) -> dict:
+def spellings(rels: dict) -> dict:
     """`{(section, bar, key): name}` — the spellings the file wrote out.
 
     A note's spelling holds for every bar it sounds in, the same walk
@@ -1316,15 +1297,16 @@ def spellings(out: NotesFile) -> dict:
     this column has to pick one.
     """
     said: dict = {}
-    for one in ordered(out):
-        if one.spell is None:
+    by_name = {s["name"]: s for s in sections_of(rels)}
+    for one in notes_of(rels):
+        if one["spell"] is None:
             continue
-        section = out.section(one.section)
+        section = by_name.get(one["section"])
         if section is None:
             continue
-        last = one.bar + (one.at + one.length - 1) // section.bar_ticks
-        for bar in range(one.bar, min(last, section.bars) + 1):
-            said.setdefault((one.section, bar, one.key), one.spell)
+        last = one["bar"] + (one["at"] + one["len"] - 1) // bar_ticks(section)
+        for bar in range(one["bar"], min(last, section["bars"]) + 1):
+            said.setdefault((one["section"], bar, one["key"]), one["spell"])
     return said
 
 
@@ -1335,12 +1317,12 @@ def rows_of_notes(path) -> list:
     wrote no spelling, which is almost everywhere.
     """
     path = Path(path)
-    out = parse(path.read_text(), path.name, where=path)
-    modes = {s.name: (s.key, s.mode) for s in out.sections}
-    said = spellings(out)
+    rels = parse(path.read_text(), path.name, where=path)
+    modes = {s["name"]: (s["key"], s["mode"]) for s in sections_of(rels)}
+    said = spellings(rels)
     return [(s, b, keys) + modes[s]
             + ({k: said[(s, b, k)] for k in keys if (s, b, k) in said},)
-            for s, b, keys in sounding(out)]
+            for s, b, keys in sounding(rels)]
 
 
 def report(rows: list, tell=print) -> None:
@@ -1522,12 +1504,7 @@ def expanded(source: str, base: Path | None = None,
                 f'{place}: include "{one}" — no such file beside {root}')
         else:
             text, at = path.read_text(), path
-        #: The parser is the gate — it refuses what the file may not
-        #: say — and what the compiled road *reads* is the relations,
-        #: off the text by the declaration (`card:relational-model.md`
-        #: Q6, 2026-09-10).
-        parse(text, name=one, where=at)
-        rels = relations_of(text, name=one, where=at)
+        rels = parse(text, name=one, where=at)
         for section in sections_of(rels):
             if section["name"] in known:
                 raise NotesError(
@@ -1661,9 +1638,8 @@ def wrapper(path: Path | str, *, notes: bool = True) -> str:
     path.parent)`, as any program with an `include`.
     """
     path = Path(path)
-    text = path.read_text(encoding="utf-8")
-    parse(text, path.name, where=path)             # the gate
-    return _wrapper_of(relations_of(text, path.name, where=path), path.name, notes=notes)
+    rels = parse(path.read_text(encoding="utf-8"), path.name, where=path)
+    return _wrapper_of(rels, path.name, notes=notes)
 
 
 def generated(name: str) -> str:

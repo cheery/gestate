@@ -39,6 +39,8 @@ def declared():
 
 @pytest.fixture(scope="module")
 def parsed():
+    """The piece's relations — what `notes.parse` answers since
+    2026-09-10 (`card:relational-model.md` Q6)."""
     return notes.parse(PIECE.read_text(), PIECE.name)
 
 
@@ -100,7 +102,7 @@ def test_the_order_is_the_file_s_sections_and_not_their_names():
     to be A, B, C.  Here Z is written first, so Z's notes come first.
     """
     parsed = notes.parse(TWO_SECTIONS, "t.notes")
-    assert [(one.section, one.voice) for one in notes.ordered(parsed)] \
+    assert [(one["section"], one["voice"]) for one in notes.notes_of(parsed)] \
         == [("Z", "a"), ("Z", "b"), ("A", "a")]
 
 
@@ -109,7 +111,7 @@ def test_the_voice_order_is_the_section_s_own_and_not_alphabetical():
     written before `a` here, so `b`'s note is written first."""
     text = TWO_SECTIONS.replace("voices a,b", "voices b,a")
     parsed = notes.parse(text, "t.notes")
-    assert [(one.section, one.voice) for one in notes.ordered(parsed)] \
+    assert [(one["section"], one["voice"]) for one in notes.notes_of(parsed)] \
         == [("Z", "b"), ("Z", "a"), ("A", "a")]
 
 
@@ -118,24 +120,25 @@ def test_the_declared_key_names_one_note(declared, parsed):
     On `arc.notes` every note has its own, which is *0 doubled*
     arriving from the declaration's side."""
     kind = declared["note"]
-    keys = [tuple(notes.record(one)[f] for f in kind.key)
-            for one in parsed.notes]
+    keys = [tuple(one[f] for f in kind.key) for one in notes.notes_of(parsed)]
     assert len(set(keys)) == len(keys) == 291
 
 
 def test_a_record_carries_every_declared_field(declared, parsed):
-    """`notes.record` is where a `Note` becomes what the declaration
-    talks about, so it owes exactly the declared fields — no more, and
-    none missing."""
+    """A record is a `dict` of the declaration's own field names since
+    the record classes went, so it owes exactly those — no more, and
+    none missing.  `line`, `above` and `beside` ride beside it and are
+    the index, not the record."""
     kind = declared["note"]
-    assert set(notes.record(parsed.notes[0])) == set(kind.named)
+    one = notes.notes_of(parsed)[0]
+    assert set(one) - {"line", "above", "beside"} == set(kind.named)
 
 
 def test_the_declared_field_order_is_the_written_order(declared, parsed):
     """The line writes its fields in the order they are declared.  The
     writer still spells that order out by hand, so this is what holds
     the two together until it does not."""
-    line = notes._line(parsed.notes[0])
+    line = notes._line(notes.notes_of(parsed)[0])
     at = [line.find(f" {f} ") for f in declared["note"].named
           if f" {f} " in line]
     assert at == sorted(at) and len(at) >= 6
@@ -145,7 +148,7 @@ def test_the_order_refuses_to_guess_without_what_it_reads(declared, parsed):
     """Both terms that read another record say so rather than quietly
     sorting by the name — which would be the F199 order again, and
     silently."""
-    one = notes.record(parsed.notes[0])
+    one = notes.notes_of(parsed)[0]
     with pytest.raises(facts.FactsError, match="among"):
         facts.sort_key(declared["note"], one)
     with pytest.raises(facts.FactsError, match="along"):
@@ -193,7 +196,7 @@ def test_the_kinds_come_from_the_ges_of_the_same_name(tmp_path):
     with pytest.raises(notes.NotesError, match="missing `spell`"):
         notes.parse(song.read_text(), song.name, where=song)
     #: and the same text with no path behind it gets the shipped kinds
-    assert len(notes.parse(song.read_text(), song.name).notes) == 1
+    assert len(notes.parse(song.read_text(), song.name)["note"].rows) == 1
 
 
 def test_a_sibling_that_is_a_piece_is_not_a_declaration():
@@ -234,7 +237,7 @@ def test_asserting_a_note_adds_it_and_leaves_the_file_canonical():
     made, said = notes.asserted(
         ONE_BAR, "note  section A  bar 1  at 96  len 96  voice bass  key 48  vel f")
     assert "asserted note 48" in said
-    assert len(notes.parse(made, "t.notes").notes) == 2
+    assert len(notes.notes_of(notes.parse(made, "t.notes"))) == 2
     assert notes.write(notes.parse(made, "t.notes")) == made, "and writing it again is a no-op"
 
 
@@ -261,11 +264,11 @@ def test_retracting_a_note_takes_every_line_that_said_it():
     note retracts the saying of it — both lines, and the sentence says
     how many."""
     twice = ONE_BAR + ONE_BAR.splitlines()[-1] + "\n"
-    assert len(notes.parse(twice, "t.notes").notes) == 2
+    assert len(notes.notes_of(notes.parse(twice, "t.notes"))) == 2
     made, said = notes.retracted(
         twice, "note section A bar 1 voice melody at 0 key 60")
     assert "2 lines" in said
-    assert notes.parse(made, "t.notes").notes == []
+    assert notes.notes_of(notes.parse(made, "t.notes")) == []
 
 
 def test_retracting_by_half_a_key_is_refused_naming_the_whole_one(declared):
@@ -307,7 +310,8 @@ def test_retracting_a_section_nothing_names_goes_through():
     """`B` has no notes, so it goes and the file still reads."""
     made, said = notes.retracted(ONE_BAR, "section B")
     assert said == "retracted section B"
-    assert [one.name for one in notes.parse(made, "t.notes").sections] == ["A"]
+    assert [one["name"] for one in
+            notes.sections_of(notes.parse(made, "t.notes"))] == ["A"]
 
 
 def test_assert_then_retract_is_the_file_it_started_from():

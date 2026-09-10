@@ -2609,7 +2609,8 @@ class Session:
         line — by `by` ticks, refusing what the file cannot hold."""
         from pathlib import Path
 
-        from .notes import NotesError, doubled, parse, retune
+        from .notes import (NotesError, at_line, bar_ticks, doubled,
+                            named, notes_of, sections_of, parse, retune)
 
         name, row = where
         place = f"{name}:{row}"
@@ -2618,27 +2619,28 @@ class Session:
         try:
             text = self.view.text() if mine else path.read_text()
             parsed = parse(text, name)
-            one = next((n for n in parsed.notes if n.line == row), None)
+            one = at_line(parsed, row)
             if one is None:
                 #: complaint  author — the line a rail drag meant, in the
                 #: file that wrote it, which has changed under the roll
                 raise NotesError(f"{place} is not a note any more")
-            section = next(s for s in parsed.sections if s.name == one.section)
-            total = (one.bar - 1) * section.bar_ticks + one.at + by
-            if total < 0 or total >= section.bars * section.bar_ticks:
+            section = named(parsed, one["section"])
+            span = bar_ticks(section)
+            total = (one["bar"] - 1) * span + one["at"] + by
+            if total < 0 or total >= section["bars"] * span:
                 #: complaint  author — the line, and the section whose
                 #: edge the drag would carry it past
                 raise NotesError(
-                    f"{place} would leave section {section.name} — "
+                    f"{place} would leave section {section['name']} — "
                     "a note does not leave its section by dragging")
-            bar, tick = divmod(total, section.bar_ticks)
+            bar, tick = divmod(total, span)
             bar += 1
-            out, said = retune(text, row, "at", one.at, tick)
-            if bar != one.bar:
-                out, more = retune(out, row, "bar", one.bar, bar)
+            out, said = retune(text, row, "at", one["at"], tick)
+            if bar != one["bar"]:
+                out, more = retune(out, row, "bar", one["bar"], bar)
                 said += f", {more}"
             twice = [pair for pair in doubled(parse(out, name))
-                     if row in (pair[0].line, pair[1].line)]
+                     if row in (pair[0]["line"], pair[1]["line"])]
             if twice:
                 #: complaint  author — the line, and the place the file
                 #: already says a note is
@@ -2711,7 +2713,8 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, doubled, parse, retune
+        from .notes import (NotesError, at_line, bar_ticks, doubled,
+                            named, notes_of, sections_of, parse, retune)
         from .scorebox import RefusedError, pitch_atom
 
         places = getattr(self.bench, "note_regions", None) or {}
@@ -2747,8 +2750,8 @@ class Session:
         try:
             text = self.view.text() if mine else path.read_text()
             parsed = parse(text, name)
-            by_line = {n.line: n for n in parsed.notes}
-            sections = {s.name: s for s in parsed.sections}
+            by_line = {n["line"]: n for n in notes_of(parsed)}
+            sections = {s["name"]: s for s in sections_of(parsed)}
             out, said = text, []
             for _note, row in rows:
                 one = by_line.get(row)
@@ -2756,32 +2759,34 @@ class Session:
                     #: complaint  author — the line a group's note was on, in
                     #: the file that wrote it, which has changed under the roll
                     raise NotesError(f"{place}:{row} is not a note any more")
-                section = sections[one.section]
-                key = one.key + keys
+                section = sections[one["section"]]
+                key = one["key"] + keys
                 if not 0 <= key <= 127:
                     #: complaint  author — the line, and the interval that
                     #: carries it off the keyboard
                     raise NotesError(f"{place}:{row} would leave the keyboard")
-                total = (one.bar - 1) * section.bar_ticks + one.at + ticks
-                if total < 0 or total >= section.bars * section.bar_ticks:
+                span = bar_ticks(section)
+                total = (one["bar"] - 1) * span + one["at"] + ticks
+                if total < 0 or total >= section["bars"] * span:
                     #: complaint  author — the line, and the section whose
                     #: edge the carry would take it past
                     raise NotesError(
-                        f"{place}:{row} would leave section {section.name} — "
+                        f"{place}:{row} would leave section {section['name']} — "
                         "a note does not leave its section by dragging")
-                bar, tick = divmod(total, section.bar_ticks)
+                bar, tick = divmod(total, span)
                 bar += 1
                 if keys:
-                    out, word = retune(out, row, "key", one.key, key)
+                    out, word = retune(out, row, "key", one["key"], key)
                     said.append(word)
-                if tick != one.at:
-                    out, word = retune(out, row, "at", one.at, tick)
+                if tick != one["at"]:
+                    out, word = retune(out, row, "at", one["at"], tick)
                     said.append(word)
-                if bar != one.bar:
-                    out, word = retune(out, row, "bar", one.bar, bar)
+                if bar != one["bar"]:
+                    out, word = retune(out, row, "bar", one["bar"], bar)
                     said.append(word)
             moved = {row for _n, row in rows}
-            if any(a.line in moved or b.line in moved for a, b in doubled(parse(out, name))):
+            if any(a["line"] in moved or b["line"] in moved
+                   for a, b in doubled(parse(out, name))):
                 #: complaint  author — the file, and the place it already
                 #: says a note is
                 raise NotesError(
@@ -2817,7 +2822,7 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
         from .scorebox import RefusedError, note_of, pitch_atom
 
         places = getattr(self.bench, "note_regions", None) or {}
@@ -2842,15 +2847,15 @@ class Session:
         mine = self._is_document(name)
         try:
             text = self.view.text() if mine else path.read_text()
-            one = next((n for n in parse(text, name).notes if n.line == row), None)
+            one = at_line(parse(text, name), row)
             place = f"{name}:{row}"
             if one is None:
                 #: complaint  author — the line a hand on an end meant, in
                 #: the file that wrote it, which has changed under the roll
                 raise NotesError(f"{place} is not a note any more")
-            if one.length == length:
+            if one["len"] == length:
                 return "resize: nothing to do — that is its length"
-            out, said = retune(text, row, "len", one.length, length)
+            out, said = retune(text, row, "len", one["len"], length)
             self._follow(found, [(note, roll.events[note][0], roll.events[note][3])])
             self._write_included(path, out, mine)
         except (OSError, NotesError) as exc:
@@ -2871,7 +2876,7 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
         from .scorebox import RefusedError, pitch_atom
 
         places = getattr(self.bench, "note_regions", None) or {}
@@ -2907,7 +2912,7 @@ class Session:
         mine = self._is_document(name)
         try:
             text = self.view.text() if mine else path.read_text()
-            by_line = {n.line: n for n in parse(text, name).notes}
+            by_line = {n["line"]: n for n in notes_of(parse(text, name))}
             out = text
             for row in rows:
                 one = by_line.get(row)
@@ -2916,11 +2921,11 @@ class Session:
                     #: complaint  author — the line a group's note was on, in
                     #: the file that wrote it, which has changed under the roll
                     raise NotesError(f"{place} is not a note any more")
-                if one.length + ticks < 1:
+                if one["len"] + ticks < 1:
                     #: complaint  author — the line, and the ticks that would
                     #: leave it shorter than one
                     raise NotesError(f"{place} would be shorter than a tick")
-                out, _word = retune(out, row, "len", one.length, one.length + ticks)
+                out, _word = retune(out, row, "len", one["len"], one["len"] + ticks)
             self._follow(found, [(n, roll.events[n][0], roll.events[n][3]) for n in group])
             self._write_included(path, out, mine)
         except (OSError, NotesError) as exc:
@@ -2974,7 +2979,7 @@ class Session:
         import re
         from pathlib import Path
 
-        from .notes import NotesError, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
 
         bpm = int(bpm)
         if not 1 <= bpm <= 999:
@@ -2984,13 +2989,15 @@ class Session:
         try:
             if name.endswith(".notes"):
                 parsed = parse(text, name)
-                if parsed.bpm is None:
+                said = bpm_of(parsed)
+                if said is None:
                     out = f"bpm {bpm}\n" + text
                     said = f"bpm {bpm} written on line 1"
-                elif parsed.bpm == bpm:
+                elif said == bpm:
                     return f"tempo: nothing to do — the file says bpm {bpm}"
                 else:
-                    out, said = retune(text, parsed.bpm_line, "bpm", parsed.bpm, bpm)
+                    at = parsed["line"].where(kind="bpm")[0]["line"]
+                    out, said = retune(text, at, "bpm", said, bpm)
             else:
                 found = re.search(r"^(bpm\s*=\s*)(\d+)[ \t]*$", text, re.M)
                 if found is None:
@@ -3032,7 +3039,7 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
 
         places = getattr(self.bench, "note_regions", None) or {}
         found = places.get(region)
@@ -3054,26 +3061,26 @@ class Session:
         try:
             text = self.view.text()
             parsed = parse(text, name)
-            section = next((s for s in parsed.sections if s.name == section_name), None)
-            place = f"{name}:{section.line}" if section is not None else name
+            section = named(parsed, section_name)
+            place = f"{name}:{section['line']}" if section is not None else name
             if section is None:
                 #: complaint  author — the file, and the section the roll
                 #: was drawn from, which is not in it any more
                 raise NotesError(f"{place}: section {section_name} is not written any more")
-            if section.bars != was:
-                return (f"bars: section {section_name} has {section.bars} bars, "
+            if section["bars"] != was:
+                return (f"bars: section {section_name} has {section['bars']} bars, "
                         f"not {was} — the file has moved under the picture")
             if now == was:
                 return "bars: nothing to do — that is its length"
-            full = sorted({n.bar for n in parsed.notes
-                           if n.section == section_name and n.bar > now})
+            full = sorted({n["bar"] for n in notes_of(parsed)
+                           if n["section"] == section_name and n["bar"] > now})
             if full:
                 #: complaint  author — the section's line, and the bar the
                 #: drag would cut that still has notes in it
                 raise NotesError(
                     f"{place}: bar {full[0]} of section {section_name} has notes — "
                     "a section does not shrink past its notes by dragging")
-            out, said = retune(text, section.line, "bars", was, now)
+            out, said = retune(text, section["line"], "bars", was, now)
             self._write_included(Path(getattr(self.bench, "path", ".")), out, True)
         except (OSError, NotesError) as exc:
             return f"bars: {exc}"
@@ -5262,7 +5269,8 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, doubled, parse, retune
+        from .notes import (NotesError, at_line, bar_ticks, doubled,
+                            named, notes_of, sections_of, parse, retune)
         from .scorebox import RefusedError, pitch_atom
 
         roll = found.roll
@@ -5339,7 +5347,7 @@ class Session:
     def _voice_of(self, found, note: int) -> str | None:
         """The voice a roll's note is written in — the `.notes` voice,
         or the bank a `.ges` note was assigned to — or `None`."""
-        from .notes import NotesError, parse
+        from .notes import NotesError, at_line, parse
         from .scorebox import RefusedError, pitch_atom
 
         try:
@@ -5354,7 +5362,8 @@ class Session:
         try:
             text = (self.view.text() if self._is_document(name)
                     else (Path(getattr(self.bench, "path", ".")).parent / name).read_text())
-            return next((n.voice for n in parse(text, name).notes if n.line == row), None)
+            found = at_line(parse(text, name), row)
+            return found["voice"] if found is not None else None
         except (OSError, NotesError):
             return None
 

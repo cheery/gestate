@@ -4,9 +4,10 @@ Henri, 2026-09-10: *"The data can be displayed like it's shown in the
 file, today.  But it should reach the reader of that data normalized."*
 
 Two roads lead to one set of relations and are held to each other
-here on `examples/audio/arc.notes`: `notes.records` reads the file by
-the declaration alone and `notes.relations` derives the same from the
-parsed `NotesFile`.  What is pinned beyond their agreement is the
+here on `examples/audio/arc.notes`: `notes.parse` reads the file in
+the author's terms and refuses what it may not say, `notes.relations_of`
+reads the same file by the declaration alone.  What is pinned beyond
+their agreement is the
 information principle — nothing carried by nesting, encoding, position
 or adjacency — and that the integrity rules, run over the relations,
 refuse what the parser refuses and nothing the parser accepts.
@@ -39,7 +40,7 @@ def by_declaration(text):
 
 @pytest.fixture(scope="module")
 def by_parser(text):
-    return notes.relations(notes.parse(text, PIECE.name))
+    return notes.parse(text, PIECE.name)
 
 
 # ── Two roads, one set ──────────────────────────────────────────────────────
@@ -51,9 +52,12 @@ def test_the_two_roads_agree_on_the_piece(by_declaration, by_parser):
         assert by_declaration[name] == by_parser[name], name
 
 
-def test_every_note_is_one_row_and_nothing_is_lost(by_parser, text):
-    parsed = notes.parse(text, PIECE.name)
-    assert len(by_parser["note"].rows) == len(parsed.notes) == 291
+def test_every_note_is_one_row_and_nothing_is_lost(by_parser):
+    """291 facts and 291 lines — the file has no doubled note, so the
+    set and the bag are the same size here.  `test_a_doubled_line`
+    below is where they part."""
+    assert len(by_parser["note"].rows) == 291
+    assert len(by_parser["line"].where(kind="note")) == 291
 
 
 # ── The information principle ──────────────────────────────────────────────
@@ -103,9 +107,31 @@ def test_prose_is_keyed_and_not_adjacent():
             "note  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf  # and beside\n")
     rels = notes.relations_of(text, "prose.notes")
     key = ("A", 1, "lead", 0, 60)
-    assert rels["above"].rows == {("note", key, 1, "# a word about this note")}
-    assert rels["beside"].rows == {("note", key, "# and beside")}
+    assert rels["above"].rows == {(3, 1, "# a word about this note")}
+    assert rels["beside"].rows == {(3, "# and beside")}
     assert rels["line"].rows == {("section", ("A",), 1), ("note", key, 3)}
+
+
+def test_a_doubled_line_is_one_fact_and_two_writings():
+    """The set and the bag part here, and the prose goes with the
+    *writing* — which is what the derivation found: keyed by the record
+    instead, the two sentences merged onto one note and one of the two
+    lines was lost."""
+    text = ("section A  bars 1  beats 4  voices a\n"
+            "\n"
+            "# the first saying\n"
+            "note  section A  bar 1  at 0  len 96  voice a  key 60  vel mf\n"
+            "# the second\n"
+            "note  section A  bar 1  at 0  len 96  voice a  key 60  vel mf\n")
+    rels = notes.parse(text, "twice.notes")
+    assert len(rels["note"].rows) == 1, "one fact"
+    assert len(rels["line"].where(kind="note")) == 2, "said twice"
+    written = notes.notes_of(rels)
+    assert [one["line"] for one in written] == [4, 6]
+    assert [one["above"] for one in written] == [("# the first saying",),
+                                                 ("# the second",)]
+    assert notes.write(rels) == text, "and it round-trips"
+    assert len(notes.doubled(rels)) == 1
 
 
 # ── The references, derived from the sort declaration ───────────────────────
@@ -208,26 +234,21 @@ def test_the_parser_refuses_what_the_domain_refuses(kind, field):
 # ── The two views the roll and the performer read ───────────────────────────
 
 
-def test_notes_of_is_ordered_as_the_parser_orders(by_declaration, text):
-    """`notes_of` and `ordered` obey one declaration, so the roll drawn
-    off the relations stacks the notes the file's writer would."""
-    parsed = notes.parse(text, PIECE.name)
-    view = [(n["section"], n["bar"], n["voice"], n["at"], n["key"], n["len"],
-             n["vel"], n["manner"], n["spell"], n["line"])
-            for n in notes.notes_of(by_declaration)]
-    fields = [(n.section, n.bar, n.voice, n.at, n.key, n.length,
-               notes.LEVELS[n.level], tuple(notes.record(n)["manner"].split(","))
-               if n.manners else (), n.spell, n.line)
-              for n in notes.ordered(parsed)]
-    assert view == fields
+def test_the_two_views_are_the_same_on_both_roads(by_declaration, by_parser):
+    """The roll reads one of these and the writer the other; they are
+    one document, so the views agree field for field."""
+    assert notes.notes_of(by_declaration) == notes.notes_of(by_parser)
+    assert notes.sections_of(by_declaration) == notes.sections_of(by_parser)
 
 
-def test_sections_of_is_the_file_s_own_order_with_ranked_voices(by_declaration, text):
-    parsed = notes.parse(text, PIECE.name)
-    view = [(s["name"], s["bars"], s["beats"], s["voices"], s["key"], s["mode"], s["line"])
-            for s in notes.sections_of(by_declaration)]
-    assert view == [(s.name, s.bars, s.beats, s.voices, s.key, s.mode, s.line)
-                    for s in parsed.sections]
+def test_a_note_view_carries_the_file_s_own_words(by_parser):
+    """No renamed attribute and no encoding: `len` not `length`, `vel`
+    the dynamic's name, `manner` the names in the order written."""
+    one = next(n for n in notes.notes_of(by_parser) if n["manner"])
+    assert set(one) == {"section", "bar", "at", "len", "voice", "key",
+                        "spell", "vel", "manner", "line", "above", "beside"}
+    assert one["vel"] in notes.LEVELS
+    assert all(m in notes.MANNERS for m in one["manner"])
 
 
 def test_the_readers_hold_no_parsed_file():
@@ -239,9 +260,19 @@ def test_the_readers_hold_no_parsed_file():
 
     for reader in (scorebox.notes_rolls, audioeditor.NotesKind.events,
                    audioeditor.NotesKind.rolls, audioeditor.NotesKind.engine_program,
-                   notes.declarations, notes._wrapper_of, notes.tempo_of):
+                   notes.declarations, notes._wrapper_of, notes.tempo_of,
+                   notes.write, notes.outside, notes.sounding, notes.spellings,
+                   notes.asserted, notes.retracted):
         source = inspect.getsource(reader)
         assert "notes_parsed" not in source and ".sections" not in source, reader.__name__
+
+
+def test_the_record_classes_are_gone():
+    """`Note`, `Section` and `NotesFile` were a third statement of what
+    a `.notes` is — 2026-09-10, and nothing in the tree may bring one
+    back without saying so here."""
+    for name in ("Note", "Section", "NotesFile"):
+        assert not hasattr(notes, name), name
 
 
 def test_the_closing_prose_is_a_relation_too():
