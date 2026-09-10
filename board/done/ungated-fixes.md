@@ -1030,6 +1030,23 @@ paragraph is here so nobody reads the first as the second.
 
 `tools/gatecount.py` is the instrument that reading now needs, built the
 day the card closed so the next count is one line rather than an
-afternoon.  Turning it into a gate is the step that would meet the
-postcondition, and it is Henri's: a session closing a card does not open
-one.
+afternoon.
+
+**And the gate was built the same day, at his ask** — *"build the gate
+then"*, 2026-09-10, an hour after the close.  `test/test_fixme.py`
+refuses an entry whose marker claims the defect is closed and which
+nothing in the tree would catch coming back, against an accepted
+baseline of **fifteen**, named rather than hidden, that **may shrink and
+never grow**.  It is gate twenty in `tools/suite.py`, so it runs at
+every commit.  Mutation-checked three ways: a new closure with nothing
+holding it goes red by name, a `gate:` line added to an accepted entry
+goes red on the other jaw naming the line to delete, and a marker the
+gate has never read goes red asking what it means.
+
+So the postcondition is met **from here on**, which is exactly the shape
+his answer to question 2 asked for: *"From now here on I think."*  The
+fifteen stay as they are and are read rather than converted; the
+sixteenth cannot be written.  What the gate still cannot say is whether
+a named instrument would actually catch the defect — that is mutation,
+the sweep's own method, an afternoon an entry — and `test/test_fixme.py`
+says so in its own words.

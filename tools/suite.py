@@ -153,6 +153,13 @@ GATES = {
     #: and exactly the edit that breaks it.
     "test/test_standing.py::test_this_trees_questions_file_is_usable":
         "board/standing.md parses and no shelf holds more questions than are asked",
+    #: `fixme.md` is edited at every closure, by hand, and the edit that
+    #: breaks this is *marking one resolved* — the cheapest keystroke in
+    #: the file and the one `card:ungated-fixes.md` measured refilling
+    #: behind its own sweep.  A document check, milliseconds, and it
+    #: belongs where a person finds out before the commit lands.
+    "test/test_fixme.py":
+        "no defect is marked closed with nothing in the tree to catch it",
 }
 
 

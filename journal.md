@@ -2075,10 +2075,27 @@ counting it as a failure would teach a sweep to write tests that pass
 rather than tests that would have caught the defect.  The real
 remainder is 26 never looked at.
 
-**What is left undone is question 3 of the card**, *does the suite
+**What was left undone was question 3 of the card**, *does the suite
 enforce it?*, answered in shape — an accepted baseline that may shrink
-and never grow — and never built.  `tools/gatecount.py` is the
-measurement; turning it into a gate is the step that would meet the
-postcondition, and a session closing a card does not open one.  Left for
-Henri.
+and never grow — and never built.  He read the close and said *"build
+the gate then"*, so it was built the same hour: `test/test_fixme.py`,
+gate twenty, a baseline of fifteen that may shrink and never grow.
+
+**And building it found two ways for a gate to make its own subject
+disappear.**  The baseline lists the F-numbers nothing catches, and the
+rule for *held* is *some file under `test/` names this number* — so the
+first run read its own list as fifteen tests naming fifteen entries and
+the whole set vanished.  Excluding the file by name left
+`__pycache__/test_fixme.cpython-*.pyc`, which holds the same strings,
+and the count came back as 27 where the truth was 41 — **worse than the
+first failure, because a partial answer looks like an answer.**  Both
+were caught by the number disagreeing with a measurement taken twenty
+minutes earlier, which is the only reason either was visible.
+
+**And the proxy is a proxy in both directions.**  Mutating in a new
+`[resolved]` entry numbered F999 did *not* go red: `test_blind.py` uses
+F999 as a fixture, so mentioning a number holds it as far as this gate
+can see.  Renumbered to F400 it went red by name.  A stricter regex is
+not the fix; naming the instrument in the entry is, and that is what the
+`gate:` line is for and what this gate asks for.
 

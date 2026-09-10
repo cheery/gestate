@@ -48,16 +48,52 @@ def entries(text: str) -> dict:
     return dict(zip(parts[1::2], parts[2::2]))
 
 
+#: **The gate's own baseline does not count as naming anything.**
+#: `test/test_fixme.py` lists the entries nothing catches, so a plain
+#: scan of `test/` reads that list as fifteen tests naming fifteen
+#: F-numbers and the whole set disappears — a gate that made its own
+#: subject vanish, found the minute it first ran, 2026-09-10.
+NOT_A_GATE = ("test_fixme.py",)
+
+#: **And a compiled copy is not a test either.**  Excluding the
+#: baseline by name left `__pycache__/test_fixme.cpython-*.pyc`, which
+#: holds the same fifteen strings, so the set half-vanished instead of
+#: vanishing — 27 where the truth was 41, which is worse than the first
+#: failure because it looks like an answer.  Found the same minute,
+#: 2026-09-10.
+def _readable(path: Path) -> bool:
+    return (path.is_file() and path.suffix != ".pyc"
+            and "__pycache__" not in path.parts
+            and path.name not in NOT_A_GATE)
+
+
 def named_in_tests() -> set:
-    """Every F-number some file under `test/` mentions."""
+    """Every F-number some file under `test/` mentions — except the
+    gate's own baseline, which names them in order to refuse them."""
     out: set = set()
     for path in TESTS.rglob("*"):
-        if path.is_file():
+        if _readable(path):
             try:
                 out |= set(re.findall(r"\bF\d{1,3}\b", path.read_text(errors="ignore")))
             except OSError:
                 continue
     return out
+
+
+#: What a marker means *the defect is closed*.  The gate covers these
+#: and nothing else: an unfixed defect is honest about itself, and a
+#: test for it is a different argument (`card:ungated-fixes.md`
+#: §"What this is not").  **`partly resolved` is here on purpose** —
+#: batch 13's finding was that *a resolution which names its own
+#: outstanding half is an open defect wearing a closed marker*, and
+#: the marker is what a reader trusts.
+CLOSED = ("resolved", "fixed", "partly resolved")
+
+#: Every marker the file actually uses.  Pinned so that a **new** word
+#: cannot quietly carry an entry out of the gate's reach: a marker
+#: added here is a decision, and one added only to `fixme.md` is a
+#: red test asking whether it means closed.
+MARKERS = CLOSED + ("bug", "missing", "open", "deviates")
 
 
 #: A verdict that names no instrument.  `none` is the sweep's own word
@@ -85,6 +121,27 @@ def bare(text: str, named: set) -> list:
     return sorted(out, key=lambda f: int(f[1:]))
 
 
+def marker(body: str) -> str | None:
+    """What an entry's `**[…]**` marker says, or `None`."""
+    said = re.match(r"\.\s+\*\*\[([^\]]+)\]\*\*", body)
+    return said.group(1) if said else None
+
+
+def unheld_closures(text: str, named: set) -> list:
+    """**What the gate refuses**: entries whose marker claims the defect
+    is closed and which nothing in the tree would catch coming back.
+
+    This is the postcondition of `card:ungated-fixes.md` written as a
+    set — *a defect that was fixed once cannot come back without
+    something in the tree going red first* — and `test/test_fixme.py`
+    holds it against a baseline that may shrink and never grow.
+    """
+    bare_now = set(bare(text, named))
+    return sorted((f for f, body in entries(text).items()
+                   if marker(body) in CLOSED and f in bare_now),
+                  key=lambda f: int(f[1:]))
+
+
 def looked_at(text: str) -> list:
     """The entries the sweep read and marked `none` — ungated, and known
     to be.  These are not a backlog; they are an answer."""
@@ -104,6 +161,11 @@ def main(argv: list[str]) -> int:
           f"{len(since)} since")
     print(f"  of them {len([f for f in unnamed if f in marked])} were read and "
           f"marked `none` by the sweep; the rest were never looked at")
+    closed = unheld_closures(text, named_in_tests())
+    print(f"{len(closed)} of them **claim to be closed** — the gate's set, "
+          f"held by test/test_fixme.py")
+    if "--list" in argv:
+        print("  " + " ".join(closed))
     if "--list" in argv:
         print("\n  " + "\n  ".join(unnamed))
     return 0
