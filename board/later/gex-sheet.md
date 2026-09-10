@@ -145,3 +145,78 @@ truth is a text file the same trick is available only if the file
 carries something stable — which is `card:gui-is-difficult.md` Q7's
 question, and a `.gex` row may want a name column for exactly this.
 
+## Added 2026-09-10 — the schema travels in the file, and a sheet is kinds, not cells
+
+*From `card:relational-model.md`, the evening it was continued.  Henri:
+"I'd want this to be extended to card:gex-sheet.md and in that case the
+.gex could carry the schema along it, so that .gex files can stand on
+their own."  Then: "yes. write it to both cards."*
+
+**The rule, and why it flips here.**  `card:relational-model.md`
+argued that a `.notes` keeps its declaration in `gestate/notes.ges`,
+the catalog, because every piece's notes have the same kinds and a
+copy in thirty pieces is one fact stored thirty times.  A sheet has no
+shipped schema at all: its columns are the user's, so each sheet is
+its own schema by nature and the declaration has nowhere else to live.
+Practice split on exactly this line — a database keeps the schema
+once because it is one system with one schema; Avro puts the schema
+in every file because the files cross systems that share nothing;
+SQLite's argument for itself as an application file format is the
+one he is making.  So: **the schema travels in the file when it is
+the document's own, and in the catalog when it is shared.**  `.notes`
+stays on the catalog and `.gex` carries its own, by the same rule.
+
+**The form.**  Codd's fourth rule: the catalog is itself relations,
+in the same form as the data, queryable by the same language.
+Datomic did it literally — an attribute is an entity with ident, value
+type and cardinality, transacted as datoms like any other fact, and
+only the schema of the schema is fixed.  Here a `.gex` carries its
+declaration as record lines in its own grammar,
+
+    kind   row      key name
+    field  row  name    Word    Must
+    field  row  price   Number  Must
+    field  row  total   Formula May
+
+with `kind` and `field` the two bootstrap kinds `facts.ges` fixes.
+Nothing new in the language for a document to describe itself, which
+is the reason `facts.ges` already gives for a kind being a value.
+`Formula` as a value form is a placeholder: a formula column is a
+derived field, and its type is the G-machine's to infer or check.
+
+**What it does to Q1.**  Q1 says the model is *a relation from
+address to expression*.  Read relationally that is the
+entity-attribute-value shape — row, column, value — which
+`card:relational-model.md` scar 7 refuses: it defeats the types, the
+checks and the eye.  The relational form of a sheet is what Kale
+arrived at and what Excel's table objects are: **a sheet is one or
+more kinds, a row is a record, a column is a field, and a formula
+column is a derived field, which is a view.**  The schema in the file
+is precisely those column declarations, and it is what makes the
+sheet a relation rather than a cell grid.  The thing, place and set
+references of the 2026-09-08 section sit on top of this unchanged: a
+thing is a record by key, a place is an offset among records in
+declared order, a set is a `for` over the kind.  So Q1's first
+sentence is corrected here, and its invariants stand — *every value
+derivable from the file alone* now includes the schema.
+
+**Three things to keep straight.**
+
+- *The schema travels; the vocabulary may not.*  The 2026-09-09 lean
+  is that a cell holds its expression and the `.ges` beside supplies
+  what it calls.  A sheet using only the prelude stands on its own; a
+  sheet calling a piece's instruments does not, and carrying the
+  schema does not change that.  Two dependencies, and the file
+  carries one.
+- *Scar 6 inverts.*  Per-file schema means every sheet is its own
+  schema version and evolution is per document — fine for a sheet,
+  whose reader handles any columns anyway, and exactly why it would be
+  wrong for `.notes`.
+- *One decision it creates.*  His 2026-09-09 call was that kinds live
+  in the `.ges` beside the document, so one document has one
+  declaration and nothing can disagree.  Schema-as-records is a
+  second road for the same document type.  *Default:* a document's
+  declaration is either carried or beside, never both, and the parser
+  refuses a file that has both — one line.  *Trigger:* the first
+  `.gex` parsed.  This is the only place the two cards conflict.
+

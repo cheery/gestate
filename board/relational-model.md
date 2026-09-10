@@ -28,6 +28,8 @@
                  incremental engine the tree already runs
              vision.md §"What gestate won't be" — *plain files you can read
                  without it*, which is what a text relation is for
+             card:gex-sheet.md §"Added 2026-09-10" — the same rules carried
+                 to the sheet, where the schema travels in the file
 
 ## What this is, what it is not, and when it runs
 
@@ -519,6 +521,28 @@ singletons is the second document, and it is four lines:
     :: Kind "seed" (Bare "seed") (Field "seed" Number Must :: Nil) Nil Nil :: Nil
 
 The `.desk` file itself does not change either.
+
+## Extended to `.gex` — 2026-09-10
+
+His ask, the same evening: *"I'd want this to be extended to
+card:gex-sheet.md and in that case the .gex could carry the schema
+along it, so that .gex files can stand on their own.  Would that be
+reasonable?"*  It is, and the reason is the opposite of §"Where the
+schema travels" above, so the rule is worth one sentence here:
+
+**The schema travels in the file when it is the document's own, and
+in the catalog when it is shared.**  A `.notes` shares its kinds with
+every piece, so `notes.ges` is its catalog and a copy per piece is one
+fact stored thirty times.  A sheet's columns are the user's, so each
+sheet is its own schema and the declaration has nowhere else to live.
+Database versus Avro, by the same criterion.  The form is Codd's
+fourth rule — the catalog as relations, in the same grammar as the
+data — with `kind` and `field` as the two bootstrap kinds `facts.ges`
+fixes, which is Datomic's schema-as-datoms.  And read relationally, a
+sheet is kinds with fields and a formula column is a view, not a
+relation from address to expression, which is scar 7's shape.  The
+whole of it is on `card:gex-sheet.md` §"Added 2026-09-10", with the
+one decision it creates: carried or beside, never both.
 
 ## The relational model, recalled
 
