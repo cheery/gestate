@@ -563,6 +563,7 @@ what separates them now is whether the trigger has fired:
 | Q4 | the `.desk` keeps no declaration | a second reader, or a fifth line | waits |
 | Q5 | the set command's data path is the editor's, its shape is here: row images logged, one entry, one undo | the first multi-note gesture | waits |
 | Q6 | the data reaches a reader normalized; the file stays the source | his word, the same evening | live |
+| Q7 | a selection stays in the session, named by the command language and stored nowhere | a command outside the window has to say *the selection* | waits |
 
 **What is built first, and in what order** — the two live ones, cut
 so that each slice is a parity the suite holds:
@@ -589,8 +590,10 @@ so that each slice is a parity the suite holds:
    field.  The parity: the same seven mistakes earn a refusal that
    still names the field and the bound.
 
-Q1, Q3, Q4 and Q5 build nothing until their trigger; their shape is
-on this card so that the day it fires nothing has to be re-decided.
+Q1, Q3, Q4, Q5 and Q7 build nothing until their trigger; their shape
+is on this card so that the day it fires nothing has to be re-decided.
+Q7 arrived later the same evening, from guest fable's second warning,
+and is answered with its default too.
 
 ## Built — 2026-09-10, the three slices
 
@@ -755,8 +758,8 @@ read is needed rather than a fast whole one, which is where Datafun's
 seminaïve evaluation would come in (`spec/data.md`) and where this
 tree has an answer nobody else had.
 
-**2. Transient state — half-decided here, and the undecided half is
-his.**  gestate already split it, without calling it that: a `.desk`
+**2. Transient state — half-decided here; the other half is Q7, and
+he answered it the same evening.**  gestate already split it, without calling it that: a `.desk`
 holds `line`, `column`, `zoom` and `seed`, so **the caret is a fact in
 a file**, while the selection, the drag in flight and the hover live in
 `session.py` and are gone when the window closes.  So the answer here
@@ -790,6 +793,48 @@ proves it, and `.desk` is where a thing goes when it earns durability.
 *Trigger:* the first command that has to say *the selection* to
 something outside the window — a script, a second view, or an undo
 that must restore it.
+
+**Answered 2026-09-10 — Henri: *"I think the default is ok."***  So a
+selection stays in the session, named by the command language and
+written nowhere, until the trigger above fires.
+
+*What it stands on, in the tree today.*  Four fields on the session
+carry it and only one is model-shaped: `group` and `selected` are
+indices into the roll the picture is showing, `pending` is where a
+commit sent them, and **`held` is the selection as keys** — `(tick,
+key, voice)` per note.  A rebuild spends an index and never a key, so
+`_settle` re-finds the keys and puts the selection back; keys that
+find nothing drop it and say nothing, *a selection is a convenience,
+not a claim*.  The model-shaped selection therefore already exists.
+What the default withholds is only durability and a name from outside.
+
+*And the argument against durability is already written down*, in
+`gestate/desk.py` §"What is never restored": a window that reopened
+playing would make noise nobody asked for, and **not writing it down
+is a stronger guarantee than remembering not to apply it.**  A
+selection restored from a file has the same shape of hazard, smaller —
+you open a piece, something is already outlined, and your first
+gesture acts on a choice you made last week.
+
+**And the fourth thing the question hides — his word, *"worth a
+mention"*.**  A durable selection has **two possible identities**, and
+whoever fires the trigger has to pick one before picking a place:
+
+| | what is stored | what it means later |
+|---|---|---|
+| **the predicate** | the `select` a person actually ran — a rail and four corners | re-runs, and picks up notes written since |
+| **the extension** | the keys it resolved to, which is `held` today | the notes swept, and no others, forever |
+
+This is **Kale's thing/place/set met one level up** (§"Added
+2026-09-08"): a set reference re-runs, a thing reference is held by
+identity.  `select` takes corners and computes the notes, so *the
+predicate is what the person expressed* and the keys are what it meant
+at one moment — and Excel's version of choosing wrongly here is the
+finding Kale measured, 7 of 15 people predicting the rewrite.  Neither
+is obviously right: a predicate that quietly grows is a surprise, and
+an extension that ignores a note written inside the band is a
+different one.  **Nothing chooses today**, because nothing stores it —
+which is one more reason the default is the cheap answer.
 
 ## The relational model, recalled
 
