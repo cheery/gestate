@@ -1,6 +1,6 @@
 ---
 name: gestate-ungated-sweep
-description: "The 62-entry fixme audit — complete 2026-09-04, run to the day: five a session capped, 13 batches, and the three rules the batches earned"
+description: "The 62-entry fixme audit — swept 2026-09-04, card closed 2026-09-10 with the count back and the gate unbuilt: five a session capped, 13 batches, and the three rules the batches earned"
 metadata:
   type: project
 ---
@@ -15,6 +15,21 @@ whole plan — dates, the F-numbers in each batch, the rules — is in
 `card:ungated-fixes.md`. **Read it there; this note only says the sweep
 exists**, because a session picking the work up cold will not know to
 look.
+
+**The card closed 2026-09-10, and the number came back.**  Counted the
+card's own way six days after the last batch — `python
+tools/gatecount.py` — the file held **41 entries that nothing would
+catch**, 16 of them written *after* the rule was settled.  Fifteen of
+the 41 are the fourth verdict, read and marked `none`, which is an
+answer and not a backlog; the real remainder is 26 never looked at.
+The sweep did its work and the file refilled behind it, because
+**nothing enforces the rule on a new closure** — the card's question 3,
+answered in shape (an accepted baseline that may shrink and never grow)
+and never built.  So the postcondition is not met and the card says so
+in its own `## Done`.  Installing that gate is Henri's, and the
+question the close harvested is on `board/standing.md`: *does this card
+install a mechanism, or perform a task once — and if once, what refills
+behind it?*
 
 **Why:** Henri called it heijunka — *"This fixme is not this week's only
 problem and focusing on it would causes tremendous context rot issues."*

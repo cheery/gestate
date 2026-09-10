@@ -100,6 +100,15 @@ here too, dated, with the card it came from.*
   note is stamped against the engine's clock, not the score's, so
   *sounding* needed two numbers where there had been one; a card that
   names a clock, a position or a time owes this question on day one*
+- Does this card install a mechanism, or perform a task once — and if once, what refills behind it?
+  *— harvested 2026-09-10 at the close of `card:ungated-fixes.md`: it
+  swept 62 ungated defect entries in thirteen scheduled batches and
+  settled the rule that binds new ones, and six days after the last
+  batch the count was back, sixteen of it written after the rule was
+  agreed, because nothing enforced the rule on a new closure.  A card
+  whose `because` is a count owes this on day one: the sweep and the
+  gate are different work, and doing the first can look like having
+  done the second*
 - What is inside this number besides the thing it claims to measure?
   *— harvested 2026-09-07 at the close of `card:relations-at-frame-rate.md`:
   the first table timed a query and its input's construction as one
