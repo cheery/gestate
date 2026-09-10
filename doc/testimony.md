@@ -14,10 +14,10 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 85 of 85 memories classified — 25 harness, 40 henri, 14 session, 6 argument
+    testimony: 86 of 86 memories classified — 26 harness, 40 henri, 14 session, 6 argument
 
-**Read it this way.**  Sixty of eighty rest on something a reader can
-check without trusting a session — a command, a test, a transcript, or
+**Read it this way.**  Sixty-six of eighty-six rest on something a reader
+can check without trusting a session — a command, a test, a transcript, or
 his own dated words.  Fourteen rest on a session's word, and the
 fourteen are the list this page exists to produce: each is a candidate
 for the measurement that would make it `harness`, or the sentence from
@@ -71,6 +71,7 @@ sentence that was taken to be.
 | conditioning-shows-under-work | harness | the trial-three transcript, `doc/notes/2026-08-24-qwen3.8-27b.txt` lines 218, 224, 230; the three stacked causes of trial one are a session's reading |
 | day-one-was-not-day-one | harness | `git log --reverse`, `git show b049e0c:journal.md`; his correction of the session's conclusion is quoted |
 | decisions-arrive-shaped | session | a session's triage answering his question; *ten times cheaper* has no measurement |
+| declare-parity-derive | harness | the case, 2026-09-09 — nine parity tests green on `notes.ges`, and the derivation exposing `By "section"` where the parser sorted by where the section stands; `git show 7f9009b`, and 86 of 88 presses counted against `note_under` before the old road went |
 | deriving-strips-the-payment | session | a session's reading of five faults in `doc/trial/derived.md`; the trial that produced the negative is marked invalid by its sibling memory |
 | dialogue-is-its-own-mode | argument | Alhanen's *Dialogi*, through his reading notes; nothing here measured |
 | discovered-not-designed | henri | his words, 2026-09-01; the ingredient list is checkable and the origin is marked not checkable |
