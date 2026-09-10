@@ -282,9 +282,60 @@ def parse(text: str, name: str = "<notes>", where=None) -> NotesFile:
     document = _kinds(where)
     out = NotesFile(name=name)
     note_lines: list[tuple[int, list[str], tuple, str | None]] = []
+    entries, out.closing = _lines(text, name, document)
+    for number, declared, tokens, above, beside in entries:
+        word = declared.name
+        place = f"{name}:{number}"
+        if word == "section":
+            out.sections.append(
+                _section(tokens, declared, number, place, above, beside))
+        elif word == "note":
+            note_lines.append((number, tokens, above, beside))
+        elif word == "bpm":
+            out.bpm = _int(tokens[0], "bpm", place)
+            if out.bpm < 1:
+                raise NotesError(f"{place}: `bpm {tokens[0]}` — a tempo is at least one")
+            out.bpm_line, out.bpm_above, out.bpm_beside = number, above, beside
+        else:
+            #: The gap between a declaration and this file, said out
+            #: loud the day somebody widens the first without the
+            #: second — silence here would drop the record.
+            raise NotesError(
+                f"{place}: `{word}` is declared in the kinds, and this "
+                "version does not know how to read one")
+
+    seen: set[str] = set()
+    for one in out.sections:
+        if one.name in seen:
+            place = f"{name}:{one.line}"
+            raise NotesError(f"{place}: section `{one.name}` is declared twice")
+        seen.add(one.name)
+
+    note_kind = document["note"]
+    for number, tokens, above, beside in note_lines:
+        out.notes.append(
+            _note(tokens, note_kind, number, f"{name}:{number}", out,
+                  above, beside))
+
+    return out
+
+
+def _lines(text: str, name: str, document) -> tuple[list, tuple]:
+    """The **structural** pass — Codd's first third, and nothing of the
+    other two.
+
+    `(entries, closing)`: each entry is `(line, kind, tokens after the
+    kind word, prose above, prose beside)`, refused only for what the
+    declaration alone can refuse — a word that is no kind, a keyless
+    kind written twice, a `Bare` line that is not two tokens.  What a
+    record *means* is `parse`'s, and what its fields must be is
+    `records`'; splitting them is what lets the integrity rules be run
+    over relations instead of remembered here
+    (`card:relational-model.md` §"Decided", slice 1).
+    """
+    entries: list = []
     above: list[str] = []
     alone: set[str] = set()
-
     for number, raw in enumerate(text.splitlines(), start=1):
         record, beside = _uncomment(raw)
         line = record.strip()
@@ -318,40 +369,150 @@ def parse(text: str, name: str = "<notes>", where=None) -> NotesFile:
             written = declared.field(declared.shape[1])
             raise NotesError(
                 f"{place}: `{word}` takes one {_AS[written.value]}")
-        if word == "section":
-            out.sections.append(
-                _section(tokens[1:], declared, number, place,
-                         tuple(above), beside))
-        elif word == "note":
-            note_lines.append((number, tokens[1:], tuple(above), beside))
-        elif word == "bpm":
-            out.bpm = _int(tokens[1], "bpm", place)
-            if out.bpm < 1:
-                raise NotesError(f"{place}: `bpm {tokens[1]}` — a tempo is at least one")
-            out.bpm_line, out.bpm_above, out.bpm_beside = number, tuple(above), beside
-        else:
-            #: The gap between a declaration and this file, said out
-            #: loud the day somebody widens the first without the
-            #: second — silence here would drop the record.
-            raise NotesError(
-                f"{place}: `{word}` is declared in the kinds, and this "
-                "version does not know how to read one")
+        entries.append((number, declared, tokens[1:], tuple(above), beside))
         above = []
-    out.closing = tuple(above)
+    return entries, tuple(above)
 
-    seen: set[str] = set()
+
+# ── The relations a reader gets ────────────────────────────────────────────
+#
+# `card:relational-model.md` Q6 — Henri, 2026-09-10: *"the data can be
+# displayed like it's shown in the file, today.  But it should reach the
+# reader of that data normalized."*  Two roads lead to one set of
+# relations and `test/test_relations.py` holds them to each other on
+# `arc.notes`: `records` reads the file by the declaration alone and
+# `relations` derives the same from a parsed `NotesFile`.  The file is
+# the source on both; nothing here is stored.
+
+
+def records(text: str, name: str = "<notes>", where=None) -> list:
+    """Every record as its **fields**, typed by the declaration and
+    checked by nothing else — `(line, kind, fields, above, beside)`.
+
+    A record here may name a section that does not exist or a bar past
+    the section's end; those are integrity, and `refused` finds them
+    over the relations.  What this refuses is structure: an unknown
+    field, a missing required one, a number that is not one, a headed
+    record with no head.
+    """
+    document = _kinds(where)
+    out = []
+    entries, _closing = _lines(text, name, document)
+    for number, kind, tokens, above, beside in entries:
+        place = f"{name}:{number}"
+        if kind.shape[0] == "Bare":
+            got = {kind.shape[1]: tokens[0]}
+        elif kind.shape[0] == "Headed":
+            if not tokens or not _NAME.match(tokens[0]):
+                raise NotesError(f"{place}: `{kind.name}` needs a name")
+            got = _fields(tokens[1:], kind, place)
+            got[kind.shape[1]] = tokens[0]
+        else:
+            got = _fields(tokens, kind, place)
+        for f in kind.fields:
+            if f.value == "Number" and got.get(f.name) is not None:
+                got[f.name] = _int(got[f.name], f.name, place)
+        out.append((number, kind, got, above, beside))
+    return out
+
+
+def _record_of(kind, one) -> dict:
+    """A parsed record back as its fields, for the second road."""
+    if kind.name == "note":
+        return record(one)
+    if kind.name == "section":
+        return {"name": one.name, "key": one.key, "mode": one.mode,
+                "bars": one.bars, "beats": one.beats,
+                "voices": one.voices}
+    return {"bpm": one}
+
+
+def _with_index(document, entries) -> dict:
+    """The relations, plus what is **not** the model: `line`, `above`
+    and `beside`, keyed by the record they belong to.  A line number is
+    a physical locator — a rowid — dropped at every write and rebuilt
+    at the next read; prose keyed rather than adjacent is F200 without
+    the writer's sort holding it."""
+    from .facts import Relation, relations as derive
+
+    by_kind: dict = {}
+    line: set = set()
+    above: set = set()
+    beside: set = set()
+    for number, kind, got, over, side in entries:
+        by_kind.setdefault(kind.name, []).append(got)
+        typed = {c: (int(got[c]) if kind.field(c) and kind.field(c).value == "Number"
+                     else str(got[c])) for c in kind.key}
+        key = tuple(typed[c] for c in kind.key)
+        line.add((kind.name, key, number))
+        for rank, text in enumerate(over, start=1):
+            above.add((kind.name, key, rank, text))
+        if side is not None:
+            beside.add((kind.name, key, side))
+    out: dict = {}
+    for kind in document.kinds:
+        out.update(derive(kind, by_kind.get(kind.name, [])))
+    out["line"] = Relation(("kind", "key", "line"), frozenset(line))
+    out["above"] = Relation(("kind", "key", "rank", "text"), frozenset(above))
+    out["beside"] = Relation(("kind", "key", "text"), frozenset(beside))
+    return out
+
+
+def relations_of(text: str, name: str = "<notes>", where=None) -> dict:
+    """The first road: the relations, from the file by the declaration."""
+    return _with_index(_kinds(where), records(text, name, where))
+
+
+def relations(out: NotesFile, where=None) -> dict:
+    """The second road: the same relations, from a parsed `NotesFile`."""
+    document = _kinds(where)
+    entries = []
+    if out.bpm is not None:
+        entries.append((out.bpm_line, document["bpm"], {"bpm": out.bpm},
+                        out.bpm_above, out.bpm_beside))
     for one in out.sections:
-        if one.name in seen:
-            place = f"{name}:{one.line}"
-            raise NotesError(f"{place}: section `{one.name}` is declared twice")
-        seen.add(one.name)
+        entries.append((one.line, document["section"],
+                        _record_of(document["section"], one),
+                        one.above, one.beside))
+    for one in out.notes:
+        entries.append((one.line, document["note"], record(one),
+                        one.above, one.beside))
+    return _with_index(document, entries)
 
-    note_kind = document["note"]
-    for number, tokens, above, beside in note_lines:
-        out.notes.append(
-            _note(tokens, note_kind, number, f"{name}:{number}", out,
-                  above, beside))
 
+def refused(rels: dict, where=None) -> set:
+    """`(kind, key)` of every record the integrity rules refuse — **the
+    rules that no schema holds, run over the relations.**
+
+    `card:relational-model.md` §"The sketch": the two references come
+    from the declaration (`facts.dangling`), and the three below are
+    what SQL called assertions and never implemented — a bar past its
+    section's end, a tick past its bar, a spelling that names another
+    key.  Empty on a file the parser accepts; every fixture the parser
+    refuses for one of these reasons lands its key here, which is the
+    parity `test_relations.py` holds while both exist.
+    """
+    from .facts import dangling
+
+    document = _kinds(where)
+    out = dangling(document, rels)
+    note, section = rels["note"], rels["section"]
+    bars = {row[section.column("name")]: (row[section.column("bars")],
+                                          row[section.column("beats")])
+            for row in section.rows}
+    key_at = [note.column(c) for c in document["note"].key]
+    for row in note.rows:
+        s, bar, at = (row[note.column("section")], row[note.column("bar")],
+                      row[note.column("at")])
+        if s not in bars:
+            continue
+        if bar > bars[s][0] or at >= bars[s][1] * TICKS_PER_BEAT:
+            out.add(("note", tuple(row[i] for i in key_at)))
+    spell = rels["note.spell"]
+    for row in spell.rows:
+        k = row[:spell.column("value")]
+        if key_of(row[spell.column("value")]) != k[spell.column("key")]:
+            out.add(("note", k))
     return out
 
 

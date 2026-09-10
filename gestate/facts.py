@@ -73,6 +73,30 @@ class Kind:
     def field(self, name: str) -> Field | None:
         return next((f for f in self.fields if f.name == name), None)
 
+    @property
+    def refers(self) -> tuple:
+        """The references a record of this kind must resolve — **derived
+        from its order, not declared a second time.**
+
+        `card:relational-model.md` §"The sketch", Q2: an `Among field
+        kind` cannot order a record by where the one it names stands
+        unless that one exists, and an `Along field kind list` cannot
+        order a value along a list it is not in.  So the two sorts that
+        read another record *are* the two foreign keys, and a
+        declaration that said them twice would have two things to
+        disagree.  `("Refer", field, kind)` — the field names a key of
+        `kind`; `("Within", field, kind, list)` — the field is one of
+        the names in the `list` field of the `kind` record this record
+        refers to.
+        """
+        out = []
+        for term in self.order:
+            if term[0] == "Among":
+                out.append(("Refer", term[1], term[2]))
+            elif term[0] == "Along":
+                out.append(("Within", term[1], term[2], term[3]))
+        return tuple(out)
+
 
 def _text(term) -> str:
     """A `Text` — `List Char`, and a `Char` is its code point, which is
@@ -165,6 +189,125 @@ def sort_key(kind: Kind, record: dict, along=None, among=None) -> tuple:
                     f"given to find it in")
             out.append(among(other, record[field]))
     return tuple(out)
+
+
+# ── What a reader gets ────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class Relation:
+    """A heading and a set of rows — Codd's structure, and nothing else.
+
+    Every value in a row is one `int` or one `str`: no list, no tuple,
+    no bitmask, no line number.  That is the information principle,
+    and `test/test_relations.py` measures it.
+    """
+    heading: tuple
+    rows: frozenset
+
+    def column(self, name: str) -> int:
+        return self.heading.index(name)
+
+    def project(self, *names: str) -> set:
+        at = tuple(self.column(n) for n in names)
+        return {tuple(row[i] for i in at) for row in self.rows}
+
+
+def _typed(kind: Kind, record: dict) -> dict:
+    """A record's values as the declaration reads them — a number an
+    `int`, a word a `str`, names a tuple of `str`, an absent `May`
+    field `None`.  Takes tokens or already-typed values, so both roads
+    to a relation pass through one converter."""
+    out = {}
+    for f in kind.fields:
+        value = record.get(f.name)
+        if value is None:
+            out[f.name] = None
+        elif f.value == "Number":
+            out[f.name] = int(value)
+        elif f.value == "Names":
+            out[f.name] = (tuple(v for v in value.split(",") if v)
+                           if isinstance(value, str) else tuple(value))
+        else:
+            out[f.name] = str(value)
+    if kind.shape[0] == "Headed":
+        out[kind.shape[1]] = str(record[kind.shape[1]])
+    return out
+
+
+def relations(kind: Kind, records) -> dict:
+    """The relations one kind's records are, **derived by one rule from
+    the declaration** — `card:relational-model.md` Q6.
+
+    The key plus every required scalar field is the base relation,
+    under the kind's name.  Each `May` field is a relation of its own,
+    `kind.field`, so that absence is no row and never a null.  Each
+    `Names` field is a relation of its own with a rank, so that a list
+    in a value has a row to hang a second fact on (scar 4) and the
+    order the author wrote is a fact and not a position.  Both are
+    headed by the key and then `value`, or `rank` and `value`.
+    """
+    key = kind.key
+    base_cols = list(key) + [f.name for f in kind.fields
+                             if f.need == "Must" and f.value != "Names"
+                             and f.name not in key]
+    base: set = set()
+    split: dict[str, set] = {}
+    for raw in records:
+        record = _typed(kind, raw)
+        k = tuple(record[c] for c in key)
+        base.add(tuple(record[c] for c in base_cols))
+        for f in kind.fields:
+            if f.name in key or (f.need == "Must" and f.value != "Names"):
+                continue
+            value = record[f.name]
+            if value is None:
+                continue
+            rows = split.setdefault(f.name, set())
+            if f.value == "Names":
+                for rank, name in enumerate(value, start=1):
+                    rows.add(k + (rank, name))
+            else:
+                rows.add(k + (value,))
+    out = {kind.name: Relation(tuple(base_cols), frozenset(base))}
+    for f in kind.fields:
+        if f.name in key or (f.need == "Must" and f.value != "Names"):
+            continue
+        #: `value`, always: a heading is a set of names, and a `section`
+        #: keyed by `name` whose voices were also `name` would have two.
+        cols = key + (("rank", "value") if f.value == "Names" else ("value",))
+        out[f"{kind.name}.{f.name}"] = Relation(
+            cols, frozenset(split.get(f.name, ())))
+    return out
+
+
+def dangling(document, rels: dict) -> set:
+    """`(kind, key)` of every record whose reference does not resolve —
+    the two foreign-key rules, run over the relations rather than
+    remembered in a parser."""
+    out: set = set()
+    for kind in document.kinds:
+        if kind.name not in rels:
+            continue
+        base = rels[kind.name]
+        for ref in kind.refers:
+            if ref[0] == "Refer":
+                _r, field, other = ref
+                known = rels[other].project(*document[other].key)
+                for row in base.rows:
+                    if (row[base.column(field)],) not in known:
+                        out.add((kind.name, tuple(row[base.column(c)] for c in kind.key)))
+            else:
+                _w, field, other, listed = ref
+                via = next(r[1] for r in kind.refers
+                           if r[0] == "Refer" and r[2] == other)
+                names = rels[f"{other}.{listed}"]
+                held = names.project(*(document[other].key + ("value",)))
+                for row in base.rows:
+                    at = (row[base.column(via)], row[base.column(field)])
+                    if at not in held:
+                        out.add((kind.name, tuple(row[base.column(c)] for c in kind.key)))
+    return out
 
 
 class Document:
