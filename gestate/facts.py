@@ -253,6 +253,14 @@ class Relation:
         at = tuple(self.column(n) for n in names)
         return {tuple(row[i] for i in at) for row in self.rows}
 
+    def where(self, **equal) -> list[dict]:
+        """The rows whose named columns equal the values given, each as
+        `{column: value}` — a select and nothing more, so a reader reads
+        like a query and never by position."""
+        at = [(self.column(n), v) for n, v in equal.items()]
+        return [dict(zip(self.heading, row)) for row in self.rows
+                if all(row[i] == v for i, v in at)]
+
 
 def _typed(kind: Kind, record: dict) -> dict:
     """A record's values as the declaration reads them — a number an

@@ -24,7 +24,7 @@ PIECE = Path(__file__).resolve().parent.parent / "examples" / "audio" / "arc.not
 #: The relations that are the model, and the three that are not.
 MODEL = {"bpm", "section", "section.key", "section.mode", "section.voices",
          "note", "note.spell", "note.manner"}
-INDEX = {"line", "above", "beside"}
+INDEX = {"line", "above", "beside", "closing"}
 
 
 @pytest.fixture(scope="module")
@@ -203,3 +203,47 @@ def test_the_parser_refuses_what_the_domain_refuses(kind, field):
         notes.parse(text, "edge.notes")
     with pytest.raises(notes.NotesError, match=f"`{field} {bad}`"):
         notes.records(text, "edge.notes")
+
+
+# ── The two views the roll and the performer read ───────────────────────────
+
+
+def test_notes_of_is_ordered_as_the_parser_orders(by_declaration, text):
+    """`notes_of` and `ordered` obey one declaration, so the roll drawn
+    off the relations stacks the notes the file's writer would."""
+    parsed = notes.parse(text, PIECE.name)
+    view = [(n["section"], n["bar"], n["voice"], n["at"], n["key"], n["len"],
+             n["vel"], n["manner"], n["spell"], n["line"])
+            for n in notes.notes_of(by_declaration)]
+    fields = [(n.section, n.bar, n.voice, n.at, n.key, n.length,
+               notes.LEVELS[n.level], tuple(notes.record(n)["manner"].split(","))
+               if n.manners else (), n.spell, n.line)
+              for n in notes.ordered(parsed)]
+    assert view == fields
+
+
+def test_sections_of_is_the_file_s_own_order_with_ranked_voices(by_declaration, text):
+    parsed = notes.parse(text, PIECE.name)
+    view = [(s["name"], s["bars"], s["beats"], s["voices"], s["key"], s["mode"], s["line"])
+            for s in notes.sections_of(by_declaration)]
+    assert view == [(s.name, s.bars, s.beats, s.voices, s.key, s.mode, s.line)
+                    for s in parsed.sections]
+
+
+def test_the_readers_hold_no_parsed_file():
+    """The roll, the performer, the wrapper and the compiled road's
+    declarations read relations — `NotesFile` reaches none of them."""
+    import inspect
+
+    from gestate import audioeditor, scorebox
+
+    for reader in (scorebox.notes_rolls, audioeditor.NotesKind.events,
+                   audioeditor.NotesKind.rolls, audioeditor.NotesKind.engine_program,
+                   notes.declarations, notes._wrapper_of, notes.tempo_of):
+        source = inspect.getsource(reader)
+        assert "notes_parsed" not in source and ".sections" not in source, reader.__name__
+
+
+def test_the_closing_prose_is_a_relation_too():
+    rels = notes.relations_of("section A  bars 1  beats 4  voices a\n# the end\n# of it\n")
+    assert rels["closing"].rows == {(1, "# the end"), (2, "# of it")}

@@ -640,6 +640,29 @@ domain, the value one step outside it is refused by both roads.  And
 | `key` 0–127 | `_note` | `Range 0 127`, declared |
 | `vel` named; `spell` agrees with `key` | `_note`, `Note.__post_init__` | `OneOf levels`, declared; `refused` |
 
+**Slice 4, the readers** (Q6's second half).  Henri, the same
+evening: *"make the roll and performer read the relations instead of
+NotesFile?"*  Two views, derived at every read and stored nowhere —
+`notes.sections_of`, the sections in the file's own order with their
+voices ranked and their key and mode when said, and `notes.notes_of`,
+every note joined with its spelling, manners and line, in the declared
+order by the same `facts.sort_key` that `ordered` obeys.  The roll
+(`scorebox.notes_rolls`), the performer's event list
+(`NotesKind.events`), the compiled road's `declarations`, the wrapper
+and its tempo all take the relations now, and the bench carries
+`notes_relations` where it carried the parsed file.  The parser still
+runs first, as the gate that refuses what a file may not say; what a
+reader reads afterwards is `relations_of(text)`, off the text by the
+declaration.  `facts.Relation.where` is the one query form they use,
+so a reader reads by column name and never by position.  A test reads
+the readers' source and refuses `notes_parsed` and `.sections` in any
+of them; the two views are held to `ordered` and to `parsed.sections`
+field for field; and the roll's two roads and the performer's two
+roads stay equal in `test_drawnscores.py` as before.  `closing` prose
+joined the index so nothing of the file is outside the relations.
+
+    python -m pytest test/test_notes_relations.py -q     → 30 passed
+
 **What it does not cover, said plainly.**  The parser still runs and
 still carries every rule by hand; what changed is that each now has a
 second home the suite holds it to, so the day `_note` goes nothing is
@@ -648,10 +671,14 @@ Datafun over `Set` — the comprehensions in §"The sketch" are the
 shape, and the language form waits for the relations to reach the
 G-machine.  A section's `key` and `mode` keep their lists in
 `notes.py` (`_PITCH_CLASS`, `_MODES`), because `mode` is matched
-case-insensitively and a `OneOf` is not.  And nothing reads the
-relations yet but the tests: the roll, the performer and `outside`
-still read `NotesFile`, which is Q6's second half and the trigger for
-retiring the record classes.
+case-insensitively and a `OneOf` is not.  What still reads
+`NotesFile`: the writer and the two primitive edits, which is right —
+the file is the source and they make it; `outside`, `sounding`,
+`spellings` and `doubled`, the report side; and `session.py`'s drag
+and move, which look a note up by line.  Those are the editor's, and
+they read the record classes because the record classes are still
+what the parser makes; retiring them is the day the parser reads
+`relations_of` and refuses from `refused`.
 
 ## The relational model, recalled
 

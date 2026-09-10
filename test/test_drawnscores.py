@@ -70,7 +70,7 @@ def _arcnotes(text: str | None = None) -> str:
     if text is None:
         return notes.read(ARCNOTES)
     parsed = notes.parse(text, "arc.notes")
-    body, _ = notes.declarations(parsed)
+    body, _ = notes.declarations(notes.relations(parsed))
     source = ARCNOTES.read_text().replace('include "arc.notes"', "")
     known = {s.name: set(s.voices) for s in parsed.sections}
     return notes._dots(source + "\n" + body, known)
@@ -312,7 +312,7 @@ def test_every_note_of_the_file_is_one_line_and_carries_its_own_pitch():
     assert len({n.line for n in parsed.notes}) == len(parsed.notes), (
         "two notes claim the same line")
 
-    _, where = notes.declarations(parsed)
+    _, where = notes.declarations(notes.relations(parsed))
     assert len(where) == len(parsed.notes), (
         "the expansion lost a note's line on the way into `.ges`")
     assert sorted(where.values()) == sorted(n.line for n in parsed.notes)
@@ -2197,7 +2197,7 @@ def _both_roads():
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     page = asks(source)
-    fast = notes_rolls(source, page, origins, parsed)
+    fast = notes_rolls(source, page, origins, notes.relations(parsed))
     slow = build_rolls(source, page, 44100, 0)
     return page, parsed, fast, slow
 
@@ -2246,13 +2246,13 @@ def test_the_data_road_is_milliseconds_and_the_bench_takes_it():
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     t0 = time.perf_counter()
-    rolls = notes_rolls(source, asks(source), origins, parsed)
+    rolls = notes_rolls(source, asks(source), origins, notes.relations(parsed))
     took = time.perf_counter() - t0
     assert len(rolls) == 3 and took < 0.5, f"{took:.2f} s for the page"
 
     here, bench = _opened_alone()
     program = bench.program()
-    assert bench.notes_parsed is not None
+    assert bench.notes_relations is not None
     fast = bench.kind.rolls(bench, program, asks(program))
     assert [e[:4] for e in fast[0].events] == [e[:4] for e in rolls[0].events]
 
@@ -2265,7 +2265,7 @@ def test_an_ask_the_data_road_cannot_read_is_a_roll_error_in_its_slot():
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     out = notes_rolls(source, [(1, "notes_A_melody ++ notes_B_melody"),
                                (2, "notes_Q_nothing"),
-                               (3, "(notes_A_bass)")], origins, parsed)
+                               (3, "(notes_A_bass)")], origins, notes.relations(parsed))
     assert isinstance(out[0], RollError) and "names something else" in str(out[0])
     assert isinstance(out[1], RollError) and "no voice of this file" in str(out[1])
     assert not isinstance(out[2], RollError) and len(out[2].events) > 0
@@ -2341,7 +2341,7 @@ def test_a_note_edit_leaves_the_engine_text_byte_identical():
 
     here, bench = _opened_alone()
     before = NotesKind.engine_program(bench, bench.source())
-    bench.notes_parsed = None
+    bench.notes_relations = None
     moved = bench.source().replace("key 62", "key 63", 1)
     after = NotesKind.engine_program(bench, moved)
     assert after == before
@@ -2357,7 +2357,7 @@ def _live_and_baked():
     text = notes.wrapper(NOTES)
     source, origins = notes.expanded(text, NOTES.parent)
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
-    rolls = notes_rolls(source, asks(source), origins, parsed)
+    rolls = notes_rolls(source, asks(source), origins, notes.relations(parsed))
     return rolls, page_program(rolls, stacked=True), page_program(rolls, stacked=True, live=True)
 
 
@@ -2372,7 +2372,7 @@ def test_a_live_rolls_text_holds_still_while_a_note_moves():
     moved_file = NOTES.read_text().replace("key 62", "key 64", 1)
     source, origins = notes.expanded(text, NOTES.parent, texts={"arc.notes": moved_file})
     parsed = notes.parse(moved_file, "arc.notes")
-    rolls2 = notes_rolls(source, asks(source), origins, parsed)
+    rolls2 = notes_rolls(source, asks(source), origins, notes.relations(parsed))
     assert page_program(rolls2, stacked=True, live=True)[0] == live
     assert page_program(rolls2, stacked=True)[0] != baked, "the baked text moves; that was the cost"
 
@@ -2579,7 +2579,7 @@ def test_two_sections_on_one_roll_follow_one_another():
     a, b = parsed.sections[0], parsed.sections[1]
     ask = f"(notes_{a.name}_{a.voices[0]} || notes_{b.name}_{b.voices[0]})"
     line = next(i + 1 for i, l in enumerate(source.splitlines()) if l.startswith("notes "))
-    roll = notes_rolls(source, [(line, ask)], origins, parsed)[0]
+    roll = notes_rolls(source, [(line, ask)], origins, notes.relations(parsed))[0]
     first = a.bars * a.beats * TICKS_PER_BEAT
     _lo, _hi, span = scale_of(roll)
     assert span == first + b.bars * b.beats * TICKS_PER_BEAT
@@ -3176,7 +3176,7 @@ def test_a_note_written_past_its_bar_line_is_drawn_whole_on_both_roads():
     source, origins = notes.expanded(text, here.parent)
     parsed = notes.parse(here.read_text(), here.name)
     page = asks(source)
-    fast = notes_rolls(source, page, origins, parsed)
+    fast = notes_rolls(source, page, origins, notes.relations(parsed))
     slow = build_rolls(source, page, 44100, 0)
     assert [e[:4] for e in fast[0].events] == [e[:4] for e in slow[0].events]
     on, off, _leaf, key, _vel, _manner = fast[0].events[0]

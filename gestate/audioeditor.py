@@ -2870,8 +2870,8 @@ class Workbench:
                 # **At the file's own tempo** when it says one — a `bpm`
                 # record — and the wrapper's otherwise (Q2 of
                 # `card:notes-editor.md`).
-                parsed = getattr(self, "notes_parsed", None)
-                self.bpm = tempo_of(parsed) if parsed is not None else WRAPPER_BPM
+                rels = getattr(self, "notes_relations", None)
+                self.bpm = tempo_of(rels) if rels is not None else WRAPPER_BPM
                 self.performer = None
                 self.schedule = schedule_voices(player(self), self.bpm,
                                                 self.rate, allocators,
@@ -3871,12 +3871,16 @@ class NotesKind:
 
         if text.startswith(generated(bench.path.name)):
             return text, dict(getattr(bench, "origins", None) or {})
-        from .notes import parse
+        from .notes import parse, relations_of
 
-        # The parsed file rides on the bench for the page's data road
-        # (`rolls` below): the roll is read off these records, not off
-        # a take, so a picture costs a lookup and not a compile.
-        bench.notes_parsed = parse(text, bench.path.name)
+        # **The relations ride on the bench** for the page's data road —
+        # `rolls`, `events`, the tempo and the engine's wrapper below:
+        # the roll and the performer read them and never the parser's
+        # records (`card:relational-model.md` Q6, 2026-09-10), so a
+        # picture costs a lookup and not a compile.  The parse is the
+        # gate: it refuses what the file may not say.
+        parse(text, bench.path.name)
+        bench.notes_relations = relations_of(text, bench.path.name)
         return expanded(wrapper(bench.path), bench.path.parent,
                         texts={bench.path.name: text})
 
@@ -3886,12 +3890,13 @@ class NotesKind:
         notes — `notes.wrapper(notes=False)`.  Byte-identical across
         note edits, so the front end's caches answer it and the synth
         is compiled once (`card:notes-editor.md` slice 2)."""
-        from .notes import _wrapper_of, parse
+        from .notes import _wrapper_of, parse, relations_of
 
-        parsed = getattr(bench, "notes_parsed", None)
-        if parsed is None:
-            parsed = bench.notes_parsed = parse(text, bench.path.name)
-        return _wrapper_of(parsed, bench.path.name, notes=False)
+        rels = getattr(bench, "notes_relations", None)
+        if rels is None:
+            parse(text, bench.path.name)
+            rels = bench.notes_relations = relations_of(text, bench.path.name)
+        return _wrapper_of(rels, bench.path.name, notes=False)
 
     @staticmethod
     def events(bench) -> list:
@@ -3904,20 +3909,22 @@ class NotesKind:
         Held to `perform_voices` on `arc.notes` by `test_drawnscores.py`,
         and on a note that crosses its bar line."""
         from .midi import TICKS_PER_BEAT
-        from .notes import ordered
+        from .notes import bits_of, level_of, notes_of, sections_of
 
-        parsed = bench.notes_parsed
+        rels = bench.notes_relations
         starts, at = {}, 0
-        for section in parsed.sections:
-            starts[section.name] = at
-            at += section.bars * section.beats * TICKS_PER_BEAT
-        ticks = {s.name: s.beats * TICKS_PER_BEAT for s in parsed.sections}
+        ticks = {}
+        for section in sections_of(rels):
+            starts[section["name"]] = at
+            ticks[section["name"]] = section["beats"] * TICKS_PER_BEAT
+            at += section["bars"] * ticks[section["name"]]
         out = []
-        for one in ordered(parsed):
-            bar = ticks[one.section]
-            on = starts[one.section] + (one.bar - 1) * bar + one.at
-            off = on + one.length
-            out.append((on, off, one.voice, ((one.key, one.level, one.manners),)))
+        for one in notes_of(rels):
+            bar = ticks[one["section"]]
+            on = starts[one["section"]] + (one["bar"] - 1) * bar + one["at"]
+            off = on + one["len"]
+            out.append((on, off, one["voice"],
+                        ((one["key"], level_of(one["vel"]), bits_of(one["manner"])),)))
         return out
 
     @staticmethod
@@ -3926,13 +3933,13 @@ class NotesKind:
         slice 1: milliseconds where `build_rolls` is seconds."""
         from . import scorebox
 
-        parsed = getattr(bench, "notes_parsed", None)
-        if parsed is None:
+        rels = getattr(bench, "notes_relations", None)
+        if rels is None:
             return scorebox.build_rolls(program, asks_, bench.rate,
                                         bench.seed or 0)
         return scorebox.notes_rolls(program, asks_,
                                     getattr(bench, "origins", None) or {},
-                                    parsed)
+                                    rels)
 
 
 #: **A file kind is a registration, not a branch** — Henri's reading of

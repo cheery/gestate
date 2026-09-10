@@ -439,7 +439,7 @@ def _record_of(kind, one) -> dict:
     return {"bpm": one}
 
 
-def _with_index(document, entries) -> dict:
+def _with_index(document, entries, closing: tuple = ()) -> dict:
     """The relations, plus what is **not** the model: `line`, `above`
     and `beside`, keyed by the record they belong to.  A line number is
     a physical locator — a rowid — dropped at every write and rebuilt
@@ -467,12 +467,16 @@ def _with_index(document, entries) -> dict:
     out["line"] = Relation(("kind", "key", "line"), frozenset(line))
     out["above"] = Relation(("kind", "key", "rank", "text"), frozenset(above))
     out["beside"] = Relation(("kind", "key", "text"), frozenset(beside))
+    out["closing"] = Relation(("rank", "text"), frozenset(
+        (rank, text) for rank, text in enumerate(closing, start=1)))
     return out
 
 
 def relations_of(text: str, name: str = "<notes>", where=None) -> dict:
     """The first road: the relations, from the file by the declaration."""
-    return _with_index(_kinds(where), records(text, name, where))
+    document = _kinds(where)
+    _entries, closing = _lines(text, name, document)
+    return _with_index(document, records(text, name, where), closing)
 
 
 def relations(out: NotesFile, where=None) -> dict:
@@ -489,7 +493,79 @@ def relations(out: NotesFile, where=None) -> dict:
     for one in out.notes:
         entries.append((one.line, document["note"], record(one),
                         one.above, one.beside))
-    return _with_index(document, entries)
+    return _with_index(document, entries, out.closing)
+
+
+# ── The two views a reader joins for itself ────────────────────────────────
+#
+# A reader usually wants the joined form — the performer wants a note
+# with its dynamic and its manners and the bar it sits in — and that
+# is a view, derived here at every read and stored nowhere
+# (`card:relational-model.md` Q6, the first caution).  The roll, the
+# performer and the compiled road's declarations read these and never
+# a `NotesFile`, since 2026-09-10.
+
+
+def sections_of(rels: dict) -> list[dict]:
+    """Every section with its voices in rank order and its key and
+    mode when said, **in the order the file places them** — which is
+    the one fact this format carries by position on purpose
+    (`notes.ges`: a section list is the author's sequence), so it is
+    read off the `line` index and not off a sort."""
+    at = {row["key"][0]: row["line"] for row in rels["line"].where(kind="section")}
+    out = []
+    for row in sorted(rels["section"].rows, key=lambda r: at[r[0]]):
+        one = dict(zip(rels["section"].heading, row))
+        voices = rels["section.voices"].where(name=one["name"])
+        one["voices"] = tuple(v["value"] for v in sorted(voices, key=lambda v: v["rank"]))
+        for field in ("key", "mode"):
+            said = rels[f"section.{field}"].where(name=one["name"])
+            one[field] = said[0]["value"] if said else None
+        one["line"] = at[one["name"]]
+        out.append(one)
+    return out
+
+
+def notes_of(rels: dict) -> list[dict]:
+    """Every note with its spelling, its manners and its line, **in the
+    declared order** — `facts.sort_key` over the same declaration
+    `ordered` obeys, so the two agree note for note
+    (`test_notes_relations.py`)."""
+    from .facts import sort_key
+
+    kind = _kinds()["note"]
+    sections = sections_of(rels)
+    place = {s["name"]: i for i, s in enumerate(sections)}
+    voices = {s["name"]: s["voices"] for s in sections}
+    lines = {row["key"]: row["line"] for row in rels["line"].where(kind="note")}
+    out = []
+    for row in rels["note"].rows:
+        one = dict(zip(rels["note"].heading, row))
+        key = tuple(one[c] for c in kind.key)
+        spelt = rels["note.spell"].where(**dict(zip(kind.key, key)))
+        one["spell"] = spelt[0]["value"] if spelt else None
+        manners = rels["note.manner"].where(**dict(zip(kind.key, key)))
+        one["manner"] = tuple(m["value"] for m in sorted(manners, key=lambda m: m["rank"]))
+        one["line"] = lines[key]
+        out.append(one)
+    return sorted(out, key=lambda one: sort_key(
+        kind, one,
+        along=lambda _k, _f, one: voices.get(one["section"], ()),
+        among=lambda _k, named: place.get(named, len(place))))
+
+
+def level_of(vel: str) -> int:
+    """A dynamic's rank, softest first — what `Tone` carries."""
+    return LEVELS.index(vel)
+
+
+def bits_of(manner: tuple) -> int:
+    """The manners as the bitmask `Tone` carries — an encoding, made at
+    the reader and never stored."""
+    bits = 0
+    for one in manner:
+        bits |= MANNERS[one]
+    return bits
 
 
 def refused(rels: dict, where=None) -> set:
@@ -1312,11 +1388,11 @@ def bound(section: str, voice: str) -> str:
     return f"notes_{section}_{voice}"
 
 
-def _payload(one: Note) -> str:
-    return f"'(fromNote {one.key} {one.level} {one.manners})"
+def _payload(one: dict) -> str:
+    return f"'(fromNote {one['key']} {level_of(one['vel'])} {bits_of(one['manner'])})"
 
 
-def _held(one: Note) -> str:
+def _held(one: dict) -> str:
     """A note of `one.length` ticks, out of the beat-long note `'x` is.
 
     `|*` scales a duration and `|/` divides it, both by whole numbers, so
@@ -1326,8 +1402,8 @@ def _held(one: Note) -> str:
     format and no special case reaches the editor.
     """
     body = _payload(one)
-    common = gcd(one.length, TICKS_PER_BEAT)
-    up, down = one.length // common, TICKS_PER_BEAT // common
+    common = gcd(one["len"], TICKS_PER_BEAT)
+    up, down = one["len"] // common, TICKS_PER_BEAT // common
     if up != 1:
         body = f"({body} |* {up})"
     if down != 1:
@@ -1335,13 +1411,14 @@ def _held(one: Note) -> str:
     return body
 
 
-def _placed(one: Note) -> str:
+def _placed(one: dict) -> str:
     body = _held(one)
-    return body if one.at == 0 else f"(at {one.at} {body})"
+    return body if one["at"] == 0 else f"(at {one['at']} {body})"
 
 
-def declarations(out: NotesFile) -> tuple[str, dict[int, int]]:
-    """The `.ges` text a file becomes, and `{generated line: source line}`.
+def declarations(rels: dict) -> tuple[str, dict[int, int]]:
+    """The `.ges` text a file becomes, and `{generated line: source line}`
+    — **read off the relations**, `notes_of` and `sections_of`.
 
     The map is what carries provenance: a note is one generated line, so
     a graph node placed on generated line 41 was written on whatever line
@@ -1351,24 +1428,24 @@ def declarations(out: NotesFile) -> tuple[str, dict[int, int]]:
     """
     lines: list[str] = []
     origin: dict[int, int] = {}
-    order = ordered(out)
-    for section in out.sections:
-        for voice in section.voices:
+    order = notes_of(rels)
+    for section in sections_of(rels):
+        for voice in section["voices"]:
             mine = [n for n in order
-                    if n.section == section.name and n.voice == voice]
-            lines.append(f"{bound(section.name, voice)} : (FromNote a) => [: a :]")
-            lines.append(f"{bound(section.name, voice)} =")
-            for index in range(1, section.bars + 1):
-                inside = [n for n in mine if n.bar == index]
+                    if n["section"] == section["name"] and n["voice"] == voice]
+            lines.append(f"{bound(section['name'], voice)} : (FromNote a) => [: a :]")
+            lines.append(f"{bound(section['name'], voice)} =")
+            for index in range(1, section["bars"] + 1):
+                inside = [n for n in mine if n["bar"] == index]
                 lead = "      " if index == 1 else "   ++ "
                 if not inside:
-                    lines.append(f"{lead}(long {section.beats} r)")
+                    lines.append(f"{lead}(long {section['beats']} r)")
                     continue
-                lines.append(f"{lead}(long {section.beats} (")
+                lines.append(f"{lead}(long {section['beats']} (")
                 for spot, one in enumerate(inside):
                     joint = "        " if spot == 0 else "     || "
                     lines.append(f"{joint}{_placed(one)}")
-                    origin[len(lines)] = one.line
+                    origin[len(lines)] = one["line"]
                 lines.append("      ))")
             lines.append("")
     return "\n".join(lines), origin
@@ -1439,25 +1516,31 @@ def expanded(source: str, base: Path | None = None,
         place = f"line {line}"
         path = (root / one)
         if texts and one in texts:
-            parsed = parse(texts[one], name=one)
+            text, at = texts[one], None
         elif not path.exists():
             raise NotesError(
                 f'{place}: include "{one}" — no such file beside {root}')
         else:
-            parsed = parse(path.read_text(), name=one, where=path)
-        for section in parsed.sections:
-            if section.name in known:
+            text, at = path.read_text(), path
+        #: The parser is the gate — it refuses what the file may not
+        #: say — and what the compiled road *reads* is the relations,
+        #: off the text by the declaration (`card:relational-model.md`
+        #: Q6, 2026-09-10).
+        parse(text, name=one, where=at)
+        rels = relations_of(text, name=one, where=at)
+        for section in sections_of(rels):
+            if section["name"] in known:
                 raise NotesError(
-                    f'{place}: include "{one}" — section `{section.name}` is '
+                    f'{place}: include "{one}" — section `{section["name"]}` is '
                     "already included; two files cannot bring the same "
                     "section name")
-            known[section.name] = set(section.voices)
-        read.append((one, parsed))
+            known[section["name"]] = set(section["voices"])
+        read.append((one, rels))
 
     lines = _dots(blanked, known).splitlines()
     where: dict = {}
-    for one, parsed in read:
-        text, origin = declarations(parsed)
+    for one, rels in read:
+        text, origin = declarations(rels)
         #: **The line the block's first line becomes**, counted rather
         #: than derived — `lines` is the answer to *how much is in front
         #: of it* and it is already in hand.
@@ -1539,17 +1622,25 @@ hammerVoice g s = timbre (!noteHz s) * adsr env g * !noteLoud s
 WRAPPER_BPM = 100
 
 
-def tempo_of(out: NotesFile) -> int:
+def bpm_of(rels: dict) -> int | None:
+    """The file's own tempo — the one row of `bpm`, or `None`."""
+    rows = rels["bpm"].rows
+    return next(iter(rows))[0] if rows else None
+
+
+def tempo_of(rels: dict) -> int:
     """The tempo a `.notes` file played alone goes at: its own `bpm`
     record, or `WRAPPER_BPM` when it says nothing."""
-    return out.bpm if out.bpm is not None else WRAPPER_BPM
+    said = bpm_of(rels)
+    return said if said is not None else WRAPPER_BPM
 
 
-def _tempo_lines(out: NotesFile) -> list[str]:
+def _tempo_lines(rels: dict) -> list[str]:
     """The wrapper's `bpm`, saying where the number came from."""
-    said = (f"#: The file says `bpm {out.bpm}`." if out.bpm is not None
+    said = bpm_of(rels)
+    said = (f"#: The file says `bpm {said}`." if said is not None
             else "#: The file says nothing about tempo; this is `notes.WRAPPER_BPM`.")
-    return [said, "bpm : Int", f"bpm = {tempo_of(out)}"]
+    return [said, "bpm : Int", f"bpm = {tempo_of(rels)}"]
 
 #: How many notes one voice may sound at once through the wrapper.  A
 #: `.notes` voice is written as a line, and a chord across lines is
@@ -1570,8 +1661,9 @@ def wrapper(path: Path | str, *, notes: bool = True) -> str:
     path.parent)`, as any program with an `include`.
     """
     path = Path(path)
-    out = parse(path.read_text(encoding="utf-8"), path.name, where=path)
-    return _wrapper_of(out, path.name, notes=notes)
+    text = path.read_text(encoding="utf-8")
+    parse(text, path.name, where=path)             # the gate
+    return _wrapper_of(relations_of(text, path.name, where=path), path.name, notes=notes)
 
 
 def generated(name: str) -> str:
@@ -1586,7 +1678,7 @@ def generated(name: str) -> str:
     return f"# {name}, opened alone — played through a piano the tree"
 
 
-def _wrapper_of(out: NotesFile, name: str, notes: bool = True) -> str:
+def _wrapper_of(rels: dict, name: str, notes: bool = True) -> str:
     """`notes=False` is the **engine's** half of the wrapper — the same
     voices, sound and tempo with the score a rest and no `include`.
     `card:notes-editor.md` slice 2: 291 notes expanded to nine hundred
@@ -1597,9 +1689,10 @@ def _wrapper_of(out: NotesFile, name: str, notes: bool = True) -> str:
     as records (`audioeditor.NotesKind.events`).  The banks and their
     channels are the same either way, because they come from the
     `voices` lines and those are here."""
+    sections = sections_of(rels)
     voices: list[str] = []
-    for section in out.sections:
-        for voice in section.voices:
+    for section in sections:
+        for voice in section["voices"]:
             if voice not in voices:
                 voices.append(voice)
     lines = [generated(name),
@@ -1621,26 +1714,26 @@ def _wrapper_of(out: NotesFile, name: str, notes: bool = True) -> str:
         # same `Voice` constructors, the same channels.
         rests = " || ".join(f"(r >>= voices.{v})" for v in voices) if voices else "r"
         lines += ["score : [: Void :]", f"score = {rests}", "",
-                  *_tempo_lines(out), ""]
+                  *_tempo_lines(rels), ""]
         return "\n".join(lines) + "\n"
     lines.append(f'include "{name}"')
     lines.append("")
     parts = []
     for voice in voices:
         run = []
-        for section in out.sections:
-            if voice in section.voices:
-                run.append(bound(section.name, voice))
+        for section in sections:
+            if voice in section["voices"]:
+                run.append(bound(section["name"], voice))
             else:
-                run.append(f"(long {section.bars * section.beats} r)")
+                run.append(f"(long {section['bars'] * section['beats']} r)")
         parts.append(f"(({' ++ '.join(run)}) >>= voices.{voice})")
     lines.append("score : [: Void :]")
     lines.append("score = " + ("\n     || ".join(parts) if parts else "r"))
     lines.append("")
-    lines += _tempo_lines(out)
+    lines += _tempo_lines(rels)
     lines.append("")
-    for section in out.sections:
-        stacked = " || ".join(bound(section.name, v) for v in section.voices)
+    for section in sections:
+        stacked = " || ".join(bound(section["name"], v) for v in section["voices"])
         lines.append(f"notes ({stacked})")
     return "\n".join(lines) + "\n"
 

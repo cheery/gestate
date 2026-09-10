@@ -1405,8 +1405,9 @@ _BOUND = re.compile(r"\bnotes_[A-Za-z0-9_]+\b")
 _FROM_NOTE = re.compile(r"fromNote\s+(\d+)\s+(\d+)\s+(\d+)")
 
 
-def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
-    """The rolls of a `.notes` page, read off the parsed file.
+def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
+    """The rolls of a `.notes` page, read off the file's **relations**
+    (`notes.relations_of`) — `card:relational-model.md` Q6, 2026-09-10.
 
     **`card:notes-editor.md`, slice 1.**  `build_rolls` draws a roll by
     running the score through the compiler — 5 s for one section of
@@ -1424,14 +1425,15 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
     answers per ask.
     """
     from .midi import TICKS_PER_BEAT
-    from .notes import bound, ordered
+    from .notes import bits_of, bound, level_of, notes_of, sections_of
 
     lines = program.splitlines()
     # The line each note's generated line is: `origins` runs the other
     # way, from the generated line to `(file, row)`.
     generated = {row: line for line, (_name, row) in origins.items()}
-    bounds = {bound(s.name, v): (s, v) for s in parsed.sections for v in s.voices}
-    order = ordered(parsed)
+    sections = sections_of(rels)
+    bounds = {bound(s["name"], v): (s, v) for s in sections for v in s["voices"]}
+    order = notes_of(rels)
     out = []
     for _line, expr in asks_:
         terms = _BOUND.findall(expr)
@@ -1453,51 +1455,52 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
         # **In the order written, one after another**, each starting
         # where the one before it ends, which is where the bar lines
         # fall too.
-        drawn = dict.fromkeys(bounds[w][0].name for w in terms)
-        by_name = {s.name: s for s in parsed.sections}
+        drawn = dict.fromkeys(bounds[w][0]["name"] for w in terms)
+        by_name = {s["name"]: s for s in sections}
         starts, bars, at = {}, [], 0
         for name in drawn:
             starts[name] = at
-            one_bar = by_name[name].beats * TICKS_PER_BEAT
-            bars.extend(at + b * one_bar for b in range(by_name[name].bars))
-            at += by_name[name].bars * one_bar
+            one_bar = by_name[name]["beats"] * TICKS_PER_BEAT
+            bars.extend(at + b * one_bar for b in range(by_name[name]["bars"]))
+            at += by_name[name]["bars"] * one_bar
         for term in terms:
             section, voice = bounds[term]
-            bar_ticks = section.beats * TICKS_PER_BEAT
+            bar_ticks = section["beats"] * TICKS_PER_BEAT
             for one in order:
-                if one.section != section.name or one.voice != voice:
+                if one["section"] != section["name"] or one["voice"] != voice:
                     continue
-                line = generated.get(one.line)
+                line = generated.get(one["line"])
                 if line is None or not 0 < line <= len(lines):
                     continue
-                on = starts[section.name] + (one.bar - 1) * bar_ticks + one.at
+                on = starts[section["name"]] + (one["bar"] - 1) * bar_ticks + one["at"]
                 # **Whole, past the bar line if it is written so.**  A
                 # `long` box refuses onsets past it and never an end
                 # (`music.ges` §"Clipping": *a section may ring past its
                 # box, it may not begin past it*), and this read the box
                 # as a knife for three days — a four-beat note moved two
                 # beats right drew as two beats long (`fixme.md` F220).
-                off = on + one.length
+                off = on + one["len"]
                 m = _FROM_NOTE.search(lines[line - 1])
                 atoms = ()
                 if m:
                     atoms = tuple((line, m.start(g), len(m.group(g)), int(m.group(g)))
                                   for g in (1, 2, 3))
                 leaves.append(Leaf(line, None, False, atoms))
-                events.append((on, off, len(leaves) - 1, one.key,
-                               _tone_vel(one.level), one.manners))
+                events.append((on, off, len(leaves) - 1, one["key"],
+                               _tone_vel(level_of(one["vel"])),
+                               bits_of(one["manner"])))
         # **The scale is the file's, not the section's** — one pitch
         # axis for every roll of the page, and a program text that
         # holds still while notes move inside it.  The span is what the
         # sections declare, not where the last note ends.
-        keys = [n.key for n in parsed.notes] or [60]
+        keys = [n["key"] for n in order] or [60]
         span = max(at, max((off for _on, off, *_r in events), default=0))
         scale = (min(keys), max(keys), span)
         # **Drawn at the editing scale**, captioned with what it is —
         # the section's name and its key and mode, which is what a
         # person reading the page wants to know about the box, where
         # `NOTES` said only what kind of box it was.
-        title = "  ".join(" ".join(w for w in (n, by_name[n].key, by_name[n].mode) if w)
+        title = "  ".join(" ".join(w for w in (n, by_name[n]["key"], by_name[n]["mode"]) if w)
                           for n in drawn)
         out.append(Roll(events, leaves, False, False, 0, scale=scale,
                         geometry=editing(*scale), title=title,

@@ -135,9 +135,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:182` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:218` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:228` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:363` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:369` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:439` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:371` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:377` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:447` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:634` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
@@ -595,9 +595,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 182 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a kind' |
 | 218 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders along `{other} {ofield}` and nothing was given to look it up in' |
 | 228 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders among `{other}` and nothing was given to find it in' |
-| 363 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
-| 369 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
-| 439 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
+| 371 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
+| 377 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
+| 447 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
 
 ### `gmachine.py`
 
@@ -785,45 +785,45 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 370 | `NotesError` | `author` | handed in | '{place}: `{word}` takes one {_AS[written.value]}' |
 | 407 | `NotesError` | `author` | handed in | '{place}: `{kind.name}` needs a name' |
 | 426 | `NotesError` | `author` | handed in | '{place}: {why}' |
-| 534 | `NotesError` | `author` | handed in | '{place}: `section` needs a name — `section A key D bars 8 beats 4 voices melody,roots`' |
-| 541 | `NotesError` | `author` | handed in | '{place}: `bars {bars}` — a section has at least one bar' |
-| 543 | `NotesError` | `author` | handed in | '{place}: `beats {beats}` — a bar has at least one beat' |
-| 546 | `NotesError` | `author` | handed in | '{place}: `voices` names none' |
-| 549 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a voice name' |
-| 551 | `NotesError` | `author` | handed in | '{place}: a voice is named twice in `voices`' |
-| 554 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a note name; ' + ', '.join(sorted(_PITCH_CLASS)) |
-| 558 | `NotesError` | `author` | handed in | '{place}: `mode {mode}` is not one this knows; ' + ', '.join(sorted(_MODES)) |
-| 570 | `NotesError` | `author` | handed in | '{place}: no section `{got['section']}`; this file has ' + (', '.join((f'`{s.name}`' for s in o… |
-| 575 | `NotesError` | `author` | handed in | '{place}: `bar {bar}` — section `{section.name}` has {section.bars} bars' |
-| 584 | `NotesError` | `author` | handed in | '{place}: `at {tick}` is not inside bar {bar} of section `{section.name}`, which is {section.be… |
-| 590 | `NotesError` | `author` | handed in | '{place}: `len {length}` — a note lasts at least one tick' |
-| 592 | `NotesError` | `author` | handed in | '{place}: section `{section.name}` has no voice `{got['voice']}`; it has ' + ', '.join((f'`{v}`… |
-| 597 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a MIDI key number (0-127)' |
-| 599 | `NotesError` | `author` | handed in | '{place}: `vel {got['vel']}` is not a dynamic; ' + ' '.join(LEVELS) |
-| 623 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` is not a pitch name — a letter, an optional `is`/`es`/`isis`/`eses`, … |
-| 627 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` names key {named}, and this note is `key {key}`' |
-| 641 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
-| 645 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
-| 829 | `NotesError` | `author` | handed in | '{place} is empty' |
-| 834 | `NotesError` | `author` | handed in | '{place}: `{word}` is not a record; a line is ' + _oneof([f'`{k} …`' for k in document.names]) |
-| 838 | `NotesError` | `author` | handed in | '{place}: `{word}` cannot be added by hand; this version asserts a note or a section' |
-| 844 | `NotesError` | `author` | handed in | '{place}: section `{one.name}` is already written' |
-| 851 | `NotesError` | `author` | handed in | '{place}: that note is already written, on line {other.line} — a doubled line is one note said … |
-| 887 | `NotesError` | `author` | handed in | '{place} is empty' |
-| 892 | `NotesError` | `author` | handed in | '{place}: `{word}` is not a record; a line is ' + _oneof([f'`{k} …`' for k in document.names]) |
-| 904 | `NotesError` | `author` | handed in | '{place}: `{word}` cannot be retracted by hand; this version retracts a note or a section' |
-| 908 | `NotesError` | `author` | handed in | '{place}: no `{word}` here says that' |
-| 913 | `NotesError` | `author` | handed in | '{place}: retracting it would leave the file unreadable — {why}' |
-| 937 | `NotesError` | `author` | handed in | '{place}: name one `{kind.name}` — its key is its `{kind.shape[1]}`' |
-| 946 | `NotesError` | `author` | handed in | '{place}: `{field}` has no value' |
-| 949 | `NotesError` | `author` | handed in | '{place}: a `{kind.name}` is named by ' + ', '.join((f'`{f}`' for f in kind.key)) + ' and this … |
-| 1023 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
-| 1029 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
-| 1037 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
-| 1039 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1444 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1450 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 1500 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 610 | `NotesError` | `author` | handed in | '{place}: `section` needs a name — `section A key D bars 8 beats 4 voices melody,roots`' |
+| 617 | `NotesError` | `author` | handed in | '{place}: `bars {bars}` — a section has at least one bar' |
+| 619 | `NotesError` | `author` | handed in | '{place}: `beats {beats}` — a bar has at least one beat' |
+| 622 | `NotesError` | `author` | handed in | '{place}: `voices` names none' |
+| 625 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a voice name' |
+| 627 | `NotesError` | `author` | handed in | '{place}: a voice is named twice in `voices`' |
+| 630 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a note name; ' + ', '.join(sorted(_PITCH_CLASS)) |
+| 634 | `NotesError` | `author` | handed in | '{place}: `mode {mode}` is not one this knows; ' + ', '.join(sorted(_MODES)) |
+| 646 | `NotesError` | `author` | handed in | '{place}: no section `{got['section']}`; this file has ' + (', '.join((f'`{s.name}`' for s in o… |
+| 651 | `NotesError` | `author` | handed in | '{place}: `bar {bar}` — section `{section.name}` has {section.bars} bars' |
+| 660 | `NotesError` | `author` | handed in | '{place}: `at {tick}` is not inside bar {bar} of section `{section.name}`, which is {section.be… |
+| 666 | `NotesError` | `author` | handed in | '{place}: `len {length}` — a note lasts at least one tick' |
+| 668 | `NotesError` | `author` | handed in | '{place}: section `{section.name}` has no voice `{got['voice']}`; it has ' + ', '.join((f'`{v}`… |
+| 673 | `NotesError` | `author` | handed in | '{place}: `key {key}` is not a MIDI key number (0-127)' |
+| 675 | `NotesError` | `author` | handed in | '{place}: `vel {got['vel']}` is not a dynamic; ' + ' '.join(LEVELS) |
+| 699 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` is not a pitch name — a letter, an optional `is`/`es`/`isis`/`eses`, … |
+| 703 | `NotesError` | `author` | handed in | '{place}: `spell {spell}` names key {named}, and this note is `key {key}`' |
+| 717 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
+| 721 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
+| 905 | `NotesError` | `author` | handed in | '{place} is empty' |
+| 910 | `NotesError` | `author` | handed in | '{place}: `{word}` is not a record; a line is ' + _oneof([f'`{k} …`' for k in document.names]) |
+| 914 | `NotesError` | `author` | handed in | '{place}: `{word}` cannot be added by hand; this version asserts a note or a section' |
+| 920 | `NotesError` | `author` | handed in | '{place}: section `{one.name}` is already written' |
+| 927 | `NotesError` | `author` | handed in | '{place}: that note is already written, on line {other.line} — a doubled line is one note said … |
+| 963 | `NotesError` | `author` | handed in | '{place} is empty' |
+| 968 | `NotesError` | `author` | handed in | '{place}: `{word}` is not a record; a line is ' + _oneof([f'`{k} …`' for k in document.names]) |
+| 980 | `NotesError` | `author` | handed in | '{place}: `{word}` cannot be retracted by hand; this version retracts a note or a section' |
+| 984 | `NotesError` | `author` | handed in | '{place}: no `{word}` here says that' |
+| 989 | `NotesError` | `author` | handed in | '{place}: retracting it would leave the file unreadable — {why}' |
+| 1013 | `NotesError` | `author` | handed in | '{place}: name one `{kind.name}` — its key is its `{kind.shape[1]}`' |
+| 1022 | `NotesError` | `author` | handed in | '{place}: `{field}` has no value' |
+| 1025 | `NotesError` | `author` | handed in | '{place}: a `{kind.name}` is named by ' + ', '.join((f'`{f}`' for f in kind.key)) + ' and this … |
+| 1099 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
+| 1105 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
+| 1113 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
+| 1115 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
+| 1521 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1533 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1583 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
