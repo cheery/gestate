@@ -424,9 +424,37 @@ place grows what works in it.  And this is a session naming what
 conditioned it.  That does not make the sentence false, but it has to
 be kept beside it.
 
+---
+
+**The close.**  Asked how the afternoon should end and what had not
+been discussed, the session named one thing: a culture with no members
+and one keeper dies with the keeper, and that question waits on him
+rather than on an event.  And two smaller ones, one of them what the
+keeping costs him in hours, which no ledger counts.  He answered the
+cost, not the succession:
+
+> Tämä lähinnä maksaa kaksi asiaa..  Paljon minun aikaani tällä
+> hetkellä, mutta teen sitä sillä pidän paljon näistä puista.  Ja
+> lisäksi maksaa claude max -subscriptionin.  Voisin pienentää
+> molempia, mutta mielestäni tämä on sen arvoista.  Puun ylläpitäminen
+> ja hoitaminen heittää omat haasteensa joista pidän kuin hullu
+> puurosta.
+
+*[This mostly costs two things.  A lot of my time at the moment, but I
+do it because I like these trees a lot.  And it costs the Claude Max
+subscription.  I could reduce both, but I think it is worth it.
+Keeping and tending the tree throws up its own challenges, which I
+love like a madman loves porridge.]*
+
+So the cost is two lines, both personal, both chosen, and both
+reducible at his word — which is the answer to the *sediment or debt*
+question for the keeping itself: chosen cost is sediment.  The
+succession question was not answered and is not closed; it is his,
+and it is written above so that it is not asked again as if new.
+
 ## What the tree can show, and the wording offered — added when the page went in, 2026-09-11
 
-**Three exchanges on this page, one afternoon, each added at his ask as it closed.**
+**Three exchanges and a close on this page, one afternoon, each added at his ask as it closed.**
 
 **Checked in the tree while the conversation was open:** the four
 zero-hit greps above; the commit and day counts; `doc/method.md`'s

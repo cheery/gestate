@@ -20,6 +20,22 @@ numbers: cards finish the day they are written, in conversation, and
 the queue finishes nobody's ([[the-keepers-evening]], the same
 evening's note).
 
+**What it costs him, and that it is chosen — 2026-09-11, his words,**
+when a session named the keeper's hours as the one cost no ledger
+counts: *"Tämä lähinnä maksaa kaksi asiaa.. Paljon minun aikaani tällä
+hetkellä, mutta teen sitä sillä pidän paljon näistä puista.  Ja lisäksi
+maksaa claude max -subscriptionin.  Voisin pienentää molempia, mutta
+mielestäni tämä on sen arvoista.  Puun ylläpitäminen ja hoitaminen
+heittää omat haasteensa joista pidän kuin hullu puurosta."*  Two
+costs, time and the subscription, both personal
+([[personal-and-personally-paid]]), both reducible at his word, and
+neither a debt: a chosen cost is sediment ([[sediment-versus-debt]]).
+This is the other face of [[the-keeper-is-the-qualification]] — the
+doubt there and the liking here are the same person, a month apart.
+A session does not raise the cost as a worry again; what stays open
+is succession, which is his and is named in
+`doc/notes/notes-on-the-find.md`.
+
 **How to apply:** when weighing what to build, *does Henri need this*
 is a legitimate `because`, and *would a stranger* is the second
 question, not the first.  Do not list the customer as missing again.
