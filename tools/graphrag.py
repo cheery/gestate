@@ -198,6 +198,8 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str =
             resp = json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:500]
+        if e.code in (429, 529, 500, 502, 503) and _retries_left(model_key, text):
+            return call(model_key, text, max_tokens, backend)
         sys.exit(f"graphrag: {model} returned HTTP {e.code}: {detail}")
     out = {
         "model": resp.get("model", model),
@@ -212,6 +214,22 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str =
     return out
 
 
+_RETRIES: dict[str, int] = {}
+
+
+def _retries_left(model_key: str, text: str) -> bool:
+    """Three retries per call, 30/90/240 s apart, for a rate limit or an
+    overloaded model on the api backend."""
+    k = hashlib.sha1(f"{model_key}\n{text}".encode()).hexdigest()
+    n = _RETRIES.get(k, 0)
+    if n >= 3:
+        return False
+    _RETRIES[k] = n + 1
+    print(f"  retry {n + 1}/3 in {(30, 90, 240)[n]} s", file=sys.stderr, flush=True)
+    time.sleep((30, 90, 240)[n])
+    return True
+
+
 def _call_cli(model_key: str, text: str) -> dict:
     """`claude -p`, headless, the API key unset so the subscription pays,
     no tools, our system prompt in place of the CLI's own."""
@@ -221,18 +239,32 @@ def _call_cli(model_key: str, text: str) -> dict:
            "--no-session-persistence", "--tools", "", "--system-prompt", SYSTEM,
            "--effort", CLI_PARAMS["effort"]]
     t0 = time.time()
-    try:
-        r = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=600)
-    except FileNotFoundError:
-        sys.exit("graphrag: `claude` is not on PATH — the cli backend needs Claude Code installed")
-    raw = r.stdout
-    i = raw.find("{")
-    try:
-        d = json.loads(raw[i:]) if i >= 0 else {}
-    except json.JSONDecodeError:
-        d = {}
-    if r.returncode != 0 or d.get("is_error") or "result" not in d:
-        sys.exit(f"graphrag: claude -p failed (exit {r.returncode}): {(r.stderr or raw)[:500]}")
+    #: A four-hour run must not die on one refused call: a rate limit, a
+    #: hiccup, an overloaded model.  Three tries, backing off, then out
+    #: loud with the last reply — never a silent empty record.
+    last = ""
+    for attempt, wait in enumerate((0, 30, 90, 240)):
+        if wait:
+            time.sleep(wait)
+        try:
+            r = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=900)
+        except FileNotFoundError:
+            sys.exit("graphrag: `claude` is not on PATH — the cli backend needs Claude Code installed")
+        except subprocess.TimeoutExpired:
+            last = "timeout after 900 s"
+            continue
+        raw = r.stdout
+        i = raw.find("{")
+        try:
+            d = json.loads(raw[i:]) if i >= 0 else {}
+        except json.JSONDecodeError:
+            d = {}
+        if r.returncode == 0 and not d.get("is_error") and "result" in d:
+            break
+        last = f"exit {r.returncode}: {(r.stderr or raw)[:300]}"
+        print(f"  retry {attempt + 1}/3 after {last[:80]}", file=sys.stderr, flush=True)
+    else:
+        sys.exit(f"graphrag: claude -p failed four times; last: {last}")
     u = d.get("usage", {})
     return {
         "model": next(iter(d.get("modelUsage", {})), MODELS[model_key]),
