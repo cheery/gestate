@@ -2032,3 +2032,37 @@ fn a_section_wider_than_the_window_carries_sideways_and_stops() {
                    "a section that fits does not carry");
     }
 }
+
+/// **Henri, on the window, 2026-09-11:** *"The vertical scroll doesn't
+/// scroll all the way down.  The status bar appears to cover what would
+/// be shown otherwise."*
+///
+/// The clamp let the picture's bottom reach the *window's* bottom,
+/// which is underneath the status row — so the last `status_h` pixels
+/// of a page could never be brought out from behind it, and the scroll
+/// stopped short by exactly that much.  The same shape as the day's
+/// other defects: a number that means one thing (`h`, the window) used
+/// where another was meant (what a person can see).
+#[test]
+fn the_scroll_reaches_past_what_the_status_row_covers() {
+    use gestate_editor::view::{canvas_scroll, View};
+
+    let view = View { w: 1100, h: 760, ..View::default() };
+    let font = &LARGE;
+    let bar = view.status_h(font);
+    assert!(bar > 0, "there is a status row to be covered by");
+    assert_eq!(view.canvas_h(font), 760 - bar);
+
+    // A page reaching 200 past the window's foot.
+    let span = (0, 960);
+    let far = canvas_scroll(0, 100_000, span, view.canvas_h(font));
+    assert_eq!(far, 960 - (760 - bar),
+               "the page's last row clears the bar");
+    assert_eq!(far - canvas_scroll(0, 100_000, span, view.h), bar,
+               "which is exactly the bar's height further than before");
+
+    // And a picture that fits behind nothing still never scrolls.
+    for by in [-500, 0, 500] {
+        assert_eq!(canvas_scroll(0, by, (10, 300), view.canvas_h(font)), 0);
+    }
+}

@@ -684,6 +684,17 @@ than by foresight.
 `spec/drawnscores.md` §"The score view: the harmony against the
 declared mode" is the contract; four tests at the foot of
 `test/test_drawnscores.py`.
+
+**And he read it on the window within the minute, which found F223** —
+*"The vertical scroll doesn't scroll all the way down.  The status bar
+appears to cover what would be shown otherwise."*  The clamp ran to the
+**window's** bottom, which is under the bar, so a page's last rows were
+unreachable — and since that evening the page's last rows are a
+section's caption and its harmony band.  `View::canvas_h` is what the
+clamp wanted all along.  Driven
+(`test/driven/20260911-171308-notes-page-scrolls-past-the-status-row`):
+the page's last ground row at y 735 of 760, and `C D PHRYGIAN` with its
+band read.
 Nothing draws a transport position today, and it is the first thing
 here that needs a number crossing the wire every frame rather than one
 per rebuild.

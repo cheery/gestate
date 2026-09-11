@@ -2565,3 +2565,42 @@ know what the band was, and it did not need to.
 for raised and lowered, because the canvas font has neither `♯` nor `♭`
 nor any lowercase and `b7` would draw as `B7`; and a degree encoded as
 one integer so the band crosses as numbers.
+
+## The scroll stopped where the window ends, not where a person can see — 2026-09-11
+
+*Henri, on the window, minutes after the score view landed:* **"The
+vertical scroll doesn't scroll all the way down.  The status bar
+appears to cover what would be shown otherwise."**
+
+`fixme.md` **F223**, and it is the fourth of the day with one shape:
+`view::canvas_scroll`'s range runs to `bottom - h`, and `h` was
+`View::h`, the **window's** height.  The status row is painted over the
+canvas's foot, so the picture's last rows could be brought to the
+window's bottom and no further — which is underneath the bar.
+
+**A number that means one thing, used where another was meant.**  Today
+that was `Workbench.playing` (the audio thread, read as the clock),
+`sounding_on` (the allocator, read as the engine), a card's own price
+(a guess, read as a finding), and now `View::h` (the window, read as
+what is visible).  Four defects, one habit: **taking the nearest
+number that has the right name.**
+
+And each was found the same way — not by review and not by a test, but
+by somebody looking at the thing.  The suite has 763 gates and a
+thousand behaviour tests and none of them could see any of it, because
+every one of those numbers is *correct*; what was wrong was which
+question it answered.  A test can hold a number to a value.  It cannot
+hold it to a meaning, and that is what `doc/memory/test-what-a-person-would-do.md`
+is for.
+
+**What made it cheap this time** is that the fix has a name.
+`View::canvas_h` — the window less the chrome painted over it — is the
+sentence the clamp wanted, and it is the foot alone because the canvas
+view has no piano band.  The next reader of that clamp reads a name
+rather than an arithmetic, which is the only durable form the repair
+has.
+
+Driven and photographed: scrolled to the bottom, the page's last ground
+row sits at y 735 of 760, and section C's caption and its harmony band
+— the page's last two rows, and the newest thing in the tree — are read
+for the first time.

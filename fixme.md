@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 223 entries, **178 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 224 entries, **179 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,34 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F223. **[resolved]** the canvas view's scroll stops short by the height of the status row, which is painted over the page's foot
+
+Found 2026-09-11 **by Henri, on the window**: *"The vertical scroll
+doesn't scroll all the way down.  The status bar appears to cover what
+would be shown otherwise."*
+
+`view::canvas_scroll`'s range runs to `bottom - h`, and `h` was
+`View::h` — the **window's** height.  The status row is painted over
+the foot of the canvas, so the picture's last `status_h` pixels could
+be brought to the window's bottom and no further, which is underneath
+the bar.  The page's last rows — a section's caption and, since the
+same evening, its harmony band — were unreachable.
+
+**The same shape as F222 and the day's other defects:** a number that
+means one thing used where another was meant.  `View::h` is the window;
+what the clamp wanted is *what a person can see*, which is the window
+less the chrome painted over it.  `View::canvas_h` says that once, and
+it is the foot alone because the canvas view has no piano band
+(`chrome_only`).
+
+gate: `shell/editor/tests/view.rs::the_scroll_reaches_past_what_the_status_row_covers`
+— the clamp against `canvas_h` versus against `h`, asserted to differ
+by exactly the bar's height; red with `canvas_h` returning `h`.
+Driven and photographed
+(`test/driven/20260911-171308-notes-page-scrolls-past-the-status-row`,
+on the desk that ran it): scrolled to the bottom, the page's last
+ground row is y 735 of 760 and section C's caption and band are read.
 
 ### F222. **[resolved]** a note previewed on a `.notes` voice was taken by the allocator and never read by the engine, because the bank's channels can never be the keyboard's
 

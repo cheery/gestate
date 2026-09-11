@@ -398,6 +398,23 @@ impl View {
         self.h - self.status_h(font) - self.piano
     }
 
+    /// **How much of the canvas a person can actually see** — the
+    /// window less the status row painted over its foot.
+    ///
+    /// Not `self.h`, which is what the scroll clamped against until
+    /// 2026-09-11 and is the window's *whole* height.  Henri, on the
+    /// window: *"The vertical scroll doesn't scroll all the way down.
+    /// The status bar appears to cover what would be shown
+    /// otherwise."*  It stopped short by exactly the bar's height,
+    /// because the clamp let the picture's bottom reach the window's
+    /// bottom — which is underneath the bar.
+    ///
+    /// The canvas view has no piano band (`chrome_only` is the foot
+    /// alone), so the foot is the whole of the difference.
+    pub fn canvas_h(&self, font: &Font) -> i32 {
+        (self.h - self.status_h(font)).max(1)
+    }
+
     /// **Grant the boxes their heights, from the description.**
     ///
     /// The view says how tall, deterministically — the label

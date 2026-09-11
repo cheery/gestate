@@ -1859,11 +1859,16 @@ impl WindowHandler for EditorWindow {
                     // the page as it now is — a drag rebuilds the
                     // page, and a rebuild must not send the reader
                     // back to bar one.
+                    // **The height a person can see**, not the
+                    // window's — the status row is painted over the
+                    // foot and the picture under it cannot be read
+                    // (`view::canvas_h`).
+                    let seen = view.canvas_h(font);
                     let first = !self.canvas_aligned.get();
                     let placed = if first {
-                        view::canvas_opening(span, view.h)
+                        view::canvas_opening(span, seen)
                     } else {
-                        view::canvas_scroll(scroll, 0, span, view.h)
+                        view::canvas_scroll(scroll, 0, span, seen)
                     };
                     let carried = if first {
                         view::canvas_opening(wide, view.w)
@@ -2557,7 +2562,7 @@ impl WindowHandler for EditorWindow {
                         };
                     let (w, h) = {
                         let view = self.view.borrow();
-                        (view.w, view.h)
+                        (view.w, view.canvas_h(self.font()))
                     };
                     let was = self.canvas_scroll.get();
                     let now = view::canvas_scroll(was, by,
