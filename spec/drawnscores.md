@@ -1729,6 +1729,53 @@ each section and in no other, nothing past the end, and the compact
 box's exemption.  224 green across `test_scorebox.py` and
 `test_drawnscores.py`, the snapshots among them.
 
+### The score view: the harmony against the declared mode — 2026-09-11
+
+*Henri had kept this one back from the start* —
+`card:notes-editor.md`: *"I'd like something unique there that doesn't
+exist yet … it's kind of a pie in the sky right now"*, his to open.
+Opened 2026-09-11, and the reading he took of three was **the harmony
+against the declared mode**.
+
+**Why it is unique, and it is not a boast.**  Notation software infers
+a key from the notes and can then only draw an *accidental* — the
+symbol, not the fact.  A `.notes` section **states** its key and its
+mode, so a note leaving them is something the file knows.  `notes.outside`
+has reported it since `tools/bars.py` and nothing drew it.
+
+**A band under each section's roll, bar-aligned** — his reading of
+three again, and the alignment is what makes it a *view* rather than
+`bars.py` on screen: a degree is read against the bar that sounds it.
+The foot grew by `BAND_H` to hold it, under the caption.
+
+**The degrees are against the mode, not against the tonic**, and the
+difference is the whole point.  In D lydian the ♯4 **is** the fourth
+degree and reads `4`; the G natural — a fourth the mode does not have —
+reads `-4` and is lit.  `bars.py` calls those two `♯4` and `4`, which
+is true of the tonic and says nothing about the section.  `arc.notes`'
+third bar is where the two readings part.
+
+**`+` and `-`, not `♯` and `♭`.**  The canvas font has neither, nor any
+lowercase — the walk upper-cases every label, so `b7` would draw as
+`B7` and read as the note B.  Both marks are in the font and cannot be
+mistaken for a letter.  `bars.py` keeps the proper glyphs; a terminal
+has them.
+
+**And it crosses as a reading, not as text** — slice 3's lesson,
+applied by the suite rather than by foresight.  Written into the
+program the band cost **2,283 characters** and took the page's rebuild
+from 1.50 s to **1.58 s**, through the bound
+`test_the_page_after_a_moved_note_is_a_lookup_not_a_compile` holds.  A
+bar's degrees change when a note moves, so the band belongs on the road
+the notes already take: `band_channel`, `band_reading`, written beside
+the rows.  As a reading it costs the compile nothing and the page is
+19,989 characters where it was 19,503.
+
+Four tests in `test/test_drawnscores.py`: the degrees against the mode
+and `outside`'s own notes among them, the band on its channel and its
+numbers absent from the text, and the two contracts the timing bound
+and the compact box keep.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

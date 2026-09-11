@@ -1587,16 +1587,29 @@ class Workbench:
                     # kept for the window, which is sent them as a
                     # trace whenever they change (`workbench.py`).
                     rows = []
+                    drawn = [r for r in rolls if not isinstance(r, Exception)]
+                    # **The harmony band rides the same road as the
+                    # rows**, and for the same reason: a bar's degrees
+                    # change when a note moves, so written into the
+                    # program they would be recompiled on every drag —
+                    # 2,283 characters and 0.08 s, measured, through a
+                    # bound this card exists to hold.  Baked or live,
+                    # because the band is a reading either way.
+                    for view, roll in zip(views, drawn):
+                        box = int(view.entry[len("__notes_"):-2])
+                        chan = scorebox.band_channel(box)
+                        flat = scorebox.band_reading(roll)
+                        view.write(chan, flat)
+                        rows.append((chan, flat))
                     if live:
-                        for view, roll in zip(views, [r for r in rolls
-                                                      if not isinstance(r, Exception)]):
+                        for view, roll in zip(views, drawn):
                             chan = scorebox.rows_channel(
                                 int(view.entry[len("__notes_"):-2]))
                             flat = scorebox.rows_reading(roll)
                             view.write(chan, flat)
                             rows.append((chan, flat))
-                        for view in views:
-                            view.tick()
+                    for view in views:
+                        view.tick()
                     self.note_rows = rows
                 except Exception as exc:                # noqa: BLE001
                     self.say(f"no notes drawn: {self._first_line(exc)}")

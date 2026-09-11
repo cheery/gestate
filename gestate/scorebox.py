@@ -200,6 +200,13 @@ class Roll:
     #: The names of the `.notes` sections this roll draws, in order —
     #: what `bars` resizes.  Empty for a `.ges` take.
     sections: tuple = ()
+    #: **The harmony band**, flat threes — bar tick, degree, inside —
+    #: as `roll.ges`' `rollHarmony` walks them.  What each bar sounds as
+    #: degrees against the section's **declared** mode, and which of
+    #: them the mode does not contain (`notes.harmony`).  Empty for a
+    #: `.ges` take and for a section that declares no key or no mode,
+    #: which is the same silence `notes.outside` keeps.
+    harmony: tuple = ()
 
 
 # ── The descent ─────────────────────────────────────────────────────────────
@@ -1136,7 +1143,11 @@ SEMI_H = 8
 BEAT_W = 32
 KEYS_W = 30
 RULER_H = 16
+#: Below the body: the caption, and under it the harmony band — seven
+#: pixels of label and a little air (`roll.ges`' `rollHarmony`,
+#: `card:notes-editor.md`'s score view).
 FOOT_H = 16
+BAND_H = 12
 
 
 def editing(lo: int, hi: int, span: int) -> Geometry:
@@ -1146,8 +1157,9 @@ def editing(lo: int, hi: int, span: int) -> Geometry:
     pad = SEMI_H // 2
     body_h = max(0, hi - lo) * SEMI_H + 2 * pad
     body_w = max(BEAT_W, -(-span * BEAT_W // TICKS_PER_BEAT))
-    return Geometry(KEYS_W + body_w, RULER_H + body_h + FOOT_H,
-                    RULER_H, FOOT_H, KEYS_W, pad, SEMI_H - 2)
+    foot = FOOT_H + BAND_H
+    return Geometry(KEYS_W + body_w, RULER_H + body_h + foot,
+                    RULER_H, foot, KEYS_W, pad, SEMI_H - 2)
 
 
 def geometry_of(roll: Roll) -> Geometry:
@@ -1420,6 +1432,23 @@ _BOUND = re.compile(r"\bnotes_[A-Za-z0-9_]+\b")
 _FROM_NOTE = re.compile(r"fromNote\s+(\d+)\s+(\d+)\s+(\d+)")
 
 
+def _degree_code(said: str) -> int:
+    """A degree's name as the one integer `roll.ges` decodes.
+
+    `+4` is 104 and `-7` is 207; a plain `4` is 4.  One encoding, said
+    in two places — here and `rollDegree` — because the wire carries
+    numbers and the picture has no string to parse.  `notes.RAISED` and
+    `notes.LOWERED` are where the two marks are decided.
+    """
+    from .notes import LOWERED, RAISED
+
+    if said.startswith(RAISED):
+        return 100 + int(said[1:])
+    if said.startswith(LOWERED):
+        return 200 + int(said[1:])
+    return int(said)
+
+
 def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
     """The rolls of a `.notes` page, read off the file's **relations**
     (`notes.relations_of`) — `card:relational-model.md` Q6, 2026-09-10.
@@ -1440,7 +1469,8 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
     answers per ask.
     """
     from .midi import TICKS_PER_BEAT
-    from .notes import bits_of, bound, level_of, notes_of, sections_of
+    from .notes import (bits_of, bound, harmony as notes_harmony,
+                        level_of, notes_of, sections_of)
 
     lines = program.splitlines()
     # The line each note's generated line is: `origins` runs the other
@@ -1517,10 +1547,21 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
         # `NOTES` said only what kind of box it was.
         title = "  ".join(" ".join(w for w in (n, by_name[n]["key"], by_name[n]["mode"]) if w)
                           for n in drawn)
+        # **The harmony band**, for the sections this roll draws — flat
+        # threes, at the bar tick the roll's own `bars` list gives, so
+        # the picture needs no second arithmetic to place them
+        # (`roll.ges`' `rollHarmony`).
+        band = []
+        for name, bar, row in notes_harmony(rels):
+            if name not in drawn or bar - 1 >= len(bars):
+                continue
+            tick = bars[bar - 1]
+            for step, inside, said in row:
+                band += [tick, _degree_code(said), 1 if inside else 0]
         out.append(Roll(events, leaves, False, False, 0, scale=scale,
                         geometry=editing(*scale), title=title,
                         bars=tuple(bars), beat=TICKS_PER_BEAT,
-                        sections=tuple(drawn)))
+                        sections=tuple(drawn), harmony=tuple(band)))
     return out
 
 
@@ -1751,6 +1792,27 @@ def rows_channel(box: int) -> str:
     return f"__nb_rc_{box}__"
 
 
+def band_channel(box: int) -> str:
+    """The channel a roll's harmony band arrives on."""
+    return f"__nb_hb_{box}__"
+
+
+def band_reading(roll: Roll) -> list:
+    """The band flat, as the `List Float` its channel reads — three
+    numbers a degree, in `notes.harmony`'s order.
+
+    **A reading and not generated text**, for the reason slice 3 made
+    the notes one: the degrees of a bar change when a note moves, so
+    written into the program they would be recompiled on every drag.
+    Measured the hour the band was built — as text it cost 2,283
+    characters and took the page's rebuild from 1.50 s to 1.58 s,
+    through a bound this card exists to hold
+    (`test_the_page_after_a_moved_note_is_a_lookup_not_a_compile`).
+    As a reading it costs the compile nothing.
+    """
+    return [float(v) for v in roll.harmony]
+
+
 def _overs(items: list) -> str:
     """`items` folded into one `Over`, balanced.
 
@@ -1842,10 +1904,11 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool,
     N = lambda k: f"__nb_{k}_{box}__"
     held_c, lift_c, sel_c, slide_c = N("held"), N("lift"), N("sel"), N("slide")
     grow_c, endx_c, sels_c, band_c = N("grow"), N("endx"), N("sels"), N("band")
-    rows_c = rows_channel(box)
+    rows_c, harm_c = rows_channel(box), band_channel(box)
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
                     for c in [*named, held_c, lift_c, sel_c, slide_c, grow_c, endx_c])
-    chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n" for c in [sels_c, band_c])
+    chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n"
+                     for c in [sels_c, band_c, harm_c])
     if live:
         chans += f"{rows_c} : Chan (List Float)\n{rows_c} = chan\n"
     rows = ["(%d, %s, %s, %d, %d, %d, %d)" % (i, _n(x), _n(y), w, tone, d, m)
@@ -1864,6 +1927,10 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool,
     # is held item-identical by snapshot (`spec/drawnscores.md` §"Two
     # scales, one arithmetic"): Henri, 2026-09-11, given the three
     # readings — *the editing page only*.
+    # **The harmony band sits under the caption**, in the foot the
+    # geometry grew for it — bar-aligned, so a degree is read against
+    # the bar that sounds it (`card:notes-editor.md`, the score view).
+    band_y = geo.h // 2 - BAND_H // 2 - 1
     head_s = PLAYHEAD_SIG if offset is not None else "__nb_nohead___s"
     nohead = ("" if offset is not None else
               # A channel nobody ever writes, so its initial value is
@@ -1886,6 +1953,7 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool,
             + sig(slide_c, "0.0") + sig(grow_c, "0.0") + sig(endx_c, "(0.0 - 10000.0)")
             + f"{sels_c}_s : Sig (List Float)\n{sels_c}_s = Nil ::: mkSig (wait {sels_c})\n\n"
             + f"{band_c}_s : Sig (List Float)\n{band_c}_s = Nil ::: mkSig (wait {band_c})\n\n"
+            + f"{harm_c}_s : Sig (List Float)\n{harm_c}_s = Nil ::: mkSig (wait {harm_c})\n\n"
             + (f"{rows_c}_s : Sig (List Float)\n{rows_c}_s = Nil ::: mkSig (wait {rows_c})\n\n"
                if live else
                f"{N('rows')} : List (Int, Int, Int, Int, Int, Int, Int)\n{N('rows')} = {listing}\n\n")
@@ -1900,13 +1968,14 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool,
                        still=f"rollStill {note_c} {_n(rail_y)}",
                        moving=f"rollMoving {note_c} (floor h) (floor v) (floor dx) (floor gg) {_n(rail_y)}")
                if live else "")
-            + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Float -> Sub\n"
-               f"{pic_g} still moving bd ex ph = " if live else
-               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd gg ex ph = ")
+            + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Float -> List Float -> Sub\n"
+               f"{pic_g} still moving bd ex ph hb = " if live else
+               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg ex ph hb = ")
             + f"Sized {geo.w} {geo.h} (Over (Over (Over\n"
-            + f"    (Over (Over {ground_g} (rollBand bd)) "
-              f"(rollHead {body_g} {scale_g} {offset or 0} (floor ph)))\n"
+            + f"    (Over (Over (Over {ground_g} (rollBand bd)) "
+              f"(rollHead {body_g} {scale_g} {offset or 0} (floor ph))) "
+              f"(rollHarmony {body_g} {scale_g} {band_y} 0 hb))\n"
             + (f"    (Over (Over still moving) (rollEnd {body_g} (floor ex))))\n" if live else
                f"    (Over (rollNotesBaked {note_c} (floor h) (floor v) (floor s) "
                f"(floor dx) ss (floor gg) {_n(rail_y)} {N('rows')}) "
@@ -1930,9 +1999,9 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool,
             + f"    {hands_g})\n\n"
             + f"{entry} : Sig Sub\n"
             + (f"{entry} = !{pic_g} {N('still')} {N('moving')} {band_c}_s "
-               f"{endx_c}_s {head_s}\n" if live else
+               f"{endx_c}_s {head_s} {harm_c}_s\n" if live else
                f"{entry} = !{pic_g} {held_c}_s {lift_c}_s {sel_c}_s {slide_c}_s {sels_c}_s "
-               f"{band_c}_s {grow_c}_s {endx_c}_s {head_s}\n"))
+               f"{band_c}_s {grow_c}_s {endx_c}_s {head_s} {harm_c}_s\n"))
     return text, named
 
 

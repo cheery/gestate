@@ -2493,14 +2493,24 @@ def test_the_body_is_one_pad_and_every_note_is_found_at_its_own_place():
 
 def test_the_page_after_a_moved_note_is_a_lookup_not_a_compile():
     """1.96 s cold, and then under a second — the compiled text did not
-    move, so only the rows are written."""
+    move, so only the readings are written.
+
+    **Two readings a roll since 2026-09-11**: the notes, and the
+    harmony band under them.  The band was generated *text* for an hour
+    and this bound is what refused it — 2,283 characters took the
+    rebuild from 1.50 s to 1.58 s, which is the whole of what slice 3
+    bought.  A bar's degrees change when a note moves, so the band
+    belongs on the same road the notes take and for the same reason.
+    """
     import time
 
     from gestate.scorebox import geometry_of
 
     here, bench = _opened_alone()
     bench._load_substrate(bench.program())
-    assert len(bench.note_rows) == 3
+    said = [c for c, _flat in bench.note_rows]
+    assert sum(c.startswith("__nb_rc_") for c in said) == 3, said
+    assert sum(c.startswith("__nb_hb_") for c in said) == 3, said
     moved = bench.program(here.read_text().replace("key 62", "key 63", 1))
     t0 = time.perf_counter()
     bench._load_substrate(moved)
@@ -4130,7 +4140,7 @@ def test_a_compact_box_beside_a_ges_line_has_no_playhead():
     no section's span, so `rollHead` draws nothing.  A second shape
     would be a second thing to keep in step.
     """
-    from gestate.scorebox import PLAYHEAD, build_rolls, roll_program
+    from gestate.scorebox import PLAYHEAD, build_rolls, roll_program  # noqa: F401
 
     text = notes.wrapper(NOTES)
     source, _origins = notes.expanded(text, NOTES.parent)
@@ -4139,5 +4149,97 @@ def test_a_compact_box_beside_a_ges_line_has_no_playhead():
     roll = build_rolls(source, [(line, "notes_A_melody")], 22050, 0)[0]
     compact, _hands = roll_program(roll, 0)
     assert PLAYHEAD not in compact, "the page's channel is not this box's"
-    assert "__nb_nohead__" in compact, "it lifts over a standstill instead"
-    assert "rollHead" in compact, "and keeps the one shape"
+    assert "rollHead" not in compact, "and it draws none"
+    assert "rollHarmony" not in compact, \
+        "nor the harmony band, which is the editing page's too"
+
+    # And the *editing* road with no offset — a `.notes` roll drawn
+    # alone rather than stacked — keeps the one shape and lifts over a
+    # channel nobody writes, whose initial value is in no span.
+    from gestate.scorebox import asks, notes_rolls
+
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    page = notes_rolls(source, asks(source), _origins, parsed)[0]
+    alone, _h = roll_program(page, 0)
+    assert "rollHead" in alone and "__nb_nohead__" in alone, \
+        "one shape, whether or not the page gave it an offset"
+
+
+# ── The score view: the harmony against the declared mode — 2026-09-11 ──
+
+
+def test_a_bar_says_its_degrees_against_the_mode_the_section_declared():
+    """**The thing no engraver can answer**, and why the score view is
+    this rather than a staff.  *Henri, 2026-09-11*, given three
+    readings: *the harmony against the declared mode.*
+
+    Notation software infers a key from the notes and can then only
+    draw an accidental.  A `.notes` section **states** its key and its
+    mode, so a note leaving them is a fact — which is what
+    `notes.outside` has reported since `tools/bars.py` and what nothing
+    drew until now.
+
+    And the degrees are read against the **mode**, not against the
+    tonic: in D lydian the ♯4 *is* the fourth degree and reads `4`,
+    while the G natural — a fourth the mode does not have — reads `-4`.
+    That is the reading `arc.notes`' third bar makes obvious and the
+    one a tonic-relative report cannot make; `bars.py` calls the same
+    note `♯4` and `4` respectively, which is true of the tonic and not
+    of the section.
+    """
+    from gestate.notes import harmony, outside, parse
+
+    rels = parse(NOTES.read_text(), "arc.notes")
+    rows = {(s, b): row for s, b, row in harmony(rels)}
+    assert rows, "arc.notes declares a key and a mode for every section"
+
+    # Bar 3 of A is the case: a G natural under D lydian.
+    said = {name for _step, inside, name in rows[("A", 3)] if not inside}
+    assert said == {"-4"}, f"the fourth the mode does not have: {rows[('A', 3)]}"
+    assert all(inside for _s, inside, _n in rows[("A", 1)]), \
+        "bar 1 is inside the mode entirely"
+
+    # And every note `outside` names is a degree this marks, in the bar
+    # it sounds in — the two readers of one fact.
+    named = {(n["section"], n["bar"]) for n, _d in outside(rels)}
+    for where in named:
+        assert any(not inside for _s, inside, _n in rows[where]), \
+            f"{where} has a note outside the mode and the band says nothing"
+
+
+def test_the_harmony_band_crosses_as_a_reading_and_not_as_text():
+    """**Slice 3's lesson, applied to the band.**  A bar's degrees
+    change when a note moves, so written into the program they would be
+    recompiled on every drag — measured the hour the band was built:
+    2,283 characters, and the page's rebuild went from 1.50 s to 1.58 s
+    through the bound `card:notes-editor.md` exists to hold.
+
+    As a reading it costs the compile nothing, which is the same trade
+    the notes themselves took and the reason the roll's program names
+    no note.
+    """
+    from gestate.gui import Substrate
+    from gestate.scorebox import (asks, band_channel, band_reading,
+                                  notes_rolls, page_program)
+
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    source, origins = notes.expanded(notes.wrapper(NOTES), NOTES.parent)
+    rolls = notes_rolls(source, asks(source), origins, parsed)
+    baked, _r, entries = page_program(rolls, stacked=True)
+
+    assert rolls[0].harmony, "the roll carries its section's band"
+    for row in rolls[0].harmony[1::3]:
+        assert row < 300, "a degree is 1-7, or 100/200 plus it"
+    # The degrees are nowhere in the text: the picture names no degree,
+    # the way it names no note.
+    assert "rollHarmony" in baked, "it is drawn"
+    assert str(rolls[0].harmony[:3]).strip("()") not in baked, \
+        "and its numbers are not written into the program"
+
+    views = Substrate.several(baked, 44100, entries)
+    before = len([i for i in views[0].picture() if i[0] == "text"])
+    views[0].write(band_channel(0), band_reading(rolls[0]))
+    views[0].tick()
+    after = [i[3] for i in views[0].picture() if i[0] == "text"]
+    assert len(after) > before, "the band arrives on its channel"
+    assert "-4" in after, "including the degree the mode does not have"

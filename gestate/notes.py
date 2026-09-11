@@ -1259,6 +1259,73 @@ def spell(key: int, tonic: str, mode: str) -> str:
     return f"{letter}{_MARKS[delta]}{octave}"
 
 
+#: The picture's spelling of a raised and a lowered degree.
+#:
+#: **Not `♯` and `♭`, because the canvas font has neither** — nor any
+#: lowercase, the walk upper-casing every label — so `b7` would draw as
+#: `B7` and read as the note B.  `+` and `-` are in the font, cannot be
+#: mistaken for a letter, and say the one thing the band is for: this
+#: degree is raised or lowered out of the mode the section declared.
+#: `tools/bars.py` keeps `♯` and `♭`; a terminal has the glyphs.
+RAISED, LOWERED = "+", "-"
+
+
+def harmony(rels: dict) -> list:
+    """`[(section, bar, [(degree, inside, name)])]` — what each bar
+    sounds, as degrees against its section's **declared** mode.
+
+    **The thing no engraver can answer**, and the reason this is a view
+    of its own (`card:notes-editor.md`, the score view, 2026-09-11):
+    notation software infers a key from the notes and can then only
+    draw an accidental.  A `.notes` section *states* its key and mode,
+    so a note leaving them is a **fact** rather than a guess — which is
+    what `outside` reports and what the band lights.
+
+    Degrees are distinct and low to high, the order a chord is read in.
+    A section that declares no key or no mode says nothing, the same
+    silence `outside` keeps and for the same reason.
+    """
+    by_name = {s["name"]: s for s in sections_of(rels)}
+    out = []
+    for section, bar, keys in sounding(rels):
+        one = by_name.get(section)
+        if one is None or one["key"] is None or one["mode"] is None:
+            continue
+        scale = _MODES[one["mode"].lower()]
+        tonic = _PITCH_CLASS[one["key"]]
+        seen, row = set(), []
+        for key in keys:
+            step = (key - tonic) % 12
+            if step in seen:
+                continue
+            seen.add(step)
+            inside = step in scale
+            row.append((step, inside, _degree_name(step, scale)))
+        out.append((section, bar, row))
+    return out
+
+
+def _degree_name(step: int, scale) -> str:
+    """A degree as the band draws it: its number in the seven, with
+    `+`/`-` where it is raised or lowered out of the mode.
+
+    Against the **mode**, not against the major scale, because the band
+    is about this section's own seven: in D lydian the ♯4 *is* the
+    fourth degree and reads as `4`, and it is the G natural — a fourth
+    the mode does not have — that reads as `-4`.  That is the reading
+    `arc.notes`' A section makes obvious and the one a report against
+    the tonic cannot make.
+    """
+    for n, at in enumerate(sorted(scale), start=1):
+        if step == at:
+            return str(n)
+    below = [n for n, at in enumerate(sorted(scale), start=1) if at < step]
+    above = [n for n, at in enumerate(sorted(scale), start=1) if at > step]
+    if above:
+        return LOWERED + str(above[0])
+    return RAISED + str(below[-1] if below else 7)
+
+
 def sounding(rels: dict) -> list:
     """`[(section, bar, [keys low to high])]` — what is heard in each bar.
 

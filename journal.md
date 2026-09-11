@@ -2514,3 +2514,54 @@ value is in no span.  Two shapes would have been a second thing to keep
 in step, which is how this file's oldest entries all start.
 
 `card:notes-editor.md` now has every ask he has made on it built.
+
+## The score view was a question about knowing, not about drawing — 2026-09-11
+
+*Henri:* **"We could try make that score view."**  The thing
+`card:notes-editor.md` had held back since 2026-09-06 as *"something
+unique there that doesn't exist yet … kind of a pie in the sky"*, his
+to open.
+
+**Day one was a dialogue and it took two questions.**  The first —
+what is it *for* — came with three readings drawn from what the tree
+already computes, and one finding put in front of them: `tools/bars.py`
+has an `outside` column, and it can have one because a `.notes` section
+**declares** its key and mode.  Notation software infers a key from the
+notes and can then only draw an accidental; it cannot tell you that bar
+3 stepped outside D lydian, because nobody told it the mode.  He took
+that reading.  The second — where to draw it — he answered *a band
+under each section's roll, bar-aligned*, and the alignment is what
+makes it a view rather than `bars.py` on screen.
+
+**The unique thing was never the picture.**  Every ingredient had been
+in the tree for days: `sounding`, `outside`, `spell`, `degree_of`, the
+mode per section in the format itself.  What was missing was somewhere
+to put them, and the reason nobody else has this is upstream of any
+drawing — *the file says what key it is in*.  A format decision made
+for other reasons turned out to be the whole of it.
+
+**And the sharper half was not in the question.**  Building it, the
+degrees came out read against the **mode** rather than against the
+tonic — in D lydian the ♯4 *is* the fourth degree and reads `4`, while
+the G natural reads `-4` and lights up.  `bars.py` calls those two `♯4`
+and `4`: true of the tonic, silent about the section.  The band says
+the thing a player wants and the report does not, and nobody designed
+that; it fell out of asking the mode rather than the key.
+
+**The suite then caught a design error, which is the part worth
+keeping.**  The band went in as generated text — 2,283 characters — and
+`test_the_page_after_a_moved_note_is_a_lookup_not_a_compile` went red
+at 1.58 s against a 1.5 s bound.  Not a typo: a bar's degrees change
+when a note moves, so as text the band would recompile on every drag,
+which is exactly what slice 3 spent a day removing for the notes.  The
+band rides the notes' road now and costs the compile nothing.
+
+That test was written on 2026-09-06 for a different reason and has now
+refused a wrong design nobody was looking for.  It is the clearest
+case this tree has of a bound doing what a review would not: it did not
+know what the band was, and it did not need to.
+
+**Two small decisions said out loud** rather than buried: `+` and `-`
+for raised and lowered, because the canvas font has neither `♯` nor `♭`
+nor any lowercase and `b7` would draw as `B7`; and a degree encoded as
+one integer so the band crosses as numbers.

@@ -639,9 +639,51 @@ channel nobody writes.  `spec/drawnscores.md` §"The playhead" is the
 contract.
 
 **Every ask he has made on this card is now built.**  What remains open
-is what the card always said was not its own: the score view, *"a bit
-of a pie in the sky right now"*, his to open; Q1's default standing;
-and the four defects under the page, F205, F206, F208 and F212.
+is Q1's default standing and the four defects under the page — F205,
+F206, F208 and F212 — and the score view, which he opened the same
+evening.
+
+## The score view, opened and built — 2026-09-11
+
+**He opened it himself:** *"We could try make that score view."*  The
+card had held it back since 2026-09-06 as *"something unique there that
+doesn't exist yet … kind of a pie in the sky"*, his to discuss — so day
+one was a dialogue, and two readings of three settled it.
+
+**What it is: the harmony against the *declared* mode**, as a band
+under each section's roll, bar-aligned.
+
+The claim to being unique is not a boast, and it is not about drawing.
+Notation software **infers** a key from the notes and can then only
+draw an accidental — the symbol, not the fact.  A `.notes` section
+*states* its key and its mode, so a note leaving them is something the
+file knows.  `notes.outside` has reported exactly that since
+`tools/bars.py` and nothing drew it.
+
+**And the degrees are read against the mode, not the tonic**, which is
+the sharper half and was not in the question.  In D lydian the ♯4 *is*
+the fourth degree and reads `4`; the G natural — a fourth lydian does
+not have — reads `-4` and is lit.  `bars.py` calls those two `♯4` and
+`4`, which is true of the tonic and says nothing about the section.
+Bar 3 of `arc.notes` is where the two readings part.
+
+**Two decisions taken by a session and said out loud.**  `+` and `-`
+rather than `♯` and `♭`, because the canvas font has neither and no
+lowercase — the walk upper-cases, so `b7` would draw `B7` and read as
+the note B.  And the degree encoded as one integer, `100 + n` raised
+and `200 + n` lowered, so the band crosses as numbers.
+
+**And the suite caught a design error, not a typo.**  Written as
+generated text the band cost 2,283 characters and took the page's
+rebuild from 1.50 s to **1.58 s** — through the bound this card exists
+to hold, because a bar's degrees change when a note moves.  It rides
+the notes' own road now (`band_channel`, `band_reading`) and costs the
+compile nothing.  That is slice 3's lesson, applied by a test rather
+than by foresight.
+
+`spec/drawnscores.md` §"The score view: the harmony against the
+declared mode" is the contract; four tests at the foot of
+`test/test_drawnscores.py`.
 Nothing draws a transport position today, and it is the first thing
 here that needs a number crossing the wire every frame rather than one
 per rebuild.

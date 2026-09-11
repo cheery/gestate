@@ -509,6 +509,80 @@ rollEnd b e = case e > 0 - 9000 of
 rollHeadInk : Colour
 rollHeadInk = RGB 236 240 248
 
+#: The harmony band's two inks: a degree the section's mode contains,
+#: and one it does not.
+rollDegreeInk : Colour
+rollDegreeInk = RGB 120 130 150
+
+rollOutsideInk : Colour
+rollOutsideInk = RGB 236 200 120
+
+#: A degree, as the band spells it — the number in the mode's own seven,
+#: with `+`/`-` where it is raised or lowered out of it.
+#:
+#: **Encoded as one integer** so the band crosses as a list of numbers
+#: rather than as generated text: `n` is the plain degree, `100 + n`
+#: raised, `200 + n` lowered.  The page's program was halved twice for
+#: this reason (§"The picture computed, not written"), and eight bars of
+#: six degrees written out as labels would have put half of it back.
+#: `notes.RAISED` and `notes.LOWERED` are the same two marks, and the
+#: canvas font is why they are not `♯` and `♭`: it has neither, nor any
+#: lowercase, the walk upper-casing every label.
+#:
+#: Spelled out rather than concatenated because the language has no `++`
+#: on `String` — fourteen cases is the honest cost of that, and cheaper
+#: than an instance nothing else in the tree wants.
+rollDegree : Int -> String
+rollDegree d = case d of
+    101 -> "+1"
+    102 -> "+2"
+    103 -> "+3"
+    104 -> "+4"
+    105 -> "+5"
+    106 -> "+6"
+    107 -> "+7"
+    201 -> "-1"
+    202 -> "-2"
+    203 -> "-3"
+    204 -> "-4"
+    205 -> "-5"
+    206 -> "-6"
+    207 -> "-7"
+    _ -> rollNum d
+
+#: **The harmony band** — each bar's degrees over the bar they sound in,
+#: dim where the section's mode contains them and lit where it does not.
+#:
+#: The thing no engraver can draw, and the reason the score view is this
+#: and not a staff (`card:notes-editor.md`, 2026-09-11): notation infers
+#: a key from the notes and can then only show an accidental.  A section
+#: *declares* its key and mode, so a note leaving them is a fact.
+#:
+#: `xs` is **flat threes** — bar tick, degree, inside — because no
+#: nested list is used anywhere in this tree and a list of triples would
+#: be the first of both.  The same shape `rollBand` takes.  The `at`th
+#: degree of a bar sits `14 * at` in from its bar line, so eight fit the
+#: 128 pixels a bar of four beats is wide.
+rollHarmony : Body -> Scale -> Int -> Int -> List Float -> Sub
+rollHarmony b s y at xs = case xs of
+    tk :: d :: ins :: rest -> Over
+        (Shift (rollX b s (floor tk) + 6 + at * 14) y
+               (Label 12 7 (rollDegree (floor d))
+            (case floor ins of
+                0 -> rollOutsideInk
+                _ -> rollDegreeInk)))
+        (rollHarmony b s y (rollNextSlot at (floor tk) rest) rest)
+    _ -> Gap 0 0
+
+#: Which slot the next degree takes: one along while the bar is the
+#: same, back to the first when the list reaches the next bar.
+rollNextSlot : Int -> Int -> List Float -> Int
+rollNextSlot at tk rest = case rest of
+    tk2 :: _ -> case floor tk2 == tk of
+        True -> at + 1
+        False -> 0
+    _ -> 0
+
 #: **The playhead** — where the transport has reached, drawn in *this*
 #: section's own ticks.
 #:
