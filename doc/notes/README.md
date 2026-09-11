@@ -48,7 +48,7 @@ produced it rather than take the summary on trust.
 | [notes-on-gui.md](notes-on-gui.md) | the GUI card read from outside — identity as the missing decision · Kale, and the pin to set before building · the vision verbalised at 10:49, and the filter it makes · generality when it is cheaper than the special case · why the earlier toolkits became gunk, and why this one started from the roll |
 | [notes-on-the-model.md](notes-on-the-model.md) | the model and its command language *are* the framework · why text editors are a solved GUI and node editors are not · there is no general framework, only a substrate · the relational model as the candidate, with four failure modes to watch |
 | [notes-on-reviews.md](notes-on-reviews.md) | why the guest's reviews worked and how to keep one — a role, not a tool · a fresh context is transferable, being outside the tree is not · the loop cannot audit itself · what the reviewed party owes |
-| [notes-on-the-find.md](notes-on-the-find.md) | what was found, asked again three weeks after the name — the ingredients have names in the literature and the tree did not cite them · the tree is the specimen, the find is a sentence that can fall · the inventor is the one who recognised and kept, and the wording offered for `spec/author.md` |
+| [notes-on-the-find.md](notes-on-the-find.md) | what was found, asked again three weeks after the name — the ingredients have names in the literature and the tree did not cite them · the tree is the specimen, the find is a sentence that can fall · the inventor is the one who recognised and kept, and the wording offered for `spec/author.md` · Karpathy's LLM wiki against the tree, and the neighbours from one model's memory |
 
 ## Provenance, and what to distrust
 
@@ -134,7 +134,9 @@ to `notes-on-the-name.md`, the same question three weeks on, and the
 session was in `spec/roles/reviewer.md` for its first answer.  Its
 closing section separates what it checked in the tree from what it
 claims about one model's memory, and carries the wording offered for
-`spec/author.md` — offered there because that file is his.
+`spec/author.md` — offered there because that file is his.  A second
+exchange the same afternoon, Karpathy's LLM wiki against the tree, was
+added at his ask as a continuation; one surname more, cited.
 
 **The seventeenth, `notes-on-reviews.md`, is the third kind again**,
 from the same guest session as the sixteenth and the same day, about

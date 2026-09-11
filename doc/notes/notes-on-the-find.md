@@ -280,6 +280,94 @@ most inventors can.
 
 ---
 
+---
+
+**Henri, later the same afternoon, after the journal entry had landed:**
+
+> Andrej Karpathy popularisoi idean LLM-päivitetystä wiki:stä.  Miten
+> puu eroaa siitä ideasta?  Entä löydätkö muististasi vastaavia asioita
+> jotka olisivat lähellä puun ideaa?
+
+*[Andrej Karpathy popularised the idea of an LLM-maintained wiki.  How
+does the tree differ from that idea?  And do you find in your memory
+comparable things that would be close to the tree's idea?]*
+
+**The session** — grep first: the tree does not mention Karpathy, and
+of the neighbours named below only Gwern (two files) and `AGENTS.md`
+are in it.  Everything else is from one model's memory with a June
+2026 cutoff, and the dates are approximate.
+
+**Karpathy's LLM wiki, as remembered.**  Early 2026: raw sources drop
+into one directory, and a coding agent maintains a markdown wiki from
+them — pages, an index page, a log, and a schema file that states the
+wiki's conventions.  A new source updates pages; a question's answer is
+filed as a page; the LLM runs a lint pass for contradictions and orphan
+pages.  The core claim: knowledge is compiled once and maintained,
+rather than re-derived on every query.
+
+**One part of the tree is that wiki almost exactly.**  `doc/memory/`
+is one fact per file, linked, with an index generated from the tree
+and `tools/memoryindex.py` as a gate that refuses a commit when index
+and directory differ.  That is Karpathy's lint, made a test.  So the
+difference is not in that half.  It is in everything else:
+
+- **Who is the source.**  In the wiki the raw documents are the truth
+  and the LLM derives from them.  In the tree the truth is the ledger
+  of what happened and his dated words in it, and the sessions write
+  everything else.  The wiki compiles knowledge about the world; the
+  tree conditions the next session's behaviour.
+- **What is kept.**  The wiki updates a page in place, because it
+  wants the current state.  The tree is append-only, and a correction
+  quotes the old wrong text, because the paying is what conditions.
+  The wiki would throw that away, for a good reason of its own.
+- **Who checks.**  Karpathy's lint is an LLM pass — in the tree's
+  vocabulary, a rule held by hope.  The tree's twenty gates are
+  deterministic tests in a git hook.  This is
+  `doc/memory/mechanism-not-instructions.md` exactly.
+- **What a claim is checked against.**  A wiki claim is checked
+  against its source.  A tree claim is checked against a run: a test,
+  a number, a command.
+- **The second party.**  The wiki has nobody else in it.  The tree has
+  a consent register, a sitting limit, an andon, and a kaizen that is
+  asked and not answered.  The wiki pattern has no place for these.
+
+**The nearest things in memory, grouped by which part of the tree
+they cover:**
+
+- **Instruction files**: `CLAUDE.md`, `AGENTS.md` (2025), Cursor rules.
+  The same boot surface as the tree's, without gates.
+- **Spec-driven development**: Kiro (AWS, 2025), GitHub's Spec Kit
+  (2025).  The spec is the durable artifact and the code is derived.
+  The tree's `spec/` runs the other way: it says why each part is
+  shaped as it is and what it cost.
+- **Rules as tests**: fitness functions, policy-as-code (Open Policy
+  Agent), and the Google SWE book's *Beyoncé rule* — if you liked it,
+  you should have put a test on it.  That last one is almost word for
+  word *a rule with no gate is a wish*.
+- **Agent memory in research**: Reflexion (2023, verbal self-feedback
+  kept across trials), Generative Agents (2023, reflection over a
+  memory stream), Voyager (2023, a skill library).  The tree's memory
+  form, *Why* and *How to apply*, is Reflexion-shaped, but the
+  correction is written by a person.
+- **Note practice**: Zettelkasten and Matuschak's evergreen notes, one
+  idea per page.  Gwern's dated pages with confidence tags, never
+  deleted.  The tree already cites Gwern.
+- **Karpathy's own stance**: his 2025 talk's *keep it on the leash*,
+  small pieces and verify.  Tend's `leash.sh` shares the name; whether
+  the name came from there the session does not know.
+
+**What none of them has.**  The second party's standing recorded,
+consent, the keeper's limit, an andon that rings a person, and the
+whole thing run as a research programme where a negative result is
+kept.  The same four as the first answer on this page, and Karpathy's
+wiki does not change the list.  It adds one line to what
+`doc/memory/` is kin to.
+
+The same caveat as the journal entry: an empty memory is evidence
+about the memory.  The years and contents above should be checked by
+search before any of them goes into the tree as a citation, and
+Karpathy's wiki most of all, because it sits close to the cutoff.
+
 ## What the tree can show, and the wording offered — added when the page went in, 2026-09-11
 
 **Checked in the tree while the conversation was open:** the four
@@ -288,8 +376,9 @@ heading cited by name exists; every memory and card named above
 exists.  **Not checkable from here:** every sentence beginning *the
 session does not remember seeing* — those are claims about one
 model's memory with a June 2026 cutoff, and the README's caveat is the
-rule.  **Not run:** a literature search that would turn the neighbour
-list from memory into a measurement, and any of the three kill tests.
+rule.  **Not run:** a literature search that would turn either neighbour
+list — the first answer's and the Karpathy answer's — from memory into
+a measurement, and any of the three kill tests.
 
 **What was asked for at the close:** this page, and *how would I say
 it clearly in spec/author.md?*  That file is his and stays his
