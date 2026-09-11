@@ -444,6 +444,25 @@ def worth_telling(bench) -> bool:
 BUSY, IDLE = 0.002, 0.010
 
 
+def _tap(what: str, said) -> None:
+    """What crossed to the window, when `GESTATE_WIRE` says to look.
+
+    **Built the moment it was needed** (`doc/instruments.md`): a page's
+    notes vanished after a rebuild and nothing here could say what the
+    window had been sent.  Two callers write one readings buffer and the
+    payload goes to a walker that may or may not have just been
+    replaced; reading the code four times produced four theories and no
+    evidence.  A line per send settles it.
+    """
+    import os
+    import sys
+    import time
+
+    if os.environ.get("GESTATE_WIRE"):
+        print(f"[wire {time.monotonic():.3f}] {what}: {said}",
+              file=sys.stderr, flush=True)
+
+
 def _payloads(sub, boxes: dict) -> str:
     """Every walkable canvas, as one `box`-sectioned payload.
 
@@ -1052,6 +1071,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 editor.walk(_payloads(sub, boxes))
                 # A rebuilt walker starts with no rows; they go again.
                 rows_sent = None
+                _tap("walk", f"{len(_payloads(sub, boxes))} chars")
             # **A live roll's notes cross as a trace** — `spec/scope.md`'s
             # word, a `List Float` reading — and only when they change,
             # which is a rebuild or a drag's commit; the picture between
@@ -1063,6 +1083,7 @@ def run(path, rate: int = 44100, block: int = 512,
                     + "\t".join(f"{v:.5g}" for v in flat)
                     for chan, flat in rows_now))
                 rows_sent = rows_now
+                _tap("rows", [(c, len(f)) for c, f in rows_now])
 
             t2 = time.monotonic()
             # **The canvas, and only while it is what you are looking
@@ -1116,6 +1137,8 @@ def run(path, rate: int = 44100, block: int = 512,
                     if lines_out and heard != drawn:
                         editor.readings(heard)
                         drawn = heard
+                        _tap("observed", [l.split("\t")[1]
+                                          for l in lines_out])
             elif showing and time.monotonic() >= next_frame:
                 drew = True
                 began = time.monotonic()

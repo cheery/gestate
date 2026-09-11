@@ -1630,6 +1630,37 @@ impl WindowHandler for EditorWindow {
                                 .map(|walker| (key, walker))
                         })
                         .collect();
+                // **A new walker is handed the traces the old one
+                // had.**  A `.notes` page's notes *are* a trace
+                // (`card:notes-editor.md` slice 3: the roll is
+                // compiled once and the notes arrive as a reading), so
+                // a walker built without them draws furniture and no
+                // music.
+                //
+                // The host re-sends on a rebuild — but it sends the
+                // walk and the reading as two messages, and a frame
+                // that consumes the reading before the queued walk
+                // gives the trace to the walker being thrown away.
+                // Nothing sends it again, because the host only speaks
+                // when the rows *change*, so the roll stays blank for
+                // ever.  Henri, 2026-09-11: *"The first double-click
+                // and refresh makes the notes in the roll to
+                // disappear."*
+                //
+                // Seeding here makes the host's re-send an optimisation
+                // rather than the only thing standing between a page
+                // and its notes.  `self.traces` was already kept — it
+                // fed the scope boxes — so this is a use of what was
+                // there and not a new thing to keep in step.
+                {
+                    let held = self.traces.borrow();
+                    let mut walkers = self.walkers.borrow_mut();
+                    for (name, points) in held.iter() {
+                        for w in walkers.values_mut() {
+                            w.hear_trace(name, points.clone());
+                        }
+                    }
+                }
                 if self.on_canvas.get() {
                     self.dirty.set(true);
                 }

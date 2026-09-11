@@ -2729,3 +2729,50 @@ time in it.  `transport.ges` had already written the rule for this —
 `Session.clicked` and the chart stays what it is.  That is the second
 time today an existing sentence in the tree decided a design question
 that looked new.
+
+## Four readings, four theories, and a tap that answered in one run — 2026-09-11
+
+*Henri, the minute the first note was made by clicking:* **"The first
+double-click and refresh makes the notes in the roll to disappear."**
+
+`fixme.md` **F225**, and it is older than the gesture that showed it.
+A `.notes` page's notes *are* a trace — slice 3's whole purchase, the
+roll compiled once and the notes arriving as a reading — so a walker
+built without them draws furniture, keys, bar lines and no music.  The
+window replaces its walkers whenever the payload changes and **nothing
+re-seeded them**.  `self.traces` was kept the whole time, for painting
+the scope boxes.
+
+The host does re-send on a rebuild, but it sends the **walk** and the
+**reading** as two messages: a frame that takes the reading before the
+queued walk hands the trace to the walker being discarded, and nothing
+sends it again, because the host only speaks when the rows *change*.
+
+**Why a drag never showed it** is the pleasing part: a drag leaves the
+program text alone, which is exactly what slice 3 bought — so the
+walker is never replaced and the race cannot start.  An `assert` that
+puts a note **above the file's range** changes the scale, which changes
+every roll's program.  The feature that made the bug reachable is the
+feature slice 3 built to stop rebuilding.
+
+**And I read the code four times and had four theories.**  The wire was
+capped; it was not.  The band's recursion; emptying it changed nothing.
+The second `readings` caller overwriting the first; traces are only
+applied when present.  The tones; the Python walk drew all 88.  Each
+was plausible, each cost minutes, and none was checkable by reading,
+because **the defect was an ordering between two messages and no amount
+of reading shows an order.**
+
+So `workbench._tap` was written — eight lines, a line per message,
+behind `GESTATE_WIRE` — and one run settled it: the last walk at
+3000.827 and its rows six milliseconds later, both correct, both
+delivered, and the roll blank.  `doc/instruments.md`'s first rule is
+that a missing capability is built the moment the need arises, and the
+cost of not having built it earlier was about forty minutes of theories.
+
+**The other thing to keep.**  The driven run that *made* this feature
+photographed the empty roll two seconds after the click and passed,
+because it asserted on the file.  The evidence was in a picture I had
+taken and not looked at.  The repair to the harness is the same one the
+day has asked for seven times now: shoot **over time**, and assert on
+the thing the change is about — here the notes, not the note.

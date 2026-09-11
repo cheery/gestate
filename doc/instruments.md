@@ -648,6 +648,25 @@ ran is not a line that was *checked* — every defect this project has
 shipped was in a covered one, which is why `spec/verification.md`
 §"Coverage, and the question it cannot answer" is the larger half.
 
+### `GESTATE_WIRE=1` — what crossed to the window
+
+    GESTATE_WIRE=1 python -m gestate.workbench file.notes 2>wire.log
+
+A line per message the model sends the window: each `walk` with its
+size, each batch of note `rows` with its channels and lengths, and each
+`observed` reading.  Off unless the variable is set.
+
+**Built 2026-09-11, the moment it was needed** (F225): a page's notes
+vanished after a rebuild and nothing could say what the window had been
+handed.  Reading the code four times produced four theories and no
+evidence — the tap produced the answer in one run, because the defect
+was an *ordering* between two messages and no amount of reading shows
+an order.
+
+`workbench._tap` is the whole of it, eight lines.  What it does not
+say is what the window *did* with them; for that there is the
+photograph.
+
 ### `tools/driven.py` — driving a window, with a stamp
 
     Xvfb :99 -screen 0 1600x1000x24 &

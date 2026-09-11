@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 225 entries, **180 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 226 entries, **181 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7821,6 +7821,52 @@ same defect, with the fields wider — so a zoomed window is the cheapest
 way to reproduce it, which the original entry could not say.
 
 gate: none yet — the photograph is the evidence.
+
+### F225. **[resolved]** a rebuilt walker is not handed the traces the old one had, so a page's notes vanish for ever when an edit changes the program text
+
+Found 2026-09-11 **by Henri, on the window**, the minute the first note
+was made by clicking: *"The first double-click and refresh makes the
+notes in the roll to disappear."*
+
+**A `.notes` page's notes *are* a trace** (`card:notes-editor.md`
+slice 3 — the roll is compiled once and the notes arrive as a reading),
+so a walker built without them draws furniture, keys, bar lines and no
+music.  The window replaces its walkers whenever the payload changes
+and **nothing re-seeded them**; `self.traces` was kept, but only to
+paint the scope boxes.
+
+The host does re-send on a rebuild — it sets `rows_sent = None` — but
+it sends the **walk** and the **reading** as two messages.  A frame
+that consumes the reading before the queued walk hands the trace to the
+walker being thrown away, and nothing sends it again, because the host
+only speaks when the rows *change*.  So the roll stays blank for ever.
+
+**Why it waited for this evening's gesture, and is older than it:** a
+drag leaves the program text alone (that is what slice 3 bought), so
+the walker is never replaced and the race cannot start.  An `assert`
+that puts a note **above the file's pitch range** changes the scale,
+which changes every roll's program — so the window rebuilds, and the
+window is where the notes are.  A note *inside* the range would not
+have shown it either.
+
+**Measured, and by an instrument built for it.**  Four readings of the
+code gave four theories and no evidence, so `workbench._tap` was
+written — a line per message when `GESTATE_WIRE` is set — and the log
+settled it: the last walk at 3000.827 and its rows six milliseconds
+later, both correct, both delivered, and the roll blank.  `doc/instruments.md`'s first rule — *a missing capability is built
+the moment the need arises* — paid here.
+
+The repair seeds a new walker from the traces the window already holds,
+which makes the host's re-send an optimisation rather than the only
+thing standing between a page and its notes.
+
+gate: driven — `test/driven/20260911-181322-notes-tones-and-a-note-made-by-clicking`
+on the desk that ran it: a note made above the range, and the roll
+still 9,596 pixels of note blue at 1, 3, 6 and 12 seconds.  **Shot over
+time on purpose**: the earlier run of the same scenario took one
+photograph two seconds after the click, asserted on the file, and
+called it a pass — the notes were already gone in the picture it had
+just taken.
 
 ### F224. **[resolved]** the canvas's sideways scroll springs back at any zoom but one, because two clamps were given different bounds
 

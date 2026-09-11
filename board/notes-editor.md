@@ -764,6 +764,21 @@ rather than by reading:
   amount is nothing; every other gesture here snaps and so does this
   one now.
 
+**And the gesture uncovered F225, which is older than it.**  *"The
+first double-click and refresh makes the notes in the roll to
+disappear."*  A page's notes are a **trace**, and the window never
+re-seeded a rebuilt walker with the traces it already held — so a roll
+drew furniture and no music, for ever.  A drag never showed it because
+a drag leaves the program text alone, which is what slice 3 bought; an
+`assert` above the file's pitch range changes the scale and so changes
+every roll's program.  *The feature that made the bug reachable is the
+feature built to stop rebuilding.*
+
+Found with `GESTATE_WIRE`, an instrument written for it — four readings
+of the code had given four theories and no evidence, because the defect
+was an **ordering between two messages** and no amount of reading shows
+an order.
+
 **And he read it on the window within the minute, which found F223** —
 *"The vertical scroll doesn't scroll all the way down.  The status bar
 appears to cover what would be shown otherwise."*  The clamp ran to the
