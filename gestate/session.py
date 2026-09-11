@@ -969,6 +969,17 @@ class Session:
     #: consumed by the pitch touch that follows — so it never outlives
     #: the press that set it.
     named_note: dict = field(default_factory=dict)
+    #: **What a hand is sounding**, per box:
+    #: `(bank, key, note, payload, notes)` — the note under the hand,
+    #: previewing in its own voice, so a drag can stop the old pitch
+    #: before it starts the new one and a release can stop it at all.
+    #: The note number and the payload are kept so the record is read
+    #: once a press and not once a motion (`_sounds_as`), and the
+    #: `Notes` it was started on so an entry cannot outlive a rebuild.
+    #: Empty for a box whose hand is not on a note.
+    #: `audiomidi.Notes.sound` is the seam; `spec/annotations.md`
+    #: §"The three paths, priced" is what it costs.
+    sounding: dict = field(default_factory=dict)
     #: How often the picture and the model named the same note under a
     #: press, and every press where they did not — the parity this
     #: slice is held by until the model's lookup is deleted.
@@ -2229,6 +2240,7 @@ class Session:
         # *silent* it brings the instrument up first.
         from .transportstate import State, Verb
 
+        self._hush_all()
         if _state_of(self.bench) is State.SILENT \
                 and getattr(self.bench, "transition", None) is not None:
             self.bench.transition(Verb.AUDITION)
@@ -2245,6 +2257,7 @@ class Session:
         # against.
         if getattr(self.bench, "inert", False):
             return "nothing plays — the file is inert"
+        self._hush_all()
         return self.bench.transition(Verb.PLAY).value
 
     def do_stop(self) -> str:
@@ -2252,6 +2265,7 @@ class Session:
         file still open — Henri, 2026-09-07: *"'stop' goes to silence."*"""
         from .transportstate import Verb
 
+        self._hush_all()
         return self.bench.transition(Verb.STOP).value
 
     def do_probe(self, x: int, y: int) -> str:
@@ -4824,6 +4838,13 @@ class Session:
         command a release runs.
         """
         roll, box, head = found.roll, found.box, act[0]
+        # **The preview stops when the hand stops holding a note.**
+        # `Grab` takes one, `Shift` carries it, `Grow` pulls its end —
+        # every other act is the hand letting go or touching nothing,
+        # and a note left sounding through a commit would ring under
+        # the rebuild.
+        if head not in ("Grab", "GrabEnd", "Shift", "Grow"):
+            self._hush(found)
         if head in ("Grab", "GrabEnd"):
             # **A press selects**, and the selection outlives the press;
             # a press on a note of the group keeps the group, so a hand
@@ -4834,11 +4855,14 @@ class Session:
                 self.group[box] = (note,)
             self._hold(found)
             self._show_moved(found, note, roll.events[note][3], roll.events[note][0])
+            # **And it sounds under the finger** — his ask, 2026-09-11.
+            self._sound(found, note, roll.events[note][3])
             return self._written_at(found, note, end=head == "GrabEnd")
         if head == "Shift":
             _h, note, t, k, u, q = act
             key, at = self._carried(found, note, t, k, u, q)
             self._show_moved(found, note, key, at)
+            self._sound(found, note, key)
             return self._interval(roll, note, key, at)
         if head == "Click":
             self._unpreview(found)
@@ -5343,6 +5367,200 @@ class Session:
         # freed address, and did, which made a settled selection look
         # unsettled.  Holding the object keeps the address taken.
         self.pending[found.box] = (found.roll, keys)
+
+    def _sound(self, found, note: int, key: int) -> None:
+        """**Sound the note under the hand, in its own voice.**
+
+        *Henri, 2026-09-11: "I think I still do not hear the note
+        preview when I press and modify a single note."*  Until today a
+        gesture sounded only when it let go — the piece from the note
+        with the transport stopped, an audition in place with it
+        running — so taking a note and carrying it through six
+        semitones was silent, and Reaper plays the note under the
+        finger.
+
+        **The bank is the note's own voice, not a channel.**  A
+        `.notes` note names the voice it is written in and the voice is
+        the bank the wrapper declares, so `_sounds_as` reads the record
+        and `audiomidi.Notes.sound` plays it there directly.  Routing
+        it by channel would work by arithmetic — bank *n* is channel
+        *n* — and would be a guess dressed as wiring.
+
+        **One note at a time per box**, stopped before the next starts:
+        a drag arrives as a `Shift` per motion, so the guard is that
+        the key changed.  Within one semitone nothing retriggers.
+
+        Silent about its own failures, like `_hear_from`: this is a
+        courtesy on top of a gesture, and a sentence about the engine
+        over the top of the one about the note is noise.
+        """
+        from .transportstate import State
+
+        notes = getattr(self.bench, "notes", None)
+        if notes is None:
+            return
+        # **The layer is the transport's to open, and this only asks.**
+        # `transport.ges` answers `Preview True` on entering *sounding*
+        # and `Preview False` on entering either other state — Henri's
+        # reading, 2026-09-11: *"preview could be it's own input layer
+        # that goes on when sounding -state is on."*  Two repairs before
+        # it each answered one path and left another, because the
+        # decision lived in the gesture; on the state there is no path
+        # in that forgets to open it and none out that forgets to close
+        # it.
+        #
+        # **From *silent* a press asks for the layer**, which is what
+        # `audition` does — `spec/transport.md` sentence 4 — because a
+        # press on a note is a request to hear.  It removes an asymmetry
+        # nobody would defend out loud: `_hear_from` has started the
+        # piece from a **dropped** note since 2026-09-06, so the release
+        # already took the sound card in silence and only the press
+        # refused to.
+        if not getattr(notes, "preview_open", False):
+            from .transportstate import Verb
+
+            wake = getattr(self.bench, "transition", None)
+            if wake is None or _state_of(self.bench) is State.PLAYING:
+                # Playing: the score has the voices and is using them,
+                # and a moved note is already heard in place by the
+                # audition.  Nothing to ask for.
+                return
+            # Whatever a hand thought it was sounding belonged to a
+            # layer that is shut; coming up builds new allocators
+            # (`_start_notes`), so the old names name nothing.
+            self.sounding.clear()
+            wake(Verb.AUDITION)
+            notes = getattr(self.bench, "notes", None)
+            if notes is None or not getattr(notes, "preview_open", False):
+                return                          # it would not open
+        roll, box = found.roll, found.box
+        if not 0 <= note < len(roll.events):
+            return
+        was = self.sounding.get(box)
+        # **Whose `Notes` was that?**  A rebuild builds a fresh one
+        # (`_start_notes`) and the layer opens on *that*, so an entry
+        # made against the old one names a note nobody is holding — and
+        # believing it would answer *the same pitch, still down* and
+        # sound nothing at all.  The object is the identity; comparing
+        # it is exact where a flag would need keeping in step.
+        if was is not None and was[4] is not notes:
+            self.sounding.pop(box, None)
+            was = None
+        if was is not None and was[2] == note:
+            bank, payload = was[0], was[3]
+            if was[1] == int(key):
+                return                          # the same pitch, still down
+        else:
+            found_it = self._sounds_as(found, note)
+            if found_it is None:
+                return                          # nothing that can be sounded
+            bank, payload = found_it
+        # **The pitch the hand is at**, not the one the file still says:
+        # a carry is previewed where it would land.
+        payload = (int(key),) + tuple(payload[1:])
+        try:
+            if was is not None:
+                notes.sound(was[0], was[1], (), on=False)
+            self.sounding.pop(box, None)
+            if notes.sound(bank, int(key), payload):
+                self.sounding[box] = (bank, int(key), note, payload, notes)
+        except Exception:                                 # noqa: BLE001
+            self.sounding.pop(box, None)
+
+    def _sounds_as(self, found, note: int) -> tuple | None:
+        """`(bank, payload)` — whose note this is and what it carries,
+        or `None` for a note that cannot be sounded on its own.
+
+        **The record is the one road**, on either kind of roll, and the
+        reason is that this is the payload the *score* sends:
+        `NotesKind.events` schedules `(key, level_of(vel),
+        bits_of(manner))`, so a preview that builds the same three
+        values sounds the note the piece would sound.  Reading them off
+        the roll instead would be two sources for one fact and the
+        second is lossy — the event's `vel` is `_tone_vel(level)`, a
+        number for *drawing*, and neither road puts the voice on the
+        leaf at all: the ask is the generated `notes_A_melody` and the
+        `>>= voices.melody` that banks it is in `score`, outside what
+        the descent reads.
+
+        **And this is not path 1.**  `spec/annotations.md` §"The three
+        paths, priced" rejected the keyboard because a payload built
+        from pitch and velocity has no manner *and cannot have one*.
+        The record has one.  What was missing was never the manner; it
+        was a door into the engine that takes a payload rather than a
+        MIDI message, and `audiomidi.Notes.sound` is that door.
+
+        It costs one parse of the note's own file — `notecost.py` says
+        5.8 ms on `arc.notes` — so `_sound` asks once a press and not
+        once a motion.
+        """
+        from .notes import NotesError, at_line, bits_of, level_of, parse
+        from .scorebox import RefusedError, pitch_atom
+
+        roll = found.roll
+        note = int(note)
+        try:
+            line, _c, _w, _k = pitch_atom(roll, note)
+        except (RefusedError, Exception):                 # noqa: BLE001
+            return None
+        where = (getattr(self.bench, "origins", None) or {}).get(line)
+        if where is None:
+            # A `.ges` take: the ask assigns to a bank inside itself, so
+            # the leaf carries it, and the payload is what the roll has.
+            leaf = roll.leaves[roll.events[note][2]]
+            bank = getattr(leaf, "bank", None)
+            return None if not bank else (
+                bank, (roll.events[note][3], roll.events[note][4]))
+        name, row = where
+        try:
+            text = (self.view.text() if self._is_document(name)
+                    else (Path(getattr(self.bench, "path", ".")).parent
+                          / name).read_text())
+            one = at_line(parse(text, name), row)
+        except (OSError, NotesError):
+            return None
+        if one is None:
+            return None
+        return (one["voice"], (one["key"], level_of(one["vel"]),
+                               bits_of(one["manner"])))
+
+    def _hush(self, found) -> None:
+        """Stop whatever this box's hand was sounding.  Called by every
+        act that is not the hand holding a note — the commit, the
+        click, the sweep and the drop."""
+        self._hush_box(found.box)
+
+    def _hush_box(self, box) -> None:
+        notes = getattr(self.bench, "notes", None)
+        was = self.sounding.pop(box, None)
+        if notes is None or was is None:
+            return
+        try:
+            notes.sound(was[0], was[1], (), on=False)
+        except Exception:                                 # noqa: BLE001
+            pass
+
+    def _hush_all(self) -> None:
+        """Every preview, stopped, and the bookkeeping dropped.
+
+        *Henri, 2026-09-11, on the window:* *"when I press Ctrl+space,
+        the currently playing note ends up sounding to the background."*
+
+        **The sound is the layer's to stop** — leaving *sounding* closes
+        it and closing is a release (`audiomidi.Notes.preview`), so the
+        chart answers that on every road out and this cannot be the
+        thing that forgets.  What is left here is the *session's* map,
+        which the engine knows nothing about: dropped before the verb,
+        so no entry survives its own state.
+
+        That split is the correction to what this function was when it
+        was written an hour earlier — *"it is not the chart's job"* —
+        which was wrong in the way the whole gesture was wrong: it put
+        a question about the transport in the hands of whoever
+        remembered to ask.
+        """
+        for box in list(self.sounding):
+            self._hush_box(box)
 
     def _voice_of(self, found, note: int) -> str | None:
         """The voice a roll's note is written in — the `.notes` voice,

@@ -330,7 +330,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 255 | `MidiError` | `command` | — | 'no MIDI input on this machine' |
 | 258 | `MidiError` | `command` | — | 'no MIDI input `{name}`; there is ' + ', '.join(names) |
 | 323 | `MidiError` | `command` | — | 'no banks for MIDI to play' |
-| 612 | `GmError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
+| 770 | `GmError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
 
 ### `audioperform.py`
 
@@ -929,21 +929,21 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2626 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2633 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
-| 2647 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2761 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2767 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2773 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
-| 2792 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2855 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2923 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2927 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 3069 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 3080 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5291 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5460 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5466 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 2640 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2647 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
+| 2661 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2775 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2781 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2787 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
+| 2806 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 2869 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2937 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2941 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 3083 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 3094 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5315 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5678 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5684 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `tempo.py`
 

@@ -477,6 +477,10 @@ isolation, both ways** is a different thing from hearing it in context,
 and the seam it needs — sound one payload, with its fields, through its
 bank — is a card of its own rather than a slice of this one.
 
+*Half of that last sentence was wrong, and it was the expensive half —
+§"The seam existed after all", 2026-09-11.  The seam is one method on
+`Notes`; what needs a compile is the rendering, not the door.*
+
 ## Refusals, each with a sentence
 
 * **A payload that answers `Plain`** is not warned about; it has no
@@ -663,3 +667,110 @@ is the note a slide comes **from**, not whether there is one.  The
 prediction is kept here because it was wrong in a way worth seeing: it
 reasoned from the mechanism instead of measuring it, and the measuring
 took one command.
+
+### The seam existed after all — 2026-09-11
+
+*Henri, working the notes editor: "I think I still do not hear the note
+preview when I press and modify a single note."*  He was right, and the
+reason was §"The three paths, priced" above: nothing sounded until a
+gesture let go.
+
+**Path 2's missing half was smaller than this page priced it.**  That
+section said the seam did not exist — *a way to sound one payload, with
+its fields, through its bank* — and priced path 2 at a compile per
+gesture.  Two of those are one claim and only one of them was true.
+The compile is for rendering a note **in isolation, both ways**, which
+is still unbuilt and still wanted.  The *door* is
+`audiomidi.Notes.sound(bank, note, payload)`: the allocator has always
+taken a payload tuple, and what stood in front of it was `feed`, which
+builds one from a MIDI message and so cannot carry a manner.  A caller
+that knows the bank knows the fields, and the editor holding a note
+knows both.
+
+**So the preview carries the manner**, and this page's objection to
+path 1 — *you mark a note staccato and hear it played long* — does not
+apply to what was built.  `session._sounds_as` reads the note's own
+record and hands over `(key, level_of(vel), bits_of(manner))`, which is
+**the payload `NotesKind.events` schedules**: the preview is the note
+the piece would play, in the voice the piece would play it in.
+
+Three things it is guarded by, each for a reason already on this page:
+
+* **From *silent*, the press brings the instrument up first** — what
+  `audition` does from there, `spec/transport.md` sentence 4, because
+  a press on a note is a request to hear.  *Henri, 2026-09-11*, given
+  three readings: *bring the engine up and sound it.*  It removes an
+  asymmetry nobody would defend out loud: `_hear_from` has started the
+  piece from a **dropped** note since 2026-09-06, so the release
+  already took the sound card in silence and only the press refused
+  to.  A bench that will not come up is left alone and **not written
+  into** — `Notes.values` holds the control values the engine reads,
+  so a gate written while it is down is picked up as an *initial
+  value* when it comes up, and the piece begins with a note stuck on.
+  *Sounding* and *playing* preview as they stand; under *playing* the
+  allocator is the arbiter it always was, and a bank with every voice
+  busy refuses the preview rather than stealing a scored note.
+* **And it does not consult the listening switch**, because every
+  voice of a `.notes` file is a scored bank and so starts switched
+  *off* — the guard would silence the preview on exactly the notes
+  being edited.  The switch guards the *routed* door, where a keyboard
+  may be played at any moment; this door is named.
+* **One note a box, stopped before the next starts**, and **every
+  transport verb hushes first.**  A drag arrives as a touch per
+  motion, and a note retriggered per frame is a buzz, so the guard is
+  that the key changed; and a preview is held for as long as the hand
+  is, while `play` does not pass through the hand — Henri, on the
+  window: *"when I press Ctrl+space, the currently playing note ends
+  up sounding to the background."*
+
+**Two of those three are what the window taught and the bench could
+not**, the same day the seam landed — §"What the window said", below.
+
+`mark` is untouched.  Its preview is still the piece from the marked
+note, and whether it should now sound the marked note through this door
+is a question for whoever opens it — the manner is exactly what changed
+there, and hearing it alone is not obviously hearing it.
+
+### What the window said — 2026-09-11
+
+*Henri, running `untitled.notes` within the hour:* *"One issue is that
+when I press Ctrl+space, the currently playing note ends up sounding to
+the background… Another issue is that I do still do not hear the note
+play review.  I try to play it from 'playing' and 'sounding' -states…
+and if I try it from 'stopped' -state, it ends up gunking the 'play'
+and I'm no longer able to play the note."*
+
+Three reports, and **one cause under two of them**: the guard read
+`Workbench.playing`, which is not *the clock is moving* but
+`self._audio.is_alive()` — **the engine being up**.  So it refused in
+*sounding* and *playing*, the two states that can sound, and allowed
+*silent*, the one that cannot.  Read against the three states it was
+exactly inverted:
+
+| state | engine | clock | the guard did | it should |
+|---|---|---|---|---|
+| *silent* | down | held | previewed, into a dead engine | nothing |
+| *sounding* | up | held | refused | **preview** — its home |
+| *playing* | up | moving | refused | preview; the allocator arbitrates |
+
+**And `session._state_of` already said so, in its own docstring**:
+*"Not `Workbench.playing`, which asks whether the audio thread is alive
+— a different question wearing the same word."*  It was written for
+this trap and did not stop it, because the code that fell in never
+called it.  A warning is only worth what the path through it is worth,
+which is why the repair is that every reader of the transport's state
+goes through that one function.
+
+The third report is its own thing and is the third guard above: a
+preview is held down for as long as the hand is, and `play` does not
+pass through the hand.
+
+**And the repair was still not what he asked for**, which the window
+said again an hour later: *"I restarted the editor, and it still shows
+the old behavior."*  It did not — the code was current and measured
+right in *sounding* and *playing* on a real `Workbench` — but a freshly
+opened editor is **silent**, and silent was the one state that refused.
+A design that is correct in the states a person is not in is a design
+that does not work.  So the press wakes the instrument, above; the
+measurement that found it is in `journal.md` §"The state a person is
+actually in".

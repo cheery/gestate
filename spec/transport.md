@@ -30,7 +30,10 @@ could read and refuse.
    The **clock** moves or is held.
 3. The state decides all three.  *Silent*: engine down, card free,
    clock held.  *Sounding*: engine up, card held, clock held.
-   *Playing*: engine up, card held, clock moving.
+   *Playing*: engine up, card held, clock moving.  **And a held clock
+   means the score is silent, not frozen mid-note** — Henri,
+   2026-09-11: *"sounding -state is meant to be a state where the audio
+   is up, but not playing the score."*
 4. Each state has a verb that lands there, and they are the verbs the
    window already has: `stop` → silent, `play` → playing, `audition`
    → sounding.  **Henri, 2026-09-07:** *"'stop' goes to silence,
@@ -49,10 +52,64 @@ could read and refuse.
 7. A **loop** is a pair of positions or none.  Setting one is allowed
    in every state; it acts only while the clock moves.
 8. A file that is **inert** is *silent* and stays so under every verb.
+9. The **preview layer** is open in *sounding* and closed in the other
+   two.  Closing it releases whatever it was holding.
+10. In *sounding* the engine reads its own values and not the score's;
+    in *playing* it reads the score.
+
+**Sentence 9 is Henri's, 2026-09-11**, and it arrived as a correction
+to three days of the editor deciding this for itself: *"I think
+'preview' could be it's own input layer that goes on when sounding
+-state is on, solving these issues."*  A preview is a note the
+**editor** holds under a hand — so it looked like the editor's
+business, and it was made the editor's business twice, and both times
+one path was repaired and another left open.  A press that woke the
+engine but a `play` that did not silence it; a guard that read the
+wrong word for *the clock is moving*.
+
+What makes it this model's is that **every question about a previewed
+note is a question about this chart**: may it sound, what silences it,
+what happens when the score starts.  Put on the state rather than on an
+arrow, it has no path in that forgets to open it and none out that
+forgets to close it — which is the property the editor could not have,
+because the editor only ever sees the path it is on.
+
+`enter (Up Sounding) = [AllOff, Preview True]`, and `Preview False` on
+entering either other state.  `audiomidi.Notes.preview` executes it and
+holds the layer's one flag; `session._sound` **asks** whether the layer
+is open and, from a shut one, spends an `audition` to ask for it — a
+press on a note being a request to hear, which is sentence 4.
+
+**Sentence 10 is what sentence 3 had always implied and nothing did.**
+`Workbench.control` resolved a scored channel with
+`schedule.value_at(chan, _t)`, and in *sounding* `_t` does not move —
+so whatever gate was open at the instant the clock stopped stayed open
+for ever.  *Henri, 2026-09-11:* *"Whatever was playing that moment
+keeps playing."*  `enter (Up Sounding)` had said `AllOff` since the
+chart was written, and `_after_seek` had been dutifully releasing those
+notes into `Notes.values` where **nothing read them**, the schedule
+branch winning first — the same shape as `fixme.md` F222 one floor up,
+and found the same way: by asking what the consumer reads rather than
+what the producer wrote.
+
+So the schedule is skipped in *sounding* and the engine reads
+`Notes.values`, which is where a preview writes and where `_after_seek`
+writes its releases.  One rule instead of two, and it **subsumed** the
+per-channel precedence F222 had added an hour earlier: a preview only
+had to out-argue the schedule while the schedule was still in the
+argument.  That branch is gone rather than kept in case.
+
+*Why it is closed in playing rather than shared:* the score has those
+voices and is using them.  The allocator and the schedule assign voices
+independently, so a preview under a running score shadows whichever
+voice it is given; closing the layer is the honest version of that, and
+a moved note is already heard in place by the audition.
 
 **Not isolated, as he said — the neighbours this model names and
 does not own:**
 
+- **The preview layer** is *not* a neighbour — sentence 9 below took it
+  in.  It was one for a day and that is exactly why it did not work.
 - **The keyboard** is audible when the engine is up *and* `performing`
   is not `off`.  `performing` (off / on / step) is a second axis —
   where the keyboard's notes *go* — and stays its own switch.  So
@@ -73,7 +130,7 @@ does not own:**
     Awake := Sounding | Playing
     State := Silent Int | Up Awake
     Verb  := Play | Stop Int | Audition | Seek Int
-    Do    := Sound | Hush | SeekTo Int | AllOff
+    Do    := Sound | Hush | SeekTo Int | AllOff | Preview Bool
 
     step  : State -> Verb -> Step State Do
     enter : State -> List Do

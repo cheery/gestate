@@ -1763,6 +1763,19 @@ def _ruler_pic(roll: Roll) -> str:
     return _overs(items)
 
 
+def _caption_w(caption: str) -> int:
+    """A label box exactly as wide as its letters come out at scale 2.
+
+    `gui.py`'s `_fit` takes the whole scale from the declared numbers
+    alone — `w // (n * (W + GAP) - GAP)` against `h // H` — so a box of
+    `8n - 2` by 12 draws at 2, the size a caption has always been, and
+    the glyphs fill it exactly.  Which means the label's centre is its
+    text's centre, and placing the centre half a width in from the
+    body's left puts the first letter *on* that left.  F221.
+    """
+    return max(8 * len(caption) - 2, 8)
+
+
 def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
     """The editing-scale box's program **over `roll.ges`** — the box's
     numbers, its channels, and one picture lifted over them.
@@ -1843,8 +1856,22 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
                f"    (Over (rollNotesBaked {note_c} (floor h) (floor v) (floor s) "
                f"(floor dx) ss (floor gg) {_n(rail_y)} {N('rows')}) "
                f"(rollEnd {body_g} (floor ex))))\n")
-            + f"    (Shift {_n(left + body_w // 2)} {geo.h // 2 - geo.foot // 2 - 1} "
-              f"(Label {body_w - 8} 12 \"{caption}\" (RGB 120 124 134))))\n"
+            # **The caption starts where the section starts** — F221,
+            # 2026-09-11, Henri's call between the two readings a
+            # scrolling page makes different.  It sat at the body's
+            # *centre* in a label as wide as the body, which reads as
+            # bottom-right on a section that fits and is nowhere near
+            # the bars it names on one that does not: off the right
+            # edge at bar 1, and at the left under bar 9 once the page
+            # has carried.  A label exactly as wide as its own letters
+            # at this height — `gui.py`'s `_fit` gives scale 2 for a
+            # box of `8n - 2` by 12, and centres the glyphs in it — so
+            # its left edge lands on the body's, under bar 1, and it
+            # scrolls away with the bars it is about.
+            + f"    (Shift {_n(left + _caption_w(caption) // 2)} "
+              f"{geo.h // 2 - geo.foot // 2 - 1} "
+              f"(Label {_caption_w(caption)} 12 \"{caption}\" "
+              f"(RGB 120 124 134))))\n"
             + f"    {hands_g})\n\n"
             + f"{entry} : Sig Sub\n"
             + (f"{entry} = !{pic_g} {N('still')} {N('moving')} {band_c}_s {endx_c}_s\n" if live else

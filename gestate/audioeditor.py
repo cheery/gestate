@@ -960,6 +960,11 @@ class Workbench:
         #: Channels belonging to a bank the keyboard has been given.  The
         #: score does not drive these; see `control`.
         self._midi_channels: set = set()
+        #: Whether the score's own channels are to be read at all —
+        #: false except in *sounding*, where the audio is up and the
+        #: score is not playing (`_settle`, `spec/transport.md`
+        #: sentence 3).
+        self._score_silent: bool = False
         #: Runs the program's `FromMIDI` instances, or `None` when it
         #: declares none.  An interpreter kept beside the native engine —
         #: the engine is machine code and knows nothing about instances.
@@ -1225,6 +1230,16 @@ class Workbench:
         elif head == "AllOff":
             if self.transport is not None:
                 self._after_seek(self.transport.position)
+        elif head == "Preview":
+            # **The preview layer, granted by the state** — Henri,
+            # 2026-09-11.  `Preview True` on entering *sounding*, and
+            # `False` on entering either other state, so there is no
+            # path in that forgets to open it and none out that forgets
+            # to close it.  Closing releases whatever the layer held,
+            # which is what stops a previewed note ringing on behind a
+            # score that has just started.
+            if self.notes is not None:
+                self.notes.preview(action[1][0] == "True")
         else:
             self.say(f"transport.ges asked for `{head}`, which this host cannot do")
 
@@ -1232,6 +1247,20 @@ class Workbench:
         """The transport's flags for a state, and the word for the bar."""
         from .transportstate import State
 
+        # **Is the score silent?**  *Sounding* is *"a state where the
+        # audio is up, but not playing the score"* — Henri, 2026-09-11,
+        # and it had to be said because holding the clock is not the
+        # same as silencing what it was holding: the schedule answers
+        # `value_at(chan, _t)` for a frozen `_t`, so whatever gate was
+        # open at that instant stayed open for ever.  `_after_seek` had
+        # been releasing those notes into `Notes.values` the whole time
+        # and `control` never read them, the schedule branch winning
+        # first — the same shape as F222 one floor up.
+        #
+        # A plain flag rather than asking `self.state`, because
+        # `control` runs once a block per control source and that
+        # property rebuilds a term every call.
+        self._score_silent = state is State.SOUNDING
         if state is State.SILENT or self.transport is None:
             self.say("silent")
             return
@@ -2364,7 +2393,19 @@ class Workbench:
             if self.notes is not None:
                 return self.notes.values.get(
                     chan, self.live.engine.graph.node(node).init)
-        elif self.schedule is not None and chan:
+        # **In *sounding* the score is not read at all**, so a scored
+        # channel falls past this to `Notes.values` below — which is
+        # where a preview writes and where `_after_seek` writes its
+        # releases.  One rule rather than two: *sounding* reads the
+        # engine's own values, *playing* reads the score.
+        #
+        # A precedence for previewed channels stood here for an hour
+        # (F222) and the layer made it dead: it existed because a
+        # preview had to out-argue the schedule, and the schedule is no
+        # longer in the argument.  Kept out rather than kept "in case",
+        # because dead code that looks load-bearing is what
+        # `doc/complaints.md` is a ledger against.
+        elif self.schedule is not None and chan and not self._score_silent:
             value = self.schedule.value_at(chan, _t)
             if value is not None:
                 return value
@@ -2417,9 +2458,19 @@ class Workbench:
         """
         from .audiomidi import Notes
 
+        from .transportstate import State
+
         allocators = self._allocators(text)
         self.notes = Notes(allocators) if allocators else None
         self._rewire_notes()                 # seeds the switches in turn
+        # **The state is the authority on every road in.**  A rebuild
+        # builds a fresh `Notes`, and one that came back with the layer
+        # open would be open under a playing score; one that came back
+        # closed while *sounding* would leave the editor's press silent
+        # until the next transition.  So it is asked here rather than
+        # assumed, the same way `_settle` asks it for the flags.
+        if self.notes is not None:
+            self.notes.preview(self.state is State.SOUNDING)
 
     def _start_midi(self) -> None:
         """Open a port, so knobs and keys can arrive from hardware too.

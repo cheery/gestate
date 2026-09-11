@@ -397,3 +397,222 @@ are F205, F206, F208 and F212.  The card's own §"What this is" names
 two things still unbuilt: **the bars tool's degrees beside the notes**,
 which `notes.spell` and `notes.degree_of` already compute, and no
 playhead crosses the page while it sounds.  Q1's default still stands.
+
+## The note sounds under the hand — 2026-09-11
+
+**Henri:** *"I think I still do not hear the note preview when I press
+and modify a single note.  That, and the playhead across the page would
+be neat."*  He was right and the tree said why: a gesture sounded only
+when it **let go** — the piece from the note with the transport
+stopped, an audition in place with it running — so taking a note and
+carrying it through six semitones was silent, where Reaper plays the
+note under the finger.
+
+**And the seam `spec/annotations.md` said did not exist, did.**  That
+page priced three paths on 2026-09-04 and put this one out of reach:
+the keyboard road builds a payload from channel, pitch and velocity, so
+*"there is no manner in it and there cannot be"*, and the right road
+needed *a way to sound one payload, with its fields, through its bank*
+— called a card of its own.  Two claims in one sentence, and only the
+second half was true.  The allocator has always taken a payload tuple;
+what stood in front of it was `feed`, which builds one from a MIDI
+message.  `audiomidi.Notes.sound(bank, note, payload)` is the door, and
+it is a method, not a card.  The expensive half — rendering a note
+offline, in isolation, both ways — is still unbuilt and still wanted.
+
+So the preview **carries the manner**: `session._sounds_as` reads the
+note's own record and hands over `(key, level_of(vel),
+bits_of(manner))`, which is the payload `NotesKind.events` schedules.
+What you hear is the note the piece would play, in the voice it would
+play it in.  A press sounds it, a drag re-sounds it at each new
+semitone and at no other tick, the release stops it.
+`spec/annotations.md` §"The seam existed after all" is the contract.
+
+**Two things a recording bench could never have found**, and a real
+allocator found both in one test:
+
+* **Every voice of a `.notes` file is a bank the score writes, and a
+  scored bank starts with its listening switch off** — so a preview
+  routed the way a keyboard is routed would have been silent on exactly
+  the notes being edited.  The switch guards the *routed* door against
+  a keyboard that might be played at any moment; this door is named,
+  and the question it actually has to answer is the **transport**,
+  which is where the guard went.
+* **A `.notes` voice takes a three-value payload**, so the two a MIDI
+  message can build are refused by the allocator's own arithmetic —
+  `spec/annotations.md`'s objection to path 1 arriving as an exception
+  rather than as a wrong sound.
+
+**F221 closed with it**, as he decided: a section's caption is drawn at
+the section's own start now, so it scrolls away with the bars it names.
+
+### What the window said, within the hour — 2026-09-11
+
+**Henri, running `untitled.notes`:** *"One issue is that when I press
+Ctrl+space, the currently playing note ends up sounding to the
+background… Another issue is that I do still do not hear the note play
+review.  I try to play it from 'playing' and 'sounding' -states… and
+if I try it from 'stopped' -state, it ends up gunking the 'play' and
+I'm no longer able to play the note."*
+
+**Three reports, one cause under two of them.**  The guard read
+`Workbench.playing`, which is not *the clock is moving* but
+`self._audio.is_alive()` — **the engine being up**.  So it was exactly
+inverted: it refused in *sounding* and *playing*, the two states that
+can sound, and allowed *silent*, the one that cannot — where a gate
+written into `Notes.values` is read as an **initial value** when the
+engine comes up, which is the note stuck on that gunked his play.  The
+reader is `_state_of` now, and both up states preview; the allocator
+refuses a preview on a full bank rather than stealing a scored note,
+so *playing* costs the piece nothing.
+
+The third is its own: a preview is held for as long as the hand is and
+`play` does not pass through the hand, so **every transport verb hushes
+first**.
+
+**And the tree had already written the warning.**  `session._state_of`:
+*"Not `Workbench.playing`, which asks whether the audio thread is alive
+— a different question wearing the same word."*  Written for this trap,
+and it did not stop it, because the new code never called that
+function.  A warning is worth what the path through it is worth.
+
+*Four tests under the preview in `test/test_drawnscores.py`, two of
+them states a headless bench had to be told to be in — which is the
+other half of the lesson: a stub answers whatever it was built to
+answer, and it was built by the same reading that was wrong.*
+
+### And the repair was correct in the states he was not in — 2026-09-11
+
+**Henri, an hour later:** *"I restarted the editor, and it still shows
+the old behavior."*  It did not: the library was not stale
+(`editor._stale` said so), the launcher runs from the tree, and there
+is no installed copy shadowing it.  Measured on a real `Workbench` over
+a two-note `.notes` with no sound card, the press sounded in *sounding*
+and in *playing* exactly as built — and **a freshly opened editor is
+*silent***, which was the one state the repair refused in.
+
+**A right mechanism scoped to the wrong occasion**, which is a worse
+failure than the wrong mechanism it replaced: it passes every test,
+reads correctly, and is invisible to the person it was built for.  The
+first version misread a word; this one never asked *which state is a
+person in when they do this*.
+
+And the design carried its own tell: `_hear_from` has started the piece
+from a **dropped** note since 2026-09-06, so in silence the release
+already took the sound card and only the press refused to.  Two
+decisions five days apart, and no reader ever saw both.
+
+**His call, given three readings: bring the engine up and sound it** —
+which is `audition`'s own move from silence, `spec/transport.md`
+sentence 4.  A bench that will not come up is still left alone and not
+written into, so the *gunking* guard stands.
+
+### The author named the mechanism — 2026-09-11, F222
+
+**Henri, after two repairs that had not worked:** *"You recall that the
+voice banks are layered?  That is, the MIDI-note fed into the bank does
+not play along the main note.  However.  The mechanism is blocked
+because the voice bank doesn't have FromMIDI -class.  That might be
+tripping and causing the behavior I note."*
+
+It was.  `Workbench.control` is the one function the render loop reads,
+and a channel reaches `Notes.values` only through `_midi_channels`,
+which is filled through `listen`, gated on `takes_midi`, gated on a
+`FromMIDI` instance — which a `.notes` wrapper's voices cannot have,
+their payload being `(key, level, manners)`.  So the preview was taken
+by the allocator and answered from the score, every block.  `fixme.md`
+**F222**; the repair is `Notes.previewing`, the voice's own channels
+read ahead of the schedule.
+
+**And the reason it shipped twice is one lesson, not three.**  Every
+oracle used today asked something *upstream of what decides*: the
+session called `sound`, `sound` returned `True`, `sounding_on` listed
+the key — all true, none of them about sound.  The question that finds
+it is **what reads this, and did that change**.  Three of the day's four
+blind oracles cost minutes; this one shipped, because its upstream
+answer was genuinely true.
+
+It took the author to find it, and not by reporting a symptom a fourth
+time — by naming a mechanism.  `doc/memory/test-what-a-person-would-do.md`
+is the rule and this is its sharpest case in the tree: the suite was
+green through all three versions.
+
+### The preview is a layer the state grants — 2026-09-11, his design
+
+**Henri, after the preview became audible:** *"I think it's really
+close to the desired behavior.  Now I can hear the previewed note.  But
+when I preview, it attempts to play ahead, and when I leave sounding
+on, the notes end up being held rather than silenced.  I think
+'preview' could be it's own input layer that goes on when sounding
+-state is on, solving these issues."*
+
+**Taken as stated, and it is now sentence 9 of `spec/transport.md`.**
+`transport.ges`' `Do` gains `Preview Bool`; `enter (Up Sounding) =
+[AllOff, Preview True]` and `Preview False` on entering either other
+state.  `audiomidi.Notes.preview` executes it, and **closing the layer
+releases whatever it was holding**.  `session._sound` asks whether the
+layer is open and never decides; from a shut one it spends an
+`audition`, a press on a note being a request to hear.
+
+**Why this is the repair and the last two were not.**  A preview is a
+note the *editor* holds, so it looked like the editor's business — and
+it was made the editor's business twice, and each time one path was
+fixed and another left open.  Put on the **state**, the property is
+over states rather than over paths: there is no way into *sounding*
+that forgets to open it and no way out that forgets to close it.  The
+editor only ever sees the path it is on; the chart sees all of them.
+*Two tests in `test/test_transport_model.py` enumerate it, which for
+three states and four verbs is the bounded check the spec says it is.*
+
+Measured on a real engine:
+
+| | state | layer | held | channels |
+|---|---|---|---|---|
+| opened | playing | shut | — | 0 |
+| play toggle | sounding | **open** | — | 0 |
+| a hand presses | sounding | open | `melody 70` | 5 |
+| **Ctrl+Space** | playing | **shut** | **—** | **0** |
+| stop | silent | shut | — | 0 |
+
+*Playing* closes the layer rather than sharing it: the score has those
+voices, the allocator and the schedule assign them independently, and a
+moved note is already heard in place by the audition.
+
+**Not reproduced, and said plainly:** his *"it attempts to play
+ahead"* was never reproducible headlessly — two probes over both paths
+showed nothing calling `start` or `seek`, and the note's own gate
+released cleanly in each.  The layer may have taken its cause with it;
+if it has not, it is still open and wants a driven run.
+
+### And a held clock is not a silent score — 2026-09-11
+
+**Henri:** *"When I enter the 'sounding' -state.  Whatever was playing
+that moment keeps playing (they should turn off because A: the preview
+gets the voice bank, B: I do not want them to sound in sounding -state,
+sounding -state is meant to be a state where the audio is up, but not
+playing the score)."*
+
+`Workbench.control` resolved a scored channel with
+`schedule.value_at(chan, _t)`, and in *sounding* `_t` does not move —
+so whatever gate was open when the clock stopped stayed open for ever.
+`enter (Up Sounding)` has said `AllOff` since the chart was written and
+`_after_seek` had been releasing those notes into `Notes.values` the
+whole time, **where nothing read them**: the schedule branch won first.
+The same shape as F222 one floor up, found the same way — by asking
+what the *consumer* reads rather than what the producer wrote.
+
+Now `spec/transport.md` sentences 3 and 10 say it: in *sounding* the
+engine reads its own values and not the score's.  Measured — in
+*playing* the score's gate reads `1`; entering *sounding*, `0`.
+
+**And it subsumed F222's repair**, which is worth saying out loud: the
+per-channel precedence added an hour earlier existed only to out-argue
+a schedule that is no longer in the argument.  The branch is gone
+rather than kept in case; the finding and its gate stand, because what
+they hold is *what the engine reads*.
+
+**Left of his asks:** the playhead across the page — *"I also think I
+didn't see the playback head moving in the score."*  Not built.
+Nothing draws a transport position today, and it is the first thing
+here that needs a number crossing the wire every frame rather than one
+per rebuild.

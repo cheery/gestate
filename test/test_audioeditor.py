@@ -2671,3 +2671,145 @@ def test_a_python_driver_keeps_no_count(tmp_path):
     bench = Workbench(tmp_path / "x.ges")
     bench.host = None
     assert bench.dry_since_kept() == 0
+
+
+# ── The preview reaches the engine, not just the allocator ──────────────────
+
+
+@needs_clang
+def test_a_previewed_note_is_what_the_engine_reads_and_not_the_score(tmp_path):
+    """**The oracle that mattered, and the three that did not.**
+
+    A `.notes` voice is a bank the score writes, so its channels are not
+    in `Workbench._midi_channels` — and they **cannot be**, because that
+    set is filled through `listen`, which is gated on `takes_midi`, which
+    is gated on a `FromMIDI` instance.  The generated wrapper's voices
+    take `(key, level, manners)`, a payload no MIDI message can build, so
+    there is no instance and there never will be.
+
+    *Henri, 2026-09-11, naming it from the window:* *"the mechanism is
+    blocked because the voice bank doesn't have FromMIDI -class.  That
+    might be tripping and causing the behavior I note."*  It was.
+
+    Everything upstream said the preview worked: the session called
+    `sound`, `sound` returned `True`, the allocator's `sounding_on`
+    listed the key.  What none of them asked is what
+    `Workbench.control` — the one function the render loop reads —
+    answers for that channel.  It answered the **score**, every block.
+    `audiomidi.Notes.previewing` is the repair and this is the question
+    that finds it again.
+
+    Read at a pitch the score never plays, so the three readings cannot
+    agree by accident — the probe that found this first compared the
+    preview against the score's own first note and saw nothing move.
+    """
+    notes_file = tmp_path / "untitled.notes"
+    notes_file.write_text(
+        "section A  key D  mode lydian  bars 2  beats 4  voices melody\n"
+        "\n"
+        "note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff\n"
+        "note  section A  bar 1  at 96  len 96  voice melody  key 64  vel mf\n")
+    from gestate.transportstate import Verb
+
+    bench = Workbench(notes_file, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=None)
+    assert _wait(lambda: bench.live is not None
+                 and bench.live.engine is not None, 60.0), bench.messages
+    bench.transition(Verb.PLAY)          # into *sounding*, where a hand edits
+    try:
+        assert bench.notes is not None, "a bank for the file's one voice"
+        assert not bench.takes_midi("melody"), \
+            "the wrapper's payload has no `FromMIDI`, and that is the point"
+        assert not bench._midi_channels, "so no channel is the keyboard's"
+
+        graph = bench.live.engine.graph
+        pitch = 70                        # in neither note of the file
+        assert bench.notes.sound("melody", pitch, (pitch, 6, 0))
+        heard = []
+        for node in bench.live.engine.control_sources:
+            chan = graph.node(node.id).chan
+            if chan not in bench.notes.values:
+                continue
+            engine = bench.control(node.id, 0)
+            scored = (bench.schedule.value_at(chan, 0)
+                      if bench.schedule is not None else None)
+            if engine == bench.notes.values[chan] and engine != scored:
+                heard.append((chan, scored, engine))
+        assert heard, (
+            "the engine read the score on every channel the preview wrote — "
+            "taken by the allocator and never heard, which is what "
+            "`sound` returning True and `sounding_on` listing the key "
+            "both cannot tell you")
+        assert any(e == pitch for _c, _s, e in heard), \
+            f"the pitch the hand is on: {heard}"
+
+        # And handing it back is what a transport verb reaches.
+        bench.notes.all_off()
+        assert not bench.notes.previewing, "the score has its voices again"
+    finally:
+        try:
+            bench.stop()
+        except Exception:                                 # noqa: BLE001
+            pass
+
+
+@needs_clang
+def test_entering_sounding_silences_the_score_the_engine_was_playing(tmp_path):
+    """**Henri, 2026-09-11:** *"When I enter the 'sounding' -state.
+    Whatever was playing that moment keeps playing (they should turn off
+    because A: the preview gets the voice bank, B: I do not want them to
+    sound in sounding -state, sounding -state is meant to be a state
+    where the audio is up, but not playing the score)."*
+
+    Holding the clock is not the same as silencing what it was holding.
+    `control` resolved a scored channel with `schedule.value_at(chan,
+    _t)`, and in *sounding* `_t` does not move — so whatever gate was
+    open at that instant stayed open for ever.
+
+    `_after_seek` had been releasing those notes into `Notes.values` on
+    every entry to *sounding* the whole time (`enter (Up Sounding)` says
+    `AllOff`), and `control` never read them, because the schedule
+    branch wins first.  The same shape as F222 one floor up: a write
+    nobody reads, and three layers of bookkeeping agreeing it worked.
+
+    Read at the instant the score's own note is live, so the before and
+    after cannot agree by accident.
+    """
+    from gestate.transportstate import Verb
+
+    notes_file = tmp_path / "held.notes"
+    notes_file.write_text(
+        "section A  key D  mode lydian  bars 2  beats 4  voices melody\n"
+        "\n"
+        "note  section A  bar 1  at 0  len 384  voice melody  key 62  vel ff\n")
+    bench = Workbench(notes_file, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=None)
+    assert _wait(lambda: bench.live is not None
+                 and bench.live.engine is not None, 60.0), bench.messages
+    try:
+        graph = bench.live.engine.graph
+
+        def gates():
+            return {graph.node(n.id).chan: bench.control(n.id, 0)
+                    for n in bench.live.engine.control_sources
+                    if graph.node(n.id).chan.startswith("melodyChan")
+                    and graph.node(n.id).chan.endswith("f0")}
+
+        assert bench.state is State.PLAYING
+        playing = gates()
+        assert any(v for v in playing.values()), \
+            f"the score's own note is gated on while playing: {playing}"
+
+        bench.transition(Verb.PLAY)                  # playing -> sounding
+        assert bench.state is State.SOUNDING
+        sounding = gates()
+        assert not any(sounding.values()), (
+            "the score went on sounding with the clock held — "
+            f"{sounding}; `AllOff` released notes nobody was reading")
+    finally:
+        try:
+            bench.stop()
+        except Exception:                                 # noqa: BLE001
+            pass

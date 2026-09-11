@@ -1692,6 +1692,46 @@ def test_a_sharp_tonic_is_a_tonic_and_not_a_comment(tonic):
 # ── Rung 5, the first slice — the rail, the selection, `move` — 2026-09-06 ──
 
 
+from gestate.transportstate import State as _TransportState  # noqa: E402
+
+_SOUNDING = _TransportState.SOUNDING
+
+
+class _Sounds:
+    """What `audiomidi.Notes.sound` was told, in order.
+
+    **A stub, and this file's own lesson about stubs.**  It answers
+    whatever it was built to answer, and the first version was built by
+    the reading that turned out to be wrong — so it agreed.  What it
+    can honestly hold is the *sequence*: one note a hand, the old pitch
+    stopped before the new one starts, nothing left down.  Whether a
+    sound comes out is `test_audioeditor.py`'s question, asked of a
+    real engine through `Workbench.control`.
+    """
+
+    def __init__(self, open_: bool = True):
+        self.said: list = []
+        self.down: set = set()
+        self.preview_open = open_
+
+    def preview(self, on):
+        self.preview_open = bool(on)
+        if not self.preview_open:
+            self.down.clear()
+
+    def sound(self, bank, note, payload, on=True):
+        if on and not self.preview_open:
+            return False
+        self.said.append((bank, int(note), tuple(payload), bool(on)))
+        if on:
+            if (bank, int(note)) in self.down:
+                return False
+            self.down.add((bank, int(note)))
+        else:
+            self.down.discard((bank, int(note)))
+        return True
+
+
 def _rolled_page(here):
     """The first roll of a `.ges` on disk, its regions, and a headless
     session seated over it with the bench a gesture needs: the regions,
@@ -1710,11 +1750,18 @@ def _rolled_page(here):
     class _Bench:
         note_regions = regions_of([roll])
         playing = False
+        #: **The transport's state, which is not `playing`** — that one
+        #: is *the audio thread is alive* (`session._state_of`).  A
+        #: bench that answered neither read as *silent*, where nothing
+        #: previews, so the state is said here on purpose: *sounding*
+        #: is engine up and clock held, which is where a hand edits.
+        state = _SOUNDING
         rate, bpm = 44100, 104
 
         def __init__(self):
             self.origins, self.path, self.previewing = origins, here, {}
             self.auditioned, self.calls = [], []
+            self.notes = _Sounds()
 
         def audition(self, text):
             self.auditioned.append(text)
@@ -3725,3 +3772,292 @@ def test_a_diagonal_drag_on_a_note_whose_move_reorders_the_file_keeps_both_axes(
     assert f"key {key + 2}" in came[0] and f"at {on % 384 + 2 * grid}" in came[0], came
     assert notes.write(notes.parse(after, "arc.notes")) == after, "and the file is in its own order"
 
+
+
+# ── The note sounds under the hand — 2026-09-11 ──────────────────────────
+
+
+def _record_of(seat, roll, note: int):
+    """The `.notes` line a roll's note came from — the file's own word
+    on whose note it is and what it carries."""
+    from gestate.scorebox import pitch_atom
+
+    line, _c, _w, _k = pitch_atom(roll, note)
+    name, row = seat.bench.origins[line]
+    text = (Path(seat.bench.path).parent / name).read_text()
+    return notes.at_line(notes.parse(text, name), row)
+
+
+def test_a_press_sounds_the_note_in_its_own_voice_with_its_own_payload():
+    """**Henri, 2026-09-11:** *"I think I still do not hear the note
+    preview when I press and modify a single note."*  A press sounds
+    the note it took, through the bank its voice plays, carrying the
+    three values the score itself schedules — key, level, manners — so
+    the preview is the note the piece would play and not a plain
+    keyboard version of it.  The release stops it.
+    """
+    from gestate.notes import bits_of, level_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        one = _record_of(seat, roll, 0)
+        want = (one["key"], level_of(one["vel"]), bits_of(one["manner"]))
+        assert seat.bench.notes.said == [(one["voice"], one["key"], want, True)]
+        assert seat.sounding[0][:3] == (one["voice"], one["key"], 0)
+        seat.released(chan)
+        seat.released("__nb_rail_0__")
+        assert seat.bench.notes.said[-1] == (one["voice"], one["key"], (), False)
+        assert not seat.bench.notes.down, "nothing is left ringing"
+        assert 0 not in seat.sounding
+
+
+def test_a_carried_note_sounds_each_new_pitch_and_no_pitch_twice():
+    """The drag is where the preview earns its keep: the old pitch is
+    stopped before the new one starts, and a motion inside one semitone
+    does not retrigger — a `Shift` arrives per motion and a note
+    restarted sixty times a second is a buzz, not a note.  The payload
+    follows the hand in pitch and keeps the note's own level and
+    manners, which are not what moved."""
+    from gestate.scorebox import across_of, reach_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        on = roll.events[0][0]
+        seat.touched("__nb_rail_0__", across_of(roll, on))
+        _n, _note, _was, grabbed, _k = seat.holding
+        low, high = reach_of(roll)
+        one = _record_of(seat, roll, 0)
+        voice, rest = one["voice"], seat.sounding[0][3][1:]
+        for up in (1, 1, 2, 2, 3):           # two motions land on each of 1, 2
+            seat.touched(chan, (high - (grabbed + up)) / (high - low))
+        said = seat.bench.notes.said
+        starts = [(b, n, p) for b, n, p, on_ in said if on_]
+        assert starts == [(voice, grabbed + i, (grabbed + i,) + rest)
+                          for i in range(4)], \
+            f"one start a semitone, in order, each at the hand's pitch: {starts}"
+        stops = [(b, n) for b, n, _p, on_ in said if not on_]
+        assert stops == [(b, n) for b, n, _p in starts[:-1]], \
+            "each stopped before the next began"
+        assert seat.bench.notes.down == {(voice, grabbed + 3)}, "one note ringing"
+        seat.released(chan)
+        seat.released("__nb_rail_0__")
+        assert not seat.bench.notes.down, "and the commit ends it"
+
+
+def test_a_press_asks_the_transport_to_open_the_preview_layer():
+    """**Henri's design, 2026-09-11:** *"preview could be it's own input
+    layer that goes on when sounding -state is on, solving these
+    issues."*  The layer is `transport.ges`' `Preview Bool`, granted on
+    entering *sounding*; the editor **asks** and never decides.
+
+    From a shut layer a press spends one verb — `audition`, which is
+    what a request to hear is (`spec/transport.md` sentence 4) — and
+    sounds the note through the `Notes` that exists after it, because
+    coming up builds a new one.
+
+    This also removes an asymmetry nobody would defend out loud:
+    `_hear_from` has started the piece from a **dropped** note since
+    2026-09-06, so the release already took the sound card in silence
+    and only the press refused to.
+    """
+    from gestate.transportstate import State, Verb
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        seat.bench.state = State.SILENT
+        seat.bench.notes = _Sounds(open_=False)
+        woke = []
+
+        def _up(verb):
+            woke.append(verb)
+            seat.bench.state = State.SOUNDING
+            seat.bench.notes = _Sounds(open_=True)    # as `_start_notes` does
+            return seat.bench.state
+
+        seat.bench.transition = _up
+        _press_a_note(seat, roll, 0)
+        assert woke == [Verb.AUDITION], f"one verb, the one that hears: {woke}"
+        assert seat.bench.notes.said, "and it sounds through the new engine"
+        assert seat.bench.notes.down, "held, as a hand holds it"
+
+
+def test_a_press_that_cannot_open_the_layer_writes_nothing():
+    """The guard behind the ask, and the defect it is named for.  A
+    layer that will not open means the engine is not there — and
+    `Notes.values` holds the control values the engine reads, so a gate
+    written while it is down is picked up as an **initial value** when
+    it comes up, and the piece begins with a note stuck on.  Henri, on
+    the window, before any of this: *"if I try it from 'stopped' -state,
+    it ends up gunking the 'play' and I'm no longer able to play the
+    note."*
+    """
+    from gestate.transportstate import State
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        seat.bench.state = State.SILENT
+        seat.bench.notes = _Sounds(open_=False)
+        seat.bench.transition = lambda verb: State.SILENT   # refuses to wake
+        _press_a_note(seat, roll, 0)
+        assert seat.bench.notes.said == [], "nothing written into a shut layer"
+        assert 0 not in seat.sounding
+
+
+def test_a_press_with_no_transport_at_all_writes_nothing():
+    """A bench with no `transition` cannot be asked, so it is not
+    written into either — the same rule, for a stand-in rather than a
+    refusal."""
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        seat.bench.notes = _Sounds(open_=False)
+        seat.bench.transition = None
+        _press_a_note(seat, roll, 0)
+        assert seat.bench.notes.said == []
+        assert 0 not in seat.sounding
+
+
+def test_nothing_previews_while_the_score_is_playing():
+    """*Playing* closes the layer — `enter (Up Playing) = [Preview
+    False]` — because the score has those voices and is using them, and
+    a moved note is already heard in place by the audition that
+    happens.  So a press asks for nothing and takes nothing.
+    """
+    from gestate.transportstate import State
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        seat.bench.state = State.PLAYING
+        seat.bench.notes = _Sounds(open_=False)
+        woke = []
+        seat.bench.transition = lambda verb: woke.append(verb)
+        _press_a_note(seat, roll, 0)
+        assert woke == [], "playing is not interrupted to preview"
+        assert seat.bench.notes.said == []
+        assert 0 not in seat.sounding
+
+
+def test_a_press_does_not_outlive_the_engine_it_was_started_on():
+    """A rebuild builds a fresh `Notes` and the layer opens on *that*.
+    An entry made against the old one names a note nobody is holding —
+    and believing it would answer *the same pitch, still down* and
+    sound nothing at all, which is the shape of every defect this
+    gesture has had.
+    """
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        _press_a_note(seat, roll, 0)
+        assert seat.sounding[0][4] is seat.bench.notes
+        seat.bench.notes = _Sounds(open_=True)        # as a rebuild does
+        seat.touched("__nb_pitch_0__", seat.bench.previewing.get("x", 0.5))
+        seat.released("__nb_pitch_0__")
+        _press_a_note(seat, roll, 0)
+        assert seat.bench.notes.said, "the new engine is asked afresh"
+        assert seat.sounding[0][4] is seat.bench.notes
+
+
+def test_a_transport_verb_stops_whatever_a_hand_was_previewing():
+    """**Henri, 2026-09-11, on the window:** *"when I press Ctrl+space,
+    the currently playing note ends up sounding to the background.  I
+    think that's a kind of an unwanted feature."*
+
+    A preview is held for as long as the hand is, and `play` does not
+    pass through the hand — so the note went on ringing while the score
+    started over the top of it.  Every transport verb hushes first.
+    """
+    from gestate.transportstate import State, Verb
+
+    for verb, run in (("play", lambda s: s.do_play()),
+                      ("stop", lambda s: s.do_stop()),
+                      ("audition", lambda s: s.do_audition())):
+        with _copied() as here:
+            roll, seat = _rolled_page(here)
+            seat.bench.transition = lambda v, b=seat: State.PLAYING
+            _press_a_note(seat, roll, 0)
+            assert seat.bench.notes.down, f"a note is ringing before {verb}"
+            run(seat)
+            assert not seat.bench.notes.down, \
+                f"`{verb}` left the preview sounding into the background"
+            assert not seat.sounding
+
+
+def test_the_preview_reaches_a_real_allocator_on_a_scored_bank():
+    """**The test the stub could not be**, and it found two things a
+    recording bench never would.  Every voice of a `.notes` file is a
+    bank the score writes, and a scored bank starts with its listening
+    switch *off* — so a preview routed the way a keyboard is routed
+    would be silent on exactly the notes being edited.  And a `.notes`
+    voice takes a **three**-value payload, so the two a MIDI message
+    can build are refused by the allocator's own arithmetic, which is
+    `spec/annotations.md`'s objection to path 1 arriving as an
+    exception instead of as a wrong sound.
+    """
+    from gestate.audioalloc import AllocError, Allocator
+    from gestate.audiomidi import Notes
+    from gestate.audiovoices import banks_of, channels_of
+
+    source, _origins = notes.expanded(notes.wrapper(NOTES), NOTES.parent)
+    allocators = {}
+    for bank in banks_of(source):
+        try:
+            allocators[bank.name] = Allocator(channels_of(source, bank))
+        except AllocError:                                # pragma: no cover
+            continue
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    voices = {v for s in notes.sections_of(parsed) for v in s["voices"]}
+    assert voices <= set(allocators), "a bank for every voice"
+
+    live = Notes(allocators)
+    live.listening = {b: False for b in allocators}       # as a scored bank starts
+    # The layer is the transport's to open and a bare `Notes` starts
+    # shut; this test is about the allocator underneath it, so it is
+    # opened by hand here and by the chart everywhere else.
+    live.preview(True)
+    # **And the same, through the bench a window actually builds** — so
+    # this is not a claim about a `Notes` assembled by the test.
+    real = Workbench(NOTES, rate=22050, block=256)
+    real._start_notes()
+    assert not real.notes.preview_open, \
+        "a fresh bench is silent, so the layer is shut — the state decides"
+    real.notes.preview(True)
+    assert set(real.notes.allocators) == set(allocators)
+    assert not any(real.notes.listening.values()), \
+        "every voice of a note file is a scored bank, and starts off"
+    assert real.notes.sound("melody", 62, (62, 5, 0))
+    assert 62 in real.notes.sounding_on("melody")
+    assert real.notes.sound("melody", 62, (), on=False)
+
+    fields = live.allocators["melody"].fields - 2
+    assert fields == 3, "key, level, manners — the payload a note carries"
+    assert not live.sound("melody", 62, (62, 5)), "two of three is refused"
+    assert live.sound("melody", 62, (62, 5, 0)), "a scored bank still previews"
+    assert 62 in live.sounding_on("melody")
+    assert not live.sound("melody", 62, (62, 5, 0)), "and not twice"
+    assert live.sound("melody", 62, (), on=False)
+    assert 62 not in live.sounding_on("melody")
+    assert not live.sound("nosuchvoice", 62, (62, 5, 0)), "a bank that is not there"
+
+
+def test_a_sections_caption_starts_where_the_section_starts():
+    """**F221**, and Henri's call between the two readings a scrolling
+    page makes different — 2026-09-11.  The caption sat at the body's
+    *centre*, which reads as bottom-right on a section that fits and is
+    nowhere near the bars it names on one wider than the window: off
+    the right edge at bar 1, at the left under bar 9 after the carry.
+    Anchored at the section's own start it scrolls away with the bars
+    it is about, and its first letter lands on the body's left edge.
+    """
+    from gestate.gui import Substrate
+    from gestate.scorebox import body_of
+
+    rolls, (baked, _r, entries), _l = _live_and_baked()
+    for roll, view in zip(rolls, Substrate.several(baked, 44100, entries)):
+        left, _top, _w, _h = body_of(roll)
+        said = [i for i in view.picture()
+                if i[0] == "text" and i[3] == roll.title.upper()]
+        assert len(said) == 1, f"one caption, {roll.title}"
+        assert said[0][1] == left, (
+            f"the caption starts at the body's left ({left}), "
+            f"not at {said[0][1]}")
+        assert said[0][5] == 2, "at the size a caption has always been"

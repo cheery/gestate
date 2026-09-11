@@ -353,6 +353,36 @@ class Notes:
         #: one `FromMIDI` instance, so nothing in the type can tell them
         #: apart (`audio.ges`).
         self.listening: dict = {b: True for b in allocators}
+        #: **The channels a `sound()` is holding**, by name — what the
+        #: engine has to read from `values` rather than from the score.
+        #:
+        #: Without this the preview is *taken and never heard*: a
+        #: `.notes` voice is a bank the score writes, so its channels
+        #: are not in `Workbench._midi_channels` — and they cannot be,
+        #: because that set is filled through `listen`, which is gated
+        #: on a `FromMIDI` instance the generated wrapper does not have.
+        #: So `Workbench.control` took the schedule's value every block
+        #: and the gate written here was never looked at.  *Henri,
+        #: 2026-09-11, naming the mechanism from the window:* *"the
+        #: mechanism is blocked because the voice bank doesn't have
+        #: FromMIDI -class."*
+        #:
+        #: Only the voice's own channels, so the rest of the bank is
+        #: still the score's; cleared by `all_off`, which is what a
+        #: transport verb and a rebuild reach.
+        self.previewing: set = set()
+        #: **Is the preview layer open?**  The transport's chart says so
+        #: and nothing else does — `transport.ges`' `Preview Bool`,
+        #: granted on entering *sounding* and withdrawn on entering
+        #: either other state.  *Henri, 2026-09-11:* *"preview could be
+        #: it's own input layer that goes on when sounding -state is
+        #: on."*
+        #:
+        #: Closed until told, because a fresh `Notes` is built by every
+        #: rebuild and a layer that defaulted open would come back open
+        #: under a playing score.  `Workbench._start_notes` asks the
+        #: state for it, so the state is the authority on every road in.
+        self.preview_open: bool = False
         #: MIDI channel to listen on, or `None` for all of them.
         self.channel = channel
         #: Channel name → its current value.  Written by the reader thread,
@@ -439,6 +469,132 @@ class Notes:
         self.notes += 1
         return True
 
+    def sound(self, bank: str, note: int, payload: tuple,
+              on: bool = True) -> bool:
+        """One note on a **named bank**, with no routing in the way.
+
+        `feed` asks `route` which bank a key plays, because *which bank
+        a key plays is policy* — a split, a channel, a program change.
+        This is the other case: the caller already knows whose note it
+        is.  A `.notes` note names its voice and the voice is the bank,
+        so an editor previewing the note under the hand does not want a
+        policy applied to it; it wants that voice.  Routing it by
+        channel would work by arithmetic — bank *n* is channel *n* —
+        and would be a guess dressed as wiring, wrong the moment a
+        program sets its own `route`.
+
+        **And the payload comes from the caller, whole.**
+        `spec/annotations.md` §"The three paths, priced" rejected the
+        keyboard road because `FromMIDI` builds a payload out of
+        channel, pitch and velocity and *"there is no manner in it and
+        there cannot be, because a keyboard has no marks"*.  True of a
+        keyboard, and this is not one: a caller that knows the bank
+        knows the fields too.  What the spec called the missing seam —
+        *a way to sound one payload, with its fields, through its bank*
+        — is this function, and it turned out to be the smaller half of
+        path 2.  The expensive half, rendering a note offline in
+        isolation, is still unbuilt and still wanted.
+
+        The payload is truncated to what the bank's voices take, the
+        same rule `payload_of` follows, so a caller may hand over every
+        field it has and a two-field bank takes two.
+
+        Held notes are keyed apart from the keyboard's, so a preview
+        cannot end a key a hand is holding down and `all_off` still
+        takes both.
+
+        **And it does not consult `listening`**, which is the other
+        half of the same argument.  That switch is off for every bank a
+        score writes, because *two writers on one set of channels is a
+        fight* — and it is the routed path's guard, for a keyboard that
+        might be played at any moment.  A caller here is not a keyboard:
+        it names the bank because it is the editor holding that bank's
+        own note.  Whether the score is writing at the same time is a
+        question about the **transport**, which this class cannot see
+        and the caller can — `session._sound` previews only with the
+        transport stopped, where nothing else is writing and the
+        switch's whole reason is absent.  Left in, the switch would
+        silence the preview on exactly the notes being edited, because
+        a `.notes` voice is always a scored bank.
+        """
+        if bank not in self.allocators or not self.preview_open:
+            return False
+        at = self.now
+        note = int(note)
+        held = ("sound", bank, note)
+        if not on:
+            banks = self.playing.pop(held, None)
+            if not banks:
+                return False
+            changes = [c for b in banks
+                       for c in self.allocators[b].note_off(note, at)]
+        else:
+            if held in self.playing:
+                return False
+            from .audioalloc import PAYLOAD
+
+            want = self.allocators[bank].fields - PAYLOAD
+            if len(payload) < want:
+                return False
+            changes = self.allocators[bank].note_on(
+                note, tuple(payload)[:want], at)
+            if not changes:
+                # **A bank with every voice busy refuses** (`_pick`
+                # answers `None` and `note_on` an empty list) rather
+                # than stealing one — so a preview cannot cut a note
+                # the score is playing.  Recording it as held anyway
+                # would leave a release for a note that never began.
+                return False
+            self.playing[held] = [bank]
+        for chan, value in changes:
+            self.values[chan] = value
+            # **Held past the release on purpose.**  The voice's
+            # envelope reads `offAt` after the gate falls, and handing
+            # the channel back to the score at that instant would cut
+            # the release off mid-air.  A voice the score is not using
+            # costs nothing to keep; `all_off` is what gives them back.
+            self.previewing.add(chan)
+        self.notes += 1
+        return True
+
+    def preview(self, on: bool) -> None:
+        """Open or close the preview layer — **the transport's word.**
+
+        `transport.ges` answers `Preview True` on entering *sounding*
+        and `Preview False` on entering either other state, and
+        `Workbench._act` runs it.  Nothing else sets this: the editor
+        asks whether the layer is open and never decides that it is.
+
+        *Henri, 2026-09-11, after two repairs that each fixed one path
+        and left another:* *"I think 'preview' could be it's own input
+        layer that goes on when sounding -state is on, solving these
+        issues."*  What it solves is that every question about a
+        previewed note — may it sound, what silences it, what happens
+        when the score starts — stops being a question the gesture has
+        to answer separately.  There is no path into *sounding* that
+        forgets to open it and none out that forgets to close it.
+
+        **Closing releases every note the layer was holding**, which is
+        why `play` can no longer leave one ringing behind the score: the
+        arrow into *playing* closes the layer, and closing is a release.
+        """
+        on = bool(on)
+        if on == self.preview_open:
+            return
+        self.preview_open = on
+        if on:
+            return
+        changes = []
+        for held in [k for k in self.playing if k[0] == "sound"]:
+            _tag, bank, note = held
+            for b in self.playing.pop(held):
+                changes += self.allocators[b].note_off(note, self.now)
+        for chan, value in changes:
+            self.values[chan] = value
+        # And the channels go back to the score in the same breath: a
+        # layer that is shut must not still be what the engine reads.
+        self.previewing.clear()
+
     def payload_of(self, message, bank: str = "") -> tuple:
         if self.payload is not None:
             return tuple(self.payload(message))
@@ -453,6 +609,8 @@ class Notes:
             for chan, value in allocator.all_off(self.now):
                 self.values[chan] = value
         self.playing.clear()
+        # And every channel a preview was holding goes back to the score.
+        self.previewing.clear()
 
     def sounding(self) -> list:
         return sorted(k for a in self.allocators.values()

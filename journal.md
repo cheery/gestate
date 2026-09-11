@@ -2162,3 +2162,241 @@ anchored to the body's centre, which only becomes wrong once a page is
 bigger than the window.  Left as an entry because where a caption
 belongs on a scrolling page is a picture decision and the spec has
 never said.
+
+## The seam that was priced out of reach was a method — 2026-09-11
+
+*Henri, after the sideways carry landed: "I think I still do not hear
+the note preview when I press and modify a single note."*  True, and
+the tree could say exactly why: every `.notes` gesture sounds when it
+**lets go**, and nothing at all while a hand holds a note.
+
+`spec/annotations.md` §"The three paths, priced" had settled this on
+2026-09-04 and settled it against building anything.  Path 1, through
+the keyboard: *"`noteOn` takes channel, pitch, velocity — there is no
+manner in it and there cannot be, because a keyboard has no marks"*, so
+a note marked staccato would preview long.  **Cheap and wrong.**  Path
+2, render the note in isolation: it *"needs a compile per gesture and a
+seam that does not exist: a way to sound one payload, with its fields,
+through its bank"*.  **Right and expensive**, and left as a card of its
+own.
+
+**That last sentence is two claims and only one of them was true.**
+The compile is for rendering a note *in isolation, both ways* — still
+unbuilt, still wanted.  The **door** was never missing:
+`Allocator.note_on` has always taken a payload tuple.  What stood in
+front of it was `Notes.feed`, which builds one from a MIDI message —
+and a message is the thing that cannot carry a manner.  A caller that
+knows the bank knows the fields.  `Notes.sound(bank, note, payload)` is
+twenty lines, and the preview now hands over the three values the score
+itself schedules: key, level, manners.
+
+So the page's own objection to path 1 does not apply to what was built.
+What is heard under the finger is the note the piece would play.
+
+**A whole design decision had been taken against a door nobody had
+tried**, and the sentence that closed it read as a measurement because
+it stood beside two real ones.  *Right and expensive* was half right;
+the half that was wrong is the half that stopped the work.
+
+**And the test that mattered was the one the stub could not be.**  A
+bench recording `sound` calls proved the sequence — a press starts one
+note, a drag stops the old pitch before starting the new, a motion
+inside one semitone does not retrigger, the commit ends it — and would
+have shipped two defects:
+
+* **Every voice of a `.notes` file is a bank the score writes**, and a
+  scored bank starts with its listening switch *off* (`_allocators`:
+  *two writers on one set of channels is still a fight*).  A preview
+  that consulted that switch would have been silent on exactly the
+  notes being edited.  The switch guards the routed door against a
+  keyboard that might be played at any moment; the named door's real
+  question is the transport, and that is where the guard went — the
+  same *only from a standing start* rule `_hear_from` already keeps.
+* **A `.notes` voice takes a three-value payload.**  The two a MIDI
+  message can build are refused by `Allocator`'s own arithmetic — the
+  spec's objection to path 1 arriving as an `AllocError` rather than as
+  a wrong sound.  It is the best kind of refusal: the machine saying
+  the thing the prose had said, in a place nobody could route around.
+
+Both came out of one test that builds the real allocators for
+`arc.notes` and asks the allocator what is sounding.  It was written
+because the stub felt too comfortable, not because anything was known
+to be wrong.
+
+**F221 closed the same sitting**, his call between two readings: a
+section's caption is drawn at its own start now rather than at the
+body's centre, so it scrolls away with the bars it names.  The repair
+is a label exactly as wide as its own letters — `gui.py`'s `_fit` takes
+the scale from declared numbers alone, so the box's centre is the
+text's centre and half a width in from the left edge puts the first
+letter on it.
+
+## And the window said the guard was upside down — 2026-09-11
+
+*Henri, running `untitled.notes` within the hour of the preview
+landing:* *"I do still do not hear the note play review.  I try to
+play it from 'playing' and 'sounding' -states… and if I try it from
+'stopped' -state, it ends up gunking the 'play' and I'm no longer able
+to play the note."*
+
+**The guard read `Workbench.playing`, which is `self._audio.is_alive()`
+— the engine being up, not the clock moving.**  Against
+`spec/transport.md`'s three states it was inverted in both directions:
+*silent* is engine down and it previewed there, *sounding* is engine up
+with the clock held and it refused — and *sounding* is precisely the
+state a hand edits in.
+
+The *silent* half is the worse one and it is not simply inaudible.
+`Notes.values` holds the control values the engine reads, so a gate
+written while the engine is down is picked up as an **initial value**
+when it comes up: the piece starts with a note stuck on, one of four
+voices gone, and after a few presses the bank has none left.  That is
+his *"gunking the play"*, exactly, and the word for it is better than
+the one a session would have written.
+
+**`session._state_of` had already written the warning** — *"Not
+`Workbench.playing`, which asks whether the audio thread is alive — a
+different question wearing the same word"* — for this trap, three
+screens from the code that fell in.  It did not help, because the new
+code never called it.  **A warning is worth what the path through it is
+worth**, and the repair is not a better sentence but that every reader
+of the transport goes through the one function.
+
+**And the tests were green over all of it.**  They were green because
+the bench is a stub, the stub answered `playing = False`, and
+`playing = False` is what the wrong reading needed to be true.  A stub
+answers what it was built to answer, and it was built by the same
+reading that was wrong — which is the shape of
+`doc/memory/test-what-a-person-would-do.md`, arriving from the other
+side: a harness built from the implementation cannot find a missing
+affordance, and one built from a misreading agrees with it.  What found
+it was a person opening a file.  Nine minutes of use against a green
+suite, and use won.
+
+The third report is a different thing and was simply missing: *"when I
+press Ctrl+space, the currently playing note ends up sounding to the
+background."*  A preview is held for as long as the hand is; `play`
+does not pass through the hand.  Every transport verb hushes first now.
+
+## The state a person is actually in — 2026-09-11
+
+*Henri, an hour after the guard was repaired:* *"I restarted the
+editor, and it still shows the old behavior.  now I tried the desktop
+icon and direct command `python -m gestate.workbench untitled.ges` and
+navigated to the untitled.notes -file."*
+
+**The suspicion he offered was staleness, and it was worth ruling out
+properly rather than answering from memory.**  Three things could have
+been old and each was checked: the loaded library
+(`editor._stale` said no — built 13:46, newer than every `.rs` it
+watches), the launcher (`tools/gestate-editor` `cd`s to the tree and
+uses its venv, so the Python is the working tree's), and an installed
+copy shadowing it (there is none; `import gestate` from outside the
+tree fails).  Nothing was stale.
+
+**What answered it was a measurement, not a reading of the code.**  A
+real `Workbench` over a two-note `.notes`, no sound card, the press
+driven through the session in each of the transport's three states:
+
+    silent    press -> 'line 3'   sounding_on(melody)=[]
+    sounding  press -> 'line 3'   sounding_on(melody)=[62]
+    playing   press -> 'line 3'   sounding_on(melody)=[62]
+
+The repair worked.  **And a freshly opened editor is *silent*** — which
+was the one state it refused in.  So the answer to *"it still shows the
+old behavior"* is that the new behaviour was correct in the two states
+he was not in.
+
+**That is a worse failure than the one it replaced**, and worth naming
+as its own kind: not a wrong mechanism but a right one *scoped to the
+wrong occasion*.  It passes every test, reads correctly in review, and
+is invisible to the person it was built for.  The first version failed
+because it read `playing` as the wrong word; the second failed because
+nobody asked **which state is a person in when they do this**.  One is
+a misreading, the other is never having gone and looked — and the
+tree's own instrument for the second is `tools/dragcheck.py`'s whole
+argument: *nothing in the window says so; you have to look*.
+
+**And the design had an asymmetry that should have given it away.**
+`_hear_from` has started the piece from a **dropped** note since
+2026-09-06, engine up and all — so in *silent* the release already took
+the sound card, and only the press refused to.  A press that is silent
+beside a release that starts the whole piece is not a rule anybody
+would write down; it was the residue of two decisions taken five days
+apart, and it survived because no single reader ever saw both.
+
+His call, given three readings: **bring the engine up and sound it**.
+A press is a request to hear, which is what `audition` does from
+silence — `spec/transport.md` sentence 4 — so it is the spec's own move
+rather than a new one.  A bench that will not come up is still left
+alone and not written into, which is the *gunking* guard kept intact.
+
+**The probe lied once on the way**, and it is the third oracle to do so
+in one day: it pinned `bench.state` to a constant property, so the
+wake-up could not take and the silent case read as a refusal *after*
+being repaired.  An oracle that fixes the thing it is watching answers
+about itself — `doc/memory/dont-conclude-from-a-shallow-check.md`
+§"The third failure mode", which had been written that morning.
+
+## The author named the mechanism and the mechanism was the bug — 2026-09-11
+
+*Henri, after two repairs that had not worked:* *"I think there's
+something else going on.  You recall that the voice banks are layered?
+That is, the MIDI-note fed into the bank does not play along the main
+note.  However.  The mechanism is blocked because the voice bank doesn't
+have FromMIDI -class.  That might be tripping and causing the behavior I
+note."*
+
+He was right, and it is `fixme.md` **F222**.  `Workbench.control` is the
+one function the render loop reads.  Its precedence was: a channel in
+`_midi_channels` reads `Notes.values`, otherwise the schedule wins.
+`_midi_channels` is filled only through `listen`, gated on `takes_midi`,
+gated on the program having a `FromMIDI` instance — and a `.notes`
+wrapper's voices take `(key, level, manners)`, which no MIDI message can
+build, so there is no instance and **there never will be**.  Every
+channel the preview wrote was answered from the score, every block.
+
+    _midi_channels: []          takes_midi('melody'): False
+    sound() took: True          allocator says: [70]
+    notes.values written:  gate 1, pitch 70, level 6
+    channels the engine READS that changed:  NONE
+
+**Four oracles today, and every one of them blind in the same way: each
+asked something upstream of the thing that decides.**
+
+| the question asked | what it could not see |
+|---|---|
+| did the page's *ground* move? | the ground is wider than the window at every scroll |
+| did the *window* differ? | the status bar has a clock |
+| does `bench.state` move? | the probe had pinned it to a constant |
+| did `sound` take, does `sounding_on` list it? | whether `control` ever reads it |
+
+The first three cost minutes.  The fourth shipped, twice, and was
+believed both times — because it is the one where the upstream answer is
+*genuinely true*: the session did call it, it did return `True`, the
+allocator did hold the note.  Nothing was lying.  The reading was just
+not about sound.
+
+**The rule that comes out of it is sharper than "verify".**  For
+anything with a consumer, ask **what reads this, and did *that* change**
+— not *did I write it*.  A write, a return value and a data structure
+are three ways of asking the same too-early question.  `control` is the
+consumer here; the file is the consumer of an edit, and that is why the
+file oracle in the morning's driven run was the one that held.
+
+**And it took the author to find it**, which is the part worth keeping.
+He did not report a symptom a fourth time; he named a mechanism —
+*layered banks, no `FromMIDI`, the mechanism is blocked* — and the
+session's job was to go and measure it.  Nine minutes of his use against
+a suite that has been green through all three versions of this
+(`doc/memory/test-what-a-person-would-do.md`, and its sentence *a
+harness built from the implementation cannot find a missing
+affordance*).  Three sessions of mine could not have found it, because
+all three would have written the same upstream assertion.
+
+The repair is a third precedence, narrow: `Notes.previewing` holds the
+channels of the **voice** a preview allocated, and `control` reads them
+ahead of the schedule.  What it costs is named rather than hidden — in
+*playing* the allocator may pick a voice the schedule is using, and that
+scored note is shadowed while the hand is down, because the allocator
+and the schedule assign voices independently.

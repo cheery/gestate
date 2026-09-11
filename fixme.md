@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 222 entries, **176 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 223 entries, **178 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7814,7 +7814,65 @@ because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
 
-### F221. **[bug]** a section's caption is anchored to the body's centre, so on a page wider than the window it is nowhere near the bars it names
+### F222. **[resolved]** a note previewed on a `.notes` voice was taken by the allocator and never read by the engine, because the bank's channels can never be the keyboard's
+
+Found 2026-09-11 **by Henri, from the window**, naming the mechanism
+rather than the symptom: *"You recall that the voice banks are layered?
+That is, the MIDI-note fed into the bank does not play along the main
+note.  However.  The mechanism is blocked because the voice bank doesn't
+have FromMIDI -class.  That might be tripping and causing the behavior I
+note."*  It was.
+
+`Workbench.control` is the one function the render loop reads, and its
+precedence was: a channel in `_midi_channels` reads `Notes.values`,
+otherwise the schedule wins.  `_midi_channels` is filled only through
+`listen`, which is gated on `takes_midi`, which is gated on the
+program having a `FromMIDI` instance — and a `.notes` wrapper's voices
+take `(key, level, manners)`, a payload no MIDI message can build, so
+there is no instance and **there never will be**.  So every channel a
+preview wrote was answered from the score, every block.
+
+**Measured**, on a real engine with a file for a sound card:
+
+    _midi_channels: []          listening: {'melody': False}
+    takes_midi('melody'): False from_midi: None
+    sound() took: True          allocator says: [70]
+    notes.values written:  melodyChan0f0..f4 = gate 1, pitch 70, level 6
+    channels the engine READS that changed:  NONE
+
+**Three oracles said it worked** and all three were upstream of the
+question: the session called `sound`, `sound` returned `True`, and
+`Allocator.sounding_on` listed the key.  None of them asks what
+`control` answers, which is the only thing that makes a sound.
+
+The repair is a third precedence, narrow on purpose: `Notes.previewing`
+holds the channels of the **voice** a preview allocated — not the bank's
+— and `control` reads them ahead of the schedule.  So a preview shadows
+one voice of four and the score keeps the rest, and `all_off` (what a
+transport verb and a rebuild reach) gives them back.  Held past the
+release deliberately: the envelope reads `offAt` after the gate falls,
+and handing the channel back at that instant would cut the release off.
+
+**What it costs, said plainly:** in *sounding* nothing, because the
+score is not advancing.  In *playing* the allocator may pick a voice the
+schedule is using, and that scored note is shadowed for as long as the
+hand is down — the allocator and the schedule assign voices
+independently, and making them agree is a larger thing than this.
+
+**And the repair was subsumed the same evening**, which is the honest
+end of this entry.  `spec/transport.md` sentence 10 — the score is not
+read at all in *sounding* — makes a scored channel fall through to
+`Notes.values` on its own, so the per-channel precedence existed only
+to out-argue a schedule that is no longer in the argument.  The branch
+is gone; the finding, the measurement and the gate stand, because what
+they hold is *what the engine reads*, which is the question that was
+never asked.
+
+gate: `test/test_audioeditor.py::test_a_previewed_note_is_what_the_engine_reads_and_not_the_score`
+— a real engine, a pitch the score never plays, and the three readings
+compared; red with the precedence removed, 2026-09-11.
+
+### F221. **[resolved]** a section's caption is anchored to the body's centre, so on a page wider than the window it is nowhere near the bars it names
 
 Found 2026-09-11, building the sideways carry
 (`spec/drawnscores.md` §"The page carries sideways too"), by
@@ -7837,11 +7895,27 @@ an entry and not a repair: *pinned to the window's left edge* and
 scrolls, and the second is wrong for exactly the reason the first is
 right.  Nothing in `spec/drawnscores.md` says where a caption goes.
 
-gate: none yet — the two photographs are the evidence
-(`test/driven/20260911-132650-notes-section-carried-sideways`, on the
-desk that ran it).  A test is cheap once the answer is chosen: the
-reference walk already reports the caption's rectangle, so whichever
-anchor is decided is one assertion against it.
+**Answered and repaired the same day.**  *Henri, given the two
+readings — pinned to the window's left edge, or drawn at the section's
+own start —* chose **the section's own start**: the caption scrolls
+away with the bars it is about, and a long section has no caption in
+view most of the time, which is the honest cost of it.  Pinning it to
+the window would have made the caption chrome, and everything on this
+canvas is the walk's, in page coordinates.
+
+The repair is a label **exactly as wide as its own letters**.
+`gui.py`'s `_fit` takes the scale from the declared numbers alone, so a
+box of `8n - 2` by 12 draws at scale 2 — the size a caption has always
+been — and `_walk` centres the glyphs in the box it was given.  A box
+that is the text's own width therefore has its centre at the text's
+centre, and placing that centre half a width in from the body's left
+puts the first letter on the body's left.  `scorebox._caption_w`, one
+call site: the editing road.  The compact box beside a `.ges` line is
+untouched, numbers and all.
+
+gate: `test/test_drawnscores.py::test_a_sections_caption_starts_where_the_section_starts`
+— every section of `arc.notes`, the caption's own rectangle off the
+reference walk, red at the body's centre, 2026-09-11.
 
 ### F220. **[resolved]** the two file roads cut a note at its bar line where the language plays it whole, so a four-beat note moved two beats right drew and sounded as two
 

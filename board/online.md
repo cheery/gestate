@@ -440,6 +440,31 @@ are worth having under either reading of C — a page that plays a file
 and lets nobody change it is still the stranger test's *way in*, and it
 is the half of run two that cost fifteen minutes.
 
+## The flow lamp, answered — 2026-09-11
+
+`tools/flow.py --check` named this card at seven days untouched, which
+is his 2026-09-04 rule: *"se voisi olla kortit joihin ei ole koskettu 7
+päivään, niiden pitäisi mennä later/ hyllyyn meidän kauttamme."*  Put
+to him with the shelf as one of three readings, he chose the third:
+**answer its open questions instead** — so it is not sediment and not
+debt, it is a card waiting on a sitting.
+
+**And what a session found looking for those questions, said plainly
+so the next sitting does not look again:** the eight numbered ones in
+§"Questions" are *all answered*, 1 through 8, dated, in his words where
+they were his.  What stands open is not there.  It is:
+
+* **§"The pieces" A** — the graph as wasm is *"done as a measurement,
+  not yet as a build"*.  That is the one unfinished piece with no
+  decision in front of it.
+* **`## Done` is empty** while `status` says four pieces landed — so
+  the card cannot be finished, or read as finished, until somebody
+  writes what landed.
+* **C is settled and says so**, and reopening it *"is a question about
+  the front end reaching `wasm32`, and it is nobody's today"*.
+
+So the sitting this card is waiting for is short: A, then the ledger.
+
 ## Done
 
 *Nothing yet.*

@@ -27,10 +27,17 @@ State := Silent Int | Up Awake
 Verb := Play | Stop Int | Audition | Seek Int
 
 #: What the transport asks its host to do: bring the instrument up,
-#: bring it down, seek the score, release every held note.  The
-#: subsystem's own verbs — `card:gui-is-difficult.md` Q2 — executed by
-#: `Workbench._act`.
-Do := Sound | Hush | SeekTo Int | AllOff
+#: bring it down, seek the score, release every held note, and open or
+#: close the **preview layer**.  The subsystem's own verbs —
+#: `card:gui-is-difficult.md` Q2 — executed by `Workbench._act`.
+#:
+#: `Preview` is the newest and it is here rather than in the editor on
+#: Henri's reading, 2026-09-11: *"preview could be it's own input layer
+#: that goes on when sounding -state is on."*  A preview is a note the
+#: **editor** holds, and every question about it turns out to be a
+#: question about this chart — may it sound, and what silences it — so
+#: the state grants the layer and nothing downstream has to remember.
+Do := Sound | Hush | SeekTo Int | AllOff | Preview Bool
 
 # ── The chart ────────────────────────────────────────────────────────────
 
@@ -54,7 +61,16 @@ step (Up s) Audition = Go (Up s) []
 step s (Seek x) = Stay
 
 #: Entering *sounding* releases the notes the score had going — a seek's
-#: rule, on the state rather than on the arrow.
+#: rule, on the state rather than on the arrow — and **opens the preview
+#: layer**; every other state closes it.
+#:
+#: On the state and not on the arrow, which is the whole of why this
+#: works: there is no path into *sounding* that forgets to open it and
+#: no path out that forgets to close it, so `play` can no longer leave
+#: a previewed note ringing behind the score and a `stop` cannot strand
+#: one on a bank nobody is reading.  The editor asks whether the layer
+#: is open; it never decides.
 enter : State -> List Do
-enter (Up Sounding) = [AllOff]
-enter s = []
+enter (Up Sounding) = [AllOff, Preview True]
+enter (Up Playing) = [Preview False]
+enter (Silent at) = [Preview False]
