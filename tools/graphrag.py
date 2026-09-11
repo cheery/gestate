@@ -71,6 +71,11 @@ PARAMS = {
     "haiku": {"temperature": 0},
     "sonnet": {},
 }
+#: The CLI has no temperature; what it has is `--effort`, and at the
+#: default a Haiku extraction of a 2 kB memory spent 9,400 thinking
+#: tokens and 73 s (2026-09-11).  Low effort is what an extraction
+#: wants: the prompt is the whole instruction.
+CLI_PARAMS = {"effort": "low"}
 #: USD per million tokens, (input, output).  Remembered, not fetched —
 #: see the module docstring.
 PRICES = {
@@ -149,7 +154,7 @@ def cache_dir() -> Path:
 def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api") -> dict:
     """One extraction call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`."""
     model = MODELS[model_key]
-    params = PARAMS.get(model_key, {}) if backend == "api" else {}
+    params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
     key = hashlib.sha1(f"{model}\n{backend}\n{PROMPT_VERSION}\n{max_tokens}\n{json.dumps(params, sort_keys=True)}\n{SYSTEM}\n{text}".encode()).hexdigest()
     cp = cache_dir() / backend / model_key / f"{key}.json"
     if cp.exists():
@@ -204,7 +209,8 @@ def _call_cli(model_key: str, text: str) -> dict:
     import subprocess
     env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
     cmd = ["claude", "-p", "--model", model_key, "--output-format", "json",
-           "--no-session-persistence", "--tools", "", "--system-prompt", SYSTEM]
+           "--no-session-persistence", "--tools", "", "--system-prompt", SYSTEM,
+           "--effort", CLI_PARAMS["effort"]]
     t0 = time.time()
     try:
         r = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=600)
