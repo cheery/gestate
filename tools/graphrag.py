@@ -5,10 +5,16 @@
     python tools/graphrag.py pilot                 ten files, two models, one prompt; the sheet is doc/trial/graphrag-pilot.md
     python tools/graphrag.py pilot --dry-run       the files, the sizes and the prompt, no call made
     python tools/graphrag.py check                 the door rule: nothing outside doc/graph/ cites into it
+    python tools/graphrag.py extract --backend cli --workers 4    every document, chunked, one call per chunk, cached
+    python tools/graphrag.py extract --dry-run     the files, the chunks and the token estimate, no call made
 
-`card:graphrag-c.md`.  What is built today is the pilot and the door;
-`extract`, `communities`, `summarise` and `query` follow in that order,
-each when the one before has earned it.
+`card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`;
+`communities`, `summarise` and `query` follow in that order, each when
+the one before has earned it.  `extract`'s store is
+`~/.cache/gestate/graphrag/extract-<arm>-<backend>.json` — outside the
+tree, the card's Q1 default — one record per chunk, rewritten whole
+at the end of every run from the per-call cache, so a run interrupted
+halfway loses nothing but the time.
 
 **Nothing this tool produces is evidence.**  An extraction is a model's
 reading of a file; a summary is a model's reading of extractions.  The
@@ -279,6 +285,155 @@ def cost(model_key: str, usage: dict) -> float:
     return (usage.get("input_tokens", 0) * pin + usage.get("output_tokens", 0) * pout) / 1e6
 
 
+# --- the documents, chunked --------------------------------------------------
+
+DOC_ROOTS = ("doc", "spec", "board", "journal")
+CHUNK_CHARS = 12_000            # about three thousand tokens
+SKIP_DIRS = {"target", ".venv", "__pycache__", ".git", "node_modules", ".claude"}
+
+
+def documents() -> list[str]:
+    """Every `.md` under the document roots and at the root, sorted;
+    never anything under `doc/graph/` (the door works both ways) and
+    never the pilot's own outputs."""
+    out = []
+    for p in sorted(ROOT.glob("*.md")):
+        out.append(p.name)
+    for top in DOC_ROOTS:
+        for p in sorted((ROOT / top).rglob("*.md")):
+            rel = p.relative_to(ROOT).as_posix()
+            if any(part in SKIP_DIRS for part in p.parts):
+                continue
+            if rel.startswith(GRAPH_DIR) or "/graphrag-pilot/" in rel:
+                continue
+            out.append(rel)
+    return out
+
+
+def chunks(text: str, size: int = CHUNK_CHARS) -> list[str]:
+    """Paragraph-bounded pieces of at most `size` characters; a single
+    paragraph longer than that is cut at a line."""
+    out, cur = [], ""
+    for para in text.split("\n\n"):
+        piece = para + "\n\n"
+        if len(cur) + len(piece) > size and cur:
+            out.append(cur)
+            cur = ""
+        while len(piece) > size:
+            cut = piece.rfind("\n", 0, size)
+            cut = cut if cut > 0 else size
+            out.append(cur + piece[:cut])
+            cur, piece = "", piece[cut:]
+        cur += piece
+    if cur.strip():
+        out.append(cur)
+    return out
+
+
+def jobs() -> list[tuple[str, int, int, str]]:
+    """`(rel, i, n, text)` for every chunk of every document."""
+    out = []
+    for rel in documents():
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        cs = chunks(text)
+        for i, c in enumerate(cs):
+            out.append((rel, i, len(cs), c))
+    return out
+
+
+def _prompt(rel: str, i: int, n: int, text: str) -> str:
+    where = f"Document `{rel}`" if n == 1 else f"Document `{rel}`, part {i + 1} of {n}"
+    return f"{where}:\n\n{text}"
+
+
+def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bool) -> int:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    js = jobs()
+    total_chars = sum(len(j[3]) for j in js)
+    print(f"extract: {len(documents())} documents, {len(js)} chunks, {total_chars/1e6:.2f} M chars "
+          f"≈ {total_chars/4/1e6:.2f} M tokens, arm {arm}, backend {backend}, {workers} workers")
+    if dry_run:
+        by_top = {}
+        for rel, _i, _n, text in js:
+            top = rel.split("/")[0] if "/" in rel else "(root)"
+            by_top[top] = by_top.get(top, 0) + len(text)
+        for k, v in sorted(by_top.items(), key=lambda kv: -kv[1]):
+            print(f"  {k:10s} {v/1e6:.2f} M chars")
+        return 0
+    if limit:
+        js = js[:limit]
+    store_path = cache_dir() / f"extract-{arm}-{backend}.json"
+    records: dict[str, dict] = {}
+    if store_path.exists():
+        try:
+            records = {r["id"]: r for r in json.loads(store_path.read_text(encoding="utf-8"))["records"]}
+        except (OSError, ValueError, KeyError):
+            records = {}
+    t_start = time.time()
+    done_fresh, secs_fresh, in_tok, out_tok = 0, 0.0, 0, 0
+    estimate_printed = False
+
+    def one(job):
+        rel, i, n, text = job
+        r = call(arm, _prompt(rel, i, n, text), backend=backend)
+        obj = parse(r["text"])
+        ents = [e for e in obj["entities"] if isinstance(e, dict) and e.get("name")]
+        return {
+            "id": f"{rel}#{i}", "file": rel, "chunk": i, "of": n, "chars": len(text),
+            "model": r["model"], "usage": r["usage"], "seconds": r.get("seconds"),
+            "cached": r["cached"], "stop_reason": r.get("stop_reason"),
+            "parse_error": obj.get("parse_error"),
+            "entities": [{"name": e["name"], "norm": norm(e["name"]), "type": e.get("type"),
+                          "description": e.get("description", ""),
+                          "grounded": grounded(e["name"], text)} for e in ents],
+            "relations": [x for x in obj["relations"] if isinstance(x, dict)],
+        }
+
+    def flush():
+        store_path.parent.mkdir(parents=True, exist_ok=True)
+        store_path.write_text(json.dumps({"arm": arm, "backend": backend, "prompt": PROMPT_VERSION,
+                                          "written": time.strftime("%Y-%m-%d %H:%M"),
+                                          "records": list(records.values())},
+                                         ensure_ascii=False), encoding="utf-8")
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(one, j): j for j in js}
+        for k, fut in enumerate(as_completed(futures), 1):
+            rec = fut.result()
+            records[rec["id"]] = rec
+            u = rec["usage"]
+            in_tok += u.get("input_tokens", 0)
+            out_tok += u.get("output_tokens", 0)
+            if not rec["cached"]:
+                done_fresh += 1
+                secs_fresh += rec["seconds"] or 0
+            g = sum(1 for e in rec["entities"] if e["grounded"])
+            took = "  (cached)" if rec["cached"] else f"  {rec['seconds'] or 0:5.1f}s"
+            print(f"  {k:4d}/{len(js)} {rec['id']:56s} ents {len(rec['entities']):3d} grounded {g:3d} "
+                  f"in {u.get('input_tokens', 0):6d} out {u.get('output_tokens', 0):5d}{took}"
+                  f"{'  TRUNCATED' if rec['stop_reason'] == 'max_tokens' else ''}"
+                  f"{'  PARSE ERROR' if rec['parse_error'] else ''}", flush=True)
+            if done_fresh == 10 and not estimate_printed:
+                estimate_printed = True
+                per = secs_fresh / done_fresh
+                remaining = len(js) - k
+                print(f"  --- after 10 fresh calls: {per:.1f} s each, {in_tok/k:.0f} in + {out_tok/k:.0f} out tokens each; "
+                      f"{remaining} left ≈ {remaining*per/workers/60:.0f} min at {workers} workers, "
+                      f"≈ {remaining*in_tok/k/1e6:.2f} M in + {remaining*out_tok/k/1e6:.2f} M out ---", flush=True)
+            if k % 25 == 0:
+                flush()
+    flush()
+    ents = sum(len(r["entities"]) for r in records.values())
+    gr = sum(1 for r in records.values() for e in r["entities"] if e["grounded"])
+    errs = sum(1 for r in records.values() if r["parse_error"])
+    trunc = sum(1 for r in records.values() if r["stop_reason"] == "max_tokens")
+    print(f"extract: {len(records)} records, {ents} entities ({gr/ents:.3f} grounded), "
+          f"{sum(len(r['relations']) for r in records.values())} relations, "
+          f"{errs} parse errors, {trunc} truncated; tokens in {in_tok} out {out_tok}; "
+          f"{done_fresh} fresh calls in {(time.time()-t_start)/60:.1f} min; store {store_path}")
+    return 0
+
+
 # --- the door ----------------------------------------------------------------
 
 def intruders(index: dict) -> list[tuple[str, int, str]]:
@@ -394,9 +549,17 @@ def main(argv=None) -> int:
                    help="api: the key pays at list price; cli: claude -p, the subscription pays in usage")
     p.add_argument("--files", type=int, default=len(PILOT), help="only the first N pilot files")
     sub.add_parser("check", help="the door rule")
+    e = sub.add_parser("extract", help="every document, chunked, one call per chunk, cached")
+    e.add_argument("--dry-run", action="store_true")
+    e.add_argument("--arm", default="haiku", choices=list(MODELS))
+    e.add_argument("--backend", choices=BACKENDS, default="cli")
+    e.add_argument("--workers", type=int, default=4)
+    e.add_argument("--limit", type=int, help="only the first N chunks")
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check()
+    if a.cmd == "extract":
+        return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
     for x in arms:
         if x not in MODELS:

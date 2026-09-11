@@ -75,6 +75,19 @@ at different settings.  Total spent about $1.50 of the $14, at
 assumed prices.  Henri read one file's two extractions side by side
 the same evening — his reading is below when he gives it.
 
+## `extract` is running — started 2026-09-11, evening
+
+Henri: *"ajetaan extract cli-taustalla. neljä rinnakkain, kyllä."*
+The cli backend — `claude -p` with the key unset so the subscription
+pays in usage, `--effort low`, four workers — over 260 documents in
+533 chunks, 1.14 M tokens of text plus about 8.6 k tokens of the
+CLI's own context per call.  Log and store are outside the tree:
+`~/.cache/gestate/graphrag/extract-haiku-cli.log` and
+`extract-haiku-cli.json`; the pid is in `extract.pid` beside them.
+The store is rewritten every 25 chunks, so an interrupted run resumes
+from the per-call cache for nothing.  What it cost and what it found
+go below when it ends.
+
 ## The build, after the pilot — in the order the pieces earn a caller
 
 1. **`extract`** — every document under `doc/`, `spec/`, `board/`,
