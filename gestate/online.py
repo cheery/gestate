@@ -316,6 +316,28 @@ def canvas_of(src: str, graph, rate: int = RATE) -> dict | None:
     return {
         "text": sub["text"], "entry": sub["entry"],
         "tags": sub["tags"], "chans": sub["chans"],
+        # **Which of the canvas's channels are also the synth's knobs**,
+        # by the control slot the worklet turns — the bridge the desk
+        # has always had and the page did not.
+        #
+        # *Henri, on `lantern.ges` on the live site, 2026-09-04:* *"I
+        # tried it in lantern and the knobs appear to work.  Not certain
+        # if they do anything there."*  They half did: `warmth` is one
+        # declaration — `warmth = 0.55 ::: mkSig (wait warmthChan)` —
+        # and the page split it into a slider that reached the sound and
+        # an in-picture fader that reached the picture, neither moving
+        # the other.  On the desk they are one thing, because
+        # `Workbench.control` resolves a channel **by name**: *"the graph
+        # calls it `cutoff` because the program did, and so does the
+        # element that writes it."*
+        #
+        # So the name is the bridge here too.  The slot is the index
+        # `_control` numbers its sources by, which is the same number
+        # `_source_html` puts in `data-slot`, so a fader and a slider
+        # that are one declaration write one slot.
+        "slots": {n.chan: i
+                  for i, n in enumerate(graph.control_sources())
+                  if n.chan in declared},
         "meters": {
             "peak": "peak" in declared,
             # Which bands, not how many: a file may declare `band0` and

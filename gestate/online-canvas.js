@@ -38,6 +38,19 @@ export class Picture {
     // never the page's to derive (`web_channel`).
     this.chan = {};
     for (const name of spec.chans) this.chan[name] = this.id(name);
+    // Channel id -> the synth's control slot, for the channels that are
+    // both: a declaration the picture can touch and the sound reads.
+    // Resolved here because an id is the shell's to give, and the name
+    // is what the two halves share (`online.canvas_of`).
+    this.slot = new Map();
+    this.ofSlot = new Map();
+    for (const [name, slot] of Object.entries(spec.slots || {})) {
+      const c = this.chan[name];
+      if (c >= 0) { this.slot.set(c, slot); this.ofSlot.set(slot, c); }
+    }
+    //: What a touch on a shared channel should be told to (set by the
+    //: page: `(slot, value) => ...`), or null while nothing is playing.
+    this.turn = null;
     this.pending = new Map();
     this.traces = new Map();
     this.grabbing = false;
@@ -194,6 +207,16 @@ export class Picture {
   motion(x, y) { this.hand(this.ex.web_motion(this.w, x, y)); }
   release() { this.ex.web_release(this.w); this.grabbing = false; }
 
+  // **The other direction**: a slider beside the declaring line moves
+  // the fader in the picture.  The fault was never one control being
+  // deaf, it was *two controls for one declaration that did not move
+  // together* — so a page that only taught the fader to reach the sound
+  // would have swapped which half of it a person meets.
+  set(slot, value) {
+    const chan = this.ofSlot.get(slot);
+    if (chan !== undefined) this.pending.set(chan, value);
+  }
+
   hand(pairs) {
     this.grabbing = !!this.ex.web_grabbing(this.w);
     const n = Number(pairs);
@@ -203,9 +226,16 @@ export class Picture {
     const out = [];
     for (let i = 0; i < n; i++) out.push([got[i * 2], got[i * 2 + 1]]);
     // A touch's writes go back in on the next tick, so the picture
-    // follows the hand; whether they also reach the *sound* is the
-    // `clap.params` row and is not wired here.
-    for (const [chan, value] of out) this.pending.set(chan, value);
+    // follows the hand — **and reach the sound on the same touch**,
+    // where the channel is one the synth reads.  They are one
+    // declaration (`online.canvas_of`'s `slots`), and a page that moved
+    // only one of them is two controls disagreeing with nothing to say
+    // which is which.
+    for (const [chan, value] of out) {
+      this.pending.set(chan, value);
+      const slot = this.slot.get(chan);
+      if (slot !== undefined && this.turn) this.turn(slot, value);
+    }
     return out;
   }
 }

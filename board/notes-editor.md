@@ -578,11 +578,14 @@ Measured on a real engine:
 voices, the allocator and the schedule assign them independently, and a
 moved note is already heard in place by the audition.
 
-**Not reproduced, and said plainly:** his *"it attempts to play
+**And the play-ahead went with the design.**  His *"it attempts to play
 ahead"* was never reproducible headlessly — two probes over both paths
-showed nothing calling `start` or `seek`, and the note's own gate
-released cleanly in each.  The layer may have taken its cause with it;
-if it has not, it is still open and wants a driven run.
+showed nothing calling `start` or `seek`.  **Closed by him the same
+evening**, on the window: *"I think 'it attempts to play ahead' no
+longer applies.  The fix changed the design such that it no longer is
+expected."*  Which is the honest shape of it: a symptom of the editor
+deciding when a preview may sound, gone because the state decides now
+and there is no longer a path on which the question arises.
 
 ### And a held clock is not a silent score — 2026-09-11
 

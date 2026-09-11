@@ -34,9 +34,24 @@
 
   const turned = {};
   let live = null;
-  const turn = (slot, value) => {
+  // Declared before `turn`, which closes over it: the sliders' handlers
+  // are attached long before the shell loads, and a `let` read from its
+  // own dead zone is a ReferenceError rather than a `null`.
+  let picture = null;
+  // `fromPicture` is set when the fader in the canvas is what moved:
+  // the picture already holds that value, so echoing it back would be
+  // the same write twice and, on a drag, a fight between two owners of
+  // one number.
+  const turn = (slot, value, fromPicture) => {
     turned[slot] = value;
     if (live) live.port.postMessage({ slot, value });
+    if (picture && !fromPicture) picture.set(slot, value);
+    const input = document.querySelector(`input[data-slot="${slot}"]`);
+    if (input && fromPicture) {
+      input.value = value;
+      const out = input.parentElement.querySelector("output");
+      if (out) out.textContent = input.value;
+    }
   };
   for (const input of document.querySelectorAll("input[data-slot]")) {
     const out = input.parentElement.querySelector("output");
@@ -71,7 +86,6 @@
   // piece still moves, which is `gestate/gui.py`'s own rule and the
   // strangest thing to get wrong.  A shell that will not load costs the
   // canvas and never the sound.
-  let picture = null;
   const face = document.getElementById("picture");
   if (data.canvas && face) {
     try {
@@ -80,6 +94,12 @@
       // pages on the site are that piece.
       const { Picture } = await import("./canvas.js");
       picture = await Picture.load(data.canvas.wasm, data.canvas, face);
+      // **One declaration, one number** (`card:audiovisual-gallery.md`
+      // `clap.params`): a touch on a fader the synth also reads turns
+      // that control slot, and the slider beside the declaring line
+      // follows.  Before this they were two controls that each did half
+      // and nothing said which was which.
+      picture.turn = (slot, value) => turn(slot, value, true);
       face.hidden = false;
       const spot = (e) => {
         const r = face.getBoundingClientRect();

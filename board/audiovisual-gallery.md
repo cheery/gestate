@@ -420,6 +420,59 @@ disagreeing**, and nothing says which is which.  That is the
 missing feature, and it is the argument for doing that row before or
 with the MIDI one.
 
+## What done means, and how the tab gets played — 2026-09-11
+
+**Henri, on the flow lamp's seven days:** *"I think the
+audiovisual-gallery.md could be stated to be completed, or if it's not,
+it could be worked on enough to become done."*  Put the three readings
+with their prices, he took the largest: **the fader and MIDI, then
+done.**  So his 2026-09-04 *"Lets not close … the page could use MIDI
+support"* stands as binding, and the card closes when both rows are in.
+
+**The split fader, priced 2026-09-11 by a session.**  Still live, and
+the shape is one line: a canvas touch writes into the wasm shell's own
+channel map (`online-canvas.js`, `this.pending`) and the page's slider
+posts `{slot, value}` to the audio worklet — two paths for one
+declaration, which is why `warmth` moves the picture and the filter
+separately.  On the desk `Workbench.control` bridges them **by name**:
+*"the graph calls it `cutoff` because the program did, and so does the
+element that writes it."*  `online.canvas_of` already computes `knobs`,
+the control sources' channel names, so the map from canvas channel to
+control slot is derivable where the payload is built.
+
+**And how a tab is played.**  Put with what would kill each, his
+answer: **Web MIDI, with the computer keyboard as the fallback.**  That
+is this card's own argument read forward — it says the refusal sentence
+must be *rewritten rather than deleted* because *"a tab with no
+keyboard has nothing to play"* stays true of a tab with no device
+attached, and a fallback is exactly what makes it false.  Web MIDI is
+Chrome and Edge only, so the fallback is the path most visitors meet
+and is not a courtesy.  `arpeggiator`, `jazz` and `ladder` are the test
+set.
+
+### The fader and its slider are one declaration, built — 2026-09-11
+
+`clap.params` closed as a fault rather than as a feature.
+`online.canvas_of` hands the page a `slots` map — every canvas channel
+the synth also reads, by the control slot the worklet turns — and the
+name is the bridge, the same one `Workbench.control` has always used on
+the desk.  On `lantern.ges` that is `warmthChan → 4` and `glowChan →
+29`, and slot 4 is exactly what the slider beside line 40 already
+carried.
+
+**Both directions, because the fault was never one control being
+deaf.**  A touch on the fader turns the slot *and* moves the slider and
+its readout; a slider moved by hand writes the canvas channel, so the
+fader follows.  `online.js`' `turn` gained a `fromPicture` flag so the
+two owners of one number do not echo each other during a drag.
+
+Held by `test_online.py::test_a_fader_and_its_slider_are_one_declaration`
+— the two slot maps are computed independently, from `knobs` and from
+`canvas_of`, and compared; red at an off-by-one, 4.9 s.
+
+**Left for done:** `clap.note-ports`, as he answered it — Web MIDI with
+the computer keyboard as the fallback.
+
 ## How it came off the shelf
 
 **It arrived shelved, was named as debt rather than sediment, and came

@@ -832,7 +832,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
 | 122 | `OnlineError` | `author` | *nowhere, on purpose* | 'this piece plays what your hands hold — `hear holds.' + sorted(heard)[0] + '` — and empty hand… |
-| 367 | `OnlineError` | `world` | — | why |
+| 389 | `OnlineError` | `world` | — | why |
 
 ### `pipeline.py`
 

@@ -691,3 +691,46 @@ def test_the_gallery_piece_carries_every_reading_and_no_controls():
     canvas = Substrate(src, online.RATE)
     assert list(_attachments(canvas.signal.value, canvas.state)) == [], (
         "mirror.ges grew a control; on a page it would do nothing")
+
+
+def test_a_fader_and_its_slider_are_one_declaration():
+    """**The fault Henri met on the live site**, 2026-09-04:
+    *"I tried it in lantern and the knobs appear to work.  Not certain
+    if they do anything there."*
+
+    `warmth` is one declaration — `warmth = 0.55 ::: mkSig (wait
+    warmthChan)`, which `lantern.ges`' own header calls out as one
+    channel the fader writes and the filter reads — and the page had
+    split it into a slider that reached the sound and a fader in the
+    picture that reached the picture, neither moving the other.  On the
+    desk they are one thing because `Workbench.control` resolves a
+    channel **by name**.
+
+    So the name is the bridge here too, and this is the property: every
+    canvas channel the synth also reads is handed to the page with the
+    **same slot number** the slider beside its declaring line carries.
+    A renumbering that moved one and not the other would put the two
+    halves back out of step silently, which is the only way this can
+    break again.
+    """
+    from gestate.audiospans import located
+    from gestate.online import RATE, canvas_of, knobs
+
+    src = (AUDIO_DIR / "lantern.ges").read_text()
+    sites, graph = located(src, rate=RATE)
+    payload = canvas_of(src, graph, RATE)
+    assert payload is not None, "lantern draws"
+    bridge = payload["slots"]
+    assert "warmthChan" in bridge, \
+        "the channel his fault was about is one the synth reads"
+
+    # The slider's own numbering, from the same place the page takes it.
+    sliders = {k["name"]: k["slot"] for k in knobs(src, graph, sites)}
+    for chan, slot in bridge.items():
+        name = chan[:-4] if chan.endswith("Chan") else chan
+        if name in sliders:
+            assert sliders[name] == slot, (
+                f"{name}: the slider turns slot {sliders[name]} and the "
+                f"fader turns {slot} — two controls for one declaration")
+    assert sliders.get("warmth") == bridge["warmthChan"], \
+        "warmth, the one he touched"
