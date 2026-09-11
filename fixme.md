@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 221 entries, **176 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 222 entries, **176 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,6 +7813,35 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F221. **[bug]** a section's caption is anchored to the body's centre, so on a page wider than the window it is nowhere near the bars it names
+
+Found 2026-09-11, building the sideways carry
+(`spec/drawnscores.md` §"The page carries sideways too"), by
+photograph: a one-section fixture of sixteen bars, 2078 px in a window
+1100 wide.  At the opening — bars 1 to 9 showing — `A D LYDIAN` sits
+off at the right edge; after the carry to bar 16 the same caption sits
+at the left, under bar 9.  It follows the page and not the window, and
+the page is now bigger than the window.
+
+`scorebox.py`'s `Shift (left + body_w // 2)` is the placement, on both
+the baked and the live road: the caption is put at the body's
+horizontal centre and drawn in a label `body_w - 8` wide.  For a
+section that fits, centre is a reasonable place and this never showed;
+for one that does not, a caption is a label you have to scroll to find
+and, when you do find it, it is beside bars it is not about.
+
+**Not a decision a session should take alone**, which is why this is
+an entry and not a repair: *pinned to the window's left edge* and
+*drawn at the section's own start* are different pictures once a page
+scrolls, and the second is wrong for exactly the reason the first is
+right.  Nothing in `spec/drawnscores.md` says where a caption goes.
+
+gate: none yet — the two photographs are the evidence
+(`test/driven/20260911-132650-notes-section-carried-sideways`, on the
+desk that ran it).  A test is cheap once the answer is chosen: the
+reference walk already reports the caption's rectangle, so whichever
+anchor is decided is one assertion against it.
 
 ### F220. **[resolved]** the two file roads cut a note at its bar line where the language plays it whole, so a four-beat note moved two beats right drew and sounded as two
 

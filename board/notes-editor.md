@@ -345,3 +345,55 @@ misread `Clip`.  One line in each; `fixme.md` **F220**, and the
 boundary the `arc.notes` parity never reached is a two-bar file
 written into the test.  `spec/drawnscores.md` §"The eighth slice"
 said the wrong thing and says the right one now.
+
+## The page carries sideways — 2026-09-11
+
+**The thing the ninth slice left**, in its own words: the section-resize
+tool this card built dead-ended the moment it was used past eight bars,
+because a nine-bar section is 1182 px wide in a window 1100 wide and
+the page was simply cut at the view's right edge.  *It is the fourth
+slice's number on the other axis and no new arithmetic* —
+`view::canvas_scroll` is a clamp that does not know which way it runs,
+so the sideways carry is that same function called with
+`view::span_across` and the window's **width**.  `canvas_centre` is now
+the one place the origin is said, so the painter, the press, the drag
+and the release cannot disagree about it.  A tilt wheel or a trackpad
+says it in the event's `x`; **Shift and the wheel** is the spelling for
+a mouse with one wheel.  `spec/drawnscores.md` §"The page carries
+sideways too" is the contract; three tests under *And the same scroll
+sideways* in `shell/editor/tests/view.rs`.
+
+Driven (`test/driven/20260911-132650-notes-section-carried-sideways`):
+one section of **sixteen** bars, 2078 px against a 1100 px window, with
+exactly one note past the eighth bar — nothing in the run could reach
+that note unless the page carried.  It opened with its keyboard at
+x 1, forty tilts right took the keyboard off the left edge, forty more
+changed not one pixel of the roll, a press took the bar-14 note and
+carried it three semitones — `key 64` to `key 67`, one line of the file
+and nothing else — and Shift with the wheel brought it back to x 1.
+
+**What the driving taught, which the tests could not:** the first two
+oracles were blind and both answered confidently.  Asking whether the
+page's *ground* had moved reads `(0, …, 1098, …)` at every scroll,
+because the ground is wider than the window — *it did not move*, said
+of a page that had.  Asking whether the whole window differed read the
+status bar's clock as the page running past its last bar.  What answers
+honestly is the roll's band differenced and the keyboard down the
+page's left edge.  The shape is `doc/memory/dont-conclude-from-a-shallow-check.md`'s,
+one floor down: an oracle that cannot see the thing gives a reading
+about itself.
+
+**Found on the way:** `fixme.md` **F221** — a section's caption is
+anchored to the body's centre, so on a page wider than the window it is
+off the right edge at bar 1 and at the left after the carry, beside
+bars it is not about.  Left as an entry rather than repaired, because
+*pinned to the window* and *drawn at the section's start* are different
+pictures and the spec says nothing.
+
+**Left of this card**, as of today: the postcondition is not met — the
+score's 0.4–0.6 s and the picture's 0.4 s are bookkeeping, not a
+compile (§"Slice 3, landed") — and the four open defects under the page
+are F205, F206, F208 and F212.  The card's own §"What this is" names
+two things still unbuilt: **the bars tool's degrees beside the notes**,
+which `notes.spell` and `notes.degree_of` already compute, and no
+playhead crosses the page while it sounds.  Q1's default still stands.

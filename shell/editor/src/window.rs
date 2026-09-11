@@ -263,9 +263,18 @@ struct EditorWindow {
     /// Where the last walked frame reached, top and bottom, as it
     /// would sit unscrolled — what the wheel clamps against.
     canvas_span: Cell<(i32, i32)>,
+    /// How far the canvas view is carried **left**, in pixels — the
+    /// same number on the other axis, read by the same three.  Zero
+    /// for a picture no wider than the window, which is every page
+    /// until a section is grown past it.
+    canvas_across: Cell<i32>,
+    /// Where the last walked frame reached, left and right, unscrolled
+    /// (`view::span_across`).
+    canvas_span_across: Cell<(i32, i32)>,
     /// Whether the canvas view has been placed since it was opened —
-    /// a page opens at its top (`view::canvas_opening`), once, and
-    /// keeps its scroll across the rebuilds a drag causes.
+    /// a page opens at its top and at bar one (`view::canvas_opening`,
+    /// on both axes), once, and keeps both scrolls across the rebuilds
+    /// a drag causes.
     canvas_aligned: Cell<bool>,
     /// The canvas, as the model last drew it, and which version.
     picture: RefCell<Vec<gestate_panel::list::Item>>,
@@ -557,6 +566,8 @@ impl EditorWindow {
             on_canvas: Cell::new(false),
             canvas_scroll: Cell::new(0),
             canvas_span: Cell::new((0, 0)),
+            canvas_across: Cell::new(0),
+            canvas_span_across: Cell::new((0, 0)),
             canvas_aligned: Cell::new(false),
             picture: RefCell::new(Vec::new()),
             drawn: Cell::new(0),
@@ -995,9 +1006,14 @@ impl EditorWindow {
         self.dirty.set(true);
     }
 
+    /// Where the canvas's origin lands this frame — the middle of the
+    /// window, carried by both scrolls.  **One place says it**, and
+    /// the painter, the press and the release all subtract the same
+    /// pair, or the picture and the hand disagree.
     fn canvas_centre(&self) -> (i32, i32) {
         let view = self.view.borrow();
-        (view.w / 2, view.h / 2 - self.canvas_scroll.get())
+        (view.w / 2 - self.canvas_across.get(),
+         view.h / 2 - self.canvas_scroll.get())
     }
 
     /// Let go of every key the piano is holding.
@@ -1821,31 +1837,46 @@ impl WindowHandler for EditorWindow {
                 // second transform — the rule this path already kept,
                 // with one more number in it.
                 let scroll = self.canvas_scroll.get();
-                let (dx, dy) = (view.w / 2, view.h / 2 - scroll);
+                let across = self.canvas_across.get();
+                let (dx, dy) = self.canvas_centre();
                 if let Some(w) =
                     self.walkers.borrow_mut().get_mut("substrate")
                 {
                     let shown = w.frame(dx, dy);
                     gestate_panel::paint::paint(&mut canvas, shown);
                     let (top, bottom) = view::span_of(shown);
+                    let (left, right) = view::span_across(shown);
                     self.paint_pointing(&mut canvas, "substrate", w, 0, 0,
                                         None);
                     let span = (top + scroll, bottom + scroll);
+                    let wide = (left + across, right + across);
                     self.canvas_span.set(span);
+                    self.canvas_span_across.set(wide);
                     // **Placed once, then clamped.**  The first frame
-                    // after the view opens puts a tall page at its top;
-                    // every frame after keeps the scroll where the
-                    // wheel left it, inside the page as it now is — a
-                    // drag rebuilds the page, and a rebuild must not
-                    // send the reader back to the top.
-                    let placed = if self.canvas_aligned.get() {
-                        view::canvas_scroll(scroll, 0, span, view.h)
-                    } else {
-                        self.canvas_aligned.set(true);
+                    // after the view opens puts a tall page at its top
+                    // and a wide one at its left; every frame after
+                    // keeps the scroll where the wheel left it, inside
+                    // the page as it now is — a drag rebuilds the
+                    // page, and a rebuild must not send the reader
+                    // back to bar one.
+                    let first = !self.canvas_aligned.get();
+                    let placed = if first {
                         view::canvas_opening(span, view.h)
+                    } else {
+                        view::canvas_scroll(scroll, 0, span, view.h)
                     };
+                    let carried = if first {
+                        view::canvas_opening(wide, view.w)
+                    } else {
+                        view::canvas_scroll(across, 0, wide, view.w)
+                    };
+                    self.canvas_aligned.set(true);
                     if placed != scroll {
                         self.canvas_scroll.set(placed);
+                        self.dirty.set(true);
+                    }
+                    if carried != across {
+                        self.canvas_across.set(carried);
                         self.dirty.set(true);
                     }
                 }
@@ -1866,7 +1897,7 @@ impl WindowHandler for EditorWindow {
                 // subtracts below: one number, two directions, or the
                 // picture and the hand disagree.
                 canvas.clear(view::BG);
-                let (dx, dy) = (view.w / 2, view.h / 2 - self.canvas_scroll.get());
+                let (dx, dy) = self.canvas_centre();
                 let items = self.picture.borrow().iter()
                     .map(|i| match i.clone() {
                         Item::Rect { x, y, w, h, c } =>
@@ -2505,17 +2536,43 @@ impl WindowHandler for EditorWindow {
                 // rolls taller than the window (`card:drawn-scores.md`
                 // rung 5).  A picture that fits does not move.
                 if self.on_canvas.get() {
-                    let by = match delta {
-                        baseview::ScrollDelta::Lines { y, .. } =>
-                            -(y * 3.0) as i32 * step,
-                        baseview::ScrollDelta::Pixels { y, .. } => -(y as i32),
+                    let (sideways, down) = match delta {
+                        baseview::ScrollDelta::Lines { x, y } =>
+                            ((x * 3.0) as i32 * step,
+                             -(y * 3.0) as i32 * step),
+                        baseview::ScrollDelta::Pixels { x, y } =>
+                            (x as i32, -(y as i32)),
                     };
-                    let h = self.view.borrow().h;
+                    // **Shift is the sideways spelling for a wheel
+                    // that has only one**, which is every mouse on
+                    // this desk; a trackpad or a tilt wheel says it in
+                    // `x` and needs no modifier.  Held, the wheel says
+                    // nothing about the vertical, so a section is
+                    // walked along without the page creeping up.
+                    let (by, along) =
+                        if modifiers.contains(Modifiers::SHIFT) {
+                            (0, down)
+                        } else {
+                            (down, sideways)
+                        };
+                    let (w, h) = {
+                        let view = self.view.borrow();
+                        (view.w, view.h)
+                    };
                     let was = self.canvas_scroll.get();
                     let now = view::canvas_scroll(was, by,
                                                   self.canvas_span.get(), h);
                     if now != was {
                         self.canvas_scroll.set(now);
+                        self.dirty.set(true);
+                    }
+                    // The same clamp, the other axis: a page no wider
+                    // than the window has no range and does not move.
+                    let stood = self.canvas_across.get();
+                    let carried = view::canvas_scroll(
+                        stood, along, self.canvas_span_across.get(), w);
+                    if carried != stood {
+                        self.canvas_across.set(carried);
                         self.dirty.set(true);
                     }
                     return EventStatus::Captured;

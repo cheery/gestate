@@ -668,6 +668,15 @@ than the one the editor loads (`cargo build` from the workspace root
 writes `target/release/`; the editor loads
 `shell/editor/target/release/`) — a *number* measured against a library
 that was never in the process is as false as a photograph of one.
+
+**And a build of the editor with no feature flag compiles no window at
+all.**  `shell/editor/src/window.rs` is behind
+`#[cfg(feature = "window")]`, off by default, so
+`cargo build -p gestate-editor` prints *Compiling* and *Finished*
+having type-checked none of it — green, in about the time a real build
+takes.  Use `--features capi`, and before a build is allowed to carry
+a conclusion, break the file on purpose once and watch it go red
+(2026-09-11; `doc/memory/a-build-is-not-an-instrument-until-it-has-failed.md`).
 **Guards shared, bookkeeping not:** only `lagcheck.py` keeps a stamp,
 and `Run` leaves `test/driven/<stamp>/` behind: the shots, the commit, the
 library's md5, the environment the child was handed, and the questions

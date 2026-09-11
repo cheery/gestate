@@ -1967,3 +1967,68 @@ fn a_page_opens_at_its_top_and_a_fitting_picture_where_it_was() {
     assert_eq!(canvas_opening((-250, 650), 400), -250, "overhangs: its top at the window's");
     assert_eq!(canvas_opening((-10, 600), 400), -10);
 }
+
+// ── And the same scroll sideways ─────────────────────────────────────────
+
+/// **The width is read the same way the height is**, off the display
+/// the walk produced, so the painter, the press and the wheel answer
+/// from one frame on both axes.
+#[test]
+fn the_width_is_read_off_what_was_drawn_too() {
+    use gestate_editor::view::span_across;
+    use gestate_panel::list::{Display, Item};
+    let mut d = Display::new();
+    assert_eq!(span_across(&d), (0, 0), "nothing drawn reaches nowhere");
+    d.items.push(Item::Rect { x: -50, y: 0, w: 20, h: 10, c: Colour::rgb(1, 2, 3) });
+    d.items.push(Item::Dot { cx: 100, cy: 0, r: 8, c: Colour::rgb(1, 2, 3) });
+    // Five glyphs of three cells, a cell of gap between and none after,
+    // doubled: 5·4·2 − 2 = 38, so the word ends at 158.
+    d.items.push(Item::Text { x: 120, y: 0, s: "NOTES".into(), c: Colour::rgb(1, 2, 3), scale: 2 });
+    assert_eq!(span_across(&d), (-50, 158));
+}
+
+/// **A word's box is the painter's own advance.**
+/// `paint::Canvas::text` steps `W + GAP` a glyph and paints `W`, so
+/// the last gap is not part of the word — and the numbers come from
+/// the font rather than from a literal here, which is the shape F216
+/// had: a constant copied beside the data it describes.
+#[test]
+fn a_word_reaches_exactly_as_far_as_the_painter_takes_it() {
+    use gestate_editor::view::span_across;
+    use gestate_panel::font::{GAP, W};
+    use gestate_panel::list::{Display, Item};
+    let word = |s: &str, scale: i32| {
+        let mut d = Display::new();
+        d.items.push(Item::Text {
+            x: 0, y: 0, s: s.into(), c: Colour::rgb(1, 2, 3), scale,
+        });
+        span_across(&d).1
+    };
+    assert_eq!(word("", 1), 0);
+    assert_eq!(word("A", 1), W, "no gap after the last glyph");
+    assert_eq!(word("AB", 1), W + GAP + W);
+    assert_eq!(word("AB", 3), (W + GAP + W) * 3);
+}
+
+/// **One arithmetic, two axes.**  The sideways scroll is
+/// `canvas_scroll` called with `span_across` and the window's *width*,
+/// so this is the same clamp on the other pair of edges — and the
+/// numbers are `card:notes-editor.md`'s own: a section grown to nine
+/// bars is 1182 pixels wide in a window 1100 wide, where the eight-bar
+/// one at 1054 fits and must not move.
+#[test]
+fn a_section_wider_than_the_window_carries_sideways_and_stops() {
+    use gestate_editor::view::{canvas_opening, canvas_scroll};
+    // Centred, 1182 in 1100 hangs 41 over each edge.
+    let nine = (-41, 1141);
+    assert_eq!(canvas_opening(nine, 1100), -41, "opens at bar one");
+    assert_eq!(canvas_scroll(-41, 30, nine, 1100), -11);
+    assert_eq!(canvas_scroll(-11, 1000, nine, 1100), 41, "stops at the last bar");
+    assert_eq!(canvas_scroll(41, -1000, nine, 1100), -41, "and at the first");
+    let eight = (23, 1077);
+    assert_eq!(canvas_opening(eight, 1100), 0, "fits: centred, as ever");
+    for by in [-500, 0, 500] {
+        assert_eq!(canvas_scroll(0, by, eight, 1100), 0,
+                   "a section that fits does not carry");
+    }
+}

@@ -70,3 +70,42 @@ run it from **outside** the thing being graded — the escape probe in
 from within the sandbox. And when I withdraw an earlier finding, hold
 the withdrawal to the same standard as the finding: I was right the
 first time and talked myself out of it.
+
+---
+
+## The third failure mode, 2026-09-11: an oracle that cannot see its subject
+
+Building the sideways carry for a `.notes` page
+([[gestate-editor-latency]]'s neighbour — the driven window is the
+instrument), two oracles in a row answered *no, it did not move* about
+a page that had, and both answered without hedging.
+
+* **Did the page's ground move between two photographs?**  The ground
+  is 2078 pixels wide in a 1100-pixel window at every scroll, so it is
+  cut at both edges and its bounding box reads `(0, 192, 1098, 566)`
+  whatever the page does.  The oracle was measuring the *window*, and
+  reported it as the page.
+* **Did the whole window differ after forty more scroll events, to
+  check the carry stops at the end?**  It does stop; the status bar
+  carries a clock, so the window always differs, and the report said
+  the page had run past its own last bar.
+
+**Why this is the photograph's version of the first two:** a picture
+oracle feels like the real world in a way a grep does not, so its
+negative carries more authority than either.  Both were caught only
+because a third reading — the pixels differenced inside the roll's own
+band — disagreed, and because the *file* could be asked a question the
+picture could not: a press took the note at bar 14, which nothing in
+the run could reach unless the page had carried, and one line of the
+file changed.
+
+**How to apply:** before believing a driven run's negative, ask **what
+in the picture would have to change for this to read differently**.  If
+the answer is *nothing visible* — the thing is clipped, off-screen, or
+the same colour as its neighbour — the oracle is blind and the run has
+said nothing.  Prefer a signal that is *absent* in one state and
+present in the other (the keyboard strip was at x 1 or gone entirely),
+and where a gesture writes a file, let the file be the oracle: it
+cannot be blind.  Related:
+[[a-build-is-not-an-instrument-until-it-has-failed]],
+[[test-what-a-person-would-do]].

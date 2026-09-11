@@ -1,6 +1,6 @@
 ---
 name: the-fence-takes-git-identity
-description: "A shell command containing pytest is wrapped by the fence, and inside the fence git has no author — so a commit in the same command fails with 'unable to auto-detect email address'; commit in its own command"
+description: "A shell command containing pytest or cargo is wrapped by the fence, which swaps HOME and mounts a fresh tmpfs over /tmp — so git has no author, and anything written to a scratch directory under /tmp in that same command is gone when it ends"
 metadata:
   type: project
 ---
@@ -18,7 +18,21 @@ green test run in the same line, and the first two were misread as a
 `cd` problem.  The fence is doing its job — a test run must not see
 the desk's credentials — and the symptom is far from the cause.
 
+**And the fence mounts a fresh `/tmp` over the real one**
+(`tools/sandbox.sh`: `--tmpfs /tmp`).  So a session's scratch directory
+under `/tmp` **does not exist** inside a fenced command: a backup
+written there in the same line as the build it protects against is gone
+the moment the command ends, and reading one back fails with *no such
+file*.  Found 2026-09-11, appending a deliberate type error to
+`window.rs` to test whether a build was honest — the `cp` that was to
+restore the file ran in the same command as `cargo build`, so the
+backup was never there and the file was left holding the error.
+
 **How to apply:** run the gates, then commit in a separate command.
 If a commit fails with that message, the command that ran it was
 fenced; do not touch `git config`, which the leash denies anyway.
-Related: [[gestate-hardening]], [[commit-what-you-wrote]].
+Keep any scratch file a fenced command needs — a backup, an output to
+read back — **outside** that command, or inside the project where the
+fence does bind.  Related: [[gestate-hardening]],
+[[commit-what-you-wrote]], [[restore-a-mutation-from-memory]],
+[[a-build-is-not-an-instrument-until-it-has-failed]].

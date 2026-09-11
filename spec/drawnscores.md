@@ -1214,7 +1214,11 @@ scale* in `test/test_drawnscores.py`; 131 in the file, green.
 **What this slice does not do, said now.**  The numbers are not fitted
 to the window: a section wider than the view is cut at the view's
 edge, and there is no horizontal scroll — a section of more than eight
-bars of four is the case that would ask for one.  The rail is still the
+bars of four is the case that would ask for one.  *(It asked, four
+days later, and got one — §"The page carries sideways too".  The
+numbers are still not fitted to the window, which is the half of this
+sentence that stands: the page is the file's size and the window
+carries over it.)*  The rail is still the
 second axis (F204 stands — *until the slice below, the same afternoon*);
 the ruler only gives it a face.  No playhead
 crosses the page while the transport runs — the picture reads no
@@ -1439,7 +1443,9 @@ section of eight bars would ask for, asked for by the first section of
 nine.
 
 **What this slice does not do, said now.**  No horizontal scroll, as
-above.  A section cannot be resized on a roll that draws several, nor
+above — *built 2026-09-11, §"The page carries sideways too"; this
+slice is what asked for it.*  A section cannot be resized on a roll
+that draws several, nor
 from a `.ges` that includes it.  `notes.retune` rewrites a section
 line now as well as a note's, so a pitch drag aimed at a section line
 is refused on its tonic rather than as *not a note*.
@@ -1621,6 +1627,67 @@ rail's grab in; a rail let go alone writes nothing.
 | compiled once, warm | 4.4 s | 1.06 s | 0.36 s |
 | hits a box | 130 | 130 | 3 |
 | picture | — | identical | identical |
+
+### The page carries sideways too — 2026-09-11
+
+*The thing the ninth slice left, in its own words: a nine-bar section
+is 1182 pixels wide in a window 1100 wide, so `card:notes-editor.md`'s
+own section-resize tool dead-ended the moment it was used past eight
+bars.*  The fifth slice had said no section of eight bars would ask for
+a horizontal scroll; the first section of nine asked.
+
+**It is the fourth slice's number, on the other axis, and no new
+arithmetic.**  `view::canvas_scroll` is a clamp that knows nothing
+about which way it runs — `current`, `by`, the span the picture
+reaches with no scroll, and how much of it the window shows — so the
+sideways carry is that same function called with `view::span_across`
+and the window's **width**.  A second clamp would have been a second
+set of edge decisions for the two axes to disagree over.  What is new
+is one reader: `span_across` reads a display's left and right the way
+`span_of` reads its top and bottom, and takes a word's width from
+`font::W` and `font::GAP` — the painter's own advance, so the box a
+caption reaches is not a literal copied beside the data it describes
+(F216's shape).
+
+`canvas_centre` is now the one place the origin is said, and the
+painter, the press, the drag and the release all subtract the same
+pair — the rule the vertical scroll already kept, with one more number
+in it.  A page opens at its near edge on both axes: at its top because
+a page is read from its first section down, and at its left because a
+roll is read from bar 1.
+
+**Two spellings for the wheel.**  A trackpad or a tilt wheel says it in
+the scroll event's `x` and needs no modifier; **Shift and the wheel**
+is the sideways spelling for a wheel that has only one, which is every
+mouse on this desk.  Held, the wheel says nothing about the vertical,
+so a section is walked along without the page creeping up.
+
+**Driven, and the first oracle was blind.**
+`test/driven/20260911-132650-notes-section-carried-sideways` on the
+desk that ran it — `test/driven/` is not tracked, so what a clone gets
+is this paragraph and the numbers in it.  One section of sixteen bars,
+2078 px against a window 1100 wide, with exactly one note past the
+eighth bar, at bar 14: the page opened with its keyboard at x 1, forty
+tilts right carried the roll and took the keyboard off the left edge,
+forty more changed **not one pixel** of it, a press at the computed
+place took the bar-14 note and carried it three semitones — `key 64`
+to `key 67`, one line of the file and nothing else — and Shift with
+the wheel brought the keyboard back to x 1.
+
+The blind oracle is worth keeping: the first run asked whether the
+page's **ground** had moved, and the ground is wider than the window at
+every scroll, so its bounding box reads `(0, …, 1098, …)` whatever the
+page does — *it did not move*, confidently, while the pixels say
+otherwise.  The second asked whether the whole window differed and read
+the status bar's clock as the page running past its last bar.  What
+answers honestly is the roll's band differenced, and the keyboard down
+the page's left edge, which is 25 rects of a colour nothing else in the
+roll wears.
+
+**And the carry found F221**: a section's caption is anchored to the
+body's centre, so on a page wider than the window it is nowhere near
+the bars it names — at bar 1 it sits off the right edge and after the
+carry it sits at the left.  Not fixed here: the slice was the carry.
 
 ### What plugin-like scopes
 

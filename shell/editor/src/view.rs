@@ -2060,14 +2060,61 @@ pub fn span_of(d: &Display) -> (i32, i32) {
     if top > bottom { (0, 0) } else { (top, bottom) }
 }
 
+/// Where a walked picture reaches, **left and right**, in the
+/// coordinates it was placed in — `span_of` read on the other axis,
+/// for the other scroll.
+///
+/// **A section wider than the window** is the case this exists for:
+/// `card:notes-editor.md`'s ninth slice let a section be grown on its
+/// ruler, and the first nine-bar one is 1182 pixels wide in a window
+/// 1100 wide — cut at the view's right edge, with the fifth slice's
+/// *no section of eight bars would ask for one* asked for.
+///
+/// **A word's width comes from the painter's own numbers.**  The
+/// height above is `font::H` cells and the width here `font::W` with
+/// `font::GAP` between glyphs and none after the last, which is what
+/// `paint::Canvas::text` advances by — copying either as a literal is
+/// how F216 happened.
+pub fn span_across(d: &Display) -> (i32, i32) {
+    let mut left = i32::MAX;
+    let mut right = i32::MIN;
+    for item in &d.items {
+        let (a, b) = match item {
+            Drawn::Rect { x, w, .. } => (*x, *x + *w),
+            Drawn::Dot { cx, r, .. } => (*cx - *r, *cx + *r),
+            Drawn::Text { x, s, scale, .. } => {
+                let n = s.chars().count() as i32;
+                let w = if n == 0 {
+                    0
+                } else {
+                    n * (gestate_panel::font::W + gestate_panel::font::GAP)
+                        * *scale
+                        - gestate_panel::font::GAP * *scale
+                };
+                (*x, *x + w)
+            }
+        };
+        left = left.min(a);
+        right = right.max(b);
+    }
+    if left > right { (0, 0) } else { (left, right) }
+}
+
 /// The scroll a wheel leaves the canvas view at.
 ///
-/// `current` is how far the picture is already carried up, `by` what the
+/// `current` is how far the picture is already carried, `by` what the
 /// wheel asks for in pixels, `span` where the picture reaches with no
-/// scroll, `h` the window's height.  **A picture that fits never
-/// scrolls**, and one that does not stops at its own ends: the range is
-/// from the top's overhang to the bottom's, and a picture inside the
-/// window has none of either — so zero, always, with no case for it.
+/// scroll, `h` how much of it the window shows.  **A picture that fits
+/// never scrolls**, and one that does not stops at its own ends: the
+/// range is from the near overhang to the far one, and a picture
+/// inside the window has none of either — so zero, always, with no
+/// case for it.
+///
+/// **One arithmetic, two axes.**  The clamp knows nothing about which
+/// way it runs, so the sideways scroll is this same function called
+/// with `span_across` and the window's *width* — a second copy would
+/// be a second set of edge decisions for the two axes to disagree
+/// over.
 pub fn canvas_scroll(current: i32, by: i32, span: (i32, i32), h: i32) -> i32 {
     let (top, bottom) = span;
     let low = top.min(0);
@@ -2075,11 +2122,14 @@ pub fn canvas_scroll(current: i32, by: i32, span: (i32, i32), h: i32) -> i32 {
     (current + by).clamp(low, high)
 }
 
-/// Where a page opens: at its top when it overhangs the window, and
-/// where it always was — centred — when it fits.  A `.notes` page is
-/// read from its first section down, and a first section cut off by
+/// Where a page opens: at its near edge when it overhangs the window,
+/// and where it always was — centred — when it fits.  A `.notes` page
+/// is read from its first section down, and a first section cut off by
 /// the window's top edge is what the first driven run of the scroll
 /// photographed (`test/driven/20260906-083842-notes-page-scroll`).
+///
+/// **Both axes, same rule.**  A page wider than the window opens at
+/// its left edge for the same reason: a roll is read from bar 1.
 pub fn canvas_opening(span: (i32, i32), h: i32) -> i32 {
     canvas_scroll(0, span.0.min(0), span, h)
 }

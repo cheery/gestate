@@ -2099,3 +2099,66 @@ can see.  Renumbered to F400 it went red by name.  A stricter regex is
 not the fix; naming the instrument in the entry is, and that is what the
 `gate:` line is for and what this gate asks for.
 
+
+## The page carries sideways, and two oracles said it did not — 2026-09-11
+
+`card:notes-editor.md`'s ninth slice had written its own debt down in
+arithmetic: *a nine-bar section is 1182 pixels wide in a window 1100
+wide*, so the section-resize tool built that afternoon dead-ended the
+first time anybody used it past eight bars.  Four days later the
+sideways carry is built, and it added **no arithmetic at all** —
+`view::canvas_scroll` is a clamp that does not know which way it runs,
+so the second axis is that same function called with the window's
+width.  What is new is one reader, `span_across`, and one number in the
+origin.
+
+**The part worth carrying is not the scroll.**  It is that the first
+two oracles written for the driven run both answered *no, it did not
+move* about a page that had, and both answered confidently.
+
+The first asked whether the **page's ground** had moved between two
+photographs.  The ground is 2078 pixels wide in a 1100-pixel window at
+every scroll, so it is cut at both edges and its bounding box reads
+`(0, 192, 1098, 566)` whatever the page does.  The oracle could not
+see the thing it was pointed at, and what came back was not *I cannot
+tell* but a clean negative.
+
+The second asked whether the **whole window** differed after forty more
+tilts, to check that the carry stops at the last bar.  It does stop;
+the status bar carries a clock, so the window always differs, and the
+report said the page had run past its own end.
+
+What answers honestly is the roll's band differenced — the status row
+cropped off — and the keyboard down the page's left edge, 25 rects of a
+colour nothing else in the roll wears: present at x 1 when the page is
+at bar one, gone entirely when it has carried.  With those, seven
+observations in seventeen seconds, and the strong one is the file: a
+press at the computed place took the note at **bar 14** — the only note
+past the fold, which nothing in the run could reach unless the page had
+carried — and `Ctrl-S` changed `key 64` to `key 67`, one line, nothing
+else.
+
+**The shape is `doc/memory/dont-conclude-from-a-shallow-check.md`, one
+floor down.**  That memory is about a search: an empty result from a
+guessed-at search is evidence about the search.  This is the same thing
+where the instrument is a photograph, and it is worse, because a
+photographic oracle *looks* like the real world.  Three runs of the
+same scenario cost fifty seconds between them; believing the first
+would have cost the slice.
+
+**And a build that compiles nothing reports success.**  `window.rs` is
+behind `#[cfg(feature = "window")]`, off by default, so
+`cargo build -p gestate-editor` prints *Compiling gestate-editor* and
+*Finished* having compiled none of the file just edited.  Twenty
+minutes went into whether cargo's freshness tracking had broken — it
+had not — and the thing that settled it was appending
+`fn __probe() { let _: i32 = "no"; }` to the file and watching the
+build stay green.  A build is not an instrument until a deliberate
+error has failed it.  `--features capi` is the honest spelling, and it
+is the one `tools/driven.py` already names for the other reason.
+
+**Found and not fixed:** `fixme.md` **F221**, a section's caption
+anchored to the body's centre, which only becomes wrong once a page is
+bigger than the window.  Left as an entry because where a caption
+belongs on a scrolling page is a picture decision and the spec has
+never said.
