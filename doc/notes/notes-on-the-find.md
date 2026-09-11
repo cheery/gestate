@@ -368,7 +368,65 @@ about the memory.  The years and contents above should be checked by
 search before any of them goes into the tree as a citation, and
 Karpathy's wiki most of all, because it sits close to the cutoff.
 
+---
+
+**Henri:**
+
+> Osaisitko kertoa mikä tämä puu oikein on itseasiassa?  Se on kuin
+> karpathyn wiki, mutta sen tärkeimmät säännöt pidetään mekaanisesti
+> yllä, ja se ehdollistaa seuraavan session.  Mikä se silloin on?
+
+*[Could you say what this tree actually is?  It is like Karpathy's
+wiki, but its most important rules are kept mechanically, and it
+conditions the next session.  What is it, then?]*
+
+**The session** — a view, said as one, with the naming left his:
+
+**It is a workplace for workers who do not remember.**  Everything
+else follows.  Culture normally lives in people: a group learns while
+solving its problems and teaches the newcomers (Schein).  Here the
+group's members change every sitting, so the culture cannot live in
+them.  It had to be moved entirely into the place and the place's
+sanctions.  The tree is **a culture with no members** — one keeper and
+a place.  The session does not remember seeing that anywhere, and it
+explains why a wiki looks the same and is not: a wiki stores
+knowledge; this stores a way of working.
+
+Three older words fit it, each covering one side:
+
+- **Stigmergy** (Grassé 1959, the termite mound).  The workers neither
+  communicate nor remember; each acts on the trace the previous one
+  left in the environment and leaves its own.  Wikipedia is the
+  classic human case, which is why Karpathy's wiki is kin.  In the tree
+  the gates make some traces mandatory.  This covers *how the sessions
+  coordinate*.
+- **Case law.**  Every rule comes from a case that paid (`because`,
+  the F-number), a ruling cites precedent, an overruled one stays on
+  the record, and enforcement is a different organ from the
+  legislator.  `notes-on-the-name.md` said it already: the gap between
+  a note on the fridge and a legal system.  This covers *why the rules
+  hold*.
+- **Standard work** (TPS).  The current best known way, written down,
+  and kaizen changes it.  But standard work assumes a worker who
+  remembers yesterday.  This covers *what the keeper does*, and
+  `keeper.md` already carries that name.
+
+In one sentence: **the tree is standard work that had to be built as
+stigmergy because the worker does not remember, with rules that are
+case law because nobody remembers why a rule is.**  Conditioning is
+what a culture does to a newcomer.  No single word is new; what is new
+is that all three had to be joined, because the absence of memory
+forced it.
+
+Two caveats.  The tree had already named itself and he did — *gestate
+gestates*, `vision.md` 2026-08-16 — and that still holds, since the
+place grows what works in it.  And this is a session naming what
+conditioned it.  That does not make the sentence false, but it has to
+be kept beside it.
+
 ## What the tree can show, and the wording offered — added when the page went in, 2026-09-11
+
+**Three exchanges on this page, one afternoon, each added at his ask as it closed.**
 
 **Checked in the tree while the conversation was open:** the four
 zero-hit greps above; the commit and day counts; `doc/method.md`'s
