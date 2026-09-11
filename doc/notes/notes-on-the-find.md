@@ -330,6 +330,12 @@ every sentence names what checks it:
 > running with a forgetting collaborator and a ledger a stranger can
 > check — and that claim is unmeasured until a stranger has.
 
+**Where it went, the same afternoon.**  He read the draft and said it
+was too much to write there — *"Tuo on hieman paljon kirjoitettavaksi
+sinne.  Kirjoita se journaliin suorilta."* — so the three paragraphs
+went into `journal.md` §"The specimen, the find, and the name" as they
+stand, and `spec/author.md` is unchanged.
+
 Each paragraph is a different kind of claim: the first is falsifiable
 and says by what, the second is attribution with its evidence and its
 one conventional step named, the third is the prior art with the hedge

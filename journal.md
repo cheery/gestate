@@ -2776,3 +2776,52 @@ because it asserted on the file.  The evidence was in a picture I had
 taken and not looked at.  The repair to the harness is the same one the
 day has asked for seven times now: shoot **over time**, and assert on
 the thing the change is about — here the notes, not the note.
+
+## The specimen, the find, and the name — 2026-09-11
+
+Henri asked, with the reviewer's role on, what he had found here, if
+anything, and whether it was unique against what the session itself
+remembered.  The conversation is `doc/notes/notes-on-the-find.md`, his
+words verbatim; this is what it settled, short enough to keep.
+
+**The tree is the specimen, not the find.**  The find, if there is one,
+is a sentence of `vision.md` from 2026-08-16 — *we are missing a way to
+work with each other* — and the days since on which it has not been
+shown false.  Three claims branch from it and each can fall: that
+continuity lives in the tree and judgment in one person's dated
+corrections (`doc/method.md` §"The tree withers if it is not treated
+well"); that mechanisms transfer on the first morning and judgment does
+not (`doc/memory/the-third-explanation-is-a-mechanism.md`); and that
+the dialogue conditions where the document alone does not
+(`doc/memory/conditioning-shows-under-work.md`, one run, confound open).
+
+**The inventor is the author, and the verb is *recognised and kept*.**
+Not because he wrote the text — its authorship is shared and the record
+cannot split it (`doc/memory/day-one-was-not-day-one.md`).  Because the
+ingredients came from him before any session wrote them
+(`doc/memory/the-prompt-log.md`, 2026-08-04; TPS, July 2026), every
+dated correction in the five rule documents is his, and the tree
+withers without him.  A session cannot hold a claim across a sitting,
+so this is also the only name that can carry it.  *discovered, not
+designed* claims what the penicillin case claims for its discoverer:
+the noticing and the keeping, no more.
+
+**Its ingredients have names, and this tree had not cited them until
+today:** fitness functions (Ford, Parsons, Kua 2017), ADRs (Nygard
+2011), *Living Documentation* (Martraire 2019), *Toyota Kata* (Rother
+2009), Poppendieck (2003), Anderson (2010).  Grep before the page went
+in: zero files for each.  What is not in any of them, as far as one
+model's memory reaches, is the assembly running with a forgetting
+collaborator and a ledger a stranger can check — and that claim is
+unmeasured until a stranger has.  The years and names above are from
+that memory too, unchecked against a search.
+
+**What it did not settle**, and where it went: this was offered for
+`spec/author.md` and he said it was too much to write there — *"Kirjoita
+se journaliin suorilta"* — so it is here, and `author.md` stays as it
+was.  Uniqueness is still waiting on one outsider under work
+(`card:project-seed.md`, `card:stranger-test.md`), the same event
+`journal.md`'s 2026-08-19 close named.  And it was a Claude session
+saying most of this about a tree Claude sessions wrote;
+`doc/memory/the-evaluation-loop.md` was said out loud at the start and
+applies to every sentence above.
