@@ -73,6 +73,9 @@
       outputChannelCount: [data.channels],
       processorOptions: {
         module, overrides: { ...turned }, ...data,
+        // The banks a hand can play into (`online._banks`); the worklet
+        // owns the allocator because only it knows what sample it is on.
+        banks: data.banks || {},
         // Only when the picture is actually up: the filter bank and the
         // ring read are the instrument reaching a canvas, and a page
         // with no canvas must not pay for either.
@@ -80,6 +83,101 @@
       },
     });
   };
+
+  // ── Notes in from the host, and the host is the page ──────────────
+  //
+  // `clap.note-ports` of `card:audiovisual-gallery.md`: a visitor plays
+  // *along with* the piece, into any bank it declares.  The three
+  // hands-only pieces are not this — their score reads what a hand
+  // holds, and this page bakes its score; that is a card of its own.
+  //
+  // **The tracker layout**, the one `audioeditor.Keyboard` uses and the
+  // one every tracker since Soundtracker has: the lower row is an
+  // octave with its black keys on the row above, so the shape under
+  // your fingers is the shape of a keyboard.  It is the layout a person
+  // is most likely to already know.
+  const LOWER = "zsxdcvgbhnjm,";
+  const UPPER = "q2w3er5t6y7ui";
+  const MIDDLE_C = 60;
+  const banks = Object.keys(data.banks || {});
+  const down = new Map();
+  let octave = 4;
+  const noteOf = (ch) => {
+    let i = LOWER.indexOf(ch);
+    if (i >= 0) return MIDDLE_C + (octave - 4) * 12 + i;
+    i = UPPER.indexOf(ch);
+    if (i >= 0) return MIDDLE_C + (octave - 3) * 12 + i;
+    return null;
+  };
+  // Which bank a key plays: the first the piece declares, which is the
+  // same rule `by_midi_channel` gives channel 0 on the desk.
+  const play = (key, on, velocity) => {
+    if (!live || !banks.length) return;
+    live.port.postMessage({ note: { bank: banks[0], key, on, velocity } });
+  };
+  if (banks.length) {
+    const hint = document.getElementById("playalong");
+    if (hint) {
+      hint.textContent =
+        "Play along: the letter keys are a keyboard (z…m is an octave, "
+        + "q…i the one above), z/x change octave when held with Shift. "
+        + "Attach a MIDI keyboard and it plays too.";
+      hint.hidden = false;
+    }
+    addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // A page a person can still type into: a key that is doing
+      // something else is not a note.
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+      if (e.shiftKey) {
+        if (e.key === "Z") { octave = Math.max(0, octave - 1); e.preventDefault(); }
+        if (e.key === "X") { octave = Math.min(9, octave + 1); e.preventDefault(); }
+        return;
+      }
+      const note = noteOf(e.key);
+      if (note === null || down.has(e.code)) return;   // autorepeat is not a press
+      down.set(e.code, note);
+      play(note, true, 96);
+      e.preventDefault();
+    });
+    addEventListener("keyup", (e) => {
+      const note = down.get(e.code);
+      if (note === undefined) return;
+      down.delete(e.code);
+      play(note, false, 0);
+    });
+    // **Every key let go when the page loses the keyboard.**  A note
+    // held while you click away is held for ever: the release goes
+    // wherever the focus went and the voice is never handed back.
+    addEventListener("blur", () => {
+      down.clear();
+      if (live) live.port.postMessage({ panic: true });
+    });
+
+    // **A real instrument when one is attached.**  The same note path:
+    // Web MIDI is an input, not a second mechanism, which is why it is
+    // eight lines and not a row of its own.  Chrome and Edge only, so
+    // the letter keys above are the path most visitors meet and are not
+    // a courtesy — that is the order this was built in.
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess().then((access) => {
+        const listen = (input) => {
+          input.onmidimessage = (m) => {
+            const [status, key, velocity] = m.data;
+            const kind = status & 0xf0;
+            if (kind === 0x90 && velocity > 0) play(key, true, velocity);
+            else if (kind === 0x80 || kind === 0x90) play(key, false, 0);
+          };
+        };
+        for (const input of access.inputs.values()) listen(input);
+        // A keyboard plugged in after the page opened is still a
+        // keyboard: without this it plays nothing and nothing says why.
+        access.onstatechange = (e) => {
+          if (e.port.type === "input" && e.port.state === "connected") listen(e.port);
+        };
+      }, () => {});   // refused or unavailable: the letter keys remain
+    }
+  }
 
   // The picture — `card:audiovisual-gallery.md`.  A piece that draws
   // one gets it whether or not it is playing: a fader on a stopped

@@ -1,11 +1,6 @@
 # audiovisual-gallery — a gallery of controllable audio-visual experiences
 
-    status   doing — 2026-09-04, day two landed: all six pieces draw on
-             the page in a real browser, equal to `gui.py`, and the
-             meters came with them at his ask — §"Day two, landed".
-             **Q2 answered 2026-09-04: not the gui row alone** — MIDI
-             next, and a fader that moves the picture and not the sound
-             is a fault a person has now met
+    status   done — 2026-09-11
     because  "people do not currently see with ease, without
              installation, what gestate can create.  And it's a bit sad
              situation there." — Henri, 2026-09-02, asked for the
@@ -473,6 +468,93 @@ Held by `test_online.py::test_a_fader_and_its_slider_are_one_declaration`
 **Left for done:** `clap.note-ports`, as he answered it — Web MIDI with
 the computer keyboard as the fallback.
 
+### The MIDI row is not what this card said it was — 2026-09-11
+
+**Counted before building, and the card's own sentence was wrong.**  It
+said *"the three refused pieces are the test set either way"*.  They are
+the one set that cannot be:
+
+    pieces with a voices bank          34
+    whose score reads `hear holds`      3   — arpeggiator, jazz, ladder
+
+`hear holds.keys` is in their **score**, and the page does not run a
+score: `online.bake` pulls `audioperform.dynamic` forward offline and
+ships every control change as data, which the worklet replays.  A score
+whose content depends on what a hand holds *now* cannot be baked.
+
+**A session then called that the C row and it was wrong** — caught the
+same hour by Henri, who did not believe it: *"I'm a bit surprised that
+pyodide would be needed there.. I thought that clap plugins work same
+way now, and it doesn't require python to work, or does it?"*  They do,
+and it does not.  `shell/clap/src/dynscore.rs` carries the **program**
+(`engine::Program`) and forces it on `crust`, a G-machine in Rust, with
+no Python at run time; `descriptor.rs` is written by `python -m
+gestate.export` at *build* time, which is exactly what
+`online.generate` is to a page.
+
+**And the G-machine is already in the tab.**  `shell/web` depends on
+`crust` and builds for `wasm32` today — its own header says *"only a
+G-machine could run it and the tab had none"*, past tense.
+
+So the mistake was reading C1 as *any* score running in the browser.
+C1 is **compiling `.ges` text** in the browser, which needs the front
+end; forcing an already-compiled score's stream needs the machine and a
+serialized program, and both are there.  What is actually missing is
+smaller and is wiring rather than a backend: `crust` lives in the
+**canvas** module and the sound lives in the **worklet**, so a score
+forced in one has to reach control slots in the other.
+
+**What is reachable today without any of that** is the larger half
+anyway.  The other thirty-one have banks and do not read the hands, so
+notes can be fed into a bank
+*alongside* the running score — which is what `clap.note-ports` means
+in CLAP: **notes in from the host**.  The worklet already runs the real
+compiled synth with control slots, so a note is a free voice and three
+slot writes; `turn(slot, value)` is the seam and it already exists.
+
+**Henri, 2026-09-11**, given the three readings: **play along with the
+running piece.**  Thirty-one pieces playable rather than three, and the
+hands-only three keep a refusal — rewritten to name the real reason,
+which is not *a tab with no keyboard* but *their score reads the hands
+and this page bakes*.
+
+### Notes in from the host, built — 2026-09-11
+
+**`clap.note-ports`, as he answered it**, and the order was chosen for
+what most visitors meet: the letter keys first, Web MIDI on top of the
+same note path.
+
+- **`online._banks`** hands the page each `voices` bank as the control
+  slots its voices are made of, in `channels_of`'s order — which is the
+  order `Allocator` numbers its own voices in, so a note let go finds
+  the voice it began on.
+- **The worklet owns the allocator**, because only it knows what sample
+  it is on and `gateAt`/`offAt` are sample indices.  A free voice
+  released-longest-ago first, `Allocator._pick`'s rule; **every voice
+  busy refuses** rather than steals, so playing along cannot cut a note
+  the score is holding.
+- **A voice goes back to the score two seconds after its release** —
+  not at the note-off, because the envelope reads `offAt` after the
+  gate falls and handing the slots back then cuts the release off in
+  the air.  Without it, one note played would take a voice off the
+  piece for good.
+- **The payload is what a keyboard can say**: key and velocity, the
+  rest zero.  That is `spec/annotations.md`'s path 1, honest here for
+  the reason it is dishonest there — a hand playing along has no marks
+  to lose.
+- **The tracker layout**, `audioeditor.Keyboard`'s own: `z…m` an
+  octave with its black keys on the row above, `q…i` the octave up,
+  Shift-Z and Shift-X to move.  Autorepeat is not a press; a note is
+  not stolen from a text field; losing the page panics every voice.
+- **Web MIDI is eight lines**, because it is an input and not a second
+  mechanism — including a keyboard plugged in *after* the page opened,
+  which otherwise plays nothing and says nothing about why.
+
+Held by `test_online.py::test_a_bank_reaches_the_page_as_the_slots_its_voices_are_made_of`
+— the voice order against `channels_of`, and the banks' slots against
+the knobs' with no overlap, *a slider for a gate being a note nobody
+played*.  8 s.
+
 ## How it came off the shelf
 
 **It arrived shelved, was named as debt rather than sediment, and came
@@ -513,3 +595,33 @@ is in doubt.
 **Order, and it is the board's not the card's:** `card:ungated-fixes.md`
 batch 11 is the day this was written on, and today's due work is
 finished before a shelved card is pulled.
+
+## Done — 2026-09-11
+
+**All five CLAP rows answered, three built and two refused with their
+reasons.**  `journal.md` §"The gallery's last two rows, and one of them
+was not the row" tells the story.
+
+| what CLAP asks | how it stands |
+|---|---|
+| `clap.audio-ports` | built, day one |
+| `clap.gui` | built, day two — all six pieces draw, meters with them |
+| `clap.params` | built 2026-09-11 — a fader and its slider are **one declaration** |
+| `clap.note-ports` | built 2026-09-11 — notes into any bank, letter keys and Web MIDI |
+| `clap.state` | **refused here**: saving is `card:online.md` question 5's answer and belongs to that card, not this one |
+
+**And the `because` is met**, which is the test that matters: *"people
+do not currently see with ease, without installation, what gestate can
+create."*  Thirty-four pieces on the site draw their picture, are
+turned by controls that agree with themselves, and can be played along
+with from a laptop keyboard.
+
+**What this card deliberately leaves**, each with somewhere to go:
+
+* **The three hands-only pieces** — `card:hands-in-the-tab.md`, minted
+  at his ask, with the obstacle measured and the wrong answer a session
+  gave first written down beside the right one.
+* **Saving** — `card:online.md` question 5, answered there and unbuilt
+  there.
+* **A substrate that moves on `Tick` alone** — the seam with no
+  demonstrated victim, §"Day two, landed".

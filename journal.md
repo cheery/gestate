@@ -2400,3 +2400,73 @@ ahead of the schedule.  What it costs is named rather than hidden — in
 *playing* the allocator may pick a voice the schedule is using, and that
 scored note is shadowed while the hand is down, because the allocator
 and the schedule assign voices independently.
+
+## The gallery's last two rows, and one of them was not the row — 2026-09-11
+
+`card:audiovisual-gallery.md` is done, and the way it closed is worth
+more than the closing.
+
+**Henri, on the flow lamp's seven days:** *"I think the
+audiovisual-gallery.md could be stated to be completed, or if it's not,
+it could be worked on enough to become done."*  Three readings with
+their prices; he took the largest — the fader **and** MIDI.
+
+**The fader row was a fault rather than a feature**, which is why it
+went first.  He had met it on the live site: *"I tried it in lantern and
+the knobs appear to work.  Not certain if they do anything there."*
+`warmth` is one declaration and the page had made it two controls, a
+slider reaching the sound and a fader reaching the picture, neither
+moving the other.  On the desk they are one thing because
+`Workbench.control` resolves a channel **by name**, so the name is the
+bridge on the page too.  Both directions, deliberately: fixing only the
+fader would have swapped which half of the fault a person meets.
+
+**Then the MIDI row turned out not to be the row.**  Counted before
+building — thirty-four pieces declare a bank and **three** have a score
+that reads `hear holds`.  Those three are the ones the page refuses,
+and the card had written *"the three refused pieces are the test set
+either way"*.  They are the one set that cannot be: the page **bakes**
+its score offline and ships the control changes, and a score whose
+content depends on what a hand holds now cannot be baked.
+
+**And then a session got the reason wrong, confidently, in a card.**
+It wrote that this was `card:online.md`'s C row — *struck with Pyodide
+at his word* — and Henri did not believe it: **"I'm a bit surprised
+that pyodide would be needed there.. I thought that clap plugins work
+same way now, and it doesn't require python to work, or does it?"**
+
+They do, and it does not.  `shell/clap/src/dynscore.rs` carries the
+compiled program and forces it on `crust` with no Python at run time;
+`descriptor.rs` is written at **build** time, which is exactly what
+`online.generate` is to a page.  And `shell/web` already depends on
+`crust` and already builds for `wasm32` — its own header says *"only a
+G-machine could run it and the tab had none"*, past tense.  **The
+G-machine has been in the tab since day two of this card.**
+
+The mistake was reading C1 as *any score running in the browser*.  C1
+is **compiling `.ges` text** in the browser, which needs the front end.
+Forcing an already-compiled stream needs a machine and a program, and
+both were there.  What is actually missing is a seam — `crust` is in
+the canvas module, the sound is in the worklet — and that is
+`card:hands-in-the-tab.md` now, with the obstacle measured and this
+paragraph in it.
+
+**Two things about how the day went, and they point the same way.**
+
+The session asked before building, twice, and both times the answer
+changed the work: the scope question turned one row into two, and the
+design question for the preview earlier had already deleted more code
+than it added.  That habit is a day old — Henri installed it an hour
+before by saying the progress was very slow and that a slice takes a
+minute and its testing thirty (`doc/memory/the-slow-part-was-never-the-test.md`).
+It paid on its first use.
+
+And the question that saved the most went the **other** way: he asked
+the session whether Pyodide was really needed.  A session that had just
+been praised for asking would not have caught it, because it had
+already written the wrong answer down as a finding.  What caught it was
+someone who knew the plugin and did not believe the sentence.
+
+**The gallery's rows, as they stand:** audio-ports, gui, params and
+note-ports built; `clap.state` refused here and left with
+`card:online.md` question 5, which is where its answer already lives.

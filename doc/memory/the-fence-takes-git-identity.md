@@ -28,6 +28,17 @@ file*.  Found 2026-09-11, appending a deliberate type error to
 restore the file ran in the same command as `cargo build`, so the
 backup was never there and the file was left holding the error.
 
+**And a *backgrounded* fenced command's output is unreadable for the
+same reason.**  The harness writes a background command's stdout to a
+file under `/tmp`, and a fenced command cannot write there — so the
+task notification arrives saying *completed* and the file it names does
+not exist.  Twice on 2026-09-11, and the second time it was the one
+oracle for a JavaScript change on a machine with no `node`.  The fix is
+to redirect into the **project**, which the fence does bind:
+`pytest … > test/.jsrun.log 2>&1`, then read that.  `tools/suite.py`
+has always done this — `test/report.md` is inside the tree and that is
+why.
+
 **How to apply:** run the gates, then commit in a separate command.
 If a commit fails with that message, the command that ran it was
 fenced; do not touch `git config`, which the leash denies anyway.

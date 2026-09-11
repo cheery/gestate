@@ -52,34 +52,34 @@ drops out of today regardless of where it stands here.
 That is not a licence to skip down the list on preference.  Priority is
 still the tiebreak between two workable cards, and it is still his.
 
-1. **[audiovisual-gallery](audiovisual-gallery.md)** — a gallery of
-   controllable audio-visual experiences: six pieces already on the site
-   declare a picture the tab drops on the floor.  *Shelved and pulled
-   the same day, 2026-09-02, on a condition he set in advance and the
-   wasm measurement met.*  Under `online`, which says how much to do.
-2. **[online](online.md)** — gestate, the audio production tool, in a
+1. **[online](online.md)** — gestate, the audio production tool, in a
    browser tab: the vision's opening line for a person who is not at
    this desk.  Michael's ask, 2026-08-28.  *Last: its open questions
    are his.*
-3. **[drawn-scores](drawn-scores.md)** — a flat note file the score is
+2. **[drawn-scores](drawn-scores.md)** — a flat note file the score is
    written in; the roll edits 0–5% of a real piece and would edit all
    of one of these.  *Off the shelf 2026-09-05, unplaced, spec written.*
-4. **[standing-questions](standing-questions.md)** — a stored question
+3. **[standing-questions](standing-questions.md)** — a stored question
    lands when a session opens a card; built 2026-09-06, fires on nothing
    until he chooses which stand.  *Arrived unplaced.*
-5. **[notes-editor](notes-editor.md)** — a note moves and you hear it
+4. **[notes-editor](notes-editor.md)** — a note moves and you hear it
    before the hand has left the mouse; today it is 5 s to redraw and
    5 s to hear, against Reaper's next block.  His list of tools, and
    the data path first.  *Arrived unplaced, 2026-09-06.*
-6. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
+5. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
    dialogue.  *Arrived unplaced, 2026-09-07.*
-7. **[relational-model](relational-model.md)** — the `.notes` format is
+6. **[relational-model](relational-model.md)** — the `.notes` format is
    a relation, and this holds it to what relational practice paid to
    learn: eight scars, each to be paid, refused or built, and the
    decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
    dialogue he said he would continue.*
+7. **[hands-in-the-tab](hands-in-the-tab.md)** — the three pieces whose
+   score reads what a hand holds, and the gallery cannot play them; the
+   G-machine is already in the tab and what is missing is a seam
+   between the canvas module and the worklet.  *Arrived unplaced,
+   2026-09-11, minted at his ask when the gallery's MIDI row split.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

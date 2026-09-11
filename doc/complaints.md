@@ -146,7 +146,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
-| `online.py:122` | `OnlineError` | a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet |
+| `online.py:122` | `OnlineError` | the score itself reads what a hand holds, and this page bakes its score; card:hands-in-the-tab.md is the seam that would fix it |
 | `pipeline.py:302` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 | `pipeline.py:943` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 | `pipeline.py:1013` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
@@ -831,8 +831,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 122 | `OnlineError` | `author` | *nowhere, on purpose* | 'this piece plays what your hands hold — `hear holds.' + sorted(heard)[0] + '` — and empty hand… |
-| 389 | `OnlineError` | `world` | — | why |
+| 122 | `OnlineError` | `author` | *nowhere, on purpose* | "this piece's *score* reads what your hands hold — `hear holds." + sorted(heard)[0] + '` — and … |
+| 431 | `OnlineError` | `world` | — | why |
 
 ### `pipeline.py`
 

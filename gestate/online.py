@@ -118,12 +118,15 @@ def _control(src: str, graph, rate: int = RATE):
         if unfolding_names(src):
             heard = heard_banks(src)
             if heard:
-                #: complaint  author, nowhere — a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet
+                #: complaint  author, nowhere — the score itself reads what a hand holds, and this page bakes its score; card:hands-in-the-tab.md is the seam that would fix it
                 raise OnlineError(
-                    "this piece plays what your hands hold — `hear "
-                    "holds." + sorted(heard)[0] + "` — and empty hands "
-                    "are silence, so a tab with no keyboard has nothing "
-                    "to play")
+                    "this piece's *score* reads what your hands hold — "
+                    "`hear holds." + sorted(heard)[0] + "` — and this "
+                    "page bakes its score before you arrive, so there "
+                    "is nothing to bake.  The tab has a keyboard now "
+                    "(every other piece can be played along with); what "
+                    "it does not have is this score running live — "
+                    "`card:hands-in-the-tab.md`")
             performer, _ = audioperform.dynamic(src, rate=rate,
                                                 block=QUANTUM,
                                                 patience=None)
@@ -170,7 +173,46 @@ def bake(src: str, graph, rate: int = RATE) -> dict:
         # page says instead of pretending `duration` is the piece.
         "unfolds": unfolding_names(src) if audioperform.has_score(src) else [],
         "changes": changes,
+        "banks": _banks(src, sources),
     }
+
+
+def _banks(src: str, sources) -> dict:
+    """Each `voices` bank as the control slots its voices are made of —
+    the `clap.note-ports` row of `card:audiovisual-gallery.md`.
+
+    **Notes in from the host, and the host is the page.**  The worklet
+    runs the real compiled synth with control slots, so a note is not a
+    new seam: it is a free voice and three slot writes — `gateAt`,
+    `offAt`, and the payload fields — the same arithmetic
+    `audioalloc.Allocator` does on the desk.  `turn(slot, value)` is
+    already how the page moves a control, so this is only the map from
+    a bank's channel *names* to the numbers that reach them.
+
+    **A bank's channels are never knobs** (`export.bank_channels`: *a
+    knob for `keysChan0f2` is a note nobody played*), which is why they
+    are handed over separately from `knobs` rather than found among
+    them.
+
+    `[[gate, off, f0, f1, …], …]`, one row a voice, in the order
+    `audiovoices.channels_of` declares them — which is the order
+    `Allocator` numbers its voices in, so a voice here is that voice.
+    """
+    from .audiovoices import banks_of, channels_of
+
+    slot_of = {n.chan: i for i, n in enumerate(sources)}
+    out: dict = {}
+    for bank in banks_of(src):
+        voices = []
+        for voice in channels_of(src, bank):
+            slots = [slot_of.get(c) for c in voice]
+            if any(s is None for s in slots):
+                voices = []           # a bank the graph did not keep whole
+                break
+            voices.append(slots)
+        if voices:
+            out[bank.name] = voices
+    return out
 
 
 def blurb(src: str) -> str:

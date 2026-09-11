@@ -32,9 +32,27 @@ class GestateProcessor extends AudioWorkletProcessor {
     this.duration = o.duration;
     this.overrides = new Map();
     for (const [slot, value] of Object.entries(o.overrides || {})) this.overrides.set(+slot, value);
+    // **Notes in from the host, and the host is the page** — the
+    // `clap.note-ports` row of `card:audiovisual-gallery.md`.  A bank
+    // is its voices' control slots (`online._banks`), so a note is a
+    // free voice and three writes; nothing new reaches the synth that
+    // a knob does not already reach.
+    this.banks = o.banks || {};
+    this.held = {};
+    for (const [name, rows] of Object.entries(this.banks)) {
+      this.held[name] = rows.map(() => ({ key: null, released: null }));
+    }
+    //: Voices whose note is over, and when their slots go back to the
+    //: score.  Not at the note-off: the voice's envelope reads `offAt`
+    //: *after* the gate falls, so handing the slots back at that
+    //: instant cuts the release off in the air.
+    this.letting = [];
+    this.grace = Math.round(2 * o.rate);
     this.port.onmessage = (e) => {
       if ("slot" in e.data) this.overrides.set(e.data.slot, e.data.value);
       for (const [slot, value] of e.data.set || []) this.overrides.set(slot, value);
+      if (e.data.note) this.note(e.data.note);
+      if (e.data.panic) this.panic();
     };
     this.next = 0;
     this.t = 0;
@@ -156,6 +174,79 @@ class GestateProcessor extends AudioWorkletProcessor {
     else i64[base + slot] = BigInt(Math.round(value));
   }
 
+  // One note on or off, on a named bank.  `audioalloc.Allocator`'s
+  // arithmetic, in the place that knows what time it is.
+  note(n) {
+    const rows = this.banks[n.bank];
+    const voices = this.held[n.bank];
+    if (!rows || !voices) return;
+    if (n.on) {
+      // **A free voice, released-longest-ago first** — so a note lands
+      // on the tail that has had most time to decay, which is
+      // `Allocator._pick`'s rule.  Every voice busy **refuses**; it
+      // never steals, so playing along cannot cut a note the score is
+      // holding.
+      let pick = -1, best = null;
+      for (let i = 0; i < voices.length; i++) {
+        const v = voices[i];
+        if (v.key !== null && v.released === null) continue;
+        const r = v.released === null ? -1 : v.released;
+        if (best === null || r < best) { best = r; pick = i; }
+      }
+      if (pick < 0) return;
+      const slots = rows[pick];
+      const fields = slots.length - 2;
+      voices[pick] = { key: n.key, released: null };
+      this.letting = this.letting.filter((l) => l.voice !== slots);
+      // `gateAt` and `offAt` are 1-based sample indices — `audioalloc`:
+      // *gateAt > 0 && n >= gateAt - 1* is sounding.
+      this.overrides.set(slots[0], this.t + 1);
+      this.overrides.set(slots[1], 0);
+      // **What a keyboard can say, and no more.**  The payload is the
+      // bank's own record and a MIDI note carries two of its fields;
+      // the rest go out at zero, which is `spec/annotations.md`'s path
+      // 1 and is honest here for the reason it is dishonest there — a
+      // hand playing along has no marks to lose.
+      const carry = [n.key, n.velocity];
+      for (let f = 0; f < fields; f++) {
+        this.overrides.set(slots[2 + f], f < carry.length ? carry[f] : 0);
+      }
+    } else {
+      for (let i = 0; i < voices.length; i++) {
+        if (voices[i].key !== n.key || voices[i].released !== null) continue;
+        voices[i].released = this.t;
+        this.overrides.set(rows[i][1], this.t + 1);
+        this.letting.push({ voice: rows[i], at: this.t + this.grace });
+      }
+    }
+  }
+
+  // Every note let go at once — what a page does when it loses the
+  // keyboard, so a note held while you click away is not held for ever.
+  panic() {
+    for (const [name, rows] of Object.entries(this.banks)) {
+      for (let i = 0; i < rows.length; i++) {
+        if (this.held[name][i].key === null) continue;
+        this.held[name][i].released = this.t;
+        this.overrides.set(rows[i][1], this.t + 1);
+        this.letting.push({ voice: rows[i], at: this.t + this.grace });
+      }
+    }
+  }
+
+  // A voice whose release has had its time gives its slots back, so the
+  // score drives it again — otherwise one note played along would take
+  // a voice off the piece for good.
+  letGo() {
+    if (!this.letting.length) return;
+    const keep = [];
+    for (const l of this.letting) {
+      if (l.at > this.t) { keep.push(l); continue; }
+      for (const slot of l.voice) this.overrides.delete(slot);
+    }
+    this.letting = keep;
+  }
+
   process(inputs, outputs) {
     const out = outputs[0];
     const n = out[0].length;
@@ -167,6 +258,7 @@ class GestateProcessor extends AudioWorkletProcessor {
       const [, slot, value] = this.changes[this.next++];
       this.write(f64, i64, base, slot, value);
     }
+    this.letGo();
     for (const [slot, value] of this.overrides) this.write(f64, i64, base, slot, value);
     this.ex.render_block(this.state, this.buf, BigInt(n), this.slotsAt);
     const got = new Float64Array(this.ex.memory.buffer, this.buf, n * this.channels);

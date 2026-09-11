@@ -734,3 +734,54 @@ def test_a_fader_and_its_slider_are_one_declaration():
                 f"fader turns {slot} — two controls for one declaration")
     assert sliders.get("warmth") == bridge["warmthChan"], \
         "warmth, the one he touched"
+
+
+def test_a_bank_reaches_the_page_as_the_slots_its_voices_are_made_of():
+    """**Notes in from the host, and the host is the page** — the
+    `clap.note-ports` row of `card:audiovisual-gallery.md`.
+
+    The worklet runs the real compiled synth with control slots, so a
+    note is not a new seam into the engine: it is a free voice and three
+    writes, `gateAt`, `offAt` and the payload fields — the arithmetic
+    `audioalloc.Allocator` does on the desk.  What the page has to be
+    handed is only the map from a bank's channel *names* to the slot
+    numbers that reach them.
+
+    Two properties, and the second is the one that rots quietly:
+
+    * a bank's channels are **never** among the knobs
+      (`export.bank_channels`: *a knob for `keysChan0f2` is a note
+      nobody played*), so the two maps must not overlap;
+    * the voices come in `channels_of`'s order, which is the order
+      `Allocator` numbers its own by — so voice *i* here is voice *i*
+      there, and a note let go finds the voice it began on.
+    """
+    from gestate.audiospans import located
+    from gestate.audiovoices import banks_of, channels_of
+    from gestate.export import bank_channels
+    from gestate.online import RATE, _banks, knobs
+
+    src = (AUDIO_DIR / "twinkle.ges").read_text()
+    sites, graph = located(src, rate=RATE)
+    sources = graph.control_sources()
+    banks = _banks(src, sources)
+
+    declared = {b.name for b in banks_of(src)}
+    assert set(banks) == declared, f"every bank the file declares: {banks}"
+
+    slot_of = {n.chan: i for i, n in enumerate(sources)}
+    for name in declared:
+        rows = channels_of(src, next(b for b in banks_of(src) if b.name == name))
+        assert len(banks[name]) == len(rows), "a row a voice, in order"
+        for got, chans in zip(banks[name], rows):
+            assert got == [slot_of[c] for c in chans], \
+                "voice i here is voice i in the allocator"
+            assert len(got) >= 3, "gate, off, and at least one payload field"
+
+    turned = {k["slot"] for k in knobs(src, graph, sites)}
+    played = {s for rows in banks.values() for row in rows for s in row}
+    assert not (turned & played), (
+        "a bank's channels reached the page as knobs too — a slider for "
+        "a gate is a note nobody played")
+    assert bank_channels(src) >= {n.chan for n in sources
+                                  if slot_of[n.chan] in played}
