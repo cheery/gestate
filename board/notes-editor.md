@@ -685,6 +685,41 @@ than by foresight.
 declared mode" is the contract; four tests at the foot of
 `test/test_drawnscores.py`.
 
+### The note view zooms with the rest — 2026-09-11
+
+**Henri:** *"I think it'd be neat if the note view would zoom along the
+rest of the interface.  This isn't 'extras' but something I just
+noticed that doesn't happen."*  It did not: `font::LADDER` carries an
+integer scale the text view and the chrome both obey, and the canvas
+walked at one size whatever the ladder said.
+
+**A magnification, which is what his sentence describes** — the same
+thing the ladder does to the editor's own bitmap font.  `view::zoomed`
+scales the walk's display and `view::canvas_under` maps a press back;
+`paint_pointing` scales the regions it outlines by the same rule.  One
+transform, three readers, or the picture and the hand disagree — the
+rule this canvas has kept since the origin was one number.
+
+*The other reading, not taken:* `scorebox.editing` takes the zoom so a
+semitone **is** sixteen pixels, crisp and re-laid-out.  It costs a page
+rebuild a zoom step and a number crossing the wire that never has, and
+his sentence asks for the first.
+
+**Anchored at the corner, and the centre was tried first and lost.**
+Magnifying about the window's centre pushed the page's left edge — the
+keyboard, and bar one — off screen, and it broke `canvas_scroll`, whose
+whole model is that the visible region is `[0, h]` in the span's own
+units; about the centre it is `[C - C/s, C + (W - C)/s]` and the
+scroll's ends would have been wrong by that offset at every zoom.
+About the corner, screen `[0, W]` is walk `[0, W/s]` exactly.  Driven
+twice, and the second photograph is the argument
+(`test/driven/20260911-173225-notes-page-zooms-with-the-interface`):
+the keys named, the bars numbered, the playhead crossing.
+
+*And the driven run photographed F208 again* — at zoom the status row's
+fields overlap plainly, which is the cheapest reproduction that defect
+has.
+
 **And he read it on the window within the minute, which found F223** —
 *"The vertical scroll doesn't scroll all the way down.  The status bar
 appears to cover what would be shown otherwise."*  The clamp ran to the

@@ -7812,6 +7812,14 @@ read with the photograph beside it.
 Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
+**Photographed again 2026-09-11, and the zoom makes it easy to hit**
+(`test/driven/20260911-173225-notes-page-zooms-with-the-interface`, on
+the desk that ran it): at scale 2 the row reads *arc.notes  playing
+arc.notes at 44100 Hz* with *Ctrl-K ► 0.3* painted over its tail, and
+*parameters* wrapped onto a second line under the window's foot.  The
+same defect, with the fields wider — so a zoomed window is the cheapest
+way to reproduce it, which the original entry could not say.
+
 gate: none yet — the photograph is the evidence.
 
 ### F223. **[resolved]** the canvas view's scroll stops short by the height of the status row, which is painted over the page's foot

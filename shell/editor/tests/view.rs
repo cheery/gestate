@@ -2066,3 +2066,84 @@ fn the_scroll_reaches_past_what_the_status_row_covers() {
         assert_eq!(canvas_scroll(0, by, (10, 300), view.canvas_h(font)), 0);
     }
 }
+
+// ── The canvas zooms with the rest of the interface ─────────────────────
+
+/// **Henri, 2026-09-11:** *"I think it'd be neat if the note view would
+/// zoom along the rest of the interface."*  It did not: `font::LADDER`
+/// carries an integer scale the text view and the chrome both obey, and
+/// the canvas walked at one size whatever the ladder said.
+///
+/// A magnification about the window's centre — the same thing the
+/// ladder does to the editor's own bitmap font, which is the reading
+/// his sentence takes.
+#[test]
+fn the_canvas_magnifies_about_the_windows_corner() {
+    use gestate_editor::view::zoomed;
+    use gestate_panel::list::{Display, Item};
+
+    // About the corner, so screen `[0, W]` is walk `[0, W/s]` exactly
+    // and `canvas_scroll`'s model survives the zoom — `view::zoomed`
+    // has the argument, and the centre was tried first and lost.
+    let ink = Colour::rgb(1, 2, 3);
+    let (cx, cy) = (0, 0);
+    let mut d = Display::new();
+    d.items.push(Item::Rect { x: cx, y: cy, w: 10, h: 4, c: ink });
+    d.items.push(Item::Rect { x: cx - 100, y: cy - 50, w: 8, h: 8, c: ink });
+    d.items.push(Item::Text { x: cx + 20, y: cy, s: "A".into(), c: ink, scale: 2 });
+
+    assert_eq!(zoomed(&d, cx, cy, 1), d, "at one, nothing is touched");
+
+    let big = zoomed(&d, cx, cy, 3);
+    match big.items[0] {
+        Item::Rect { x, y, w, h, .. } => {
+            assert_eq!((x, y), (cx, cy), "the centre does not move");
+            assert_eq!((w, h), (30, 12), "and the size grows with it");
+        }
+        _ => panic!("a rect"),
+    }
+    match big.items[1] {
+        Item::Rect { x, y, .. } =>
+            assert_eq!((x, y), (cx - 300, cy - 150),
+                       "a point three times as far from the corner"),
+        _ => panic!("a rect"),
+    }
+    match &big.items[2] {
+        // The cell itself grows — `LADDER`'s second column is this number.
+        Item::Text { scale, x, .. } => {
+            assert_eq!(*scale, 6);
+            assert_eq!(*x, cx + 60);
+        }
+        _ => panic!("a label"),
+    }
+}
+
+/// **The hand is un-magnified where the picture was magnified**, or the
+/// two disagree — the rule this canvas has kept since the origin was
+/// one number, now stated for a second.
+#[test]
+fn a_press_lands_on_the_walk_pixel_the_picture_drew_there() {
+    use gestate_editor::view::{canvas_under, zoomed};
+    use gestate_panel::list::{Display, Item};
+
+    let ink = Colour::rgb(1, 2, 3);
+    let (cx, cy) = (0, 0);
+    for zoom in [1, 2, 3] {
+        // A one-pixel mark somewhere off centre, magnified.
+        let mut d = Display::new();
+        d.items.push(Item::Rect { x: cx + 37, y: cy - 21, w: 1, h: 1, c: ink });
+        let shown = zoomed(&d, cx, cy, zoom);
+        let Item::Rect { x, y, .. } = shown.items[0] else { panic!() };
+        // Press the pixel it was drawn at; the walk must hear its own.
+        assert_eq!(canvas_under(x, y, cx, cy, zoom), (cx + 37, cy - 21),
+                   "zoom {zoom}");
+    }
+
+    // And every screen pixel inside a magnified cell maps into that
+    // cell, rather than only its corner.
+    let inside = canvas_under(cx + 3 * 5 + 2, cy, cx, cy, 3);
+    assert_eq!(inside, (cx + 5, cy), "the middle of a magnified pixel");
+    // Below the centre, where integer division would round the wrong way.
+    assert_eq!(canvas_under(cx - 1, cy, cx, cy, 3), (cx - 1, cy),
+               "and to the left of it");
+}

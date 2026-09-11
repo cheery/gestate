@@ -2604,3 +2604,49 @@ Driven and photographed: scrolled to the bottom, the page's last ground
 row sits at y 735 of 760, and section C's caption and its harmony band
 — the page's last two rows, and the newest thing in the tree — are read
 for the first time.
+
+## The canvas did not zoom, and the obvious anchor was the wrong one — 2026-09-11
+
+*Henri:* **"I think it'd be neat if the note view would zoom along the
+rest of the interface.  This isn't 'extras' but something I just
+noticed that doesn't happen."**
+
+It did not.  `font::LADDER` is a list of `(font, scale)` and its second
+column is an integer the text view and the chrome have always obeyed;
+the canvas walked at one size whatever the ladder said.  So the reading
+his sentence takes is a **magnification** — the same thing the ladder
+does to the editor's own bitmap font — and not a re-layout, which would
+have meant `scorebox.editing` taking the zoom, a page rebuild a step,
+and a number crossing the wire that never has.
+
+**The interesting part is the anchor, and the obvious choice was
+wrong.**  Magnifying about the window's *centre* is what everything
+does and it was written first.  Two things broke.  The page's left edge
+— the keyboard and bar one — was pushed off screen, which a photograph
+showed at once.  And `canvas_scroll` quietly stopped being right:
+its whole model is that the visible region is `[0, h]` in the span's
+own units, and about the centre it is `[C - C/s, C + (W - C)/s]`, an
+offset window.  The scroll's ends would have been wrong by that offset
+at every zoom — a defect nobody would have found for weeks, because it
+is a *limit* being slightly wrong rather than a picture being visibly
+so.
+
+About the **corner**, screen `[0, W]` is walk `[0, W/s]` exactly.  One
+division, no new rule, and a score page keeps its keys and its first
+bar pinned while it grows, which is the anchor a reader wants anyway.
+The centre would have been defensible, correct-looking, and wrong in a
+way only arithmetic finds.
+
+**And the fifth blind oracle of the day, identical in shape to the
+other four.**  The driven run measured a *keyboard* key's height, and
+centre-magnification had pushed the keyboard off the left edge — so it
+read `0 px` and reported a working zoom as broken.  Each of today's
+five looked for the thing where it used to be rather than where the
+change puts it: the page's ground, the window's pixels, a pinned state,
+the allocator's list, and now the keys.  The repair every time was to
+measure the thing the change is *about* — here a note, which stays on
+screen by construction because the notes are what zoom.
+
+The run also photographed `fixme.md` F208 again: at scale 2 the status
+row's fields overlap plainly, which is the cheapest reproduction that
+defect has had and is now written on it.

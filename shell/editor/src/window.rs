@@ -905,7 +905,7 @@ impl EditorWindow {
                 }
             }
             self.paint_pointing(canvas, key, w, ix, iy,
-                                Some((ix, iy, ix + iw, iy + vh)));
+                                Some((ix, iy, ix + iw, iy + vh)), 1);
             live = true;
         }
         live
@@ -925,7 +925,7 @@ impl EditorWindow {
     /// and outlines it faintly.
     fn paint_pointing(&self, canvas: &mut Canvas, key: &str,
                       w: &crate::walk::Walker, ox: i32, oy: i32,
-                      clip: Option<(i32, i32, i32, i32)>) {
+                      clip: Option<(i32, i32, i32, i32)>, zoom: i32) {
         let pointing = self.pointing.borrow();
         let Some(p) = pointing.as_ref() else { return };
         if p.key != key {
@@ -934,6 +934,19 @@ impl EditorWindow {
         let regions = w.regions();
         let font = self.font();
         let scale = self.scale();
+        // **The outline is drawn over the magnified picture**, so a
+        // region has to be magnified with it — the same transform
+        // `view::zoomed` does to the items, about the same centre.
+        // Without this the Ctrl-press box lands where the picture used
+        // to be, which is the picture and the hand disagreeing by
+        // another road.  **`zoom` is the caller's**, because only the
+        // full-window canvas is magnified: a box beside a line of a
+        // `.ges` is drawn by the path below and passes one.
+        let (zx, zy) = (0, 0);
+        let big = |v: i32, c: i32| c + (v - c) * zoom.max(1);
+        let grow = |r: (i32, i32, i32, i32)| {
+            (big(r.0, zx), big(r.1, zy), r.2 * zoom.max(1), r.3 * zoom.max(1))
+        };
         let (cw, ch) = (font.w * scale, font.h * scale);
         // The band a box is drawn in, or the whole window: nothing
         // here paints over the text beside a box.
@@ -966,11 +979,11 @@ impl EditorWindow {
             font.draw_scaled(c, x + 4, y + 3, text, ink, scale);
             th + 2
         };
-        let (px, py) = (p.at.0 + ox, p.at.1 + oy);
+        let (px, py) = (big(p.at.0, zx) + ox, big(p.at.1, zy) + oy);
         let mut ly = py + 10;
         for (name, text) in &p.told {
             if let Some((_, region)) = regions.iter().find(|(n, _)| n == name) {
-                outline(canvas, *region, view::CARET);
+                outline(canvas, grow(*region), view::CARET);
             }
             ly += label(canvas, px + 10, ly, text, view::INK);
         }
@@ -978,7 +991,7 @@ impl EditorWindow {
             fill(canvas, px - 5, py, 11, 1, view::ANGRY);
             fill(canvas, px, py - 5, 1, 11, view::ANGRY);
             if let Some((_, region)) = regions.iter().find(|(n, _)| n == name) {
-                outline(canvas, *region, view::FAINT);
+                outline(canvas, grow(*region), view::FAINT);
             }
             let words = format!("nothing here · nearest {name}, {dist} px");
             label(canvas, px + 10, ly, &words, view::ANGRY);
@@ -1014,6 +1027,21 @@ impl EditorWindow {
         let view = self.view.borrow();
         (view.w / 2 - self.canvas_across.get(),
          view.h / 2 - self.canvas_scroll.get())
+    }
+
+    /// **A window point, in the walk's own coordinates** — the one
+    /// place a press is un-magnified, and the companion to
+    /// `canvas_centre`.
+    ///
+    /// The canvas is painted at the window's zoom (`view::zoomed`,
+    /// about the window's centre), so a hand at a screen pixel is at a
+    /// different walk pixel and the walk hit-tests in its own.  Every
+    /// path that hands the walk a point goes through here — press,
+    /// motion, the Ctrl-press's ask, and the release's report — or the
+    /// picture and the hand disagree, which is the rule this canvas
+    /// has kept since it was one number and is now two.
+    fn canvas_point(&self, x: i32, y: i32) -> (i32, i32) {
+        view::canvas_under(x, y, 0, 0, self.scale())
     }
 
     /// Let go of every key the piano is holding.
@@ -1839,15 +1867,24 @@ impl WindowHandler for EditorWindow {
                 let scroll = self.canvas_scroll.get();
                 let across = self.canvas_across.get();
                 let (dx, dy) = self.canvas_centre();
+                // **The window's zoom, on the canvas too** — his ask,
+                // 2026-09-11.  The walk draws at one size and the
+                // picture is magnified about the window's centre, the
+                // way the ladder magnifies the editor's own font; a
+                // press comes back through `canvas_under`.
+                let zoom = self.scale();
+                // The corner, not the centre — `view::zoomed` says why.
+                let (mx, my) = (0, 0);
                 if let Some(w) =
                     self.walkers.borrow_mut().get_mut("substrate")
                 {
-                    let shown = w.frame(dx, dy);
-                    gestate_panel::paint::paint(&mut canvas, shown);
-                    let (top, bottom) = view::span_of(shown);
-                    let (left, right) = view::span_across(shown);
+                    let walked = w.frame(dx, dy);
+                    let (top, bottom) = view::span_of(walked);
+                    let (left, right) = view::span_across(walked);
+                    let shown = view::zoomed(walked, mx, my, zoom);
+                    gestate_panel::paint::paint(&mut canvas, &shown);
                     self.paint_pointing(&mut canvas, "substrate", w, 0, 0,
-                                        None);
+                                        None, zoom);
                     let span = (top + scroll, bottom + scroll);
                     let wide = (left + across, right + across);
                     self.canvas_span.set(span);
@@ -1863,7 +1900,11 @@ impl WindowHandler for EditorWindow {
                     // window's — the status row is painted over the
                     // foot and the picture under it cannot be read
                     // (`view::canvas_h`).
-                    let seen = view.canvas_h(font);
+                    // In **walk** units, which is what the span and the
+                    // scroll are counted in: the screen shows
+                    // `canvas_h` pixels and each walk pixel is `zoom`
+                    // of them.
+                    let seen = view.canvas_h(font) / zoom.max(1);
                     let first = !self.canvas_aligned.get();
                     let placed = if first {
                         view::canvas_opening(span, seen)
@@ -2195,10 +2236,11 @@ impl WindowHandler for EditorWindow {
                     // speaks the frame it was grabbed in.
                     let (key, ox, oy) = self.box_grab.borrow().clone()
                         .unwrap_or_else(|| ("substrate".into(), 0, 0));
+                    let (px, py) = self.canvas_point(x, y);
                     if let Some(w) =
                         self.walkers.borrow_mut().get_mut(&key)
                     {
-                        for (name, value) in w.motion(x - ox, y - oy) {
+                        for (name, value) in w.motion(px - ox, py - oy) {
                             self.host.gesture(
                                 Gesture::Touched(name, value).line());
                         }
@@ -2207,7 +2249,7 @@ impl WindowHandler for EditorWindow {
                     }
                     let (dx, dy) = self.canvas_centre();
                     self.host.gesture(
-                        Gesture::Touch("drag", x - dx, y - dy).line());
+                        Gesture::Touch("drag", px - dx, py - dy).line());
                     return EventStatus::Captured;
                 }
                 if !self.dragging.get() {
@@ -2420,10 +2462,11 @@ impl WindowHandler for EditorWindow {
                     // (`spec/workbench.md` §"The window inspects
                     // itself").
                     if modifiers.contains(Modifiers::CONTROL) {
+                        let (px, py) = self.canvas_point(x, y);
                         if let Some(w) =
                             self.walkers.borrow_mut().get_mut("substrate")
                         {
-                            self.point("substrate", w, x, y);
+                            self.point("substrate", w, px, py);
                         }
                         return EventStatus::Captured;
                     }
@@ -2434,10 +2477,11 @@ impl WindowHandler for EditorWindow {
                     // coordinates never do (`spec/workbench.md` §"The
                     // canvas walks over crust").  A press that lands
                     // on nothing crosses as nothing.
+                    let (px, py) = self.canvas_point(x, y);
                     if let Some(w) =
                         self.walkers.borrow_mut().get_mut("substrate")
                     {
-                        for (name, value) in w.press(x, y) {
+                        for (name, value) in w.press(px, py) {
                             self.host.gesture(
                                 Gesture::Touched(name, value).line());
                         }
@@ -2446,7 +2490,7 @@ impl WindowHandler for EditorWindow {
                     }
                     let (dx, dy) = self.canvas_centre();
                     self.host.gesture(
-                        Gesture::Touch("press", x - dx, y - dy).line());
+                        Gesture::Touch("press", px - dx, py - dy).line());
                     return EventStatus::Captured;
                 }
                 self.dragging.set(true);
@@ -2490,10 +2534,11 @@ impl WindowHandler for EditorWindow {
                         // so a program watching for it sees the same
                         // point the last drag reported.
                         let (x, y) = self.cursor.get();
+                        let (px, py) = self.canvas_point(x, y);
                         let (dx, dy) = self.canvas_centre();
                         self.host.gesture(
                             Gesture::Touch("release",
-                                           x - dx, y - dy).line());
+                                           px - dx, py - dy).line());
                     }
                 }
                 if let Some(note) = self.playing.take() {
@@ -2562,7 +2607,8 @@ impl WindowHandler for EditorWindow {
                         };
                     let (w, h) = {
                         let view = self.view.borrow();
-                        (view.w, view.canvas_h(self.font()))
+                        (view.w / self.scale().max(1),
+                         view.canvas_h(self.font()) / self.scale().max(1))
                     };
                     let was = self.canvas_scroll.get();
                     let now = view::canvas_scroll(was, by,

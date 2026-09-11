@@ -2117,6 +2117,68 @@ pub fn span_across(d: &Display) -> (i32, i32) {
     if left > right { (0, 0) } else { (left, right) }
 }
 
+/// **The canvas at the window's zoom** — every item magnified about
+/// the window's centre, the way the editor magnifies its own bitmap
+/// font.
+///
+/// *Henri, 2026-09-11:* *"I think it'd be neat if the note view would
+/// zoom along the rest of the interface."*  It did not: `font::LADDER`
+/// carries an integer scale that the text view and the chrome both
+/// obey, and the canvas walked at one size whatever the ladder said.
+///
+/// **A magnification and not a re-layout**, which is the reading his
+/// sentence takes: at 2× a semitone is sixteen screen pixels and still
+/// eight walk pixels, so the grid, the notes and the labels get
+/// chunkier together and nothing is recompiled.  The other reading —
+/// `scorebox.editing` taking the zoom, so a semitone *is* sixteen —
+/// costs a page rebuild a zoom step and a number crossing the wire
+/// that never has.
+///
+/// **About the window's top-left**, which is not the obvious choice and
+/// is the one that keeps the arithmetic honest.  Magnifying about the
+/// *centre* was written first and broke two things: the page's left
+/// edge — the keyboard, and bar one — is pushed off screen, and
+/// `canvas_scroll` stops being right, because its whole model is that
+/// the visible region is `[0, h]` in the span's own units.  About the
+/// centre it is `[C - C/s, C + (W - C)/s]`, an offset window, and the
+/// scroll's ends would have been wrong by that offset at every zoom.
+///
+/// About the corner, screen `[0, W]` is walk `[0, W/s]` exactly, so
+/// the clamp needs one division and no new rule — and a score page
+/// keeps its keyboard and its first bar pinned while it grows, which
+/// is the anchor a reader wants anyway.
+///
+/// A press is mapped back through `canvas_under`, and `paint_pointing`
+/// scales the regions it outlines by the same rule: one transform,
+/// three readers, or the picture and the hand disagree.
+pub fn zoomed(d: &Display, cx: i32, cy: i32, scale: i32) -> Display {
+    if scale <= 1 {
+        return d.clone();
+    }
+    let at = |v: i32, c: i32| c + (v - c) * scale;
+    let mut out = Display::default();
+    out.items = d.items.iter().map(|i| match i.clone() {
+        Drawn::Rect { x, y, w, h, c } => Drawn::Rect {
+            x: at(x, cx), y: at(y, cy), w: w * scale, h: h * scale, c },
+        Drawn::Dot { cx: x, cy: y, r, c } => Drawn::Dot {
+            cx: at(x, cx), cy: at(y, cy), r: r * scale, c },
+        // The cell itself grows, which is what the ladder does to the
+        // editor's own font — `LADDER`'s second column is this number.
+        Drawn::Text { x, y, s, c, scale: k } => Drawn::Text {
+            x: at(x, cx), y: at(y, cy), s, c, scale: k * scale },
+    }).collect();
+    out
+}
+
+/// Where a window point lands in the walk's own coordinates — the
+/// inverse of `zoomed`, and the only place a press is un-magnified.
+pub fn canvas_under(x: i32, y: i32, cx: i32, cy: i32, scale: i32) -> (i32, i32) {
+    if scale <= 1 {
+        return (x, y);
+    }
+    (cx + (x - cx).div_euclid(scale), cy + (y - cy).div_euclid(scale))
+}
+
 /// The scroll a wheel leaves the canvas view at.
 ///
 /// `current` is how far the picture is already carried, `by` what the
