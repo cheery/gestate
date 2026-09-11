@@ -1776,6 +1776,59 @@ and `outside`'s own notes among them, the band on its channel and its
 numbers absent from the text, and the two contracts the timing bound
 and the compact box keep.
 
+### The tonic, the notes outside the mode, and a note made by clicking — 2026-09-11
+
+*Henri:* **"I'd want the view to show notes outside of scale/mode as
+yellow, and tonic note as deeper blue.  Also, I'd want a method to
+create new notes by clicking."**
+
+**The colour.**  A `.ges` take's note is coloured by the **bank** it
+plays through, which is what `rollLit`'s palette is for.  A note-file
+note has no bank the descent can see, so every one came out tone 0 —
+the page was spending its colour on a fact it did not have.  It has two
+the file *declares*: `scorebox.TONIC` for a note on the section's own
+tonic, `scorebox.OUTSIDE` for one its mode does not contain, both above
+the palette so a `.ges` take is untouched.  The yellow is the same ink
+the harmony band lights an outside degree with, **because it is the
+same fact**.  On `arc.notes` section A — D lydian — that is every D and
+the G naturals against lydian's ♯4; measured in the window as 3,684
+pixels of deeper blue and 558 of yellow.
+
+**The note.**  A single press on empty roll still sweeps a band, so the
+**second press on the same place** is what tells the two apart — his
+reading of three, and Reaper's own idiom.
+
+Three things it is made of, each one already there:
+
+* **The clock is the host's, not the chart's.**  `hand.ges` is a chart
+  over touches with no time in it, and `transport.ges` says why in as
+  many words — *a chart never asks the world; the event brings it.*  So
+  `Session.clicked` holds the place and the instant and `TWICE` is the
+  one number a double-click is.
+* **The act is `Clear`, not `Select`.**  A click on empty roll is
+  `Clear` on the press and `Drop` on the lift; the chart only reaches
+  `Swept` — and so `Select` — through a **motion**.  Written against
+  `Select` first, it never fired, which the headless test said plainly.
+* **The edit is `assert`** — the document's own primitive, built for
+  this on 2026-09-09.  The record is the file's own line, checked by
+  the file's own parser, written through the door every other gesture
+  uses, so the file comes back canonical and the new note sorts to
+  where it sounds.
+
+**The voice is the selection's**, his answer of three: press a note to
+say *this kind*, then click to make another beside it — no new state
+and nothing new drawn.  With nothing selected it is the section's first
+declared voice.  The onset **snaps to the grid**, which `_snapped` does
+not do for a bare tick: it moves an onset *by* an amount and answers
+the tick unchanged when the amount is nothing.  The first driven run
+made a note at tick 123; every other gesture here snaps and so does
+this one now.
+
+Driven (`test/driven/20260911-175813-notes-tones-and-a-note-made-by-clicking`,
+on the desk that ran it): the two inks counted on the page, and two
+clicks leaving exactly one line — `note  section A  bar 3  at 96  len
+96  voice melody  key 80  vel mf`.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

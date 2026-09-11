@@ -2686,3 +2686,46 @@ subject.  The remedy has been the same every time and is worth stating
 once — **make the thing you are measuring the only thing that can
 move**: stop the transport, crop to the roll's band, choose a signal
 that is present in one state and absent in the other.
+
+## Two asks, and the third correction came from a photograph — 2026-09-11
+
+*Henri:* **"I'd want the view to show notes outside of scale/mode as
+yellow, and tonic note as deeper blue.  Also, I'd want a method to
+create new notes by clicking."**
+
+**The colour was a fact the page already had and was not spending.**  A
+`.ges` take's note is coloured by the bank it plays through; a note-file
+note has no bank the descent can see, so every one came out tone 0.
+What the page knows instead is where a note sits in the mode its
+section **declares** — the same thing the harmony band draws, and the
+yellow is deliberately the band's own ink, because it is the band's own
+fact said twice rather than two facts that happen to agree.
+
+**The note took three corrections, and none came from reading the
+code.**
+
+`Select` never fires for a click: `hand.ges` reaches `Swept` — and so
+`Select` — only through a motion, and a click is `Clear` on the press
+and `Drop` on the lift.  I wrote the hook on `Select`, and a headless
+test said *no note* in under a second.
+
+The fixture built the **compiled** road, whose rolls carry no sections,
+while the window draws the data road.  The guard I had written refused
+correctly and the test read as a bug in the feature.  `_rolled_page`
+takes `page=True` now, which is worth more than the fix: the fixture
+can be the road the window actually shows.
+
+And the first driven run made a note at tick **123**.  `_snapped` moves
+an onset *by* an amount and answers the tick unchanged when the amount
+is nothing — so the name was right and the call was wrong, which is the
+day's whole theme in one line.  Every other gesture here snaps.  A
+person would have found that one in about four seconds, and a
+photograph found it in twenty.
+
+**Where the clock went, and why it is not in the chart.**  A
+double-click is a time, and `hand.ges` is a chart over touches with no
+time in it.  `transport.ges` had already written the rule for this —
+*a chart never asks the world; the event brings it* — so the host holds
+`Session.clicked` and the chart stays what it is.  That is the second
+time today an existing sentence in the tree decided a design question
+that looked new.

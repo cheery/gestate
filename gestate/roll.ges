@@ -137,21 +137,38 @@ rollEndInk = RGB 236 200 120
 rollOutline : Colour
 rollOutline = RGB 236 240 248
 
-#: A bank's hue, by its number in reading order; the palette wraps.
+#: A bank's hue, by its number in reading order; the palette wraps —
+#: and **two tones above the palette that a `.notes` page uses instead**
+#: (`scorebox.TONIC`, `scorebox.OUTSIDE`).
+#:
+#: *Henri, 2026-09-11:* *"I'd want the view to show notes outside of
+#: scale/mode as yellow, and tonic note as deeper blue."*  A `.ges`
+#: take's note is coloured by the **bank** it plays through, which is
+#: what the palette is for; a note-file note has no bank the descent
+#: can see and every note came out tone 0.  So the page spends the tone
+#: on what it does know — where the note sits in the mode its section
+#: declares — and the yellow is the same ink the harmony band lights an
+#: outside degree with, because it is the same fact.
 rollLit : Int -> Colour
-rollLit t = case t % 4 of
-    0 -> RGB 122 200 235
-    1 -> RGB 235 178 110
-    2 -> RGB 150 220 150
-    _ -> RGB 220 140 190
+rollLit t = case t of
+    4 -> RGB 96 150 220
+    5 -> RGB 236 200 120
+    _ -> case t % 4 of
+        0 -> RGB 122 200 235
+        1 -> RGB 235 178 110
+        2 -> RGB 150 220 150
+        _ -> RGB 220 140 190
 
 #: The same, dimmed: take ink, for a note the dice drew.
 rollDimmed : Int -> Colour
-rollDimmed t = case t % 4 of
-    0 -> RGB 45 75 88
-    1 -> RGB 88 67 41
-    2 -> RGB 56 82 56
-    _ -> RGB 82 52 71
+rollDimmed t = case t of
+    4 -> RGB 38 58 84
+    5 -> RGB 88 74 45
+    _ -> case t % 4 of
+        0 -> RGB 45 75 88
+        1 -> RGB 88 67 41
+        2 -> RGB 56 82 56
+        _ -> RGB 82 52 71
 
 rollHue : Int -> Int -> Colour
 rollHue t d = case d of

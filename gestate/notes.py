@@ -1305,6 +1305,25 @@ def harmony(rels: dict) -> list:
     return out
 
 
+def tone_of(rels: dict, section: str, key: int):
+    """`"tonic"`, `"outside"`, or `None` — where a key sits in the mode
+    a section declares.
+
+    The two facts a picture can draw about a note that notation
+    software cannot, and for the reason `harmony` gives: the section
+    **states** its key and its mode, so both are known rather than
+    inferred.  A section that declares neither says `None` about every
+    note, which is the silence `outside` keeps.
+    """
+    one = {s["name"]: s for s in sections_of(rels)}.get(section)
+    if one is None or one["key"] is None or one["mode"] is None:
+        return None
+    step = (key - _PITCH_CLASS[one["key"]]) % 12
+    if step == 0:
+        return "tonic"
+    return None if step in _MODES[one["mode"].lower()] else "outside"
+
+
 def _degree_name(step: int, scale) -> str:
     """A degree as the band draws it: its number in the seven, with
     `+`/`-` where it is raised or lowered out of the mode.

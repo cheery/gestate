@@ -735,6 +735,35 @@ canvas shows, in the walk's own units* — asked by both clamps, the
 same shape F223's `View::canvas_h` took.  A derived bound written out
 twice is a bound that will disagree with itself.
 
+### The two tones, and a note made by clicking — 2026-09-11
+
+**Henri:** *"I'd want the view to show notes outside of scale/mode as
+yellow, and tonic note as deeper blue.  Also, I'd want a method to
+create new notes by clicking."*
+
+Both built; `spec/drawnscores.md` §"The tonic, the notes outside the
+mode, and a note made by clicking" is the contract.  The colour spends
+the page's tone on the two facts the file **declares** rather than on a
+bank the descent cannot see, and the yellow is the harmony band's own
+ink because it is the harmony band's own fact.  The note is a second
+press on the same place — `assert`ed, which is the document's primitive
+edit and was built for exactly this — into the voice the selection
+names.
+
+**Three things the building corrected**, each found by a measurement
+rather than by reading:
+
+* `Select` never fires for a click.  The chart reaches `Swept` only
+  through a **motion**; a click is `Clear` then `Drop`.  The headless
+  test said so at once.
+* The fixture built the *compiled* road, whose rolls know no sections —
+  so `_rolled_page` takes `page=True` now and can be the road the
+  window actually draws.
+* The first driven run made a note at tick **123**.  `_snapped` moves
+  an onset *by* an amount and answers the tick unchanged when the
+  amount is nothing; every other gesture here snaps and so does this
+  one now.
+
 **And he read it on the window within the minute, which found F223** —
 *"The vertical scroll doesn't scroll all the way down.  The status bar
 appears to cover what would be shown otherwise."*  The clamp ran to the

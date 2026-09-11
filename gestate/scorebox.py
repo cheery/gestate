@@ -76,6 +76,15 @@ MAX_LEAVES = 512
 
 TICKS_PER_BEAT = 96
 
+#: The two tones a `.notes` page spends above the bank palette —
+#: `roll.ges`' `rollLit` has the inks and the argument.
+#:
+#: *Henri, 2026-09-11:* *"notes outside of scale/mode as yellow, and
+#: tonic note as deeper blue."*  Both are facts the section **declares**
+#: rather than facts inferred from the notes, which is the same thing
+#: the harmony band draws and the reason either can be drawn at all.
+TONIC, OUTSIDE = 4, 5
+
 #: **The playhead's channel**, and it is shared by every box of a page.
 #:
 #: `audioeditor.observe` writes it once a frame, by name, to whatever
@@ -200,6 +209,12 @@ class Roll:
     #: The names of the `.notes` sections this roll draws, in order —
     #: what `bars` resizes.  Empty for a `.ges` take.
     sections: tuple = ()
+    #: **A tone per event**, where the road knows one — `TONIC` for a
+    #: note on the section's own tonic, `OUTSIDE` for one its mode does
+    #: not contain, and nothing for the rest, which keep the bank's hue.
+    #: Empty for a `.ges` take, whose notes are coloured by the bank
+    #: they play through and where that is the useful fact.
+    tones: tuple = ()
     #: **The harmony band**, flat threes — bar tick, degree, inside —
     #: as `roll.ges`' `rollHarmony` walks them.  What each bar sounds as
     #: degrees against the section's **declared** mode, and which of
@@ -1470,7 +1485,7 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
     """
     from .midi import TICKS_PER_BEAT
     from .notes import (bits_of, bound, harmony as notes_harmony,
-                        level_of, notes_of, sections_of)
+                        level_of, notes_of, sections_of, tone_of)
 
     lines = program.splitlines()
     # The line each note's generated line is: `origins` runs the other
@@ -1492,7 +1507,7 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
         if unknown:
             out.append(RollError(f"`{unknown[0]}` is no voice of this file"))
             continue
-        events, leaves = [], []
+        events, leaves, tones = [], [], []
         # The sections the ask draws, each once — not once per voice,
         # which put every note in the left fifth of the roll on the
         # first driven photograph (2026-09-06) while the headless
@@ -1534,6 +1549,13 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
                 events.append((on, off, len(leaves) - 1, one["key"],
                                _tone_vel(level_of(one["vel"])),
                                bits_of(one["manner"])))
+                # **A tone beside the event, appended together** — the
+                # events are a filtered subset of the file's notes and
+                # in a different order, so a list built over the file
+                # would not line up with them.  `None` keeps the bank's
+                # hue, which is what a section declaring no mode gets.
+                tones.append({"tonic": TONIC, "outside": OUTSIDE}.get(
+                    tone_of(rels, one["section"], one["key"])))
         # **The scale is the file's, not the section's** — one pitch
         # axis for every roll of the page, and a program text that
         # holds still while notes move inside it.  The span is what the
@@ -1561,7 +1583,8 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
         out.append(Roll(events, leaves, False, False, 0, scale=scale,
                         geometry=editing(*scale), title=title,
                         bars=tuple(bars), beat=TICKS_PER_BEAT,
-                        sections=tuple(drawn), harmony=tuple(band)))
+                        sections=tuple(drawn), harmony=tuple(band),
+                        tones=tuple(tones)))
     return out
 
 
@@ -1776,6 +1799,12 @@ def rows_of(roll: Roll) -> list:
         w = max(2, x1 - x0) - 1
         leaf = leaves[k] if 0 <= k < len(leaves) else leaves[-1]
         tone = banks.index(leaf.bank) % len(_HUES)
+        # **The page's own tone wins where it has one** — a note-file
+        # note has no bank the descent can see, so the palette would
+        # paint every one of them tone 0; what the page knows instead is
+        # where the note sits in its section's declared mode.
+        if i < len(roll.tones) and roll.tones[i] is not None:
+            tone = roll.tones[i]
         out.append((i, x0 + (w + 1) // 2, y_of(roll, key), max(2, w), tone,
                     1 if leaf.chancy else 0, mark))
     return out

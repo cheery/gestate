@@ -1732,20 +1732,32 @@ class _Sounds:
         return True
 
 
-def _rolled_page(here):
+def _rolled_page(here, page: bool = False):
     """The first roll of a `.ges` on disk, its regions, and a headless
     session seated over it with the bench a gesture needs: the regions,
-    the origins, the path, and somewhere for the previews to go."""
+    the origins, the path, and somewhere for the previews to go.
+
+    `page=True` builds it the way a `.notes` opened alone is built —
+    the **data** road, `notes_rolls` — which is what the window draws
+    and the only road whose rolls know their sections.  The compiled
+    road is the default because most gestures here were written against
+    a `.ges` box and are held to it."""
     import re
 
-    from gestate.scorebox import build_rolls, regions_of
+    from gestate.scorebox import (asks as page_asks, build_rolls,
+                                  notes_rolls, regions_of)
     from gestate.session import Session
 
     source, origins = notes.expanded(here.read_text(), here.parent)
     asks = [(i + 1, m.group(1))
             for i, line in enumerate(source.splitlines())
             for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
-    roll = build_rolls(source, asks[:1], 22050, 0)[0]
+    if page:
+        parsed = notes.parse((here.parent / "arc.notes").read_text(),
+                             "arc.notes")
+        roll = notes_rolls(source, page_asks(source), origins, parsed)[0]
+    else:
+        roll = build_rolls(source, asks[:1], 22050, 0)[0]
 
     class _Bench:
         note_regions = regions_of([roll])
@@ -4243,3 +4255,123 @@ def test_the_harmony_band_crosses_as_a_reading_and_not_as_text():
     after = [i[3] for i in views[0].picture() if i[0] == "text"]
     assert len(after) > before, "the band arrives on its channel"
     assert "-4" in after, "including the degree the mode does not have"
+
+
+def test_the_tonic_and_the_notes_outside_the_mode_are_their_own_tones():
+    """**Henri, 2026-09-11:** *"I'd want the view to show notes outside
+    of scale/mode as yellow, and tonic note as deeper blue."*
+
+    A `.ges` take's note is coloured by the **bank** it plays through,
+    which is what the palette is for.  A note-file note has no bank the
+    descent can see, so every one of them came out tone 0 — the page
+    spent its colour on a fact it did not have.  It has two the file
+    *declares*: the section's tonic, and the notes its mode does not
+    contain.  The second is the same fact the harmony band lights, in
+    the same ink, because it is the same fact.
+
+    On `arc.notes` section A — D lydian — that is every D, and the G
+    naturals against lydian's ♯4.
+    """
+    from collections import Counter
+
+    from gestate.scorebox import (OUTSIDE, TONIC, asks, notes_rolls,
+                                  rows_of)
+
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    source, origins = notes.expanded(notes.wrapper(NOTES), NOTES.parent)
+    roll = notes_rolls(source, asks(source), origins, parsed)[0]
+    assert len(roll.tones) == len(roll.events), "a tone beside every event"
+
+    # The tones reach the picture, which is what `rows_of` answers.
+    drawn = Counter(row[4] for row in rows_of(roll))
+    assert drawn[TONIC] and drawn[OUTSIDE], f"both are drawn: {drawn}"
+
+    pitches = lambda tone: {e[3] % 12 for e, t in zip(roll.events, roll.tones)
+                            if t == tone}
+    assert pitches(TONIC) == {2}, "D, and only D, is the tonic of D lydian"
+    assert pitches(OUTSIDE) == {7}, \
+        "G natural, the fourth lydian does not have"
+
+    # And a section declaring no mode keeps the bank's hue rather than
+    # being guessed at — the silence `notes.outside` keeps.
+    from gestate.notes import tone_of
+
+    assert tone_of(parsed, "A", 62) == "tonic"
+    assert tone_of(parsed, "A", 67) == "outside"
+    assert tone_of(parsed, "A", 66) is None, "the ♯4 is in lydian"
+    assert tone_of(parsed, "nosuchsection", 62) is None
+
+
+def test_two_clicks_on_empty_roll_make_a_note_there():
+    """**Henri, 2026-09-11:** *"I'd want a method to create new notes by
+    clicking."*  A single press on empty roll still sweeps a band — that
+    is how a group is chosen — so the second press is what tells the two
+    apart.  His reading of three, and Reaper's own idiom.
+
+    **The clock is the host's**, not the chart's: `hand.ges` is a chart
+    over touches with no time in it, and `transport.ges` says why in as
+    many words — *a chart never asks the world; the event brings it.*
+
+    **And the note is `assert`ed**, the document's own primitive edit,
+    so the record is the file's own line checked by the file's own
+    parser and the new note sorts to where it sounds.
+    """
+    from gestate.scorebox import across_of, grid_of, reach_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here, page=True)
+        low, high = reach_of(roll)
+        # A place with nothing in it: bar 2's second beat, high above.
+        tick = roll.bars[1] if roll.bars else 384
+        key = min(high, max(low, high - 1))
+        where = (high - key) / (high - low)
+        was = len(here.parent.joinpath("arc.notes").read_text().splitlines())
+
+        def click():
+            seat.touched("__nb_rail_0__", across_of(roll, tick))
+            seat.touched("__nb_pitch_0__", where)
+            # The band commits on the **release**, so that is the call
+            # whose word matters — the press only says a sweep began.
+            seat.released("__nb_pitch_0__")
+            return seat.released("__nb_rail_0__")
+
+        first = click()
+        assert "selected" in first or first == "", first
+        lines = here.parent.joinpath("arc.notes").read_text().splitlines()
+        assert len(lines) == was, "one click writes nothing"
+
+        said = click()
+        now = here.parent.joinpath("arc.notes").read_text().splitlines()
+        assert len(now) == was + 1, f"the second click made a note: {said}"
+        made = [l for l in now if l not in lines]
+        assert len(made) == 1, made
+        assert f"key {key}" in made[0], made[0]
+        assert f"len {grid_of(roll)}" in made[0], "one grid step long"
+        # **On the grid**, like every other gesture here: a note made at
+        # tick 123 rather than 96 is the first thing a person notices.
+        at = int(made[0].split(" at ")[1].split()[0])
+        assert at % grid_of(roll) == 0, f"snapped: at {at}"
+        assert "voice " in made[0] and "vel mf" in made[0], made[0]
+
+
+def test_a_click_far_from_the_first_is_two_sweeps_and_not_a_note():
+    """The guard that keeps a single press what it was: two clicks make
+    a note only at **one place**, so sweeping a band by pressing here
+    and there never writes one."""
+    from gestate.scorebox import across_of, grid_of, reach_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here, page=True)
+        low, high = reach_of(roll)
+        was = here.parent.joinpath("arc.notes").read_text()
+
+        def click(tick, key):
+            seat.touched("__nb_rail_0__", across_of(roll, tick))
+            seat.touched("__nb_pitch_0__", (high - key) / (high - low))
+            seat.released("__nb_pitch_0__")
+            seat.released("__nb_rail_0__")
+
+        click(roll.bars[1] if roll.bars else 384, high - 1)
+        click(roll.bars[2] if roll.bars else 768, high - 1)
+        assert here.parent.joinpath("arc.notes").read_text() == was, \
+            "two places is two sweeps"

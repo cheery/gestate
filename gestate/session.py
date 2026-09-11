@@ -969,6 +969,12 @@ class Session:
     #: consumed by the pitch touch that follows — so it never outlives
     #: the press that set it.
     named_note: dict = field(default_factory=dict)
+    #: **The last click on empty roll**, per box: `(tick, key, when)`.
+    #: A second one at the same place within `TWICE` seconds makes a
+    #: note there — the clock a double-click is, held here because
+    #: `hand.ges` is a chart over touches and a chart never asks the
+    #: world (`gestate/transport.ges`).
+    clicked: dict = field(default_factory=dict)
     #: **What a hand is sounding**, per box:
     #: `(bank, key, note, payload, notes)` — the note under the hand,
     #: previewing in its own voice, so a drag can stop the old pitch
@@ -4899,6 +4905,15 @@ class Session:
             # **A press on nothing starts a band** (`card:notes-editor.md`
             # slice 4): nothing is selected until it lets go.
             _h, t, k = act
+            # **Unless it is the second press on the same place**, which
+            # makes a note there — his ask, 2026-09-11.  `Clear` is the
+            # press and `Drop` the lift; `Select` never fires for a
+            # click, because the chart only reaches `Swept` through a
+            # motion.  So the second *press* is the moment, which is
+            # where a double-click acts anyway.
+            said = self._clicked_twice(found, t, k)
+            if said is not None:
+                return said
             self.selected.pop(box, None)
             self.group.pop(box, None)
             self.held.pop(box, None)
@@ -5539,6 +5554,84 @@ class Session:
             notes.sound(was[0], was[1], (), on=False)
         except Exception:                                 # noqa: BLE001
             pass
+
+    #: How long a second press still counts as the same click, in
+    #: seconds — the one number a double-click is, and a comfortable
+    #: one rather than a measured one.  Below it a pair of presses on
+    #: one place makes a note; above it they are two sweeps of nothing.
+    TWICE = 0.4
+
+    def _clicked_twice(self, found, tick: int, key: int):
+        """A second click at the same place makes a note there, or
+        `None` when this is only the first.
+
+        **The note is `assert`ed**, which is the document's own
+        primitive edit and was built for exactly this
+        (`card:gui-is-difficult.md`, 2026-09-09): the record is the
+        file's own line, checked by the file's own parser, written
+        through the same door every other gesture uses — so the file
+        comes back canonical and the new note sorts to where it sounds.
+
+        **The voice is the selection's**, his answer of three given:
+        press a note to say *this kind*, then click to make another
+        beside it.  No new state and nothing new drawn — it reads the
+        selection that is already there.  With nothing selected it is
+        the section's first declared voice, which is the fallback that
+        reading needs and nothing more.
+        """
+        import time
+
+        from .notes import bar_ticks, named, parse
+
+        box, roll = found.box, found.roll
+        now = time.monotonic()
+        was = self.clicked.get(box)
+        if was is None or was[:2] != (tick, key) or now - was[2] > self.TWICE:
+            self.clicked[box] = (tick, key, now)
+            return None
+        # The pair is spent, so three presses are one note and not two.
+        self.clicked.pop(box, None)
+        got = self._document_of(found)
+        if got is None:
+            return None                      # not a note file; sweep as before
+        _path, name, _mine, text = got
+        try:
+            rels = parse(text, name)
+        except Exception:                                 # noqa: BLE001
+            return None
+        if len(roll.sections) != 1:
+            return "assert: a note is made on a roll of one section"
+        section = named(rels, roll.sections[0])
+        if section is None:
+            return None
+        # Where the click landed, in the section's own bars — **on the
+        # grid**, which `_snapped` does not do for a bare tick: it moves
+        # an onset *by* an amount and answers the tick itself when the
+        # amount is nothing.  A note made at tick 123 rather than 96 is
+        # the first thing a person would notice, and every other gesture
+        # here snaps.
+        from .scorebox import grid_of
+
+        span = bar_ticks(section)
+        grid = grid_of(roll)
+        at = max(0, int(round(tick / grid)) * grid)
+        bar, within = divmod(at, span)
+        if bar + 1 > section["bars"]:
+            return "assert: that is past the end of the section"
+        # The voice the selection names, else the section's first.
+        voice = None
+        chosen = self.selected.get(box)
+        if chosen is not None:
+            voice = self._voice_of(found, chosen)
+        if voice not in (section["voices"] or ()):
+            voice = (section["voices"] or (None,))[0]
+        if voice is None:
+            return "assert: this section declares no voice to put it in"
+        line = (f"note  section {section['name']}  bar {bar + 1}  "
+                f"at {within}  len {grid}  voice {voice}  "
+                f"key {int(key)}  vel mf")
+        return self.run("assert", self._channels_of(box)[1]
+                        or found.name, line)
 
     def _hush_all(self) -> None:
         """Every preview, stopped, and the bookkeeping dropped.

@@ -251,7 +251,18 @@ rollOutline : Colour
 rollLit t : Int -> Colour
 ```
 
-A bank's hue, by its number in reading order; the palette wraps.
+A bank's hue, by its number in reading order; the palette wraps —
+and **two tones above the palette that a `.notes` page uses instead**
+(`scorebox.TONIC`, `scorebox.OUTSIDE`).
+
+*Henri, 2026-09-11:* *"I'd want the view to show notes outside of
+scale/mode as yellow, and tonic note as deeper blue."*  A `.ges`
+take's note is coloured by the **bank** it plays through, which is
+what the palette is for; a note-file note has no bank the descent
+can see and every note came out tone 0.  So the page spends the tone
+on what it does know — where the note sits in the mode its section
+declares — and the yellow is the same ink the harmony band lights an
+outside degree with, because it is the same fact.
 
 
 ### `rollDimmed`

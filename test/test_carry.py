@@ -91,6 +91,9 @@ DELIBERATELY_FRESH = {
     "taps": "when the last taps landed — a tempo tapped into one file is "
             "not a run of taps on the next",
     "tapped": "the tempo the last run of taps wrote — into the old file",
+    "clicked": "where a click last landed on the old file's roll, and "
+               "when — a double-click is two presses on one place, and "
+               "no place in the new file is that place",
     "sounding": "what a hand was previewing, per box of the old file — and "
                 "the switch is the instrument: the engine that was holding "
                 "that note has been retired with the old program, so there "
