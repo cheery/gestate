@@ -1,0 +1,158 @@
+{
+ "file": "doc/memory/mechanism-not-instructions.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 860,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1211,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 10.0,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 11,
+ "relations": 10,
+ "grounded": 11,
+ "parse_error": null,
+ "names": [
+  "agent harnesses",
+  "context engineering",
+  "mechanism-not-instructions",
+  "project-seed",
+  "spec/author",
+  "test_board.py",
+  "test_citations.py",
+  "test_memory.py",
+  "test_rules.py",
+  "the-evaluation-loop",
+  "working-standard"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "mechanism-not-instructions",
+    "type": "memory",
+    "description": "The idea that context is the durable artifact and rules should be held by a suite of mechanisms rather than prose, so when methods are copied, the mechanisms are copied not the instructions."
+   },
+   {
+    "name": "test_board.py",
+    "type": "document",
+    "description": "A test file that holds rules as part of the suite-based enforcement mechanism."
+   },
+   {
+    "name": "test_citations.py",
+    "type": "document",
+    "description": "A test file that holds rules as part of the suite-based enforcement mechanism."
+   },
+   {
+    "name": "test_rules.py",
+    "type": "document",
+    "description": "A test file that holds rules as part of the suite-based enforcement mechanism."
+   },
+   {
+    "name": "test_memory.py",
+    "type": "document",
+    "description": "A test file that holds rules as part of the suite-based enforcement mechanism."
+   },
+   {
+    "name": "spec/author.md",
+    "type": "document",
+    "description": "Defines the author/session contract with the review problem faced rather than assumed away."
+   },
+   {
+    "name": "card:project-seed.md",
+    "type": "card",
+    "description": "A card documenting the project seed method that should be copied for its mechanisms rather than its prose."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "A card documenting the working standard method that should be copied for its mechanisms rather than its prose."
+   },
+   {
+    "name": "the-evaluation-loop",
+    "type": "memory",
+    "description": "A referenced concept warning that rankings should be treated as pleasant, from a conditioned source, and unmeasured until the method has met a stranger."
+   },
+   {
+    "name": "context engineering",
+    "type": "concept",
+    "description": "A name under which the idea of context as durable artifact and model as interchangeable part is being converged on."
+   },
+   {
+    "name": "agent harnesses",
+    "type": "concept",
+    "description": "A name under which the idea of context as durable artifact and model as interchangeable part is being converged on."
+   }
+  ],
+  "relations": [
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_board.py",
+    "description": "Rules are held by this test file as part of the suite-based mechanism.",
+    "strength": 8
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_citations.py",
+    "description": "Rules are held by this test file as part of the suite-based mechanism.",
+    "strength": 8
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_rules.py",
+    "description": "Rules are held by this test file as part of the suite-based mechanism.",
+    "strength": 8
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_memory.py",
+    "description": "Rules are held by this test file as part of the suite-based mechanism.",
+    "strength": 8
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "spec/author.md",
+    "description": "Defines the author/session contract as one of the four uncommon properties of this implementation.",
+    "strength": 8
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "card:project-seed.md",
+    "description": "When this method travels, copy the mechanisms from this card, not the prose.",
+    "strength": 7
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "card:working-standard.md",
+    "description": "When this method travels, copy the mechanisms from this card, not the prose.",
+    "strength": 7
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "the-evaluation-loop",
+    "description": "The ranking of properties should be treated as the evaluation loop warns.",
+    "strength": 6
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "context engineering",
+    "description": "This concept is one of the names under which the core idea is being converged on.",
+    "strength": 7
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "agent harnesses",
+    "description": "This concept is one of the names under which the core idea is being converged on.",
+    "strength": 7
+   }
+  ]
+ }
+}

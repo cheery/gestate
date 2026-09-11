@@ -1,0 +1,477 @@
+{
+ "file": "spec/rules.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 5085,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 6659,
+  "output_tokens_details": {
+   "thinking_tokens": 2277
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 54.0,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 34,
+ "relations": 39,
+ "grounded": 31,
+ "parse_error": null,
+ "names": [
+  "",
+  "8000-line journal budget",
+  "board/readme",
+  "doc/instruments",
+  "doc/notes/",
+  "grudge class",
+  "henri",
+  "journal",
+  "journal/yyyy-mm",
+  "keeper",
+  "manifesto",
+  "memory",
+  "memory-atrophy",
+  "spec/author",
+  "spec/rules",
+  "spec/sandbox",
+  "status blocked",
+  "test/gates",
+  "test/test_citations.py",
+  "test/test_journal.py",
+  "test/test_rules.py",
+  "the 2000-line cap",
+  "the 2500-line cap",
+  "the atlas",
+  "the earning test",
+  "the fire",
+  "the index",
+  "the three cheats",
+  "tools/journalroll.py",
+  "tools/rulecount.py",
+  "tools/seedaudit.py",
+  "tools/suite.py",
+  "vision",
+  "working-standard"
+ ],
+ "ungrounded": [
+  "8000-line journal budget",
+  "The 2500-line cap",
+  "the 2000-line cap"
+ ],
+ "raw": {
+  "entities": [
+   {
+    "name": "spec/rules.md",
+    "type": "document",
+    "description": "The contract stating the rules set is capped at 2500 lines and describing how the cap is measured and enforced."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "The person at whose ask this contract was written, who sets and moves the line caps in writing with a date, and who owns spec/author.md and the promotion pass."
+   },
+   {
+    "name": "board/README.md",
+    "type": "document",
+    "description": "One of the five rules documents; describes how a task is worked and is where 'status blocked' is real."
+   },
+   {
+    "name": "manifesto.md",
+    "type": "document",
+    "description": "One of the five rules documents; describes how an instrument fails, and states the rule that a cap not measured is a mood."
+   },
+   {
+    "name": "spec/author.md",
+    "type": "document",
+    "description": "One of the five rules documents; describes what the author spends attention on, and is the author's own document."
+   },
+   {
+    "name": "doc/instruments.md",
+    "type": "document",
+    "description": "One of the five rules documents; describes what a session already has to work with, and grew fastest in the measured window."
+   },
+   {
+    "name": "vision.md",
+    "type": "document",
+    "description": "One of the five rules documents; describes what any of it is for, and is deliberately kept short as an atrophy control."
+   },
+   {
+    "name": "The 2500-line cap",
+    "type": "rule",
+    "description": "The rule that the five rules documents together may not exceed 2500 lines total, moved once from 2000 by Henri."
+   },
+   {
+    "name": "tools/rulecount.py",
+    "type": "tool",
+    "description": "The script that counts the five rules files, prints the total, and the room left under the cap."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "The card that owns getting the rules count under the cap, and recorded the restatement-fat problem on 2026-08-18."
+   },
+   {
+    "name": "card:memory-atrophy.md",
+    "type": "card",
+    "description": "Card whose move 3 (2026-08-24) states the cap's second reason: a method recited is worth more than a longer one searched."
+   },
+   {
+    "name": "tools/seedaudit.py",
+    "type": "tool",
+    "description": "Tool that names board/README.md and spec/author.md as pieces and refuses their loss."
+   },
+   {
+    "name": "journal.md",
+    "type": "document",
+    "description": "The open month plus index of session narration; has an 8,000-line budget and is moved (rotated) because it is searched, not read wholesale."
+   },
+   {
+    "name": "doc/notes/",
+    "type": "document",
+    "description": "Former source of the retired name 'the method files' for the five rules documents, carrying the same false assumption about loading."
+   },
+   {
+    "name": "tools/suite.py",
+    "type": "tool",
+    "description": "Tool that puts the rules count on test/gates.md as an andon and prints it at every commit through the hook, without changing exit code; also the lamp for journal rotation."
+   },
+   {
+    "name": "test/gates.md",
+    "type": "document",
+    "description": "File where the rules-cap andon appears as a row or red section depending on room remaining."
+   },
+   {
+    "name": "test/test_rules.py",
+    "type": "test",
+    "description": "Test that refuses the loss of one of the five rules documents and tests that the lamp itself can light."
+   },
+   {
+    "name": "MEMORY.md",
+    "type": "document",
+    "description": "A private 29-line index read by every session, holding hooks for the memory corpus; rules-shaped but not counted in the 2500-line cap."
+   },
+   {
+    "name": "doc/memory/",
+    "type": "document",
+    "description": "Location where the bodies of the memory corpus now live, spec-shaped and costing nothing until opened."
+   },
+   {
+    "name": "tools/journalroll.py",
+    "type": "tool",
+    "description": "The mechanism that rotates the journal, closing months and generating the index block."
+   },
+   {
+    "name": "test/test_journal.py",
+    "type": "test",
+    "description": "Test that refuses a missing or malformed journal rotation/index, the half that checks the lamp can light."
+   },
+   {
+    "name": "journal/YYYY-MM.md",
+    "type": "document",
+    "description": "A closed, append-only month of the journal, never edited again after closing."
+   },
+   {
+    "name": "test/test_citations.py",
+    "type": "test",
+    "description": "Test that searches the open journal month and the archive as one corpus so citations don't rot."
+   },
+   {
+    "name": "keeper.md",
+    "type": "document",
+    "description": "Standard work for the keeper's evening (the fire), of which journal rotation is the fifth act."
+   },
+   {
+    "name": "the fire",
+    "type": "event",
+    "description": "The keeper's evening, a standing appointment into which journal rotation was folded on 2026-08-21."
+   },
+   {
+    "name": "spec/sandbox.md",
+    "type": "document",
+    "description": "Applies the same 'a cap not measured is a mood' rule to the fence, as manifesto.md does to the rules cap."
+   },
+   {
+    "name": "the three cheats",
+    "type": "rule",
+    "description": "Named ways the 2500-line cap could be met without reducing context: a sixth document, dropping dates, or pushing text into another rule."
+   },
+   {
+    "name": "the atlas",
+    "type": "concept",
+    "description": "Referenced structure closed at five sheets under the same rule that a sixth caller/document is a cheat."
+   },
+   {
+    "name": "status blocked",
+    "type": "concept",
+    "description": "The state that is real in board/README.md, cited as why that document can't simply be split."
+   },
+   {
+    "name": "grudge class",
+    "type": "concept",
+    "description": "An entry whose facts belong in the archived record but whose heat should get no index line at rotation."
+   },
+   {
+    "name": "the index",
+    "type": "concept",
+    "description": "The one-line-per-closed-month block in journal.md's head naming themes, generated by journalroll.py --index and checked by test_journal.py."
+   },
+   {
+    "name": "the 2000-line cap",
+    "type": "rule",
+    "description": "The original cap set by Henri on 2026-08-20, later moved to 2500 on 2026-09-06."
+   },
+   {
+    "name": "8000-line journal budget",
+    "type": "rule",
+    "description": "Budget on the open journal.md, proposed by a session on 2026-08-21 and Henri's to move, anchored to what one person can skim in a sitting."
+   },
+   {
+    "name": "the earning test",
+    "type": "rule",
+    "description": "The test for whether a sentence belongs in a rule document versus the journal: whether a stranger needs it to follow the rule, not just believe it."
+   }
+  ],
+  "relations": [
+   {
+    "source": "spec/rules.md",
+    "target": "Henri",
+    "description": "Written as a contract at Henri's ask on 2026-08-20.",
+    "strength": 8
+   },
+   {
+    "source": "The 2500-line cap",
+    "target": "board/README.md",
+    "description": "board/README.md is one of the five documents counted under the cap.",
+    "strength": 8
+   },
+   {
+    "source": "The 2500-line cap",
+    "target": "manifesto.md",
+    "description": "manifesto.md is one of the five documents counted under the cap.",
+    "strength": 8
+   },
+   {
+    "source": "The 2500-line cap",
+    "target": "spec/author.md",
+    "description": "spec/author.md is one of the five documents counted under the cap.",
+    "strength": 8
+   },
+   {
+    "source": "The 2500-line cap",
+    "target": "doc/instruments.md",
+    "description": "doc/instruments.md is one of the five documents counted under the cap.",
+    "strength": 8
+   },
+   {
+    "source": "The 2500-line cap",
+    "target": "vision.md",
+    "description": "vision.md is one of the five documents counted under the cap.",
+    "strength": 8
+   },
+   {
+    "source": "tools/rulecount.py",
+    "target": "The 2500-line cap",
+    "description": "rulecount.py is the count that measures the cap.",
+    "strength": 9
+   },
+   {
+    "source": "card:working-standard.md",
+    "target": "The 2500-line cap",
+    "description": "Owns getting the rules count under the cap.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": "the 2000-line cap",
+    "description": "Set the cap at 2000 lines in writing on 2026-08-20.",
+    "strength": 9
+   },
+   {
+    "source": "Henri",
+    "target": "The 2500-line cap",
+    "description": "Moved the cap from 2000 to 2500 in writing on 2026-09-06.",
+    "strength": 9
+   },
+   {
+    "source": "card:memory-atrophy.md",
+    "target": "The 2500-line cap",
+    "description": "Gives the cap's second reason: atrophy control for the keeper who must hold the shape in his head.",
+    "strength": 7
+   },
+   {
+    "source": "tools/seedaudit.py",
+    "target": "board/README.md",
+    "description": "Names board/README.md as a piece and refuses its loss.",
+    "strength": 6
+   },
+   {
+    "source": "tools/seedaudit.py",
+    "target": "spec/author.md",
+    "description": "Names spec/author.md as a piece and refuses its loss.",
+    "strength": 6
+   },
+   {
+    "source": "card:working-standard.md",
+    "target": "The 2500-line cap",
+    "description": "Recorded restatement (one rule stated three times) as fat on 2026-08-18.",
+    "strength": 5
+   },
+   {
+    "source": "doc/notes/",
+    "target": "The 2500-line cap",
+    "description": "Its retired name 'the method files' for the five carried the same false loading assumption the cap's rationale had.",
+    "strength": 5
+   },
+   {
+    "source": "tools/suite.py",
+    "target": "test/gates.md",
+    "description": "Puts the rules count on test/gates.md as a row or red section.",
+    "strength": 7
+   },
+   {
+    "source": "tools/suite.py",
+    "target": "The 2500-line cap",
+    "description": "Prints the count at every commit through the hook, lighting an andon without changing exit code.",
+    "strength": 7
+   },
+   {
+    "source": "test/test_rules.py",
+    "target": "The 2500-line cap",
+    "description": "Refuses the loss of one of the five documents, testing that the lamp itself can light.",
+    "strength": 7
+   },
+   {
+    "source": "MEMORY.md",
+    "target": "The 2500-line cap",
+    "description": "A private index read every session but not counted under the cap.",
+    "strength": 6
+   },
+   {
+    "source": "doc/memory/",
+    "target": "MEMORY.md",
+    "description": "Holds the bodies of the memory corpus whose hooks live in MEMORY.md.",
+    "strength": 6
+   },
+   {
+    "source": "tools/journalroll.py",
+    "target": "journal.md",
+    "description": "Mechanism that rotates journal.md into closed monthly files.",
+    "strength": 8
+   },
+   {
+    "source": "tools/suite.py",
+    "target": "journal.md",
+    "description": "Serves as the lamp signaling that journal rotation is due.",
+    "strength": 6
+   },
+   {
+    "source": "test/test_journal.py",
+    "target": "journal.md",
+    "description": "Refuses missing rotation/index for the journal.",
+    "strength": 7
+   },
+   {
+    "source": "journal/YYYY-MM.md",
+    "target": "journal.md",
+    "description": "Closed, append-only months that journal.md rotates into.",
+    "strength": 8
+   },
+   {
+    "source": "test/test_citations.py",
+    "target": "journal.md",
+    "description": "Searches the open journal month and archive together so citations don't rot.",
+    "strength": 6
+   },
+   {
+    "source": "keeper.md",
+    "target": "the fire",
+    "description": "keeper.md is the standard work for the keeper's evening (the fire).",
+    "strength": 7
+   },
+   {
+    "source": "the fire",
+    "target": "journal.md",
+    "description": "Journal rotation was folded into the fire as its fifth act.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": "8000-line journal budget",
+    "description": "Journal budget is his to move in writing, with the date, like the rules cap.",
+    "strength": 7
+   },
+   {
+    "source": "spec/sandbox.md",
+    "target": "manifesto.md",
+    "description": "Applies manifesto.md's rule that an unmeasured cap is a mood, to the fence.",
+    "strength": 5
+   },
+   {
+    "source": "card:memory-atrophy.md",
+    "target": "Henri",
+    "description": "Quotes Henri's move 3 on 2026-08-24 about reciting versus searching a method.",
+    "strength": 6
+   },
+   {
+    "source": "Henri",
+    "target": "the three cheats",
+    "description": "Named and agreed which shortcuts around the cap count as cheats.",
+    "strength": 6
+   },
+   {
+    "source": "spec/author.md",
+    "target": "Henri",
+    "description": "spec/author.md is explicitly the author's own document.",
+    "strength": 6
+   },
+   {
+    "source": "Henri",
+    "target": "spec/author.md",
+    "description": "The promotion pass that edits the five documents including spec/author.md is his to approve, not a session's.",
+    "strength": 6
+   },
+   {
+    "source": "the atlas",
+    "target": "the three cheats",
+    "description": "The atlas was closed at five sheets under the same rule that makes a sixth rules document a cheat.",
+    "strength": 5
+   },
+   {
+    "source": "status blocked",
+    "target": "board/README.md",
+    "description": "board/README.md is where the status blocked state is real, making it unsplittable.",
+    "strength": 6
+   },
+   {
+    "source": "grudge class",
+    "target": "journal.md",
+    "description": "Describes how entries whose heat doesn't belong in the record are handled at journal rotation.",
+    "strength": 5
+   },
+   {
+    "source": "the index",
+    "target": "journal.md",
+    "description": "The index is the block in journal.md's head naming each closed month's themes.",
+    "strength": 6
+   },
+   {
+    "source": "the earning test",
+    "target": "journal.md",
+    "description": "Used in reverse at rotation to decide which journal lines get promoted into the rules.",
+    "strength": 6
+   },
+   {
+    "source": "the earning test",
+    "target": "The 2500-line cap",
+    "description": "Defines what counts as fat versus rule inside the capped documents.",
+    "strength": 6
+   }
+  ]
+ }
+}

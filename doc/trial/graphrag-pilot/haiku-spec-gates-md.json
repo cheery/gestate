@@ -1,0 +1,402 @@
+{
+ "file": "spec/gates.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 1710,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 3261,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 19.6,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 30,
+ "relations": 32,
+ "grounded": 30,
+ "parse_error": null,
+ "names": [
+  "adsr",
+  "adsrof",
+  "audio.ges",
+  "doc/beginner",
+  "dust",
+  "gate",
+  "gateat",
+  "gateedge",
+  "gateheld",
+  "gateon",
+  "gaterepeat",
+  "internals.py",
+  "offat",
+  "perc",
+  "phase",
+  "scan",
+  "sig gate",
+  "sine.ges",
+  "spec/exclamation",
+  "stage 5",
+  "svfin",
+  "synth.ges",
+  "test/test_synthlib.py",
+  "test_a_condition_is_a_note",
+  "test_a_gate_holds_and_releases",
+  "test_a_phase_comparison_is_a_metronome",
+  "voices",
+  "wrap"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "gateOn",
+    "type": "concept",
+    "description": "A function that converts a signal of boolean conditions into a signal of gates, treating rising edges as note presses and falling edges as releases."
+   },
+   {
+    "name": "Sig Gate",
+    "type": "concept",
+    "description": "A signal type representing gate information, defined as two integers indicating the sample a note began and when it was released."
+   },
+   {
+    "name": "Gate",
+    "type": "concept",
+    "description": "A data structure defined as Gate Int Int, containing the sample a note began (1-based) and the sample it was released, with zero meaning nothing."
+   },
+   {
+    "name": "doc/beginner.md",
+    "type": "document",
+    "description": "A beginner course document that teaches envelope tools and rhythm construction."
+   },
+   {
+    "name": "audio.ges",
+    "type": "document",
+    "description": "A file defining gate signal conventions where zero means nothing."
+   },
+   {
+    "name": "synth.ges",
+    "type": "document",
+    "description": "A file containing the public Gates section with gateOn and envelope-consuming functions."
+   },
+   {
+    "name": "Adsr",
+    "type": "concept",
+    "description": "An envelope tool that reads note timing from a keyboard."
+   },
+   {
+    "name": "adsr",
+    "type": "concept",
+    "description": "An envelope function that consumes gate signals and is described as arithmetic on the whole envelope."
+   },
+   {
+    "name": "perc",
+    "type": "concept",
+    "description": "An envelope tool that reads note timing from a keyboard."
+   },
+   {
+    "name": "adsrOf",
+    "type": "concept",
+    "description": "A function whose docstring describes the envelope as arithmetic, demonstrating it does not care about gate source."
+   },
+   {
+    "name": "sine.ges",
+    "type": "document",
+    "description": "A file demonstrating that envelopes can hold one note between two constants without caring about gate source."
+   },
+   {
+    "name": "gateEdge",
+    "type": "concept",
+    "description": "Internal machinery that processes gate edges in the gateOn fold."
+   },
+   {
+    "name": "GateEdge",
+    "type": "concept",
+    "description": "A zip record used as internal machinery for gateOn, following SvfIn's precedent."
+   },
+   {
+    "name": "gateHeld",
+    "type": "concept",
+    "description": "Internal helper machinery for gateOn processing."
+   },
+   {
+    "name": "SvfIn",
+    "type": "concept",
+    "description": "A precedent for the GateEdge zip record design."
+   },
+   {
+    "name": "internals.py",
+    "type": "tool",
+    "description": "A tool that derives public faces from internal helpers without maintaining a table."
+   },
+   {
+    "name": "spec/exclamation.md",
+    "type": "document",
+    "description": "A specification document describing a repaired exclamation operator used in gateOn spelling."
+   },
+   {
+    "name": "gateRepeat",
+    "type": "concept",
+    "description": "A dropped draft name for a metronome with note length, implemented as a pure map of ticks but withdrawn for design reasons."
+   },
+   {
+    "name": "test_a_phase_comparison_is_a_metronome",
+    "type": "test",
+    "description": "A test verifying that phase comparison works as a metronome."
+   },
+   {
+    "name": "test_a_gate_holds_and_releases",
+    "type": "test",
+    "description": "A test verifying gate hold and release behavior."
+   },
+   {
+    "name": "test_a_condition_is_a_note",
+    "type": "test",
+    "description": "A test verifying that conditions can be treated as notes."
+   },
+   {
+    "name": "test/test_synthlib.py",
+    "type": "document",
+    "description": "A test file containing tests for gateOn and related functionality."
+   },
+   {
+    "name": "dust",
+    "type": "concept",
+    "description": "A named function that earned its name by being irreducible, contrasted with gateRepeat."
+   },
+   {
+    "name": "voices",
+    "type": "concept",
+    "description": "A bank containing gateAt and offAt channels filled by a score or keyboard."
+   },
+   {
+    "name": "gateAt",
+    "type": "concept",
+    "description": "A channel in the voices bank that produces gate signals from notes."
+   },
+   {
+    "name": "offAt",
+    "type": "concept",
+    "description": "A channel in the voices bank that produces gate signals from notes."
+   },
+   {
+    "name": "wrap",
+    "type": "concept",
+    "description": "A trick used in the beginner course for building rhythms through phase arithmetic."
+   },
+   {
+    "name": "phase",
+    "type": "concept",
+    "description": "A ramp signal used in the lessons for timing and rhythm construction."
+   },
+   {
+    "name": "scan",
+    "type": "concept",
+    "description": "A fold operation used to implement gateOn's state machine."
+   },
+   {
+    "name": "stage 5",
+    "type": "concept",
+    "description": "A migration stage responsible for carrying gateOn's fold state across edits."
+   }
+  ],
+  "relations": [
+   {
+    "source": "gateOn",
+    "target": "Sig Gate",
+    "description": "gateOn converts a signal of booleans into a signal of gates.",
+    "strength": 10
+   },
+   {
+    "source": "gateOn",
+    "target": "Gate",
+    "description": "gateOn emits Gate values as its output.",
+    "strength": 9
+   },
+   {
+    "source": "gateOn",
+    "target": "adsr",
+    "description": "adsr consumes gate signals produced by gateOn.",
+    "strength": 9
+   },
+   {
+    "source": "gateOn",
+    "target": "perc",
+    "description": "perc consumes gate signals produced by gateOn.",
+    "strength": 9
+   },
+   {
+    "source": "gateOn",
+    "target": "synth.ges",
+    "description": "gateOn is defined in synth.ges's public Gates section.",
+    "strength": 10
+   },
+   {
+    "source": "gateOn",
+    "target": "gateEdge",
+    "description": "gateEdge is internal machinery used by gateOn's fold.",
+    "strength": 9
+   },
+   {
+    "source": "gateOn",
+    "target": "GateEdge",
+    "description": "GateEdge is a zip record used as internal machinery for gateOn.",
+    "strength": 9
+   },
+   {
+    "source": "gateOn",
+    "target": "gateHeld",
+    "description": "gateHeld is internal helper machinery for gateOn.",
+    "strength": 8
+   },
+   {
+    "source": "gateOn",
+    "target": "scan",
+    "description": "gateOn is implemented using a scan fold operation.",
+    "strength": 10
+   },
+   {
+    "source": "gateOn",
+    "target": "stage 5",
+    "description": "stage 5 migrates gateOn's fold state across edits.",
+    "strength": 8
+   },
+   {
+    "source": "gateOn",
+    "target": "gateRepeat",
+    "description": "gateRepeat was a dropped draft alternative to gateOn for metronome functionality.",
+    "strength": 9
+   },
+   {
+    "source": "Sig Gate",
+    "target": "audio.ges",
+    "description": "audio.ges defines the gate signal convention where zero means nothing.",
+    "strength": 8
+   },
+   {
+    "source": "adsr",
+    "target": "adsrOf",
+    "description": "adsrOf is the underlying function that adsr is based on.",
+    "strength": 8
+   },
+   {
+    "source": "adsr",
+    "target": "doc/beginner.md",
+    "description": "adsr is taught in lesson 3 of the beginner course, now fed by gateOn.",
+    "strength": 8
+   },
+   {
+    "source": "perc",
+    "target": "doc/beginner.md",
+    "description": "perc is taught in the beginner course alongside adsr.",
+    "strength": 7
+   },
+   {
+    "source": "adsrOf",
+    "target": "sine.ges",
+    "description": "sine.ges demonstrates that envelopes work as arithmetic without caring about gate source.",
+    "strength": 7
+   },
+   {
+    "source": "GateEdge",
+    "target": "SvfIn",
+    "description": "GateEdge follows SvfIn as a precedent for zip record design.",
+    "strength": 6
+   },
+   {
+    "source": "internals.py",
+    "target": "gateOn",
+    "description": "internals.py derives public faces from gateOn's internal helpers.",
+    "strength": 7
+   },
+   {
+    "source": "spec/exclamation.md",
+    "target": "gateOn",
+    "description": "The repaired exclamation operator from spec/exclamation.md is used in gateOn spelling.",
+    "strength": 6
+   },
+   {
+    "source": "gateRepeat",
+    "target": "gateOn",
+    "description": "gateRepeat was one comparison away from gateOn but was dropped as a special case.",
+    "strength": 8
+   },
+   {
+    "source": "gateRepeat",
+    "target": "dust",
+    "description": "gateRepeat was dropped because dust earned its name by being irreducible, unlike gateRepeat.",
+    "strength": 5
+   },
+   {
+    "source": "test_a_phase_comparison_is_a_metronome",
+    "target": "test/test_synthlib.py",
+    "description": "This test is located in test/test_synthlib.py.",
+    "strength": 10
+   },
+   {
+    "source": "test_a_gate_holds_and_releases",
+    "target": "test/test_synthlib.py",
+    "description": "This test is located in test/test_synthlib.py.",
+    "strength": 10
+   },
+   {
+    "source": "test_a_condition_is_a_note",
+    "target": "test/test_synthlib.py",
+    "description": "This test is located in test/test_synthlib.py.",
+    "strength": 10
+   },
+   {
+    "source": "test_a_phase_comparison_is_a_metronome",
+    "target": "gateOn",
+    "description": "This test verifies gateOn's metronome functionality.",
+    "strength": 8
+   },
+   {
+    "source": "test_a_gate_holds_and_releases",
+    "target": "gateOn",
+    "description": "This test verifies gateOn's hold and release behavior.",
+    "strength": 8
+   },
+   {
+    "source": "test_a_condition_is_a_note",
+    "target": "gateOn",
+    "description": "This test verifies that gateOn treats conditions as notes.",
+    "strength": 8
+   },
+   {
+    "source": "voices",
+    "target": "gateAt",
+    "description": "gateAt is a channel in the voices bank.",
+    "strength": 10
+   },
+   {
+    "source": "voices",
+    "target": "offAt",
+    "description": "offAt is a channel in the voices bank.",
+    "strength": 10
+   },
+   {
+    "source": "wrap",
+    "target": "doc/beginner.md",
+    "description": "wrap is a trick used in the beginner course for rhythm construction.",
+    "strength": 8
+   },
+   {
+    "source": "wrap",
+    "target": "phase",
+    "description": "wrap uses phase arithmetic for timing in the lessons.",
+    "strength": 8
+   },
+   {
+    "source": "phase",
+    "target": "gateOn",
+    "description": "phase is used as input to gateOn for metronome creation.",
+    "strength": 7
+   }
+  ]
+ }
+}

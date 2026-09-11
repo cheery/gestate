@@ -1,0 +1,134 @@
+{
+ "file": "doc/memory/capacity-is-not-a-caller.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 978,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1036,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 9.8,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 9,
+ "relations": 8,
+ "grounded": 9,
+ "parse_error": null,
+ "names": [
+  "capacity-is-not-a-caller",
+  "gestate-board-goal",
+  "mechanism-not-instructions",
+  "overproduction",
+  "sediment-versus-debt",
+  "smaller-models-and-the-tree",
+  "the-evaluation-loop",
+  "the-keepers-evening",
+  "work-environment-ai"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "capacity-is-not-a-caller",
+    "type": "memory",
+    "description": "A foundational principle stating that capacity to produce software is not a legitimate reason to produce it; only demand pulls should drive creation."
+   },
+   {
+    "name": "the-keepers-evening",
+    "type": "memory",
+    "description": "A weekly session for review and direction, representing the keeper's limited attention resource."
+   },
+   {
+    "name": "the-evaluation-loop",
+    "type": "memory",
+    "description": "A failure mode where production outruns the keeper's capacity to review and direct, arriving as work."
+   },
+   {
+    "name": "card:work-environment-ai.md",
+    "type": "card",
+    "description": "A card documenting the environment that enables others and future selves to make software safely."
+   },
+   {
+    "name": "mechanism-not-instructions",
+    "type": "memory",
+    "description": "A principle about building mechanisms rather than giving instructions for safe software creation."
+   },
+   {
+    "name": "smaller-models-and-the-tree",
+    "type": "memory",
+    "description": "A concept about how smaller models compound safety in the tree structure for software creation."
+   },
+   {
+    "name": "gestate-board-goal",
+    "type": "memory",
+    "description": "A related principle about gestating work to completion aligned with board goals."
+   },
+   {
+    "name": "sediment-versus-debt",
+    "type": "memory",
+    "description": "A related concept distinguishing between accumulated sediment and technical debt."
+   },
+   {
+    "name": "overproduction",
+    "type": "concept",
+    "description": "The first and worst of seven wastes, defined as making things because capacity exists rather than because demand does."
+   }
+  ],
+  "relations": [
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "overproduction",
+    "description": "The memory directly addresses overproduction as the worst waste and explains why capacity is not a legitimate reason to produce.",
+    "strength": 9
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "the-keepers-evening",
+    "description": "The memory cites the keeper's limited attention as the resource that cannot be multiplied, with one evening per week available.",
+    "strength": 8
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "the-evaluation-loop",
+    "description": "The memory identifies the evaluation loop's failure mode as production outrunning the keeper, a key lesson in the tree.",
+    "strength": 8
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "card:work-environment-ai.md",
+    "description": "The memory lists the vessel (work environment) as one of three legitimate pulls for software creation.",
+    "strength": 7
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "mechanism-not-instructions",
+    "description": "The memory references this principle when discussing how making the environment safe compounds rather than scales linearly.",
+    "strength": 6
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "smaller-models-and-the-tree",
+    "description": "The memory references this concept in the context of safe software creation within the tree structure.",
+    "strength": 6
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "gestate-board-goal",
+    "description": "The memory lists gestating to vision as the first legitimate pull and references this related principle.",
+    "strength": 5
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "sediment-versus-debt",
+    "description": "The memory references this related concept when discussing inventory and unwanted things kept alive.",
+    "strength": 5
+   }
+  ]
+ }
+}

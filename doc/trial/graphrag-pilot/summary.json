@@ -1,0 +1,24 @@
+{
+ "haiku": {
+  "entities": 195,
+  "relations": 189,
+  "grounded": 1.0,
+  "input_tokens": 19470,
+  "output_tokens": 21623,
+  "cost_usd_assumed": 0.128,
+  "parse_errors": 0,
+  "truncated": 0
+ },
+ "sonnet": {
+  "entities": 244,
+  "relations": 251,
+  "grounded": 0.975,
+  "input_tokens": 24732,
+  "output_tokens": 44453,
+  "cost_usd_assumed": 0.741,
+  "parse_errors": 0,
+  "truncated": 0
+ },
+ "overlap_jaccard_mean": 0.625,
+ "overlap_jaccard_min": 0.319
+}

@@ -1,0 +1,206 @@
+{
+ "file": "board/later/the-first-jam.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 1652,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1860,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 18.2,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 15,
+ "relations": 14,
+ "grounded": 15,
+ "parse_error": null,
+ "names": [
+  "2026-08-29",
+  "2026-09-05",
+  "doc/trial/spelling-preference",
+  "drawn-scores",
+  "fixme",
+  "ges-is-not-music-notation-yet",
+  "gestate",
+  "henri",
+  "synth.ges",
+  "test_every_long_piece_keeps_headroom",
+  "test_memoryindex.py",
+  "the-first-jam",
+  "together.ges",
+  "tools/memoryindex.py",
+  "tools/modecheck.py"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "the-first-jam",
+    "type": "card",
+    "description": "Five improvement ideas and one observation from a session using gestate as a musician on 2026-08-29, batched at Henri's request rather than filed separately."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "Asked for observations and improvement suggestions after the first day of using gestate to make music end-to-end."
+   },
+   {
+    "name": "together.ges",
+    "type": "document",
+    "description": "The musical piece created during the 2026-08-29 session using gestate."
+   },
+   {
+    "name": "gestate",
+    "type": "tool",
+    "description": "A system used as a musician to create music, tested for the first time end-to-end on 2026-08-29."
+   },
+   {
+    "name": "card:drawn-scores.md",
+    "type": "card",
+    "description": "A card whose item 2 is kin to the constraint of the first jam, related to textual projections for hearing."
+   },
+   {
+    "name": "doc/memory/ges-is-not-music-notation-yet.md",
+    "type": "memory",
+    "description": "A larger verdict from the same day as the first jam, kept separately, addressing gestate's limitations as music notation."
+   },
+   {
+    "name": "test_every_long_piece_keeps_headroom",
+    "type": "test",
+    "description": "A test whose criterion for headroom should be put into every run's own mouth via a ceiling report line."
+   },
+   {
+    "name": "doc/trial/spelling-preference.md",
+    "type": "document",
+    "description": "A file that gave eight arms material from MIDI numbers and asked only for harmony description, answered by all eight with note names."
+   },
+   {
+    "name": "tools/modecheck.py",
+    "type": "tool",
+    "description": "A tool with a places_to_rest function that collects sounding pitches per bar across banks and reduces them to a set."
+   },
+   {
+    "name": "synth.ges",
+    "type": "document",
+    "description": "Source file where the semantics of drive's scale amount 1.4 (13.6× input gain) can be learned."
+   },
+   {
+    "name": "tools/memoryindex.py",
+    "type": "tool",
+    "description": "A tool that reported 'no index' for a file that existed when run in sandbox, revealing the memory-index gate skips itself silently."
+   },
+   {
+    "name": "test_memoryindex.py",
+    "type": "test",
+    "description": "A test that skips when a sandboxed run cannot see ~/.claude."
+   },
+   {
+    "name": "fixme.md",
+    "type": "document",
+    "description": "A file where item 5 (the memory-index gate defect) belongs with an F-number when taken up."
+   },
+   {
+    "name": "2026-08-29",
+    "type": "event",
+    "description": "The day of the first session using gestate as a musician end-to-end, when five marks were made and one observation recorded."
+   },
+   {
+    "name": "2026-09-05",
+    "type": "event",
+    "description": "The date when item 2 (pitch content for a blind reader) was answered in part through the spelling-preference trial."
+   }
+  ],
+  "relations": [
+   {
+    "source": "the-first-jam",
+    "target": "Henri",
+    "description": "Henri asked for observations and improvement suggestions, leading to this card being created.",
+    "strength": 9
+   },
+   {
+    "source": "the-first-jam",
+    "target": "together.ges",
+    "description": "together.ges is the musical piece created during the session that generated the observations in this card.",
+    "strength": 9
+   },
+   {
+    "source": "the-first-jam",
+    "target": "gestate",
+    "description": "The card documents five improvement ideas from the first day gestate was used as a musician end-to-end.",
+    "strength": 10
+   },
+   {
+    "source": "the-first-jam",
+    "target": "2026-08-29",
+    "description": "The card was created on this date, when the session using gestate occurred.",
+    "strength": 10
+   },
+   {
+    "source": "the-first-jam",
+    "target": "card:drawn-scores.md",
+    "description": "Item 2 of this card is kin to the constraint in card:drawn-scores.md regarding textual projections.",
+    "strength": 7
+   },
+   {
+    "source": "the-first-jam",
+    "target": "doc/memory/ges-is-not-music-notation-yet.md",
+    "description": "This memory document contains the larger verdict from the same day, kept separately from the card.",
+    "strength": 8
+   },
+   {
+    "source": "the-first-jam",
+    "target": "fixme.md",
+    "description": "Item 5 of this card (the memory-index gate defect) belongs in fixme.md with an F-number when taken up.",
+    "strength": 7
+   },
+   {
+    "source": "test_every_long_piece_keeps_headroom",
+    "target": "the-first-jam",
+    "description": "Item 1 proposes that this test's criterion should be put into every run's own mouth via a ceiling report line.",
+    "strength": 8
+   },
+   {
+    "source": "doc/trial/spelling-preference.md",
+    "target": "the-first-jam",
+    "description": "This trial document answered item 2 in part by having eight participants write harmony reports using note names.",
+    "strength": 8
+   },
+   {
+    "source": "tools/modecheck.py",
+    "target": "the-first-jam",
+    "description": "Item 2 notes that places_to_rest in this tool already collects most of what the item asks for.",
+    "strength": 7
+   },
+   {
+    "source": "synth.ges",
+    "target": "the-first-jam",
+    "description": "Item 4 notes that drive's scale semantics can only be learned from this source file.",
+    "strength": 6
+   },
+   {
+    "source": "tools/memoryindex.py",
+    "target": "the-first-jam",
+    "description": "Item 5 describes a defect discovered when this tool reported 'no index' for an existing file under sandbox.",
+    "strength": 8
+   },
+   {
+    "source": "test_memoryindex.py",
+    "target": "the-first-jam",
+    "description": "Item 5 notes that this test skips when sandboxed, allowing the memory-index gate to go unclaimed.",
+    "strength": 7
+   },
+   {
+    "source": "2026-09-05",
+    "target": "the-first-jam",
+    "description": "Item 2 was answered in part on this date through the spelling-preference trial.",
+    "strength": 6
+   }
+  ]
+ }
+}

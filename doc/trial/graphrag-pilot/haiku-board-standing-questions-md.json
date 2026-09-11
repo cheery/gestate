@@ -1,0 +1,230 @@
+{
+ "file": "board/standing-questions.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 2045,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1791,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 17.6,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 18,
+ "relations": 15,
+ "grounded": 18,
+ "parse_error": null,
+ "names": [
+  ".claude/settings.json",
+  "2026-09-06",
+  "backlinks",
+  "bash",
+  "board/readme",
+  "board/standing",
+  "card",
+  "doc/notes/notes-on-cues",
+  "git log",
+  "henri",
+  "posttooluse",
+  "read",
+  "session",
+  "standing-questions",
+  "test/test_standing.py",
+  "tools/backlinks.py",
+  "tools/bars.py",
+  "tools/standing.py"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "standing-questions",
+    "type": "concept",
+    "description": "A question written down once that lands in front of a session at the moment it opens a card, serving as context from a PostToolUse hook."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "The keeper who writes standing questions and makes decisions about their implementation and selection."
+   },
+   {
+    "name": "board/README.md",
+    "type": "document",
+    "description": "Document containing the seven moves and guidance on question-forming and checking."
+   },
+   {
+    "name": "board/standing.md",
+    "type": "document",
+    "description": "The document containing the actual standing questions and candidate questions under a 'proposed' heading."
+   },
+   {
+    "name": "tools/standing.py",
+    "type": "tool",
+    "description": "The hook that asks standing questions at the moment a session opens a card, with --hook, --check, and --install commands."
+   },
+   {
+    "name": "test/test_standing.py",
+    "type": "test",
+    "description": "The test landing for standing questions functionality."
+   },
+   {
+    "name": "card:backlinks.md",
+    "type": "card",
+    "description": "The hook this standing-questions feature is shaped after, serving as a measure of being used."
+   },
+   {
+    "name": "doc/notes/notes-on-cues.md",
+    "type": "document",
+    "description": "Document containing notes on cues with a section on building an introspective index."
+   },
+   {
+    "name": "tools/bars.py",
+    "type": "tool",
+    "description": "A tool on Read with --hook, --check, --install commands that provides an existing hook shape."
+   },
+   {
+    "name": "tools/backlinks.py",
+    "type": "tool",
+    "description": "A tool on Read|Bash with --hook, --check, --install commands that provides an existing hook shape."
+   },
+   {
+    "name": ".claude/settings.json",
+    "type": "document",
+    "description": "Settings file denied to a session by the leash, where hook installation lines must be pasted by Henri."
+   },
+   {
+    "name": "PostToolUse",
+    "type": "rule",
+    "description": "A hook type on Read and Bash that triggers standing questions when a card is opened."
+   },
+   {
+    "name": "Read",
+    "type": "rule",
+    "description": "A trigger type for PostToolUse hooks used by multiple tools."
+   },
+   {
+    "name": "Bash",
+    "type": "rule",
+    "description": "A trigger type for PostToolUse hooks used by multiple tools."
+   },
+   {
+    "name": "2026-09-06",
+    "type": "event",
+    "description": "The date when Henri requested standing questions implementation and when the feature was chosen and installed."
+   },
+   {
+    "name": "session",
+    "type": "concept",
+    "description": "An entity that opens cards and receives standing questions as context, cannot tell what it knows that was not asked about."
+   },
+   {
+    "name": "card",
+    "type": "concept",
+    "description": "The one type the board has, with a shelf that is the type the question attaches to."
+   },
+   {
+    "name": "git log",
+    "type": "tool",
+    "description": "Used to check whether a card's file was edited in the sitting after a standing question fire."
+   }
+  ],
+  "relations": [
+   {
+    "source": "standing-questions",
+    "target": "board/standing.md",
+    "description": "standing-questions are stored and listed in board/standing.md",
+    "strength": 9
+   },
+   {
+    "source": "standing-questions",
+    "target": "tools/standing.py",
+    "description": "tools/standing.py is the hook that implements and asks standing questions",
+    "strength": 10
+   },
+   {
+    "source": "standing-questions",
+    "target": "Henri",
+    "description": "Henri writes and chooses standing questions and installs them",
+    "strength": 9
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "test/test_standing.py",
+    "description": "test/test_standing.py tests the standing.py tool",
+    "strength": 9
+   },
+   {
+    "source": "standing-questions",
+    "target": "card:backlinks.md",
+    "description": "standing-questions feature is shaped after the backlinks hook pattern",
+    "strength": 8
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "tools/backlinks.py",
+    "description": "standing.py borrows the shell parsing from backlinks.py",
+    "strength": 7
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "tools/bars.py",
+    "description": "standing.py follows the same hook shape pattern as bars.py",
+    "strength": 7
+   },
+   {
+    "source": "standing-questions",
+    "target": "PostToolUse",
+    "description": "standing questions are triggered by PostToolUse hooks on Read and Bash",
+    "strength": 9
+   },
+   {
+    "source": "standing-questions",
+    "target": "board/README.md",
+    "description": "board/README.md contains the seven moves and context for standing questions design",
+    "strength": 8
+   },
+   {
+    "source": "standing-questions",
+    "target": "doc/notes/notes-on-cues.md",
+    "description": "doc/notes/notes-on-cues.md discusses introspective indexing related to standing questions",
+    "strength": 6
+   },
+   {
+    "source": "tools/standing.py",
+    "target": ".claude/settings.json",
+    "description": "tools/standing.py --install generates lines to be pasted into .claude/settings.json by Henri",
+    "strength": 8
+   },
+   {
+    "source": "standing-questions",
+    "target": "2026-09-06",
+    "description": "standing-questions were requested and implemented on 2026-09-06",
+    "strength": 9
+   },
+   {
+    "source": "standing-questions",
+    "target": "session",
+    "description": "standing questions are asked to a session when it opens a card",
+    "strength": 10
+   },
+   {
+    "source": "standing-questions",
+    "target": "card",
+    "description": "standing questions attach to cards and are shown when a card is opened",
+    "strength": 10
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "git log",
+    "description": "standing.py uses git log to check if a card's file was edited after a question fire",
+    "strength": 7
+   }
+  ]
+ }
+}

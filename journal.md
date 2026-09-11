@@ -2883,3 +2883,48 @@ are named on the card.
 the same edge list (`--edges out.tsv`, then `python-igraph` +
 `leidenalg` through `tools/toolbox.sh --graphrag`) is the check on
 that, and the numbers above are the ones it would have to move.
+
+## Ten files, two models, and the harness scored the first run — 2026-09-11
+
+`card:graphrag-c.md` day one: the pilot for the subject graph.  Henri
+decided C the same evening `card:GraphRAG.md` closed — *"Tehdään C, ja
+järjestetään se siten että graafi on toistaiseksi vain itseviittaava"*
+— so the first thing built was the door and not the graph:
+`test/test_graphrag.py` refuses any citation from outside `doc/graph/`
+into it, checked on a made-up index where it fails and on the tree
+where it passes, before a page exists to protect.
+
+The sheet, `doc/trial/graphrag-pilot.md`, passed `tools/prereg.sh` and
+predicted five things.  Four held.  Haiku grounds 1.000 against
+Sonnet's 0.975, finds 20 % fewer entities, overlaps 0.625, and costs a
+sixth rather than the predicted third, because Sonnet writes twice the
+output for the same file.  **The extraction pass runs on Haiku.**
+
+**The one that failed was the cost, and the reason is the finding
+worth keeping.**  The first run scored Sonnet at *0 entities* on seven
+of ten files.  The model had not failed; the output ceiling of 4,096
+tokens had cut its JSON in half, and a half JSON parses as nothing.
+The harness reported the model's verbosity as the model's incompetence
+— `doc/memory/a-run-silent-for-a-minute.md`'s lesson from the other
+side: a zero is telling you about the harness first.  The ceiling is
+16,384 now, the stop reason is recorded, and a cut reply says
+TRUNCATED instead of counting as empty.  The thrown-away run cost
+about sixty cents.
+
+**And the judge was wrong once before the model was.**  A name that is
+exactly a stripped prefix — `doc/memory/` — normalised to the empty
+string and was scored as invented for both arms.  Fixed, rerun from
+the cache for nothing, and the six names still ungrounded are all
+Sonnet's: three re-spellings of numbers the text writes with a comma,
+the card naming itself by path, and two labels coined for items of
+`card:the-first-jam.md` that the card does not contain.  Haiku coined
+none.  The judge found the thing it was built to find, on the dearer
+model.
+
+And one thing the API said that the sheet had assumed away: Sonnet 5
+refuses `temperature`, so the two arms did not run at the same
+setting.  The sheet's control said *the same parameters*; the after-run
+section says where that was not true.
+
+    python tools/graphrag.py pilot         # cached now, free
+    python tools/graphrag.py check         # the door

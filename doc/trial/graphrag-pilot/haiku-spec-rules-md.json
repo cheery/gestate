@@ -1,0 +1,392 @@
+{
+ "file": "spec/rules.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 4026,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 3586,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 22.8,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 24,
+ "relations": 36,
+ "grounded": 24,
+ "parse_error": null,
+ "names": [
+  "",
+  "board/readme",
+  "doc/instruments",
+  "doc/notes/",
+  "henri",
+  "journal",
+  "journal/yyyy-mm",
+  "keeper",
+  "manifesto",
+  "memory",
+  "memory-atrophy",
+  "spec/author",
+  "spec/rules",
+  "spec/sandbox",
+  "test/gates",
+  "test/test_citations.py",
+  "test/test_journal.py",
+  "test/test_rules.py",
+  "tools/journalroll.py",
+  "tools/rulecount.py",
+  "tools/seedaudit.py",
+  "tools/suite.py",
+  "vision",
+  "working-standard"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "spec/rules.md",
+    "type": "document",
+    "description": "The specification document that establishes the 2500-line cap on the rules set and explains the reasoning behind it."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "The author and keeper of the method who sets and approves changes to the rules cap and other governance decisions."
+   },
+   {
+    "name": "board/README.md",
+    "type": "document",
+    "description": "One of the five rule documents; describes how a task is worked and contains status information like blocked tasks."
+   },
+   {
+    "name": "manifesto.md",
+    "type": "document",
+    "description": "One of the five rule documents; describes how an instrument fails."
+   },
+   {
+    "name": "spec/author.md",
+    "type": "document",
+    "description": "One of the five rule documents; specifies what the author spends attention on."
+   },
+   {
+    "name": "doc/instruments.md",
+    "type": "document",
+    "description": "One of the five rule documents; describes what a session already has to work with."
+   },
+   {
+    "name": "vision.md",
+    "type": "document",
+    "description": "One of the five rule documents; describes what the method is for."
+   },
+   {
+    "name": "tools/rulecount.py",
+    "type": "tool",
+    "description": "Python tool that counts the lines in the five rule documents and prints the total and remaining room."
+   },
+   {
+    "name": "tools/suite.py",
+    "type": "tool",
+    "description": "Tool that puts the rule count on test/gates.md and prints it at every commit through a hook, displaying as a row or red section."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "Card that owns getting the rule count under the cap and records known fat like restatement."
+   },
+   {
+    "name": "card:memory-atrophy.md",
+    "type": "card",
+    "description": "Card that explains the keeper's reason for the cap: a method he could recite is worth more than a longer one he can search."
+   },
+   {
+    "name": "journal.md",
+    "type": "document",
+    "description": "The open month journal plus index; session narration and method evolution are recorded here rather than in rule documents."
+   },
+   {
+    "name": "doc/memory/",
+    "type": "document",
+    "description": "Directory containing the bodies of the memory corpus, which are spec-shaped and cost nothing until opened."
+   },
+   {
+    "name": "MEMORY.md",
+    "type": "document",
+    "description": "Private memory index read by sessions before they know what they are working on; 29 lines holding hooks for the memory corpus."
+   },
+   {
+    "name": "test/gates.md",
+    "type": "document",
+    "description": "Document where the rule count is displayed as a row when under cap or red section when over."
+   },
+   {
+    "name": "test/test_rules.py",
+    "type": "test",
+    "description": "Test that refuses loss of one of the five rule documents and tests that the lamp itself can light."
+   },
+   {
+    "name": "test/test_journal.py",
+    "type": "test",
+    "description": "Test that checks the journal index is generated and searches the open month and archive as one corpus."
+   },
+   {
+    "name": "test/test_citations.py",
+    "type": "test",
+    "description": "Test that searches journal citations across the open month and archive as one corpus."
+   },
+   {
+    "name": "tools/journalroll.py",
+    "type": "tool",
+    "description": "Tool that rotates the journal, generates the index, and manages the transition from open to closed months."
+   },
+   {
+    "name": "tools/seedaudit.py",
+    "type": "tool",
+    "description": "Tool that names board/README.md and spec/author.md and refuses their loss."
+   },
+   {
+    "name": "journal/YYYY-MM.md",
+    "type": "document",
+    "description": "Closed month archive files that are append-only and never edited again."
+   },
+   {
+    "name": "keeper.md",
+    "type": "document",
+    "description": "Document describing the keeper's evening standard work, which includes journal rotation as its fifth act."
+   },
+   {
+    "name": "spec/sandbox.md",
+    "type": "document",
+    "description": "Specification document that applies the rule that a cap not measured is a mood."
+   },
+   {
+    "name": "doc/notes/",
+    "type": "document",
+    "description": "Directory whose name for the five rule documents as 'method files' carried a false assumption and is retired."
+   }
+  ],
+  "relations": [
+   {
+    "source": "spec/rules.md",
+    "target": "Henri",
+    "description": "Henri wrote this specification at his ask on 2026-08-20 and controls all changes to the cap.",
+    "strength": 10
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "board/README.md",
+    "description": "board/README.md is one of the five documents subject to the 2500-line cap specified here.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "manifesto.md",
+    "description": "manifesto.md is one of the five documents subject to the 2500-line cap specified here.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "spec/author.md",
+    "description": "spec/author.md is one of the five documents subject to the 2500-line cap specified here.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "doc/instruments.md",
+    "description": "doc/instruments.md is one of the five documents subject to the 2500-line cap specified here.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "vision.md",
+    "description": "vision.md is one of the five documents subject to the 2500-line cap specified here.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "tools/rulecount.py",
+    "description": "tools/rulecount.py implements the measurement of the cap by printing the five files, total, and room left.",
+    "strength": 10
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "tools/suite.py",
+    "description": "tools/suite.py puts the rule count on test/gates.md and prints it at every commit through a hook.",
+    "strength": 10
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "card:working-standard.md",
+    "description": "card:working-standard.md owns getting the rule count under the cap and records known fat.",
+    "strength": 8
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "card:memory-atrophy.md",
+    "description": "card:memory-atrophy.md explains the keeper's reason for the cap as an atrophy control.",
+    "strength": 8
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "journal.md",
+    "description": "Session narration that accumulates in rule documents should be moved to journal.md instead.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "test/test_rules.py",
+    "description": "test/test_rules.py enforces that none of the five rule documents are lost.",
+    "strength": 8
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "tools/journalroll.py",
+    "description": "tools/journalroll.py implements the journal rotation mechanism described in this specification.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "test/test_journal.py",
+    "description": "test/test_journal.py checks that the journal index is generated correctly as described here.",
+    "strength": 8
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "keeper.md",
+    "description": "keeper.md describes the keeper's evening standard work which includes journal rotation as specified here.",
+    "strength": 8
+   },
+   {
+    "source": "tools/rulecount.py",
+    "target": "board/README.md",
+    "description": "tools/rulecount.py counts the lines in board/README.md as part of the five-document set.",
+    "strength": 9
+   },
+   {
+    "source": "tools/rulecount.py",
+    "target": "manifesto.md",
+    "description": "tools/rulecount.py counts the lines in manifesto.md as part of the five-document set.",
+    "strength": 9
+   },
+   {
+    "source": "tools/rulecount.py",
+    "target": "spec/author.md",
+    "description": "tools/rulecount.py counts the lines in spec/author.md as part of the five-document set.",
+    "strength": 9
+   },
+   {
+    "source": "tools/rulecount.py",
+    "target": "doc/instruments.md",
+    "description": "tools/rulecount.py counts the lines in doc/instruments.md as part of the five-document set.",
+    "strength": 9
+   },
+   {
+    "source": "tools/rulecount.py",
+    "target": "vision.md",
+    "description": "tools/rulecount.py counts the lines in vision.md as part of the five-document set.",
+    "strength": 9
+   },
+   {
+    "source": "tools/suite.py",
+    "target": "test/gates.md",
+    "description": "tools/suite.py puts the rule count on test/gates.md as a row or red section.",
+    "strength": 10
+   },
+   {
+    "source": "tools/seedaudit.py",
+    "target": "board/README.md",
+    "description": "tools/seedaudit.py names and refuses loss of board/README.md.",
+    "strength": 9
+   },
+   {
+    "source": "tools/seedaudit.py",
+    "target": "spec/author.md",
+    "description": "tools/seedaudit.py names and refuses loss of spec/author.md.",
+    "strength": 9
+   },
+   {
+    "source": "card:working-standard.md",
+    "target": "board/README.md",
+    "description": "card:working-standard.md records restatement fat found in board/README.md.",
+    "strength": 6
+   },
+   {
+    "source": "journal.md",
+    "target": "doc/memory/",
+    "description": "The memory corpus bodies now live in doc/memory/ and are spec-shaped, costing nothing until opened.",
+    "strength": 7
+   },
+   {
+    "source": "journal.md",
+    "target": "MEMORY.md",
+    "description": "MEMORY.md is a private index that sessions read before knowing what they are working on, similar to how journal.md is read.",
+    "strength": 7
+   },
+   {
+    "source": "journal.md",
+    "target": "journal/YYYY-MM.md",
+    "description": "journal/YYYY-MM.md files are closed months archived from the open journal.md.",
+    "strength": 10
+   },
+   {
+    "source": "tools/journalroll.py",
+    "target": "journal.md",
+    "description": "tools/journalroll.py rotates the open journal.md into closed monthly files.",
+    "strength": 10
+   },
+   {
+    "source": "tools/journalroll.py",
+    "target": "journal/YYYY-MM.md",
+    "description": "tools/journalroll.py creates and manages closed month files in the journal archive.",
+    "strength": 10
+   },
+   {
+    "source": "test/test_journal.py",
+    "target": "journal.md",
+    "description": "test/test_journal.py checks the journal index and searches the open month.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_journal.py",
+    "target": "journal/YYYY-MM.md",
+    "description": "test/test_journal.py searches the archive as one corpus with the open journal.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_citations.py",
+    "target": "journal.md",
+    "description": "test/test_citations.py searches citations in the open month.",
+    "strength": 8
+   },
+   {
+    "source": "test/test_citations.py",
+    "target": "journal/YYYY-MM.md",
+    "description": "test/test_citations.py searches citations in the archive as one corpus.",
+    "strength": 8
+   },
+   {
+    "source": "keeper.md",
+    "target": "journal.md",
+    "description": "keeper.md's standard work includes journal rotation as its fifth act.",
+    "strength": 9
+   },
+   {
+    "source": "Henri",
+    "target": "card:working-standard.md",
+    "description": "Henri's decisions about the method are recorded and tracked in working-standard.md.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": "spec/author.md",
+    "description": "spec/author.md defines what the author (Henri) spends attention on.",
+    "strength": 9
+   }
+  ]
+ }
+}

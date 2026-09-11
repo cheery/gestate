@@ -80,6 +80,11 @@ still the tiebreak between two workable cards, and it is still his.
    G-machine is already in the tab and what is missing is a seam
    between the canvas module and the worklet.  *Arrived unplaced,
    2026-09-11, minted at his ask when the gallery's MIDI row split.*
+8. **[graphrag-c](graphrag-c.md)** — a subject graph over the tree's
+   documents, extracted by a model, in one directory nothing outside
+   cites; the pilot first, ten files against two models.  *Arrived
+   unplaced, 2026-09-11, his decision after `card:GraphRAG.md`
+   closed.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

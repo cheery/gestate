@@ -1,0 +1,463 @@
+{
+ "file": "doc/method.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 3531,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 3785,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 33.6,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 40,
+ "relations": 32,
+ "grounded": 40,
+ "parse_error": null,
+ "names": [
+  ".claude/settings.json",
+  "2026-08-08",
+  "2026-08-17",
+  "2026-08-24",
+  "agents",
+  "board/readme",
+  "complaints",
+  "consent",
+  "doc/method",
+  "f162",
+  "fixme",
+  "gestate",
+  "journal",
+  "journal/",
+  "keeper",
+  "manifesto",
+  "readme",
+  "roadmap",
+  "spec/",
+  "spec/author",
+  "spec/rules",
+  "test/test_andon.py",
+  "test/test_board.py",
+  "test/test_consent.py",
+  "test/test_gemba.py",
+  "test/test_limit.py",
+  "test/test_memory.py",
+  "test/test_precommit.py",
+  "test/test_rules.py",
+  "test/test_safety.py",
+  "tools/andon.sh",
+  "tools/limit.sh",
+  "tools/pre-commit.sh",
+  "tools/rulecount.py",
+  "tools/sandbox.sh",
+  "tools/seedaudit.py",
+  "tools/suite.py",
+  "vision",
+  "~/tend"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "gestate",
+    "type": "project",
+    "description": "A programming language for sound and moving pictures."
+   },
+   {
+    "name": "README.md",
+    "type": "document",
+    "description": "Introduction to gestate, hearable in about ten minutes."
+   },
+   {
+    "name": "doc/method.md",
+    "type": "document",
+    "description": "This document; a one-page tour of the repository for new visitors."
+   },
+   {
+    "name": "roadmap.md",
+    "type": "document",
+    "description": "Lists unbuilt parts with reasons for their status."
+   },
+   {
+    "name": "consent.md",
+    "type": "document",
+    "description": "Register of named third parties who agreed to being quoted in the tree, with what each agreed to and declined."
+   },
+   {
+    "name": "tools/seedaudit.py",
+    "type": "tool",
+    "description": "Audits any directory against ten required pieces, checking presence, gating, and promised paths."
+   },
+   {
+    "name": "test/test_safety.py",
+    "type": "test",
+    "description": "Gates the fence pieces: `.claude/settings.json` and `tools/sandbox.sh`."
+   },
+   {
+    "name": "test/test_precommit.py",
+    "type": "test",
+    "description": "Gates the gates: `tools/suite.py` and `tools/pre-commit.sh`."
+   },
+   {
+    "name": "test/test_consent.py",
+    "type": "test",
+    "description": "Gates the consent register at `doc/consent.md`."
+   },
+   {
+    "name": "test/test_andon.py",
+    "type": "test",
+    "description": "Gates the andon at `tools/andon.sh`."
+   },
+   {
+    "name": "test/test_board.py",
+    "type": "test",
+    "description": "Gates the blocked status at `board/README.md`."
+   },
+   {
+    "name": "test/test_rules.py",
+    "type": "test",
+    "description": "Gates the rules cap at `spec/rules.md` and `tools/rulecount.py`, and the boot surface at `AGENTS.md`."
+   },
+   {
+    "name": "test/test_memory.py",
+    "type": "test",
+    "description": "Gates the memory split at `doc/memory/README.md`."
+   },
+   {
+    "name": "test/test_limit.py",
+    "type": "test",
+    "description": "Gates the sitting limit at `tools/limit.sh`."
+   },
+   {
+    "name": "test/test_gemba.py",
+    "type": "test",
+    "description": "Gates the author's own document at `spec/author.md`."
+   },
+   {
+    "name": "spec/rules.md",
+    "type": "document",
+    "description": "The rules, kept short enough that a person actually reads them."
+   },
+   {
+    "name": "tools/rulecount.py",
+    "type": "tool",
+    "description": "Enforces the rules cap to keep rules short."
+   },
+   {
+    "name": "doc/memory/README.md",
+    "type": "document",
+    "description": "Memory split; ensures what is known about a person is not automatically the tree's."
+   },
+   {
+    "name": "tools/limit.sh",
+    "type": "tool",
+    "description": "Enforces the sitting limit; protects the person's own hours."
+   },
+   {
+    "name": "AGENTS.md",
+    "type": "document",
+    "description": "The boot surface; ensures nothing else reaches a session unasked."
+   },
+   {
+    "name": "spec/author.md",
+    "type": "document",
+    "description": "The author's own document that no session rewrites."
+   },
+   {
+    "name": "board/README.md",
+    "type": "document",
+    "description": "How a task is worked; written for sessions, describes blocked status mechanism."
+   },
+   {
+    "name": "vision.md",
+    "type": "document",
+    "description": "What any of this is for; the author's own, dated."
+   },
+   {
+    "name": "manifesto.md",
+    "type": "document",
+    "description": "How an instrument fails, and the two standing rules."
+   },
+   {
+    "name": "spec/",
+    "type": "document",
+    "description": "How each part is designed, and what it cost; approximately 18,000 lines."
+   },
+   {
+    "name": "fixme.md",
+    "type": "document",
+    "description": "A register of 226 entries where implementation disagrees with specs; 45 open, 181 resolved."
+   },
+   {
+    "name": "journal.md",
+    "type": "document",
+    "description": "What happened, past tense; current month plus one line per closed month."
+   },
+   {
+    "name": "journal/",
+    "type": "document",
+    "description": "Archive of closed months in YYYY-MM.md format; first month is 13,091 lines."
+   },
+   {
+    "name": "keeper.md",
+    "type": "document",
+    "description": "Standard work for the one person who keeps all of the above; 225 lines."
+   },
+   {
+    "name": "tools/suite.py",
+    "type": "tool",
+    "description": "Part of the gates; enforces rules outside the model that must follow them."
+   },
+   {
+    "name": "tools/pre-commit.sh",
+    "type": "tool",
+    "description": "Part of the gates; enforces rules outside the model that must follow them."
+   },
+   {
+    "name": "tools/andon.sh",
+    "type": "tool",
+    "description": "Allows a session to raise a question and reach a person who answers."
+   },
+   {
+    "name": "tools/sandbox.sh",
+    "type": "tool",
+    "description": "Part of the fence; prevents a session from editing its own restraints."
+   },
+   {
+    "name": ".claude/settings.json",
+    "type": "document",
+    "description": "Part of the fence; prevents a session from editing its own restraints."
+   },
+   {
+    "name": "complaints.md",
+    "type": "document",
+    "description": "Register of every error message the program can print with verdicts on whether a person who hit it could act on it."
+   },
+   {
+    "name": "F162",
+    "type": "defect",
+    "description": "Missing information in installation instructions; placeholder in git clone command that only the author could fill."
+   },
+   {
+    "name": "2026-08-08",
+    "type": "event",
+    "description": "Start date of the project."
+   },
+   {
+    "name": "2026-08-17",
+    "type": "event",
+    "description": "Date the author installed gestate from nothing on a fresh laptop and found three defects in the instructions."
+   },
+   {
+    "name": "2026-08-24",
+    "type": "event",
+    "description": "Date the audit was first run against a directory that is not its own; also when the author measured that the tree must be treated well or it withers."
+   },
+   {
+    "name": "~/tend",
+    "type": "project",
+    "description": "A second project started under this method; audit found six of ten pieces present."
+   }
+  ],
+  "relations": [
+   {
+    "source": "gestate",
+    "target": "README.md",
+    "description": "README.md introduces gestate.",
+    "strength": 9
+   },
+   {
+    "source": "doc/method.md",
+    "target": "README.md",
+    "description": "This document references README.md as the introduction to gestate.",
+    "strength": 7
+   },
+   {
+    "source": "doc/method.md",
+    "target": "roadmap.md",
+    "description": "This document references roadmap.md for unbuilt parts.",
+    "strength": 6
+   },
+   {
+    "source": "doc/method.md",
+    "target": "consent.md",
+    "description": "This document references consent.md as the register of named third parties.",
+    "strength": 8
+   },
+   {
+    "source": "tools/seedaudit.py",
+    "target": "doc/method.md",
+    "description": "seedaudit.py audits directories against the ten pieces described in this document.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_safety.py",
+    "target": "tools/sandbox.sh",
+    "description": "test_safety.py gates the sandbox.sh tool.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_safety.py",
+    "target": ".claude/settings.json",
+    "description": "test_safety.py gates the settings.json file.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_precommit.py",
+    "target": "tools/suite.py",
+    "description": "test_precommit.py gates the suite.py tool.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_precommit.py",
+    "target": "tools/pre-commit.sh",
+    "description": "test_precommit.py gates the pre-commit.sh tool.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_consent.py",
+    "target": "consent.md",
+    "description": "test_consent.py gates the consent register.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_andon.py",
+    "target": "tools/andon.sh",
+    "description": "test_andon.py gates the andon tool.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_board.py",
+    "target": "board/README.md",
+    "description": "test_board.py gates the board README.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_rules.py",
+    "target": "spec/rules.md",
+    "description": "test_rules.py gates the rules specification.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_rules.py",
+    "target": "tools/rulecount.py",
+    "description": "test_rules.py gates the rulecount tool.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_rules.py",
+    "target": "AGENTS.md",
+    "description": "test_rules.py gates the AGENTS.md boot surface.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_memory.py",
+    "target": "doc/memory/README.md",
+    "description": "test_memory.py gates the memory split.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_limit.py",
+    "target": "tools/limit.sh",
+    "description": "test_limit.py gates the sitting limit tool.",
+    "strength": 9
+   },
+   {
+    "source": "test/test_gemba.py",
+    "target": "spec/author.md",
+    "description": "test_gemba.py gates the author's own document.",
+    "strength": 9
+   },
+   {
+    "source": "spec/rules.md",
+    "target": "tools/rulecount.py",
+    "description": "rulecount.py enforces the cap on spec/rules.md.",
+    "strength": 8
+   },
+   {
+    "source": "keeper.md",
+    "target": "doc/method.md",
+    "description": "keeper.md is standard work for maintaining the method described in this document.",
+    "strength": 8
+   },
+   {
+    "source": "keeper.md",
+    "target": "journal.md",
+    "description": "keeper.md is standard work for maintaining the journal.",
+    "strength": 8
+   },
+   {
+    "source": "journal.md",
+    "target": "journal/",
+    "description": "journal.md indexes closed months stored in journal/ directory.",
+    "strength": 9
+   },
+   {
+    "source": "journal.md",
+    "target": "consent.md",
+    "description": "The journal has people in it; consent.md registers who was asked before being quoted.",
+    "strength": 8
+   },
+   {
+    "source": "fixme.md",
+    "target": "spec/",
+    "description": "fixme.md registers where implementation disagrees with specs.",
+    "strength": 8
+   },
+   {
+    "source": "complaints.md",
+    "target": "gestate",
+    "description": "complaints.md registers every error message gestate can print.",
+    "strength": 8
+   },
+   {
+    "source": "F162",
+    "target": "2026-08-17",
+    "description": "F162 defect was found when the author installed gestate on a fresh laptop.",
+    "strength": 7
+   },
+   {
+    "source": "2026-08-08",
+    "target": "gestate",
+    "description": "The project started on 2026-08-08.",
+    "strength": 9
+   },
+   {
+    "source": "2026-08-24",
+    "target": "tools/seedaudit.py",
+    "description": "The audit was first run against ~/tend on 2026-08-24.",
+    "strength": 7
+   },
+   {
+    "source": "~/tend",
+    "target": "tools/seedaudit.py",
+    "description": "seedaudit.py was run against ~/tend and found six of ten pieces present.",
+    "strength": 8
+   },
+   {
+    "source": "board/README.md",
+    "target": "doc/method.md",
+    "description": "board/README.md is referenced in this document as describing how tasks are worked.",
+    "strength": 7
+   },
+   {
+    "source": "vision.md",
+    "target": "doc/method.md",
+    "description": "vision.md is referenced in this document as explaining what any of this is for.",
+    "strength": 7
+   },
+   {
+    "source": "manifesto.md",
+    "target": "doc/method.md",
+    "description": "manifesto.md is referenced in this document as explaining how an instrument fails.",
+    "strength": 7
+   }
+  ]
+ }
+}

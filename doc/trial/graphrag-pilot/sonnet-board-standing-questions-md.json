@@ -1,0 +1,305 @@
+{
+ "file": "board/standing-questions.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 2552,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 5254,
+  "output_tokens_details": {
+   "thinking_tokens": 2259
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 44.2,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 20,
+ "relations": 25,
+ "grounded": 20,
+ "parse_error": null,
+ "names": [
+  ".claude/settings.json",
+  "backlinks",
+  "backlinks --earned",
+  "board/readme",
+  "board/standing",
+  "board/standing-questions",
+  "doc/notes/notes-on-cues",
+  "fixme",
+  "git log",
+  "guest session",
+  "henri",
+  "kaizen",
+  "posttooluse",
+  "proposed heading",
+  "question it into existence",
+  "seven moves",
+  "test/test_standing.py",
+  "tools/backlinks.py",
+  "tools/bars.py",
+  "tools/standing.py"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "board/standing-questions.md",
+    "type": "card",
+    "description": "The card describing standing questions — a stored cue asked of a session the moment it opens a card, currently status doing."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "The keeper who observed sessions cannot surface what they weren't asked about, requested standing questions be implemented, and chose which candidates stand."
+   },
+   {
+    "name": "board/README.md",
+    "type": "document",
+    "description": "Document whose seven moves are 'prose' — nothing in it fires a question at a session at a moment, and whose 'Question it into existence' section says no check can tell whether a question was asked."
+   },
+   {
+    "name": "doc/notes/notes-on-cues.md",
+    "type": "document",
+    "description": "Document with the section 'Can an introspective index be built?' referenced as related background."
+   },
+   {
+    "name": "board/standing.md",
+    "type": "document",
+    "description": "The file holding the standing questions and candidates, including the 'proposed' heading where unchosen candidates wait."
+   },
+   {
+    "name": "tools/standing.py",
+    "type": "tool",
+    "description": "The hook that asks the standing questions, a PostToolUse hook on Read and Bash, built with --hook, --check, --install like its predecessors."
+   },
+   {
+    "name": "test/test_standing.py",
+    "type": "test",
+    "description": "The test file that lands and verifies tools/standing.py's behavior."
+   },
+   {
+    "name": "card:backlinks.md",
+    "type": "card",
+    "description": "The prior card this hook is shaped after, including its measure of being used (backlinks --earned)."
+   },
+   {
+    "name": "tools/bars.py",
+    "type": "tool",
+    "description": "An existing hook on Read, one of the two prior examples of the hook shape that standing.py borrows from."
+   },
+   {
+    "name": "tools/backlinks.py",
+    "type": "tool",
+    "description": "An existing hook on Read|Bash, the other prior example of the hook shape, whose shell parsing is borrowed outright by standing.py."
+   },
+   {
+    "name": ".claude/settings.json",
+    "type": "document",
+    "description": "Settings file denied to a session by the leash; Henri must paste the install line for tools/standing.py --install for the hook to activate."
+   },
+   {
+    "name": "PostToolUse",
+    "type": "concept",
+    "description": "The hook type on which standing questions land in front of a session, triggered on Read and Bash, the same way citers of a file arrive."
+   },
+   {
+    "name": "seven moves",
+    "type": "concept",
+    "description": "The moves described in board/README.md that stay where they are; standing questions make one or two of them happen on a clock instead of by memory."
+   },
+   {
+    "name": "Question it into existence",
+    "type": "concept",
+    "description": "A section of board/README.md stating that no check can tell whether a question was asked, underpinning why standing questions are not a checklist."
+   },
+   {
+    "name": "backlinks --earned",
+    "type": "concept",
+    "description": "A measure counting a follow — a fire whose offered file was opened next — considered as a model for judging standing questions but with no equivalent artefact yet."
+   },
+   {
+    "name": "git log",
+    "type": "tool",
+    "description": "Used to check correlation between a standing question's fire and whether the card's own file was edited in the same sitting afterward."
+   },
+   {
+    "name": "kaizen",
+    "type": "event",
+    "description": "A meeting where Henri could be asked directly whether a standing question changed anything — one option (testimony) for judging the mechanism."
+   },
+   {
+    "name": "guest session",
+    "type": "session",
+    "description": "A session, relayed by Henri, that critiqued the original design for asking the fast system to generate its own cue, prompting the fix to change the question's source."
+   },
+   {
+    "name": "fixme.md",
+    "type": "document",
+    "description": "Considered and rejected as another place a standing question might fire, since a card is the one place a session is about to decide something."
+   },
+   {
+    "name": "proposed heading",
+    "type": "concept",
+    "description": "The heading in board/standing.md under which candidate standing questions wait rather than being self-promoted by a session."
+   }
+  ],
+  "relations": [
+   {
+    "source": "board/standing-questions.md",
+    "target": "Henri",
+    "description": "Henri asked for standing questions to be implemented and chose among proposed candidates.",
+    "strength": 9
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "board/README.md",
+    "description": "The card notes nothing in board/README.md's seven moves fires a question at a moment — they are prose.",
+    "strength": 6
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "doc/notes/notes-on-cues.md",
+    "description": "The card points to this document's section on building an introspective index as related.",
+    "strength": 4
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "board/standing.md",
+    "description": "board/standing.md holds the actual questions and candidates that this card's mechanism asks.",
+    "strength": 8
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "tools/standing.py",
+    "description": "tools/standing.py is the hook implementing the standing-questions mechanism described in the card.",
+    "strength": 9
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "test/test_standing.py",
+    "description": "test/test_standing.py is the landing that tests the standing-questions hook.",
+    "strength": 7
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "card:backlinks.md",
+    "description": "The hook is shaped after card:backlinks.md and its measure of being used.",
+    "strength": 6
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "tools/bars.py",
+    "description": "tools/standing.py is the third hook of the shape first established by tools/bars.py.",
+    "strength": 6
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "tools/backlinks.py",
+    "description": "tools/standing.py borrows its shell parsing outright from tools/backlinks.py.",
+    "strength": 6
+   },
+   {
+    "source": "tools/standing.py",
+    "target": ".claude/settings.json",
+    "description": "The hook does nothing until its install line is pasted into .claude/settings.json.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": ".claude/settings.json",
+    "description": "Henri pasted the settings line activating the standing-questions hook before the choosing was even reported.",
+    "strength": 7
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "PostToolUse",
+    "description": "tools/standing.py is a PostToolUse hook on Read and Bash that delivers the standing questions.",
+    "strength": 8
+   },
+   {
+    "source": "board/README.md",
+    "target": "seven moves",
+    "description": "The seven moves are board/README.md's own description of the questioning process, left unchanged by this mechanism.",
+    "strength": 7
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "seven moves",
+    "description": "The hook makes one or two of the seven moves happen on a clock instead of when somebody remembers.",
+    "strength": 6
+   },
+   {
+    "source": "board/README.md",
+    "target": "Question it into existence",
+    "description": "'Question it into existence' is a section within board/README.md establishing that no check can confirm a question was asked.",
+    "strength": 6
+   },
+   {
+    "source": "board/standing.md",
+    "target": "proposed heading",
+    "description": "Candidate standing questions wait under board/standing.md's proposed heading rather than being self-promoted.",
+    "strength": 7
+   },
+   {
+    "source": "guest session",
+    "target": "board/standing-questions.md",
+    "description": "The guest session's critique that a session inventing its own cue defeats the purpose reshaped the card's design.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": "guest session",
+    "description": "Henri relayed the guest session's critique the same morning the design was first built.",
+    "strength": 5
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "backlinks --earned",
+    "description": "backlinks --earned is considered as a model measure but has no direct equivalent yet for standing questions.",
+    "strength": 5
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "git log",
+    "description": "git log is proposed as the tool to check correlation between a question's fire and a card's file being edited afterward.",
+    "strength": 5
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "kaizen",
+    "description": "Asking Henri at the kaizen whether a question changed anything is offered as one option for judging the mechanism.",
+    "strength": 4
+   },
+   {
+    "source": "board/standing-questions.md",
+    "target": "fixme.md",
+    "description": "The card considers and rejects firing a standing question on fixme.md or a spec, restricting it to cards.",
+    "strength": 4
+   },
+   {
+    "source": "card:backlinks.md",
+    "target": "backlinks --earned",
+    "description": "backlinks --earned is card:backlinks.md's own measure of being used.",
+    "strength": 6
+   },
+   {
+    "source": "tools/standing.py",
+    "target": "test/test_standing.py",
+    "description": "test/test_standing.py verifies the behavior of tools/standing.py.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": "board/standing.md",
+    "description": "Henri approved the session's picks of specific standing questions recorded in board/standing.md.",
+    "strength": 6
+   }
+  ]
+ }
+}

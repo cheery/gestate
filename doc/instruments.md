@@ -644,6 +644,19 @@ never a gate.  First run 2026-09-11: NMI 0.311 against the directories,
 null 0.180, and the citations cluster by subject where the directories
 sort by kind.
 
+### `tools/graphrag.py` — the subject graph, and the door that keeps it out of the evidence
+
+    python tools/graphrag.py pilot            ten files, two models; cached, so a rerun is free
+    python tools/graphrag.py check            nothing outside doc/graph/ cites into it
+
+`card:graphrag-c.md`: a model's reading of the tree's documents, kept
+in one directory that nothing outside may cite (`test/test_graphrag.py`
+is the gate), because a summary is testimony and a global answer over
+summaries is testimony squared.  **It costs money when run** — the API
+key in the environment, tokens printed with every call, prices assumed
+and labelled so.  The pilot of 2026-09-11 put the extraction pass on
+Haiku: grounded 1.000, a sixth of Sonnet's cost.
+
 ### `tools/covercount.py` — which lines the suite has never run
 
     python tools/covercount.py test/test_arith.py     # one file, seconds

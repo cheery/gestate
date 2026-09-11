@@ -1,0 +1,161 @@
+{
+ "file": "doc/memory/mechanism-not-instructions.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 1127,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1517,
+  "output_tokens_details": {
+   "thinking_tokens": 166
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 11.9,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 11,
+ "relations": 10,
+ "grounded": 11,
+ "parse_error": null,
+ "names": [
+  "agent harnesses",
+  "context engineering",
+  "mechanism-not-instructions",
+  "project-seed",
+  "spec/author",
+  "test_board.py",
+  "test_citations.py",
+  "test_memory.py",
+  "test_rules.py",
+  "the-evaluation-loop",
+  "working-standard"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "mechanism-not-instructions",
+    "type": "memory",
+    "description": "Memory arguing that when the context-engineering method travels, one must copy the mechanisms — suite, citations, contract, metabolism — not the prose."
+   },
+   {
+    "name": "test_board.py",
+    "type": "test",
+    "description": "One of the suite files that hold rules rather than a reader remembering them."
+   },
+   {
+    "name": "test_citations.py",
+    "type": "test",
+    "description": "One of the suite files that hold rules rather than a reader remembering them."
+   },
+   {
+    "name": "test_rules.py",
+    "type": "test",
+    "description": "One of the suite files that hold rules rather than a reader remembering them."
+   },
+   {
+    "name": "test_memory.py",
+    "type": "test",
+    "description": "One of the suite files that hold rules rather than a reader remembering them."
+   },
+   {
+    "name": "spec/author.md",
+    "type": "document",
+    "description": "Defines the author/session contract that faces the review problem rather than assuming it away."
+   },
+   {
+    "name": "card:project-seed.md",
+    "type": "card",
+    "description": "A card through which the method travels when a project is seeded; must inherit mechanisms, not just sentences."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "A card through which the method travels; risks inheriting only prose if the suite is not copied along with it."
+   },
+   {
+    "name": "the-evaluation-loop",
+    "type": "memory",
+    "description": "Linked memory warning that a ranking or estimate is pleasant, from a conditioned source, and unmeasured until the method has met a stranger."
+   },
+   {
+    "name": "context engineering",
+    "type": "concept",
+    "description": "A convergent name for the idea of context as the durable artifact and the model as the interchangeable part."
+   },
+   {
+    "name": "agent harnesses",
+    "type": "concept",
+    "description": "Another convergent name for building an agent's environment like an engineered system rather than writing it as a prompt."
+   }
+  ],
+  "relations": [
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_board.py",
+    "description": "Cites this test file as evidence that rules are held by a suite rather than by hope.",
+    "strength": 6
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_citations.py",
+    "description": "Cites this test file as evidence that rules are held by a suite rather than by hope.",
+    "strength": 6
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_rules.py",
+    "description": "Cites this test file as evidence that rules are held by a suite rather than by hope.",
+    "strength": 6
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "test_memory.py",
+    "description": "Cites this test file as evidence that rules are held by a suite rather than by hope.",
+    "strength": 6
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "spec/author.md",
+    "description": "Points to this document as the defined author/session contract that faces the review problem rather than assuming it away.",
+    "strength": 7
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "card:project-seed.md",
+    "description": "Instructs that when this card carries the method to a new project, mechanisms must be copied, not just prose.",
+    "strength": 7
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "card:working-standard.md",
+    "description": "Instructs that when this card carries the method, mechanisms must be copied, not just prose.",
+    "strength": 7
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "the-evaluation-loop",
+    "description": "Treats its own ranking of the four properties as subject to the warning in the-evaluation-loop: unmeasured until met by a stranger.",
+    "strength": 6
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "context engineering",
+    "description": "Identifies context engineering as a name under which the underlying idea is being converged on elsewhere.",
+    "strength": 5
+   },
+   {
+    "source": "mechanism-not-instructions",
+    "target": "agent harnesses",
+    "description": "Identifies agent harnesses as another name under which the underlying idea is being converged on elsewhere.",
+    "strength": 5
+   }
+  ]
+ }
+}

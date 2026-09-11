@@ -1,0 +1,149 @@
+{
+ "file": "doc/memory/the-evaluation-loop.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 1004,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1368,
+  "output_tokens_details": {
+   "thinking_tokens": 193
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 11.2,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 10,
+ "relations": 9,
+ "grounded": 10,
+ "parse_error": null,
+ "names": [
+  "dont-conclude-from-a-shallow-check",
+  "gestate-testing-standard",
+  "henri",
+  "manifesto",
+  "mechanism-not-instructions",
+  "project-seed",
+  "session",
+  "stranger test",
+  "the-evaluation-loop",
+  "working-standard"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "the-evaluation-loop",
+    "type": "memory",
+    "description": "Names the failure mode where a session's praise of the method that shaped it is not evidence, since the evaluator is downstream of the thing evaluated."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "Said on 2026-08-19 that he felt he had found a discovery of the century; the session declined the claim rather than accepting it."
+   },
+   {
+    "name": "session",
+    "type": "session",
+    "description": "A reading of the tree that has been conditioned by it before forming an opinion, so its praise of the method is the tree's own voice coming back, though it can also refuse an overclaim and state what it thinks is true."
+   },
+   {
+    "name": "manifesto.md",
+    "type": "document",
+    "description": "Describes the third way an instrument fails as agreeing with the implementation; this memory treats the whole method praising itself as that same failure."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "Exists to run the stranger test on the method itself, via another person, project, or model."
+   },
+   {
+    "name": "card:project-seed.md",
+    "type": "card",
+    "description": "Exists to run the stranger test on the method itself, via another person, project, or model."
+   },
+   {
+    "name": "stranger test",
+    "type": "test",
+    "description": "The real check on the method: run by another person, another project, another model, rather than by a conditioned session."
+   },
+   {
+    "name": "mechanism-not-instructions",
+    "type": "memory",
+    "description": "A related memory linked at the end of this document."
+   },
+   {
+    "name": "dont-conclude-from-a-shallow-check",
+    "type": "memory",
+    "description": "A related memory linked at the end of this document."
+   },
+   {
+    "name": "gestate-testing-standard",
+    "type": "memory",
+    "description": "A related memory linked at the end of this document."
+   }
+  ],
+  "relations": [
+   {
+    "source": "the-evaluation-loop",
+    "target": "session",
+    "description": "The memory identifies the session as the conditioned evaluator whose praise of the method is not a finding but the tree's own voice.",
+    "strength": 9
+   },
+   {
+    "source": "Henri",
+    "target": "the-evaluation-loop",
+    "description": "The memory was named from an event where Henri claimed a discovery of the century and the session declined the claim.",
+    "strength": 8
+   },
+   {
+    "source": "the-evaluation-loop",
+    "target": "manifesto.md",
+    "description": "The memory maps the whole-method praise loop onto manifesto.md's third way an instrument fails, which is agreeing with the implementation.",
+    "strength": 7
+   },
+   {
+    "source": "the-evaluation-loop",
+    "target": "stranger test",
+    "description": "The memory routes the real check on the method outward to the stranger test rather than trusting a conditioned session's assessment.",
+    "strength": 9
+   },
+   {
+    "source": "stranger test",
+    "target": "card:working-standard.md",
+    "description": "This card exists so the stranger test can be run on the method itself.",
+    "strength": 7
+   },
+   {
+    "source": "stranger test",
+    "target": "card:project-seed.md",
+    "description": "This card exists so the stranger test can be run on the method itself.",
+    "strength": 7
+   },
+   {
+    "source": "the-evaluation-loop",
+    "target": "mechanism-not-instructions",
+    "description": "Listed as a related memory.",
+    "strength": 3
+   },
+   {
+    "source": "the-evaluation-loop",
+    "target": "dont-conclude-from-a-shallow-check",
+    "description": "Listed as a related memory.",
+    "strength": 3
+   },
+   {
+    "source": "the-evaluation-loop",
+    "target": "gestate-testing-standard",
+    "description": "Listed as a related memory.",
+    "strength": 3
+   }
+  ]
+ }
+}

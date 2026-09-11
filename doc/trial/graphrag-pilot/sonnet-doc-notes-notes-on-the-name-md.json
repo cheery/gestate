@@ -1,0 +1,215 @@
+{
+ "file": "doc/notes/notes-on-the-name.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 1235,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 3053,
+  "output_tokens_details": {
+   "thinking_tokens": 1220
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 26.7,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 14,
+ "relations": 16,
+ "grounded": 14,
+ "parse_error": null,
+ "names": [
+  "agent harnesses",
+  "author/session contract",
+  "context engineering",
+  "gestate",
+  "henri",
+  "music tool",
+  "project-seed",
+  "readme",
+  "the environment card",
+  "the review problem",
+  "the session",
+  "the stranger test",
+  "the vision file",
+  "working-standard"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "Speaker whose verbatim words open and punctuate the conversation, who calls the work a discovery of the century and later names it 'gestate'."
+   },
+   {
+    "name": "The session",
+    "type": "session",
+    "description": "The responding voice, held to the directness Henri asked for, that evaluates the discovery claim and traces the name to the vision file."
+   },
+   {
+    "name": "README.md",
+    "type": "document",
+    "description": "File in the same directory that, per this note, 'says what the set is.'"
+   },
+   {
+    "name": "context engineering",
+    "type": "concept",
+    "description": "One of the half-names under which many people are currently converging on the same core insight about context as the durable artifact."
+   },
+   {
+    "name": "agent harnesses",
+    "type": "concept",
+    "description": "Another half-name under which the same convergence toward engineered agent environments is happening."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "Card already shelved in later/, waiting for the event of this feeling to be tested."
+   },
+   {
+    "name": "card:project-seed.md",
+    "type": "card",
+    "description": "Card already shelved in later/, waiting alongside working-standard for the stranger-test event."
+   },
+   {
+    "name": "the stranger test",
+    "type": "rule",
+    "description": "The measure by which a claim becomes real in this method: whether properties transfer to another person, project, and model, or depend on the author being Henri."
+   },
+   {
+    "name": "the environment card",
+    "type": "card",
+    "description": "Card whose justification gained a stronger 'because' than before: not a workspace to run programs safely, but the vessel for a method there is evidence is worth carrying."
+   },
+   {
+    "name": "the vision file",
+    "type": "document",
+    "description": "Document dated 2026-08-16 that wrote 'Gestate gestates,' naming the project before Henri arrived at the same name himself."
+   },
+   {
+    "name": "Gestate",
+    "type": "project",
+    "description": "The name that now holds literally on every layer: an environment that grows programs, a tree that grows sessions, a method meant to grow music software that turned out to grow itself."
+   },
+   {
+    "name": "music tool",
+    "type": "project",
+    "description": "The original side project Henri wanted to build, out of which the tree (Gestate) emerged as a side effect."
+   },
+   {
+    "name": "the review problem",
+    "type": "concept",
+    "description": "A problem faced instead of denied, cited as one of the properties that distinguishes this implementation from a mere page of instructions."
+   },
+   {
+    "name": "author/session contract",
+    "type": "concept",
+    "description": "A defined contract between author and session, listed among the implementation properties not usually assembled together."
+   }
+  ],
+  "relations": [
+   {
+    "source": "Henri",
+    "target": "The session",
+    "description": "Henri speaks his verbatim reaction and the session responds directly to it.",
+    "strength": 6
+   },
+   {
+    "source": "The session",
+    "target": "README.md",
+    "description": "The session points to README.md as the document that says what the set is.",
+    "strength": 3
+   },
+   {
+    "source": "The session",
+    "target": "context engineering",
+    "description": "The session names context engineering as a half-name under which the same core insight is being converged on by others.",
+    "strength": 6
+   },
+   {
+    "source": "The session",
+    "target": "agent harnesses",
+    "description": "The session names agent harnesses as another such half-name.",
+    "strength": 6
+   },
+   {
+    "source": "Gestate",
+    "target": "context engineering",
+    "description": "Gestate is described as an implementation of the idea that many people converge on under the name context engineering.",
+    "strength": 7
+   },
+   {
+    "source": "Gestate",
+    "target": "card:working-standard.md",
+    "description": "This card was shelved in later/ specifically to wait for the event of the discovery feeling being tested.",
+    "strength": 6
+   },
+   {
+    "source": "Gestate",
+    "target": "card:project-seed.md",
+    "description": "This card was shelved in later/ alongside working-standard, waiting for the same event.",
+    "strength": 6
+   },
+   {
+    "source": "card:working-standard.md",
+    "target": "the stranger test",
+    "description": "The card was shelved to wait for the event of applying the stranger test.",
+    "strength": 7
+   },
+   {
+    "source": "card:project-seed.md",
+    "target": "the stranger test",
+    "description": "The card was likewise shelved to wait for the stranger test.",
+    "strength": 7
+   },
+   {
+    "source": "the stranger test",
+    "target": "Gestate",
+    "description": "The stranger test is proposed as the measure of whether Gestate's properties transfer beyond its author Henri.",
+    "strength": 8
+   },
+   {
+    "source": "the environment card",
+    "target": "Gestate",
+    "description": "The environment card's justification is reframed around Gestate as the vessel for a method worth carrying.",
+    "strength": 7
+   },
+   {
+    "source": "Henri",
+    "target": "the vision file",
+    "description": "Henri's naming of the project as 'gestate' turns out to have been anticipated by the vision file three days earlier.",
+    "strength": 6
+   },
+   {
+    "source": "the vision file",
+    "target": "Gestate",
+    "description": "The vision file is the source of the phrase 'Gestate gestates,' which gives the project its name.",
+    "strength": 8
+   },
+   {
+    "source": "Gestate",
+    "target": "music tool",
+    "description": "Gestate was built alone in about ten days as a side effect of wanting to build a music tool.",
+    "strength": 7
+   },
+   {
+    "source": "Gestate",
+    "target": "the review problem",
+    "description": "Gestate is credited with facing the review problem instead of denying it, as one of its distinguishing properties.",
+    "strength": 5
+   },
+   {
+    "source": "Gestate",
+    "target": "author/session contract",
+    "description": "Gestate is credited with having a defined author/session contract, one of its distinguishing properties.",
+    "strength": 5
+   }
+  ]
+ }
+}

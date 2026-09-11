@@ -1,0 +1,245 @@
+{
+ "file": "doc/memory/capacity-is-not-a-caller.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 1282,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 2715,
+  "output_tokens_details": {
+   "thinking_tokens": 341
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 21.2,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 18,
+ "relations": 17,
+ "grounded": 18,
+ "parse_error": null,
+ "names": [
+  "270-commits-in-nine-days lesson",
+  "budgeted experiments",
+  "capacity-is-not-a-caller",
+  "depth over count pull",
+  "gestate-board-goal",
+  "mechanism-not-instructions",
+  "overproduction",
+  "sediment-versus-debt",
+  "seven wastes",
+  "smaller-models-and-the-tree",
+  "the board",
+  "the founding move of the method",
+  "the keeper",
+  "the stranger test",
+  "the vessel",
+  "the-evaluation-loop",
+  "the-keepers-evening",
+  "work-environment-ai"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "capacity-is-not-a-caller",
+    "type": "memory",
+    "description": "Memory stating that being able to build software is not a reason to build it; production stays pulled by three legitimate pulls rather than by capacity."
+   },
+   {
+    "name": "the-keepers-evening",
+    "type": "memory",
+    "description": "Referenced memory noting there is one evening a week for the keeper's attention, used to argue that review capacity is the scarce, unmultiplied resource."
+   },
+   {
+    "name": "the-evaluation-loop",
+    "type": "memory",
+    "description": "Referenced memory whose failure mode is described as production outrunning the keeper, arriving as work when the commit-to-review ratio worsens on purpose."
+   },
+   {
+    "name": "270-commits-in-nine-days lesson",
+    "type": "event",
+    "description": "A dated lesson in the tree showing production outrunning the keeper's capacity to review it."
+   },
+   {
+    "name": "mechanism-not-instructions",
+    "type": "memory",
+    "description": "Referenced memory linked to the idea that making the thing that makes software safe compounds, unlike making software itself which is linear."
+   },
+   {
+    "name": "smaller-models-and-the-tree",
+    "type": "memory",
+    "description": "Referenced memory linked to the vessel pull, concerning smaller models making software safely inside the environment."
+   },
+   {
+    "name": "card:work-environment-ai.md",
+    "type": "card",
+    "description": "Card describing the vessel — the environment that lets others, future selves, or smaller models make software safely inside it."
+   },
+   {
+    "name": "gestate-board-goal",
+    "type": "memory",
+    "description": "Related memory linked at the end, concerning the board's goal that gestation serves."
+   },
+   {
+    "name": "sediment-versus-debt",
+    "type": "memory",
+    "description": "Related memory linked at the end, distinguishing sediment from debt as a framing for what accumulates from software production."
+   },
+   {
+    "name": "the board",
+    "type": "concept",
+    "description": "The board that states the law: a because is a problem, never a fix, and 'I can' is not a because."
+   },
+   {
+    "name": "seven wastes",
+    "type": "concept",
+    "description": "A framework in which overproduction is named the first and worst waste because it manufactures inventory, defects, and attention spent keeping unwanted things alive."
+   },
+   {
+    "name": "overproduction",
+    "type": "concept",
+    "description": "Making things because capacity exists rather than because demand does; identified as the worst of the seven wastes."
+   },
+   {
+    "name": "the keeper",
+    "type": "concept",
+    "description": "The role whose attention (review, direction) is the one resource this method never multiplied, limited to one evening a week."
+   },
+   {
+    "name": "Depth over count pull",
+    "type": "concept",
+    "description": "First legitimate pull: gestate finished software to its vision — stranger test passing, instruments editable while they sound, the friend using it."
+   },
+   {
+    "name": "the vessel",
+    "type": "concept",
+    "description": "Second legitimate pull: the environment that lets others, future selves, or smaller models make software safely, which compounds unlike linear software-making."
+   },
+   {
+    "name": "Budgeted experiments",
+    "type": "concept",
+    "description": "Third legitimate pull: cheap, reversible, timeboxed experiments deleted without ceremony, pulled by a question rather than by capacity."
+   },
+   {
+    "name": "the stranger test",
+    "type": "test",
+    "description": "A test of whether gestated software has reached its vision, cited as part of the depth-over-count pull."
+   },
+   {
+    "name": "the founding move of the method",
+    "type": "concept",
+    "description": "The refusal to run a factory at capacity even though capacity tempts its owner to do so; the founding move of the method this tree borrows from."
+   }
+  ],
+  "relations": [
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "overproduction",
+    "description": "The memory frames capacity-driven production as overproduction, the first and worst of the seven wastes.",
+    "strength": 8
+   },
+   {
+    "source": "overproduction",
+    "target": "seven wastes",
+    "description": "Overproduction is ranked as the worst of the seven wastes because it manufactures the others.",
+    "strength": 7
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "the board",
+    "description": "The board states the same law: a because is a problem, never a fix, and capacity is not a caller.",
+    "strength": 7
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "the keeper",
+    "description": "The memory argues the hidden cost of software is the keeper's attention, the one resource the method never multiplied.",
+    "strength": 8
+   },
+   {
+    "source": "the keeper",
+    "target": "the-keepers-evening",
+    "description": "The keeper has only one evening a week, limiting how much software production can be sustained.",
+    "strength": 7
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "270-commits-in-nine-days lesson",
+    "description": "This lesson is cited as exactly the case of production outrunning the keeper.",
+    "strength": 6
+   },
+   {
+    "source": "270-commits-in-nine-days lesson",
+    "target": "the-evaluation-loop",
+    "description": "Worsening the production-to-review ratio on purpose is the evaluation loop's failure mode arriving as work.",
+    "strength": 6
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "Depth over count pull",
+    "description": "Depth over count is listed as the first legitimate pull for production.",
+    "strength": 7
+   },
+   {
+    "source": "Depth over count pull",
+    "target": "the stranger test",
+    "description": "Gestating finished software to its vision includes passing the stranger test.",
+    "strength": 5
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "the vessel",
+    "description": "The vessel is listed as the second legitimate pull, the environment that lets others make software safely.",
+    "strength": 7
+   },
+   {
+    "source": "the vessel",
+    "target": "card:work-environment-ai.md",
+    "description": "The vessel is described and defined by the card work-environment-ai.md.",
+    "strength": 8
+   },
+   {
+    "source": "the vessel",
+    "target": "mechanism-not-instructions",
+    "description": "The vessel's compounding nature is linked to the mechanism-not-instructions memory.",
+    "strength": 5
+   },
+   {
+    "source": "the vessel",
+    "target": "smaller-models-and-the-tree",
+    "description": "The vessel's purpose of letting smaller models make software safely is linked to this memory.",
+    "strength": 5
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "Budgeted experiments",
+    "description": "Budgeted experiments are listed as the third legitimate pull, cheap and timeboxed exploration pulled by a question.",
+    "strength": 7
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "the founding move of the method",
+    "description": "The memory ties its practice to the founding move of refusing to run a factory at capacity.",
+    "strength": 6
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "gestate-board-goal",
+    "description": "The memory is explicitly related to gestate-board-goal.",
+    "strength": 4
+   },
+   {
+    "source": "capacity-is-not-a-caller",
+    "target": "sediment-versus-debt",
+    "description": "The memory is explicitly related to sediment-versus-debt.",
+    "strength": 4
+   }
+  ]
+ }
+}

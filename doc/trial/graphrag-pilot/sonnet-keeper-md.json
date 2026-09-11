@@ -1,0 +1,455 @@
+{
+ "file": "keeper.md",
+ "model": "claude-sonnet-5",
+ "usage": {
+  "input_tokens": 3710,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 5826,
+  "output_tokens_details": {
+   "thinking_tokens": 1112
+  },
+  "service_tier": "standard",
+  "inference_geo": "global"
+ },
+ "seconds": 45.7,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 36,
+ "relations": 34,
+ "grounded": 36,
+ "parse_error": null,
+ "names": [
+  "",
+  "2026-08-21",
+  "2026-08-24",
+  "2026-08-29",
+  "andon",
+  "archive, don't airbrush",
+  "board/done/",
+  "board/later/",
+  "decisions batch (act 2)",
+  "decisions-arrive-shaped",
+  "examples/audio/",
+  "gh-pages branch",
+  "henri",
+  "journal lamp",
+  "keeper",
+  "measure one rule (act 3)",
+  "memory-atrophy",
+  "one pass over the pile (act 4)",
+  "online",
+  "push the pieces (act 6)",
+  "read the lamps (act 1)",
+  "rotate the journal (act 5)",
+  "rules lamp",
+  "sitting limit",
+  "spec/author",
+  "spec/rules",
+  "test/gates",
+  "the rotation is an act of the fire",
+  "tools/gapcheck.py",
+  "tools/journalroll.py",
+  "tools/pages.sh",
+  "tools/rulecount.py",
+  "tools/sittings.py",
+  "tools/suite.py",
+  "toyota",
+  "vision"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "keeper.md",
+    "type": "document",
+    "description": "Standard work document for the weekly fire ritual, written at Henri's ask to fix the task rather than the person."
+   },
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "The author and keeper who performs this weekly ritual, expressed doubt about being up for the task."
+   },
+   {
+    "name": "vision.md",
+    "type": "document",
+    "description": "A capped method document stating the tree 'won't demand your presence,' cited to show the ritual must never become a demand."
+   },
+   {
+    "name": "spec/rules.md",
+    "type": "document",
+    "description": "One of the five capped method documents that a session reads before it knows what it is working on; contains the rotation and archive contracts."
+   },
+   {
+    "name": "test/gates.md",
+    "type": "document",
+    "description": "The page produced by the gates check, showing the Rules and Journal lamp rows."
+   },
+   {
+    "name": "tools/suite.py",
+    "type": "tool",
+    "description": "Script run with --gates to perform twelve structural checks in about fourteen seconds, producing test/gates.md."
+   },
+   {
+    "name": "tools/rulecount.py",
+    "type": "tool",
+    "description": "Pull-version tool showing how many lines the five rule documents use against the 2,000-line cap."
+   },
+   {
+    "name": "tools/journalroll.py",
+    "type": "tool",
+    "description": "Tool used to check the journal budget and, with --roll --themes, to close and rotate the journal file."
+   },
+   {
+    "name": "tools/sittings.py",
+    "type": "tool",
+    "description": "Tool run with --days 7 to measure the sitting limit against the week that happened, including how often sitting resumed after a limit was reached."
+   },
+   {
+    "name": "tools/gapcheck.py",
+    "type": "tool",
+    "description": "Tool reading the same ledger as sittings.py for the other open number, the 30-minute silence nobody chose."
+   },
+   {
+    "name": "tools/pages.sh",
+    "type": "tool",
+    "description": "Script that generates and pushes the music pages to the gh-pages branch, reporting 'nothing to commit' when already current."
+   },
+   {
+    "name": "board/later/",
+    "type": "card",
+    "description": "The pile of cards reviewed in act 4, each asked whether it waits on an event (sediment) or on the keeper (debt)."
+   },
+   {
+    "name": "board/done/",
+    "type": "card",
+    "description": "Record of finished cards cited as evidence the allegedly too-hard parts are already being done, with dates."
+   },
+   {
+    "name": "doc/memory/",
+    "type": "document",
+    "description": "Memory record directory cited alongside board/done/ and the journal as evidence of completed hard work."
+   },
+   {
+    "name": "doc/memory/decisions-arrive-shaped.md",
+    "type": "document",
+    "description": "The contract sessions are held to for how decision cards must arrive shaped, with question, options, default, trigger, reversibility, and recommendation."
+   },
+   {
+    "name": "card:memory-atrophy.md",
+    "type": "card",
+    "description": "Card referenced for the closed-book-first move in measuring a rule, dated 2026-08-24 as move 1."
+   },
+   {
+    "name": "card:online.md",
+    "type": "card",
+    "description": "Card for the music pages site, a tab for every piece in examples/audio/, kept fresh by tools/pages.sh."
+   },
+   {
+    "name": "examples/audio/",
+    "type": "project",
+    "description": "Directory of music pieces, each rendered as a playable tab on the pushed pages."
+   },
+   {
+    "name": "gh-pages branch",
+    "type": "concept",
+    "description": "The branch hosting the music pages, updated by tools/pages.sh."
+   },
+   {
+    "name": "spec/author.md",
+    "type": "document",
+    "description": "Document establishing that editing the five method documents (step 2 of journal rotation) is the author's role, not delegable."
+   },
+   {
+    "name": "Toyota",
+    "type": "concept",
+    "description": "Referenced as the source of 'standard work,' writing procedures so the job could be done on a tired Tuesday rather than requiring heroic operators."
+   },
+   {
+    "name": "andon",
+    "type": "concept",
+    "description": "Referenced analogy for batching questions together rather than answering them one at a time, as the decisions batch does."
+   },
+   {
+    "name": "Journal lamp",
+    "type": "concept",
+    "description": "One of the two gate rows, measuring the open month's journal against its budget; when lit, signals the rotation act is due."
+   },
+   {
+    "name": "Rules lamp",
+    "type": "concept",
+    "description": "One of the two gate rows, measuring the five method documents against the 2,000-line cap."
+   },
+   {
+    "name": "decisions batch (act 2)",
+    "type": "event",
+    "description": "The weekly act of opening all cards blocked on a decision together, approving defaults rather than composing fresh answers."
+   },
+   {
+    "name": "Read the lamps (act 1)",
+    "type": "event",
+    "description": "First act of the cadence: running the gates check once per fire, about one minute."
+   },
+   {
+    "name": "Measure one rule (act 3)",
+    "type": "event",
+    "description": "Third act: picking one rule per fire and testing, closed-book first, whether it decided anything in the week that happened."
+   },
+   {
+    "name": "One pass over the pile (act 4)",
+    "type": "event",
+    "description": "Fourth act: reviewing board/later/ to sort cards into sediment (waiting on an event) or debt (waiting on the keeper)."
+   },
+   {
+    "name": "Rotate the journal (act 5)",
+    "type": "event",
+    "description": "Fifth act, done about monthly when the Journal lamp says so: skim, promote, index, and close the journal file."
+   },
+   {
+    "name": "Push the pieces (act 6)",
+    "type": "event",
+    "description": "Sixth act, done now and then when a piece changes: running tools/pages.sh to update the music pages."
+   },
+   {
+    "name": "sitting limit",
+    "type": "rule",
+    "description": "The rule set on 2026-08-21 governing sitting duration, measured weekly by tools/sittings.py against actual behavior."
+   },
+   {
+    "name": "\"Archive, don't airbrush\"",
+    "type": "rule",
+    "description": "Section of spec/rules.md stating nothing in the journal is rewritten, since git already remembers and retroactive editing would create a second source of truth."
+   },
+   {
+    "name": "\"The rotation is an act of the fire\"",
+    "type": "rule",
+    "description": "Section of spec/rules.md giving the full contract for the four-step journal rotation act."
+   },
+   {
+    "name": "2026-08-21",
+    "type": "event",
+    "description": "Date keeper.md was written, at Henri's ask, and the date the sitting limit was set."
+   },
+   {
+    "name": "2026-08-24",
+    "type": "event",
+    "description": "Date attached to card:memory-atrophy.md move 1, the closed-book-first technique."
+   },
+   {
+    "name": "2026-08-29",
+    "type": "event",
+    "description": "Date of Henri's own pick/quote about not needing the site to always be fresh."
+   }
+  ],
+  "relations": [
+   {
+    "source": "Henri",
+    "target": "keeper.md",
+    "description": "Henri asked for this document to be written and is the sole reader/performer of the ritual it describes.",
+    "strength": 9
+   },
+   {
+    "source": "keeper.md",
+    "target": "vision.md",
+    "description": "keeper.md invokes vision.md's promise that the tree won't demand presence, to ensure the ritual cannot become a demand.",
+    "strength": 6
+   },
+   {
+    "source": "keeper.md",
+    "target": "spec/rules.md",
+    "description": "keeper.md distinguishes itself from the five capped documents including spec/rules.md, which sessions read before work.",
+    "strength": 7
+   },
+   {
+    "source": "Read the lamps (act 1)",
+    "target": "tools/suite.py",
+    "description": "Act 1 is performed by running tools/suite.py --gates.",
+    "strength": 9
+   },
+   {
+    "source": "tools/suite.py",
+    "target": "test/gates.md",
+    "description": "Running tools/suite.py --gates produces the test/gates.md page with two lamp rows.",
+    "strength": 9
+   },
+   {
+    "source": "test/gates.md",
+    "target": "Rules lamp",
+    "description": "test/gates.md contains the Rules lamp row measuring the five method documents against 2,000 lines.",
+    "strength": 8
+   },
+   {
+    "source": "test/gates.md",
+    "target": "Journal lamp",
+    "description": "test/gates.md contains the Journal lamp row measuring the open month against its budget.",
+    "strength": 8
+   },
+   {
+    "source": "Rules lamp",
+    "target": "tools/rulecount.py",
+    "description": "tools/rulecount.py is the pull version of the Rules lamp, showing exact line counts.",
+    "strength": 6
+   },
+   {
+    "source": "Journal lamp",
+    "target": "tools/journalroll.py",
+    "description": "tools/journalroll.py is the pull version of the Journal lamp and also performs the rotation.",
+    "strength": 6
+   },
+   {
+    "source": "decisions batch (act 2)",
+    "target": "doc/memory/decisions-arrive-shaped.md",
+    "description": "Act 2 holds cards to the contract defined in decisions-arrive-shaped.md, so each arrives already shaped.",
+    "strength": 8
+   },
+   {
+    "source": "decisions batch (act 2)",
+    "target": "andon",
+    "description": "Batching decision questions together is likened to how the andon batches its questions.",
+    "strength": 5
+   },
+   {
+    "source": "Measure one rule (act 3)",
+    "target": "card:memory-atrophy.md",
+    "description": "The closed-book-first move in act 3 is documented as move 1 in card:memory-atrophy.md.",
+    "strength": 7
+   },
+   {
+    "source": "Measure one rule (act 3)",
+    "target": "tools/rulecount.py",
+    "description": "If a rule is found to be fat or wrong, tools/rulecount.py shows how many lines are left in the cap.",
+    "strength": 5
+   },
+   {
+    "source": "Measure one rule (act 3)",
+    "target": "tools/sittings.py",
+    "description": "The sitting limit rule already has its meter in tools/sittings.py, making it the cheapest rule to measure weekly.",
+    "strength": 8
+   },
+   {
+    "source": "tools/sittings.py",
+    "target": "sitting limit",
+    "description": "tools/sittings.py measures the sitting limit set on 2026-08-21 against the actual week's sittings.",
+    "strength": 8
+   },
+   {
+    "source": "tools/sittings.py",
+    "target": "tools/gapcheck.py",
+    "description": "tools/gapcheck.py reads the same ledger as tools/sittings.py for a different open number, the 30-minute silence.",
+    "strength": 5
+   },
+   {
+    "source": "sitting limit",
+    "target": "2026-08-21",
+    "description": "The sitting limit was set by Henri on 2026-08-21.",
+    "strength": 6
+   },
+   {
+    "source": "One pass over the pile (act 4)",
+    "target": "board/later/",
+    "description": "Act 4 is a pass over board/later/, sorting each card into sediment or debt.",
+    "strength": 9
+   },
+   {
+    "source": "One pass over the pile (act 4)",
+    "target": "decisions batch (act 2)",
+    "description": "Debt cards found in act 4 are moved into next fire's act 2 (the decisions batch).",
+    "strength": 7
+   },
+   {
+    "source": "Rotate the journal (act 5)",
+    "target": "spec/rules.md",
+    "description": "The full contract for act 5 is given in spec/rules.md's section 'The rotation is an act of the fire.'",
+    "strength": 8
+   },
+   {
+    "source": "Rotate the journal (act 5)",
+    "target": "\"The rotation is an act of the fire\"",
+    "description": "Act 5's four steps are defined by this section of spec/rules.md.",
+    "strength": 8
+   },
+   {
+    "source": "Rotate the journal (act 5)",
+    "target": "\"Archive, don't airbrush\"",
+    "description": "The rule against rewriting the journal during rotation is grounded in this section of spec/rules.md.",
+    "strength": 6
+   },
+   {
+    "source": "Rotate the journal (act 5)",
+    "target": "tools/journalroll.py",
+    "description": "Step 4 of act 5 closes the file by running tools/journalroll.py --roll --themes.",
+    "strength": 8
+   },
+   {
+    "source": "Rotate the journal (act 5)",
+    "target": "spec/author.md",
+    "description": "Step 2 of the rotation, promoting lines into the method files, is reserved to the author per spec/author.md.",
+    "strength": 7
+   },
+   {
+    "source": "Push the pieces (act 6)",
+    "target": "tools/pages.sh",
+    "description": "Act 6 is performed by running tools/pages.sh.",
+    "strength": 9
+   },
+   {
+    "source": "tools/pages.sh",
+    "target": "card:online.md",
+    "description": "tools/pages.sh keeps the music pages fresh, including card:online.md.",
+    "strength": 7
+   },
+   {
+    "source": "tools/pages.sh",
+    "target": "examples/audio/",
+    "description": "tools/pages.sh generates a tab for every piece in examples/audio/ and pushes to gh-pages.",
+    "strength": 7
+   },
+   {
+    "source": "tools/pages.sh",
+    "target": "gh-pages branch",
+    "description": "tools/pages.sh generates and commits the music pages to the gh-pages branch.",
+    "strength": 8
+   },
+   {
+    "source": "Push the pieces (act 6)",
+    "target": "2026-08-29",
+    "description": "Henri's own pick on 2026-08-29 established that the site need not always be fresh, shaping act 6's cadence.",
+    "strength": 6
+   },
+   {
+    "source": "keeper.md",
+    "target": "Toyota",
+    "description": "keeper.md invokes Toyota's philosophy of standard work to justify fixing the task rather than the person.",
+    "strength": 6
+   },
+   {
+    "source": "keeper.md",
+    "target": "board/done/",
+    "description": "keeper.md points to board/done/ as evidence, with dates, that the allegedly too-hard parts are already being done.",
+    "strength": 6
+   },
+   {
+    "source": "keeper.md",
+    "target": "doc/memory/",
+    "description": "keeper.md points to doc/memory/ alongside board/done/ as a record of completed hard work.",
+    "strength": 6
+   },
+   {
+    "source": "keeper.md",
+    "target": "2026-08-21",
+    "description": "keeper.md was written on 2026-08-21 at Henri's ask.",
+    "strength": 8
+   },
+   {
+    "source": "card:memory-atrophy.md",
+    "target": "2026-08-24",
+    "description": "card:memory-atrophy.md's move 1 is dated 2026-08-24.",
+    "strength": 5
+   }
+  ]
+ }
+}

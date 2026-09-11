@@ -1,0 +1,170 @@
+{
+ "file": "doc/notes/notes-on-the-name.md",
+ "model": "claude-haiku-4-5-20251001",
+ "usage": {
+  "input_tokens": 966,
+  "cache_creation_input_tokens": 0,
+  "cache_read_input_tokens": 0,
+  "cache_creation": {
+   "ephemeral_5m_input_tokens": 0,
+   "ephemeral_1h_input_tokens": 0
+  },
+  "output_tokens": 1308,
+  "service_tier": "standard",
+  "inference_geo": "not_available"
+ },
+ "seconds": 11.3,
+ "cached": true,
+ "stop_reason": "end_turn",
+ "entities": 12,
+ "relations": 11,
+ "grounded": 12,
+ "parse_error": null,
+ "names": [
+  "agent harnesses",
+  "context engineering",
+  "environment card",
+  "gestate",
+  "henri",
+  "notes-on-the-name",
+  "project-seed",
+  "readme",
+  "the loop",
+  "the stranger test",
+  "vision file",
+  "working-standard"
+ ],
+ "ungrounded": [],
+ "raw": {
+  "entities": [
+   {
+    "name": "Henri",
+    "type": "person",
+    "description": "The author and creator of the system described in this document."
+   },
+   {
+    "name": "notes-on-the-name.md",
+    "type": "document",
+    "description": "This document, recording the conversation on 2026-08-19 about the discovery and naming of the project."
+   },
+   {
+    "name": "README.md",
+    "type": "document",
+    "description": "A document in the same directory that describes what the set is."
+   },
+   {
+    "name": "Gestate",
+    "type": "project",
+    "description": "The named system: an environment that grows programs, a tree that grows sessions, and a method for growing software."
+   },
+   {
+    "name": "context engineering",
+    "type": "concept",
+    "description": "A half-name for the core insight that context is the durable artifact and the model is the interchangeable part."
+   },
+   {
+    "name": "agent harnesses",
+    "type": "concept",
+    "description": "A half-name for systems building an agent's environment like an engineered system rather than a prompt."
+   },
+   {
+    "name": "card:working-standard.md",
+    "type": "card",
+    "description": "A card shelved in `later/` that exists to wait for the validation of the project's properties."
+   },
+   {
+    "name": "card:project-seed.md",
+    "type": "card",
+    "description": "A card shelved in `later/` that exists to wait for the validation of the project's properties."
+   },
+   {
+    "name": "environment card",
+    "type": "card",
+    "description": "A card that gained a stronger justification: the vessel for a method with evidence of worth."
+   },
+   {
+    "name": "vision file",
+    "type": "document",
+    "description": "A document containing the line 'Gestate gestates' dated 2026-08-16, three days before this conversation."
+   },
+   {
+    "name": "the loop",
+    "type": "concept",
+    "description": "A check on the project's validity: the evaluator praising the tree is conditioned by the tree itself."
+   },
+   {
+    "name": "the stranger test",
+    "type": "test",
+    "description": "A measure of the project's real validity: whether properties transfer when another person, project, or model applies the method."
+   }
+  ],
+  "relations": [
+   {
+    "source": "Henri",
+    "target": "Gestate",
+    "description": "Henri is the author and creator of the Gestate project.",
+    "strength": 10
+   },
+   {
+    "source": "notes-on-the-name.md",
+    "target": "Gestate",
+    "description": "This document records the naming and validation of the Gestate project.",
+    "strength": 9
+   },
+   {
+    "source": "Gestate",
+    "target": "context engineering",
+    "description": "Gestate implements the core insight of context engineering: context as durable artifact, model as interchangeable part.",
+    "strength": 8
+   },
+   {
+    "source": "Gestate",
+    "target": "agent harnesses",
+    "description": "Gestate is a concrete implementation of the agent harnesses concept.",
+    "strength": 7
+   },
+   {
+    "source": "card:working-standard.md",
+    "target": "Gestate",
+    "description": "This card is shelved to wait for validation of Gestate's properties through the stranger test.",
+    "strength": 6
+   },
+   {
+    "source": "card:project-seed.md",
+    "target": "Gestate",
+    "description": "This card is shelved to wait for validation of Gestate's properties through the stranger test.",
+    "strength": 6
+   },
+   {
+    "source": "environment card",
+    "target": "Gestate",
+    "description": "The environment card gained stronger justification through Gestate's demonstration of being a vessel for a method worth carrying.",
+    "strength": 8
+   },
+   {
+    "source": "vision file",
+    "target": "Gestate",
+    "description": "The vision file contains the line 'Gestate gestates' dated three days before the project was formally named.",
+    "strength": 9
+   },
+   {
+    "source": "the loop",
+    "target": "Gestate",
+    "description": "The loop is a validity check for Gestate: the evaluator is conditioned by the system being evaluated.",
+    "strength": 7
+   },
+   {
+    "source": "the stranger test",
+    "target": "Gestate",
+    "description": "The stranger test measures whether Gestate's properties transfer to other people, projects, and models.",
+    "strength": 8
+   },
+   {
+    "source": "notes-on-the-name.md",
+    "target": "README.md",
+    "description": "This document references README.md in the same directory for context on the project set.",
+    "strength": 3
+   }
+  ]
+ }
+}
