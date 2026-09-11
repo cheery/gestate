@@ -4,7 +4,7 @@
 
     python tools/graphrag.py pilot                 ten files, two models, one prompt; the sheet is doc/trial/graphrag-pilot.md
     python tools/graphrag.py pilot --dry-run       the files, the sizes and the prompt, no call made
-    python tools/graphrag.py check                 the door rule: nothing outside doc/graph/ cites into it
+    python tools/graphrag.py check                 the door rule, and how many chunks a run would still have to call
     python tools/graphrag.py extract --backend cli --workers 4    every document, chunked, one call per chunk, cached
     python tools/graphrag.py extract --dry-run     the files, the chunks and the token estimate, no call made
     python tools/graphrag.py lookup <name>         the local read: one entity across every document, its relations, no model
@@ -160,12 +160,21 @@ def cache_dir() -> Path:
     return home / "gestate" / "graphrag"
 
 
+def cache_path_for(model_key: str, backend: str, text: str, max_tokens: int = MAX_TOKENS) -> Path:
+    """Where one call's reply lives: model, backend, prompt version,
+    ceiling, sampling parameters and the text itself all key it, so a
+    changed file or a changed prompt is a fresh call and nothing else is."""
+    model = MODELS[model_key]
+    params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
+    key = hashlib.sha1(f"{model}\n{backend}\n{PROMPT_VERSION}\n{max_tokens}\n{json.dumps(params, sort_keys=True)}\n{SYSTEM}\n{text}".encode()).hexdigest()
+    return cache_dir() / backend / model_key / f"{key}.json"
+
+
 def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api") -> dict:
     """One extraction call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`."""
     model = MODELS[model_key]
     params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
-    key = hashlib.sha1(f"{model}\n{backend}\n{PROMPT_VERSION}\n{max_tokens}\n{json.dumps(params, sort_keys=True)}\n{SYSTEM}\n{text}".encode()).hexdigest()
-    cp = cache_dir() / backend / model_key / f"{key}.json"
+    cp = cache_path_for(model_key, backend, text, max_tokens)
     if cp.exists():
         out = json.loads(cp.read_text(encoding="utf-8"))
         out["cached"] = True
@@ -558,10 +567,22 @@ def intruders(index: dict) -> list[tuple[str, int, str]]:
     return sorted(out)
 
 
-def check() -> int:
+def freshness(arm: str = "haiku", backend: str = "cli") -> tuple[int, int]:
+    """`(chunks the tree has now, of them already extracted)` — what a
+    run would have to call, without calling anything."""
+    js = jobs()
+    have = sum(1 for rel, i, n, text in js if cache_path_for(arm, backend, _prompt(rel, i, n, text)).exists())
+    return len(js), have
+
+
+def check(arm: str = "haiku", backend: str = "cli") -> int:
     import backlinks
     tree = backlinks.Tree(ROOT)
     bad = intruders(backlinks.index(tree))
+    total, have = freshness(arm, backend)
+    print(f"graphrag: {have} of {total} chunks extracted ({arm}, {backend}); "
+          f"{total - have} would be called by `extract`"
+          + (" — the graph is current" if have == total else ""))
     if not bad:
         print(f"graphrag: the door holds — nothing outside {GRAPH_DIR} cites into it"
               + ("" if (ROOT / GRAPH_DIR).exists() else " (and it does not exist yet)"))
@@ -657,7 +678,9 @@ def main(argv=None) -> int:
     p.add_argument("--backend", choices=BACKENDS, default="api",
                    help="api: the key pays at list price; cli: claude -p, the subscription pays in usage")
     p.add_argument("--files", type=int, default=len(PILOT), help="only the first N pilot files")
-    sub.add_parser("check", help="the door rule")
+    c = sub.add_parser("check", help="the door rule, and how much of the tree the graph has")
+    c.add_argument("--arm", default="haiku", choices=list(MODELS))
+    c.add_argument("--backend", choices=BACKENDS, default="cli")
     e = sub.add_parser("extract", help="every document, chunked, one call per chunk, cached")
     e.add_argument("--dry-run", action="store_true")
     e.add_argument("--arm", default="haiku", choices=list(MODELS))
@@ -675,7 +698,7 @@ def main(argv=None) -> int:
     t.add_argument("--top", type=int, default=30)
     a = ap.parse_args(argv)
     if a.cmd == "check":
-        return check()
+        return check(a.arm, a.backend)
     if a.cmd == "lookup":
         return lookup(a.name, a.arm, a.backend, a.limit)
     if a.cmd == "entities":

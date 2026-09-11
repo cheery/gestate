@@ -105,6 +105,84 @@ go below when it ends.
    printed with the sentence *this is a model's reading of a model's
    summaries* on it, and is never written into the tree by the tool.
 
+## How the graph proves its value — the plan, 2026-09-11
+
+**The principle: the graph is a finder, never a source.**  The door
+stays.  What the graph finds is written into the tree citing the
+document the graph pointed at, never the graph; the journal entry says
+*found by the graph*.  So the graph's value shows in the tree only
+indirectly — memories, cards and corrections whose `see` line points
+at a document and whose story names the graph — and that can be
+counted: how many a month.  `card:backlinks.md` proved its value the
+same way, by a lamp that counted follows, not by feeling useful.
+
+**Four ways, cheapest first, and the order they are tried:**
+
+1. **Subjects nobody named — no model, the evening `extract` ends.**
+   `entities --top 50`: the entities the most documents name, against
+   the memory index, the cards and the specs.  A subject in twenty
+   documents with no name in the tree is `card:GraphRAG.md`'s *rule
+   stated twice* at the level of subjects rather than files.  One such
+   that Henri recognises as real is a caller, before any summary.
+2. **Contradictions across documents — no model.**  One entity,
+   descriptions that disagree between documents of different dates:
+   the pilot's own *2000-line cap* against *2500-line cap* is the shape,
+   and there the tree knows the change.  What the gates cannot see is
+   a claim changed in one file and left standing in another.  A list
+   for the keeper's evening; the number is *how many real*.
+3. **The global-question trial — sheet first, after summaries.**  The
+   three questions answered by hand on 2026-09-11 (what was found, the
+   neighbours, what the tree is), put to the graph.  Control: the
+   afternoon's method, a session with grep and the memory index,
+   timed.  Judge in two halves: mechanical — every claim in the answer
+   cites a document and the citation resolves, the tree's own rule —
+   and Henri's blind reading of which answer found what the other did
+   not and which invented.  n = 3.  Kill: if the graph adds nothing the
+   hand-read found in the same time in two of three, the query layer
+   comes out and `lookup` stays.
+4. **A cue at the moment — last.**  `doc/notes/notes-on-cues.md`'s
+   constraint: a cue must reach the context.  The backlinks hook's cut
+   line, *… and 139 more*, could carry a subject's name from the
+   store, deterministically; the measure is the one the hook already
+   has, whether the line is followed.  Last because it touches a hook
+   that works.
+
+**In order, once `extract` has run:** communities (free,
+`tools/communities.py` is there); then 1 and 2 in one evening without
+a model; and only if those yield something Henri accepts as real, the
+summaries and 3 with a sheet.  If 1 and 2 yield nothing, that is the
+cheapest possible negative result and the card closes on it with no
+summary ever written.
+
+**The loop, said aloud.**  A session judging the graph's answers is a
+product of the same tree and of the same model family as the
+extractor.  So in 3 the judge is Henri's blind reading and the
+mechanical citation check, never a session's opinion of the answer's
+quality (`doc/memory/the-evaluation-loop.md`).
+
+## Keeping it current, once it is here
+
+**Extraction is incremental by construction.**  Every call is cached
+by model, backend, prompt version, ceiling and the chunk's own text
+(`cache_path_for`), so `extract` after a week of commits calls only
+the chunks whose text changed and pays only for those — a few cents a
+day at list — and `graphrag check` says without calling anything how
+many chunks a run would call.  A prompt change re-extracts everything,
+and `PROMPT_VERSION` is bumped by hand for that reason: it is a $30
+decision, not a tidy-up.  A renamed file re-extracts once, because the
+path is in the prompt; the journal's monthly rotation is one such.
+
+**Communities are recomputed, never stored** — seconds, from the
+store.  **Summaries are regenerated per community when its member set
+changes**: each page under `doc/graph/` carries the commit, the model
+and a hash of its members, and a lamp — not a gate — lists the pages
+whose members have moved since.  **It runs by hand and on a cadence**:
+the keeper's evening, `keeper.md`, is the natural place, and never the
+commit hook, because it costs money and minutes.  A page behind its
+members is a lamp lit, the same standing as the atlas's stamp
+(`doc/memory/gestate-atlas.md`), and the graph is allowed to be a week
+stale — what it is not allowed to be is stale without saying so.
+
 ## Questions
 
 1. **Cache in the repository or outside?**  Outside keeps the tree
