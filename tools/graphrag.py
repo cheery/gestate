@@ -16,9 +16,19 @@ door rule is what keeps that true mechanically: `test/test_graphrag.py`
 refuses a commit in which any file outside `doc/graph/` cites a file
 inside it other than `doc/graph/README.md`.
 
-**The API is reached with the standard library**, `urllib`, so nothing
-has to be installed: `ANTHROPIC_API_KEY` in the environment is the
-whole requirement, and `tools/toolbox.sh` reports whether it is there.
+**Two backends, one cache.**  `--backend api` reaches the Messages API
+with the standard library, `urllib`, billed to the key in
+`ANTHROPIC_API_KEY` at list price.  `--backend cli` runs `claude -p`
+headless with that key *unset*, so it is billed to the claude.ai
+subscription's usage instead of dollars — measured 2026-09-11: with
+the key set the CLI bills the key and adds its 13.9k-token default
+system prompt to every call; with the key unset and `--system-prompt`
+it authenticates by the login and still carries about 7.9k tokens of
+its own per call, three to eight times the raw call's input.  So the
+CLI is cheaper in money and dearer in tokens, and the tokens come out
+of the same pot as an interactive sitting.  Neither backend lets the
+CLI's temperature be set, so a CLI extraction is not reproducible
+except from the cache.
 Every response is cached under `~/.cache/gestate/graphrag/` by model and
 by the hash of prompt and text, so a rerun costs nothing and a changed
 prompt costs everything — which is the honest price of a changed
@@ -128,20 +138,28 @@ def path_of(rel: str) -> Path:
 
 # --- the API, with the standard library -------------------------------------
 
+BACKENDS = ("api", "cli")
+
+
 def cache_dir() -> Path:
     home = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
     return home / "gestate" / "graphrag"
 
 
-def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS) -> dict:
-    """One Messages call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`."""
+def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api") -> dict:
+    """One extraction call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`."""
     model = MODELS[model_key]
-    params = PARAMS.get(model_key, {})
-    key = hashlib.sha1(f"{model}\n{PROMPT_VERSION}\n{max_tokens}\n{json.dumps(params, sort_keys=True)}\n{SYSTEM}\n{text}".encode()).hexdigest()
-    cp = cache_dir() / model_key / f"{key}.json"
+    params = PARAMS.get(model_key, {}) if backend == "api" else {}
+    key = hashlib.sha1(f"{model}\n{backend}\n{PROMPT_VERSION}\n{max_tokens}\n{json.dumps(params, sort_keys=True)}\n{SYSTEM}\n{text}".encode()).hexdigest()
+    cp = cache_dir() / backend / model_key / f"{key}.json"
     if cp.exists():
         out = json.loads(cp.read_text(encoding="utf-8"))
         out["cached"] = True
+        return out
+    if backend == "cli":
+        out = _call_cli(model_key, text)
+        cp.parent.mkdir(parents=True, exist_ok=True)
+        cp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
         return out
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
@@ -178,6 +196,41 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS) -> dict:
     cp.parent.mkdir(parents=True, exist_ok=True)
     cp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     return out
+
+
+def _call_cli(model_key: str, text: str) -> dict:
+    """`claude -p`, headless, the API key unset so the subscription pays,
+    no tools, our system prompt in place of the CLI's own."""
+    import subprocess
+    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+    cmd = ["claude", "-p", "--model", model_key, "--output-format", "json",
+           "--no-session-persistence", "--tools", "", "--system-prompt", SYSTEM]
+    t0 = time.time()
+    try:
+        r = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=600)
+    except FileNotFoundError:
+        sys.exit("graphrag: `claude` is not on PATH — the cli backend needs Claude Code installed")
+    raw = r.stdout
+    i = raw.find("{")
+    try:
+        d = json.loads(raw[i:]) if i >= 0 else {}
+    except json.JSONDecodeError:
+        d = {}
+    if r.returncode != 0 or d.get("is_error") or "result" not in d:
+        sys.exit(f"graphrag: claude -p failed (exit {r.returncode}): {(r.stderr or raw)[:500]}")
+    u = d.get("usage", {})
+    return {
+        "model": next(iter(d.get("modelUsage", {})), MODELS[model_key]),
+        "text": d["result"],
+        "usage": {"input_tokens": u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0)
+                  + u.get("cache_read_input_tokens", 0),
+                  "output_tokens": u.get("output_tokens", 0),
+                  "cli_overhead_tokens": u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0)},
+        "stop_reason": d.get("stop_reason"),
+        "seconds": round(time.time() - t0, 1),
+        "cli_cost_usd_list": d.get("total_cost_usd"),
+        "cached": False,
+    }
 
 
 # --- reading what came back --------------------------------------------------
@@ -251,9 +304,9 @@ def check() -> int:
 
 # --- the pilot ---------------------------------------------------------------
 
-def pilot(dry_run: bool, arms: list[str], out_dir: Path) -> int:
+def pilot(dry_run: bool, arms: list[str], out_dir: Path, backend: str = "api", n_files: int | None = None) -> int:
     files = []
-    for rel in PILOT:
+    for rel in PILOT[:n_files]:
         text = path_of(rel).read_text(encoding="utf-8")
         cut = len(text) > MAX_CHARS
         files.append((rel, text[:MAX_CHARS], cut))
@@ -265,7 +318,7 @@ def pilot(dry_run: bool, arms: list[str], out_dir: Path) -> int:
     results: dict[str, dict[str, dict]] = {a: {} for a in arms}
     for rel, text, _cut in files:
         for arm in arms:
-            r = call(arm, f"Document `{rel}`:\n\n{text}")
+            r = call(arm, f"Document `{rel}`:\n\n{text}", backend=backend)
             obj = parse(r["text"])
             ents = obj["entities"]
             names = [e.get("name", "") for e in ents if isinstance(e, dict)]
@@ -312,7 +365,7 @@ def pilot(dry_run: bool, arms: list[str], out_dir: Path) -> int:
     if len(arms) == 2:
         a, b = arms
         jac = []
-        for rel in PILOT:
+        for rel, _t, _c in files:
             sa, sb = set(results[a][rel]["names"]), set(results[b][rel]["names"])
             jac.append(len(sa & sb) / len(sa | sb) if sa | sb else 1.0)
         summary["overlap_jaccard_mean"] = round(sum(jac) / len(jac), 3)
@@ -331,6 +384,9 @@ def main(argv=None) -> int:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--arms", default="haiku,sonnet")
     p.add_argument("--out", default=str(ROOT / "doc" / "trial" / "graphrag-pilot"))
+    p.add_argument("--backend", choices=BACKENDS, default="api",
+                   help="api: the key pays at list price; cli: claude -p, the subscription pays in usage")
+    p.add_argument("--files", type=int, default=len(PILOT), help="only the first N pilot files")
     sub.add_parser("check", help="the door rule")
     a = ap.parse_args(argv)
     if a.cmd == "check":
@@ -339,7 +395,7 @@ def main(argv=None) -> int:
     for x in arms:
         if x not in MODELS:
             sys.exit(f"graphrag: unknown arm `{x}`; known: {', '.join(MODELS)}")
-    return pilot(a.dry_run, arms, Path(a.out))
+    return pilot(a.dry_run, arms, Path(a.out), a.backend, a.files)
 
 
 if __name__ == "__main__":
