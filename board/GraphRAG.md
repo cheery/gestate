@@ -1,6 +1,6 @@
 # GraphRAG — does the tree's hand-drawn map match where its citations cluster
 
-    status   open — 2026-09-11
+    status   doing — 2026-09-11, run; waits on Henri reading the list
     because  a global question about the tree is answered by a session
              reading fifteen files chosen by hooks — a map-reduce done
              by hand — and the local neighbourhood is already larger
@@ -106,6 +106,33 @@ point at every place it does not, by running one command.
    generated from the tree; they are a partition somebody chose, but
    the choice was a session's.  Default: yes, labelled as such.
    *Open.*
+
+## The run, 2026-09-11 — steps 1–3 done, step 4 is his
+
+`doc/trial/graphrag.md` passed `tools/prereg.sh`; `tools/communities.py`
+ran in six seconds; `journal.md` §"The citations cluster by subject,
+and the directories are sorted by kind" has the numbers and the
+commands.  The decision line: **NMI 0.311 against the directories,
+null maximum 0.180, threshold 0.8** — the sheet's second branch.
+
+**The one sentence:** every disagreement is a community straddling
+directories the same way — spec, module, tests, examples together.
+The citations cluster by *subject*; the directories sort by *kind*.
+The atlas's lanes, the one hand map drawn by subject, matched best
+(NMI 0.503 over the modules), against the sheet's prediction.
+
+**For him to read** — the lamp, not a verdict:
+
+- the eleven straddling communities, printed by the tool; the largest
+  is `test 42, gestate 30, examples 30, spec 11`;
+- two memory pairs alone in their community in the written-only run:
+  `gui-command-language-first` + `identity-is-the-models-key`, and
+  `gestate-salvage-week` + `henri-prior-tools` — one subject in two
+  files each, or a rule stated twice; his call.
+
+**What was not built:** Leiden (no library; `--graphrag` in
+`tools/toolbox.sh` would be `python-igraph` + `leidenalg`), and the
+query instrument, whose trigger below is unchanged.
 
 ## Day one
 

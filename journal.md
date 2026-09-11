@@ -2825,3 +2825,61 @@ was.  Uniqueness is still waiting on one outsider under work
 saying most of this about a tree Claude sessions wrote;
 `doc/memory/the-evaluation-loop.md` was said out loud at the start and
 applies to every sentence above.
+
+## The citations cluster by subject, and the directories are sorted by kind — 2026-09-11
+
+`card:GraphRAG.md`, day one, run the afternoon it was minted.  The
+sheet is `doc/trial/graphrag.md` and it passed `tools/prereg.sh`
+before a line of the tool existed; the tool is `tools/communities.py`,
+broken on purpose once (the gain's sign flipped: two cliques came back
+as twelve singletons) before it was trusted.
+
+    .venv/bin/python tools/communities.py --json          # 6 s
+    .venv/bin/python tools/communities.py --written-only  # robustness
+
+**The graph:** 776 files with a citation, 5,518 edges from 15,142
+citations; 417 files cite nothing and are cited by nothing.  Louvain,
+seed 0: 40 communities, the largest 127, modularity 0.454; over twenty
+seeds 0.412–0.517, and the partition's own stability against seed 0 is
+NMI 0.719 mean, 0.654 minimum — a loose partition, which the
+written-only run tightens to 0.883.
+
+**The decision line, as the sheet wrote it:** NMI against the
+top-level directories **0.311** (seeds 0.262–0.327; ARI 0.124).  The
+null — the same degree sequence rewired, twenty draws — gives 0.150
+mean and **0.180 maximum**.  So: above chance, well below 0.8, and the
+sheet's second branch applies: the disagreement list goes to Henri as
+a lamp, and the card's query-instrument trigger stays as written.
+
+**Three predictions, two right.**  Between the null and 0.8: yes.
+Under twenty disagreements: yes, eleven.  The atlas lanes weaker than
+the directories: **no** — over the 60 modules of `gestate/*.py` that
+cite each other, the lanes score NMI **0.503** against the directories'
+0.311, though ARI 0.086 says the match is in the broad strokes and not
+in the pairs.  The hand map that matches the citations best is the one
+a session drew for the atlas, not the one the filesystem gives.
+
+**What the list says, and it is one sentence.**  Every one of the
+eleven disagreements is a community that *straddles* directories, and
+they straddle the same way each time: a spec, its module, its tests
+and its examples together — `test 42, gestate 30, examples 30, spec
+11` is the largest.  **The citations cluster by subject; the
+directories sort by kind.**  There is no community that is *a
+directory*, and no directory that is a community.  That is not a
+defect in either: `spec/` is where a spec goes, and a spec cites the
+module that keeps it.  But it says exactly what a GraphRAG-shaped
+summary would be here — a page per *subject* across kinds — and the
+tree has one hand-made map of that shape already, the atlas, which is
+why the atlas matched best.
+
+**Two candidate pairs**, from the written-only run only: memories that
+sit alone together in one community — `gui-command-language-first` +
+`identity-is-the-models-key`, and `gestate-salvage-week` +
+`henri-prior-tools`.  Each pair is one subject in two files.  Whether
+either is a rule stated twice is Henri's to read, not the tool's; both
+are named on the card.
+
+**Not Leiden.**  A community here may be disconnected; a Leiden run on
+the same edge list (`--edges out.tsv`, then `python-igraph` +
+`leidenalg` through `tools/toolbox.sh --graphrag`) is the check on
+that, and the numbers above are the ones it would have to move.

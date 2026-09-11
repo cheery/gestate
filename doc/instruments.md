@@ -630,6 +630,20 @@ A batch is a JSON file, committable beside its verdicts.  **After any
 abnormal end to a run — a kill, a crash — `--check` is the first thing,
 before anything is read or committed.**
 
+### `tools/communities.py` — where the citations cluster, against the map
+
+    python tools/communities.py               partition the citation graph, score it against the directories and the atlas
+    python tools/communities.py --selftest    the algorithm on graphs whose answer is known
+
+`card:GraphRAG.md`: the tree's own citation graph, partitioned (Louvain,
+seeded, pure Python), scored against the hand-drawn maps, with a
+degree-preserving null for what chance gives.  Its output is the
+**disagreement list** — a community straddling directories, a memory
+alone, two memories alone together — and it is a lamp for a person,
+never a gate.  First run 2026-09-11: NMI 0.311 against the directories,
+null 0.180, and the citations cluster by subject where the directories
+sort by kind.
+
 ### `tools/covercount.py` — which lines the suite has never run
 
     python tools/covercount.py test/test_arith.py     # one file, seconds
