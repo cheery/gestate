@@ -101,9 +101,11 @@ go below when it ends.
    `doc/graph/`, stamped with commit and model, regenerated when the
    community's members change; a lamp, not a gate, says when a page is
    behind.
-4. **`query`** — map over the summaries, reduce once; the answer is
-   printed with the sentence *this is a model's reading of a model's
-   summaries* on it, and is never written into the tree by the tool.
+4. **`query`** — the global search: map over the summaries, reduce
+   once; the answer is printed with the sentence *this is a model's
+   reading of a model's summaries* on it, and is never written into
+   the tree by the tool.  **Decided to be built and tried, 2026-09-11,
+   by him** — see the plan's order above.
 
 ## The first run was stopped by the sitting limit, and the tool cached the stop — 2026-09-11, 21:01
 
@@ -172,10 +174,17 @@ same way, by a lamp that counted follows, not by feeling useful.
 
 **In order, once `extract` has run:** communities (free,
 `tools/communities.py` is there); then 1 and 2 in one evening without
-a model; and only if those yield something Henri accepts as real, the
-summaries and 3 with a sheet.  If 1 and 2 yield nothing, that is the
-cheapest possible negative result and the card closes on it with no
-summary ever written.
+a model; **then the summaries and the global search, and 3 with a
+sheet — regardless of what 1 and 2 found.**  *A session wrote this
+paragraph first as a gate — summaries only if 1 and 2 yielded
+something — and Henri struck it the same night, 2026-09-11: "Onko
+siinä kortissa nyt sitten merkattuna että etenemme myös siihen
+'global search' vaiheeseen jotta voimme kokeilla sitä?"  His reason
+is the card's: "Saamme selville onko graphrag hyödyllinen meille vain
+kokeilemalla.  Ja näin me kokeilemme."*  So the global search is
+built and tried; what 1 and 2 find goes into its sheet as the
+baseline, not as a condition on it.  The cost is the summaries,
+about forty Sonnet calls, a dollar at list or the same in usage.
 
 **The loop, said aloud.**  A session judging the graph's answers is a
 product of the same tree and of the same model family as the
