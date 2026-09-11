@@ -2147,3 +2147,39 @@ fn a_press_lands_on_the_walk_pixel_the_picture_drew_there() {
     assert_eq!(canvas_under(cx - 1, cy, cx, cy, 3), (cx - 1, cy),
                "and to the left of it");
 }
+
+/// **A scroll the wheel leaves must survive the next frame**, which
+/// re-clamps it — and it does exactly when both clamps are given the
+/// same visible extent.
+///
+/// *Henri, 2026-09-11:* *"The horizontal scrolling scrolls back, rather
+/// than letting me scroll.  Noticed after zooming it."*  The wheel
+/// clamped against `view.w / zoom` and the paint against `view.w`, so a
+/// sideways scroll moved and the frame after pulled it back.  At zoom 1
+/// the two agreed, which is why it waited for a zoom to appear.
+///
+/// The arithmetic below is the property the pair has to have; that both
+/// call sites *ask the same question* is `EditorWindow::canvas_seen`,
+/// which exists so there is only one to ask.
+#[test]
+fn a_scroll_survives_the_frame_that_re_clamps_it() {
+    use gestate_editor::view::canvas_scroll;
+
+    let span = (-41, 1141);
+    for seen in [1100, 550, 366] {          // the window at zoom 1, 2, 3
+        let mut at = canvas_scroll(0, 0, span, seen);
+        for by in [30, 400, -20, 100_000, -100_000] {
+            at = canvas_scroll(at, by, span, seen);
+            assert_eq!(canvas_scroll(at, 0, span, seen), at,
+                       "seen {seen}: the frame moved it after the wheel");
+        }
+    }
+
+    // And the two bounds really do differ once zoomed — which is what
+    // made the mismatch invisible until a zoom.
+    assert_eq!(canvas_scroll(0, 100_000, span, 1100),
+               canvas_scroll(0, 100_000, span, 1100));
+    assert_ne!(canvas_scroll(0, 100_000, span, 1100),
+               canvas_scroll(0, 100_000, span, 550),
+               "at zoom 1 the wrong bound is the right one, by accident");
+}

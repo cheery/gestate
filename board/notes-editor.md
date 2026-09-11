@@ -720,6 +720,21 @@ the keys named, the bars numbered, the playhead crossing.
 fields overlap plainly, which is the cheapest reproduction that defect
 has.
 
+**And the zoom broke the sideways scroll, which he found within the
+hour** — `fixme.md` **F224**: *"The horizontal scrolling scrolls back,
+rather than letting me scroll.  Noticed after zooming it."*  The wheel
+clamped against `view.w / zoom` and the paint re-clamped every frame
+against `view.w`, so the wheel moved it and the next frame pulled it
+back.  The vertical axis had been converted to walk units and the
+horizontal had not.  At zoom 1 the two agree, which is why the zoom's
+own driven runs missed it: **they photographed the frame after the
+wheel and not the frame after that.**
+
+`EditorWindow::canvas_seen` is the repair and it is a name — *what the
+canvas shows, in the walk's own units* — asked by both clamps, the
+same shape F223's `View::canvas_h` took.  A derived bound written out
+twice is a bound that will disagree with itself.
+
 **And he read it on the window within the minute, which found F223** —
 *"The vertical scroll doesn't scroll all the way down.  The status bar
 appears to cover what would be shown otherwise."*  The clamp ran to the

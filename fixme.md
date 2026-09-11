@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 224 entries, **179 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 225 entries, **180 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7821,6 +7821,43 @@ same defect, with the fields wider — so a zoomed window is the cheapest
 way to reproduce it, which the original entry could not say.
 
 gate: none yet — the photograph is the evidence.
+
+### F224. **[resolved]** the canvas's sideways scroll springs back at any zoom but one, because two clamps were given different bounds
+
+Found 2026-09-11 **by Henri, on the window**, within the hour the zoom
+landed: *"The horizontal scrolling scrolls back, rather than letting me
+scroll.  Noticed after zooming it."*
+
+The wheel clamped the sideways scroll against `view.w / zoom` and the
+**paint** re-clamped it every frame against `view.w`.  A wheel event
+moved the picture and the next frame pulled it back to the narrower
+limit.  **At zoom 1 the two agree**, which is why it waited for a zoom
+to appear and why the zoom's own driven runs did not see it: they
+photographed the frame after the wheel and not the frame after that.
+
+Mine, and introduced by the zoom an hour earlier — the vertical axis
+was converted to walk units and the horizontal was not.
+
+**The repair is a name, not an arithmetic.**  `EditorWindow::canvas_seen`
+answers *what the canvas shows, in the walk's own units*, and both
+clamps ask it; there is no longer a second place to get it wrong.  That
+is the same shape F223's repair took (`View::canvas_h`) and for the same
+reason: a derived bound written out twice is a bound that will disagree
+with itself.
+
+gate: `shell/editor/tests/view.rs::a_scroll_survives_the_frame_that_re_clamps_it`
+— the wheel's result re-clamped, at each zoom's visible width, asserted
+equal to itself; and the two widths asserted to *differ*, which is what
+made the mismatch invisible at zoom 1.  Driven
+(`test/driven/20260911-174022-notes-page-sideways-at-zoom`, on the desk
+that ran it): zoomed two steps, scrolled sideways, and the roll is
+pixel-for-pixel where the wheel left it two seconds later.
+
+**And the run had to stop the transport to ask the question.**  Its
+first version compared two shots two seconds apart with the piece
+playing, read the **playhead** moving as a spring-back, and reported a
+working scroll broken — the sixth oracle in one day to answer about
+something other than its subject.
 
 ### F223. **[resolved]** the canvas view's scroll stops short by the height of the status row, which is painted over the page's foot
 

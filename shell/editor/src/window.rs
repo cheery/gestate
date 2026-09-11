@@ -1029,6 +1029,26 @@ impl EditorWindow {
          view.h / 2 - self.canvas_scroll.get())
     }
 
+    /// **What the canvas shows, in the walk's own units** — the pair
+    /// every clamp of the canvas scroll takes.
+    ///
+    /// One place, because the defect this is named for was two places
+    /// disagreeing: the wheel clamped the sideways scroll against
+    /// `view.w / zoom` and the paint re-clamped it against `view.w`, so
+    /// a scroll moved and the next frame pulled it back.  *Henri,
+    /// 2026-09-11:* *"The horizontal scrolling scrolls back, rather
+    /// than letting me scroll.  Noticed after zooming it."*  At zoom 1
+    /// the two agreed, which is why it waited for a zoom to appear.
+    ///
+    /// The height is the window less the status row (`canvas_h`) and
+    /// the width is the whole window, both divided by the zoom — a walk
+    /// pixel being `zoom` screen pixels since `view::zoomed`.
+    fn canvas_seen(&self) -> (i32, i32) {
+        let view = self.view.borrow();
+        let z = self.scale().max(1);
+        (view.w / z, view.canvas_h(self.font()) / z)
+    }
+
     /// **A window point, in the walk's own coordinates** — the one
     /// place a press is un-magnified, and the companion to
     /// `canvas_centre`.
@@ -1900,11 +1920,7 @@ impl WindowHandler for EditorWindow {
                     // window's — the status row is painted over the
                     // foot and the picture under it cannot be read
                     // (`view::canvas_h`).
-                    // In **walk** units, which is what the span and the
-                    // scroll are counted in: the screen shows
-                    // `canvas_h` pixels and each walk pixel is `zoom`
-                    // of them.
-                    let seen = view.canvas_h(font) / zoom.max(1);
+                    let (across_seen, seen) = self.canvas_seen();
                     let first = !self.canvas_aligned.get();
                     let placed = if first {
                         view::canvas_opening(span, seen)
@@ -1912,9 +1928,9 @@ impl WindowHandler for EditorWindow {
                         view::canvas_scroll(scroll, 0, span, seen)
                     };
                     let carried = if first {
-                        view::canvas_opening(wide, view.w)
+                        view::canvas_opening(wide, across_seen)
                     } else {
-                        view::canvas_scroll(across, 0, wide, view.w)
+                        view::canvas_scroll(across, 0, wide, across_seen)
                     };
                     self.canvas_aligned.set(true);
                     if placed != scroll {
@@ -2605,11 +2621,7 @@ impl WindowHandler for EditorWindow {
                         } else {
                             (down, sideways)
                         };
-                    let (w, h) = {
-                        let view = self.view.borrow();
-                        (view.w / self.scale().max(1),
-                         view.canvas_h(self.font()) / self.scale().max(1))
-                    };
+                    let (w, h) = self.canvas_seen();
                     let was = self.canvas_scroll.get();
                     let now = view::canvas_scroll(was, by,
                                                   self.canvas_span.get(), h);

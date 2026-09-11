@@ -2650,3 +2650,39 @@ screen by construction because the notes are what zoom.
 The run also photographed `fixme.md` F208 again: at scale 2 the status
 row's fields overlap plainly, which is the cheapest reproduction that
 defect has had and is now written on it.
+
+## A bound written twice is a bound that disagrees with itself — 2026-09-11
+
+*Henri, within the hour the zoom landed:* **"The horizontal scrolling
+scrolls back, rather than letting me scroll.  Noticed after zooming
+it."**
+
+`fixme.md` **F224**, and mine: the zoom converted the vertical axis to
+walk units and left the horizontal alone.  The wheel clamped the
+sideways scroll against `view.w / zoom`; the **paint** re-clamped it
+every frame against `view.w`.  So a wheel event moved the picture and
+the frame after pulled it back to the narrower limit.
+
+**At zoom 1 the two agree**, which is the whole of why it hid — and why
+the zoom's own two driven runs did not catch it.  They photographed the
+frame *after the wheel*.  The defect is in the frame after **that**, so
+a run that shot immediately saw a working scroll.  A picture taken at
+the right moment is still the wrong measurement if the thing being
+measured happens later; the fix in the harness was two seconds of
+waiting.
+
+**The repair is a name and not an arithmetic**, which is the second
+time today.  `EditorWindow::canvas_seen` answers *what the canvas shows,
+in the walk's own units*, and both clamps ask it — `View::canvas_h`
+took the same shape for F223 an hour earlier.  Twice in one evening a
+derived bound had been written out in two places and the two drifted;
+twice the durable fix was one function with a sentence for a name.
+
+**And the harness lied a sixth time.**  Its first version compared two
+shots two seconds apart with the piece playing, read the *playhead*
+moving as a spring-back, and reported a working scroll broken.  Six
+today, one shape: an oracle answering about something other than its
+subject.  The remedy has been the same every time and is worth stating
+once — **make the thing you are measuring the only thing that can
+move**: stop the transport, crop to the roll's band, choose a signal
+that is present in one state and absent in the other.
