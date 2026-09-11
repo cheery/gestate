@@ -1,6 +1,6 @@
 # GraphRAG — does the tree's hand-drawn map match where its citations cluster
 
-    status   doing — 2026-09-11, run; waits on Henri reading the list
+    status   done — 2026-09-11
     because  a global question about the tree is answered by a session
              reading fifteen files chosen by hooks — a map-reduce done
              by hand — and the local neighbourhood is already larger
@@ -159,3 +159,26 @@ conversation.
 match the directories closely — NMI above 0.8, say — the graph has no
 structure the hand does not already see, and GraphRAG has nothing to
 add here.  That is a good result and the card closes on it.
+
+## Done — 2026-09-11
+
+The measurement ran the afternoon the card was minted, and he read
+the list the same evening.  The number: **NMI 0.311** against the
+directories, null maximum 0.180, threshold 0.8 — the sheet's second
+branch.  The list went to `journal.md` §"The citations cluster by
+subject, and the directories are sorted by kind", and its reading is
+one sentence: the citations cluster by subject, the directories sort
+by kind, and the atlas's lanes — the one hand map drawn by subject —
+matched best, against the prediction.
+
+**What the two memory pairs turned out to be, in his reading:**
+*"nämä ovat hyviä löydöksiä"*.  `gestate-salvage-week` was a parked job
+wearing a memory since 2026-08-15 and is now `card:salvage-week.md` on
+the shelf; `gui-command-language-first`'s third paragraph was
+`identity-is-the-models-key` restated and is now a link to it.  Both
+at his word.
+
+**What stays:** `tools/communities.py` as an instrument, six seconds,
+its `twice?` and `orphan` lines being the useful ones; the query
+instrument's trigger above, unchanged; Leiden, unbuilt, with the
+toolbox line named.

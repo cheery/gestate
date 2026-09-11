@@ -94,7 +94,6 @@ sentence that was taken to be.
 | identity-is-the-models-key | henri | his two sentences, 2026-09-08, quoted; the 291-note measurement and the Kale reading are the session's |
 | gestate-language-pitfalls | harness | each pitfall names the test or the fix that dates it |
 | gestate-rules-cap | henri | *2000 lines, for now*, 2026-08-20; `tools/rulecount.py` counts it |
-| gestate-salvage-week | henri | a job he named and parked, 2026-08-15 |
 | gestate-scorebox-design | harness | `test/test_scorebox.py`, 15 tests; the traps each name the code |
 | gestate-testing-standard | harness | the defect counts from `journal.md` stage 10 and the two editor sessions; his 2026-08-12 words are the ask |
 | gestate-ungated-sweep | harness | 62 `gate:` lines, thirteen dated batches |

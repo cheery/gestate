@@ -112,5 +112,7 @@ And do not review them: [[henri-lever-language]] is the rule, and his
 verdict on that one was *"it went nowhere"*, which is his to give and
 not a session's.
 
-Related: [[gestate-salvage-week]] is the sibling and is about the
-*music*; this is about the *software*.
+Related: `card:salvage-week.md` is the sibling and is about the
+*music*; this is about the *software* — a memory until 2026-09-11,
+when `card:GraphRAG.md`'s run found the two alone together and it
+turned out to be a parked job wearing a memory.

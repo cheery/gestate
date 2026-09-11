@@ -1,6 +1,6 @@
 ---
 name: gui-command-language-first
-description: "Henri, 2026-09-07: the command language and a clear model come before any GUI — and 2026-09-09, the same rule with its content: the model is facts, the verbs are assert and retract, and the GUI is what falls out, minus layout and the eye"
+description: "Henri, 2026-09-07: the command language and a clear model come before any GUI — and 2026-09-09 the same rule with its content, facts and assert/retract, whose identity half is identity-is-the-models-key; the GUI is what falls out, minus layout and the eye"
 metadata:
   type: feedback
 ---
@@ -33,18 +33,12 @@ before Tk, Blender's operators, Emacs, acme, AutoCAD, Reaper's
 actions, his own oscillseq ([[henri-prior-tools]]).
 
 **And on 2026-09-09 it came back with its content filled in, from the
-other end.**  A clean-board sitting struck the framing that model,
-command and view all live inside a `.ges` program — *"substraattia ei
-suunniteltu tämän skaalan asioille.  Eikä gestaten tietotyyppejä ole
-suunniteltu vastaavasti tallentamaan mallia"* — and what replaced it
-was already in the tree, written twice and never named: `.notes` and
-`.desk` are one grammar, a text of **facts**, a fact being a kind word
-and its fields, one to a line, with the kind declaring its key and a
-reference declaring whether it means a thing, a place or a set.  The
-command algebra is **assert and retract**; setting a field is the pair.
-Then: *"Näen tässä yhtenäisen mallin, itseasiassa!  Miten GUI-ongelmat
-ratkotaan on kenties se, että luodaan selkeä malli, ja selkeä
-komentokieli.  Ja sitten GUI on mitä siitä putoaa."*
+other end** — the model is facts, the verbs are assert and retract,
+and a fact's identity is the model's key: that is
+[[identity-is-the-models-key]], and `card:gui-is-difficult.md` carries
+his sentences from that sitting.  *Shortened to this on 2026-09-11 at
+his word, when `card:GraphRAG.md`'s run found the two memories alone
+together and this paragraph was the other one restated.*
 
 **What that claim is worth, scored against the card's four hard
 things:** it removes *two machines must agree* outright — an element

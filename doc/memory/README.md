@@ -109,7 +109,6 @@ session inferred.
 - [Push back on unsafe asks](henri-pushback-on-unsafe-asks.md) — hold, name the risk, commit when the evidence lands
 - [Kanban commits](henri-kanban-commits.md) — the right to commit is Claude's since 2026-08-17, titles and all; *"the note is a relic from a time that I wanted some control over commits"* (2026-09-02); pushing stays his
 - [B4 score box, built](gestate-scorebox-design.md) — `notes <expr>` roll shipped 2026-08-14; never slice by span, class-method dicts, F136
-- [Salvage week](gestate-salvage-week.md) — Henri's earlier music projects, read for what survives translation
 - [Henri's tools before gestate](henri-prior-tools.md) — oscillseq over scsynth, mide's UI as datalog, xylem's constraints and Knuth–Plass; four open questions here that each already answered once, and pitch as a `(pitch, accidental)` pair is the sharpest
 - [mide's staves.ui, read](mide-staves-ui.md) — a whole draggable staff in 55 lines, the nine holes he left open in it, and the eight experiments elsewhere that each answer one; the hit region derived from the layout is the property rung 5 should take, and the rule language is not
 - [A trial is refused until its sheet can decide](a-trial-is-refused-until-its-sheet-can-decide.md) — run `tools/prereg.sh` before spawning any arm; a blank decision, control or n is a stop, not a licence, and *told not to look* is not a control; kaizen 2026-08-24
