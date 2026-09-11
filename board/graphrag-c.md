@@ -186,6 +186,14 @@ built and tried; what 1 and 2 find goes into its sheet as the
 baseline, not as a condition on it.  The cost is the summaries,
 about forty Sonnet calls, a dollar at list or the same in usage.
 
+**His prediction, before any of it has run — 2026-09-11, late:**
+*"Minä uskon että kohdat 1 ja 2 tuottavat jotakin todellista.  Tämä
+tuntuu samalta kuin se backlinks -työkalu.  Käyttämällä sitä selviää
+mitä arvoa sillä on."*  Written here so the result can be read
+against it: `card:backlinks.md` was the same shape — built on a
+`because` in a session's own words, proved by a lamp that counted
+use, and the first evening's count was the number that settled it.
+
 **The loop, said aloud.**  A session judging the graph's answers is a
 product of the same tree and of the same model family as the
 extractor.  So in 3 the judge is Henri's blind reading and the
