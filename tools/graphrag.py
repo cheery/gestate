@@ -7,6 +7,8 @@
     python tools/graphrag.py check                 the door rule: nothing outside doc/graph/ cites into it
     python tools/graphrag.py extract --backend cli --workers 4    every document, chunked, one call per chunk, cached
     python tools/graphrag.py extract --dry-run     the files, the chunks and the token estimate, no call made
+    python tools/graphrag.py lookup <name>         the local read: one entity across every document, its relations, no model
+    python tools/graphrag.py entities [--top N]    the entities most documents name
 
 `card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`;
 `communities`, `summarise` and `query` follow in that order, each when
@@ -49,6 +51,7 @@ cost line.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 import json
 import os
@@ -434,6 +437,80 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
     return 0
 
 
+# --- reading the graph: the local move, no model -----------------------------
+
+def load_store(arm: str = "haiku", backend: str = "cli") -> dict:
+    sp = cache_dir() / f"extract-{arm}-{backend}.json"
+    if not sp.exists():
+        sys.exit(f"graphrag: no store at {sp} — run `extract` first")
+    return json.loads(sp.read_text(encoding="utf-8"))
+
+
+def merged(store: dict) -> dict[str, dict]:
+    """Entities merged across chunks by normalised name: every
+    description, every type the models gave, every document, and every
+    relation touching it."""
+    ents: dict[str, dict] = {}
+    for rec in store["records"]:
+        for e in rec["entities"]:
+            m = ents.setdefault(e["norm"], {"names": Counter(), "types": Counter(), "docs": set(),
+                                            "descriptions": [], "relations": []})
+            m["names"][e["name"]] += 1
+            if e.get("type"):
+                m["types"][e["type"]] += 1
+            m["docs"].add(rec["file"])
+            if e.get("description"):
+                m["descriptions"].append((rec["file"], e["description"]))
+        for r in rec["relations"]:
+            a, b = norm(str(r.get("source", ""))), norm(str(r.get("target", "")))
+            for side, other in ((a, b), (b, a)):
+                if side in ents:
+                    ents[side]["relations"].append((rec["file"], other, r.get("description", ""), r.get("strength")))
+    return ents
+
+
+def lookup(name: str, arm: str, backend: str, limit: int) -> int:
+    store = load_store(arm, backend)
+    ents = merged(store)
+    key = norm(name)
+    hits = [k for k in ents if k == key] or sorted((k for k in ents if key in k), key=lambda k: -len(ents[k]["docs"]))
+    if not hits:
+        print(f"lookup: nothing named like `{name}` in {len(ents)} entities from {len(store['records'])} chunks")
+        return 1
+    print(f"(store: {len(store['records'])} chunks, {len(ents)} entities, written {store['written']} — "
+          f"a model's reading, not evidence)")
+    for k in hits[:limit]:
+        m = ents[k]
+        name_shown = m["names"].most_common(1)[0][0]
+        print(f"\n== {name_shown}  [{', '.join(t for t, _ in m['types'].most_common(3))}]  "
+              f"in {len(m['docs'])} document(s)")
+        for f, d in m["descriptions"][:6]:
+            print(f"   {f}: {d[:160]}")
+        rels = sorted(m["relations"], key=lambda r: -(r[3] or 0))
+        seen = set()
+        for f, other, d, st in rels:
+            if other in seen:
+                continue
+            seen.add(other)
+            print(f"   -> {other}  ({st})  {d[:110]}   [{f}]")
+            if len(seen) >= 12:
+                break
+        docs = sorted(m["docs"])
+        print(f"   documents: {', '.join(docs[:12])}{' …' if len(docs) > 12 else ''}")
+    if len(hits) > limit:
+        print(f"\n… and {len(hits) - limit} more names containing `{name}`")
+    return 0
+
+
+def entities_top(arm: str, backend: str, top: int) -> int:
+    store = load_store(arm, backend)
+    ents = merged(store)
+    print(f"(store: {len(store['records'])} chunks, {len(ents)} entities, written {store['written']})")
+    for k, m in sorted(ents.items(), key=lambda kv: -len(kv[1]["docs"]))[:top]:
+        print(f"  {len(m['docs']):4d} docs  {m['names'].most_common(1)[0][0]:50s} [{m['types'].most_common(1)[0][0] if m['types'] else '?'}]")
+    return 0
+
+
 # --- the door ----------------------------------------------------------------
 
 def intruders(index: dict) -> list[tuple[str, int, str]]:
@@ -555,9 +632,22 @@ def main(argv=None) -> int:
     e.add_argument("--backend", choices=BACKENDS, default="cli")
     e.add_argument("--workers", type=int, default=4)
     e.add_argument("--limit", type=int, help="only the first N chunks")
+    l = sub.add_parser("lookup", help="one entity across every document — the local read, no model")
+    l.add_argument("name")
+    l.add_argument("--arm", default="haiku", choices=list(MODELS))
+    l.add_argument("--backend", choices=BACKENDS, default="cli")
+    l.add_argument("--limit", type=int, default=3)
+    t = sub.add_parser("entities", help="the entities most documents name")
+    t.add_argument("--arm", default="haiku", choices=list(MODELS))
+    t.add_argument("--backend", choices=BACKENDS, default="cli")
+    t.add_argument("--top", type=int, default=30)
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check()
+    if a.cmd == "lookup":
+        return lookup(a.name, a.arm, a.backend, a.limit)
+    if a.cmd == "entities":
+        return entities_top(a.arm, a.backend, a.top)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
