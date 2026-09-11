@@ -109,3 +109,48 @@ and where a gesture writes a file, let the file be the oracle: it
 cannot be blind.  Related:
 [[a-build-is-not-an-instrument-until-it-has-failed]],
 [[test-what-a-person-would-do]].
+
+---
+
+## Seven in one day, and the rule they all wanted — 2026-09-11
+
+The third failure mode above was written in the morning of 2026-09-11.
+By that evening it had happened seven times in one sitting, always the
+same way, and the count is the useful part: this is not a slip, it is
+the **default** way an oracle gets written.
+
+| the question asked | what it could not see |
+|---|---|
+| did the page's *ground* move? | it is wider than the window at every scroll |
+| did the *window* differ? | the status bar has a clock |
+| does `bench.state` move? | the probe had pinned it to a constant |
+| did `sound` take? does `sounding_on` list it? | whether `Workbench.control` ever reads it |
+| is the *keyboard* taller after a zoom? | magnifying about a corner pushed it off screen |
+| does the picture differ two seconds later? | the playhead moves by itself |
+| was a note written to the file? | whether the roll still drew any |
+
+**The shape.**  Six of the seven measured a thing that was *true* and
+upstream, beside, or later than the thing that decides.  Nothing lied;
+the reading was simply not about the subject.  The seventh is worse and
+worth its own line: the evidence was **in a photograph already taken**
+and the assertion was made on something else in the same run.
+
+**The two rules that would have caught all seven**, and they are cheap
+enough to apply every time:
+
+1. **Make the thing you are measuring the only thing that can move.**
+   Stop the transport, crop to the band, close the clock, choose a
+   signal that is *absent* in one state and *present* in the other —
+   not one that merely changes.
+2. **Ask what reads this, and did *that* change.**  A write, a return
+   value, a data structure and a file are four ways of asking a
+   question that is too early.  `Workbench.control` is what makes a
+   sound; the drawn picture is what a person sees.  Assert on the
+   consumer.
+
+And when a negative comes back, before believing it: **what would have
+to be different for this to read the other way?**  If the answer is
+*nothing visible*, the oracle is blind and the run has said nothing.
+
+Related: [[a-build-is-not-an-instrument-until-it-has-failed]],
+[[test-what-a-person-would-do]], [[the-slow-part-was-never-the-test]].
