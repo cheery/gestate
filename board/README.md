@@ -80,6 +80,11 @@ still the tiebreak between two workable cards, and it is still his.
    G-machine is already in the tab and what is missing is a seam
    between the canvas module and the worklet.  *Arrived unplaced,
    2026-09-11, minted at his ask when the gallery's MIDI row split.*
+8. **[GraphRAG](GraphRAG.md)** — one measurement: partition the
+   tree's own citation graph and compare it to the map the tree drew
+   by hand; a lamp for a person, never a page an LLM wrote.  *Arrived
+   unplaced, 2026-09-11, at his ask after the conversation in
+   `doc/notes/notes-on-the-find.md`.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

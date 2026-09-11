@@ -480,9 +480,107 @@ does not know.  Recorded as his observation with its date; it does not
 close the confound, and the tree's rule is that good news changes the
 ledger too.
 
+---
+
+**Henri, after the close, a new subject:**
+
+> Muuten..  Miten GraphRAG liittyy tähän?  Voisiko sitä soveltaa
+> puuhun?
+
+*[By the way..  How does GraphRAG relate to this?  Could it be applied
+to the tree?]*
+
+**The session** — grep first: the tree mentions neither GraphRAG, RAG
+nor embeddings anywhere, but `notes-on-cues.md` §"Can an introspective
+index be built?" has already decided a near relative, and that bounds
+the answer.
+
+**What GraphRAG is.**  Microsoft, 2024 (Edge et al.): an LLM extracts
+entities and relations from a corpus into a graph, the Leiden
+algorithm partitions the graph into communities hierarchically, an
+LLM writes a summary for each community, and a *global* question —
+*what are the main themes* — is answered by map-reduce over the
+summaries.  A *local* question is answered from an entity's
+neighbourhood.  It was built for one need: questions no single place
+in the corpus answers, only the whole of it.
+
+**How the tree relates: the tree is GraphRAG turned inside out.**
+
+- **The graph already exists, hand-written and gated.**  `card:`
+  citations, `[[memory]]` links, `§"…"` citations and F-numbers are
+  the edges, `tools/backlinks.py` is the inverted index, and
+  `test_citations.py` refuses a broken edge.  GraphRAG's graph is
+  extracted by an LLM — held by hope, in the tree's vocabulary.  The
+  tree's graph is a contract.
+- **The community summaries exist, either generated from a source
+  with a gate or written by hand and dated.**  The memory index's 88
+  hooks, the table in `doc/method.md`, the atlas's five sheets, the
+  journal's month lines.  GraphRAG's summary is written by an LLM and
+  nothing checks it against its source.
+- **Local retrieval is already a mechanism.**  The backlinks hook
+  performs GraphRAG's local move on every Read, deterministically.
+
+**Where the tree has the gap GraphRAG treats: global questions.**  The
+first question of this afternoon was global, and the session answered
+it by reading fifteen files chosen by the memory index and the hooks
+— a map-reduce done by hand.  The journal is 13,000 lines a month,
+`fixme.md` 8,000, `spec/` 18,000, and *what does the journal say about
+X* has no instrument but grep.  The lamp says the same: the backlinks
+hook fired 694 times in fourteen days, 618 were cut at twenty (89 %),
+and 159 of 682 were followed.  The local neighbourhood is already
+larger than a session reads, which is exactly the symptom a community
+summary treats.
+
+**Could it be applied, and in what form.**
+
+- **Not as pages in the tree.**  An LLM-written community summary is a
+  *document that was alive once*: no source, no check, and being
+  nondeterministic no gate can diff it.  That is the rule in
+  `doc/method.md` §"The tree withers if it is not treated well"
+  directly, and `notes-on-cues.md` said it already: *a plausible list,
+  not an inventory.  Do not build that.*
+- **Yes as a measurement, and it is cheap.**  Run Leiden over the
+  tree's existing citation graph and compare the communities to the
+  partitions made by hand: the directories, the atlas sheets.  One
+  command, deterministic with a seed, and a number: does the hand-made
+  map match the link structure, where are the orphans, and where are
+  two memories alone in one community — the *rule stated twice*
+  candidate.  A lamp, not a rule, and it leaves a command.
+- **Perhaps as an instrument at query time**, never committed: a tool
+  that answers a global question over the journal, the ledger and the
+  memories, with its output marked as session testimony.  It has no
+  caller yet but questions like today's; `doc/memory/capacity-is-not-a-caller.md`.
+- **The one place a summary would land in front of a session at the
+  moment it needs it** is the backlinks hook's cut, because the cues
+  page's constraint is that a cue must *reach the context*.  And there
+  the tree already does the deterministic degenerate case: *"… and 139
+  more: 10 cards and memory, 11 documents, 9 code"* is a computed
+  community summary, not a written one.  That is the honest form; an
+  LLM version in the same hook would be testimony injected unasked.
+
+**Default and trigger.**  Default: do not build.  The measurement,
+Leiden against the hand-made map, is an hour's work and worth running
+once, because it says something about a hand-drawn map nobody has
+measured.  The query instrument's trigger: the third global question a
+session answers by reading fifteen files.  The kill condition for the
+whole idea: if the Leiden communities match the hand-made sections,
+the graph has no structure the hand does not already see, and GraphRAG
+has nothing to add here.
+
+The tree's own thesis from `notes-on-cues.md` is the whole answer:
+*the intelligence is not the bottleneck; the retrieval and the
+checking are.*  GraphRAG is an answer on the retrieval side.  On the
+checking side it has nothing, and that is the side the tree built.
+
+**What he did with it:** *"laadi kortti jolla tehdään kyseinen
+tutkimus.  card:GraphRAG.md"* — the measured half is
+`card:GraphRAG.md`, arrived unplaced the same afternoon, with the
+trigger and the kill condition on it so neither is proposed again as
+new.
+
 ## What the tree can show, and the wording offered — added when the page went in, 2026-09-11
 
-**Three exchanges and a close on this page, one afternoon, each added at his ask as it closed.**
+**Three exchanges, a close, and a fourth after it on this page, one afternoon, each added at his ask as it closed.**
 
 **Checked in the tree while the conversation was open:** the four
 zero-hit greps above; the commit and day counts; `doc/method.md`'s
