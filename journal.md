@@ -2928,3 +2928,40 @@ section says where that was not true.
 
     python tools/graphrag.py pilot         # cached now, free
     python tools/graphrag.py check         # the door
+
+## The sitting limit stopped a batch job, and the tool cached the stop — 2026-09-11
+
+The extraction for `card:graphrag-c.md` was started at 20:31, four
+headless `claude -p` at a time, from a session's shell in this
+checkout.  At 20:48 `tools/limit.sh --hook` — the sitting limit, a
+UserPromptSubmit hook in `.claude/settings.json` — decided the
+sitting that began at 20:17 was over and refused every prompt after
+it, the headless ones included.  Each refusal came back in 1.5 s with
+zero tokens and the hook's own message as the result.  `_call_cli`
+accepted it as a reply and cached it.  By 21:01 the log said 342 of
+533 chunks done and `check` said 341 extracted; **276 of those were
+the hook's message**.
+
+**What found it was arithmetic.**  32 chunks at 20:44 and 342 at
+21:01 is 18 a minute, and a call takes 93 s with four workers.  A run
+that fast is telling you about the harness — the mirror of
+`doc/memory/a-run-silent-for-a-minute.md`.  One cached reply read
+confirmed it.
+
+**Three defects, all the tool's, all repaired the same hour.**  It ran
+the subprocess inside the project, so the project's hooks applied; it
+took any exit-0 JSON envelope for an answer, so a refusal with no
+tokens was cached as an extraction; and its pid file held `$!` of a
+`nohup` line, which was the shell, so the scheduled kill at 21:00
+stopped the shell and left the run going until it was killed by hand.
+Now the subprocess's working directory is the cache directory, a
+reply without output tokens or an object in it is retried and then
+fails out loud and is never cached, and the tool writes its own pid.
+The 276 were purged; 71 real extractions stand.
+
+**The sitting limit was right.**  It stopped a session nobody had
+told it was not a person, at the minute it was built to, and the
+mechanism held against a batch job that its author had not imagined.
+`doc/memory/headless-claude-inherits-the-hooks.md` carries the rule;
+the memory's own wording is that the defect was the tool's, not the
+limit's.

@@ -105,6 +105,29 @@ go below when it ends.
    printed with the sentence *this is a model's reading of a model's
    summaries* on it, and is never written into the tree by the tool.
 
+## The first run was stopped by the sitting limit, and the tool cached the stop — 2026-09-11, 21:01
+
+At 20:48 the sitting limit — `tools/limit.sh --hook`, a
+UserPromptSubmit hook in this checkout's `.claude/settings.json` —
+began refusing every headless `claude -p` the extraction made, because
+a `claude -p` started in the project directory inherits the project's
+hooks.  Each refusal came back in 1.5 s with zero tokens and the hook's
+message as the result, and `_call_cli` accepted it as a reply and
+cached it: **276 chunks were marked extracted with no extraction in
+them**, and `check` counted them as current.  Found at 21:01 by a
+count that could not be true — 310 chunks in 17 minutes at 93 s a
+call — and by reading one cached reply.  Three repairs, all in the
+tool: the subprocess runs with the cache directory as its working
+directory, outside every hook; a reply with no output tokens or no
+object in it is a failure to retry and never a thing to cache; the
+tool writes its own pid, because the scheduled kill at 21:00 took the
+`nohup` shell and left the run going.  The 276 were purged from the
+cache by hand; 71 real extractions stand, 462 remain for tomorrow.
+
+*The sitting limit did what it is for — a person's hours are the
+person's — and it is the mechanism that stopped a batch job nobody
+had told it about.  `doc/memory/headless-claude-inherits-the-hooks.md`.*
+
 ## How the graph proves its value — the plan, 2026-09-11
 
 **The principle: the graph is a finder, never a source.**  The door

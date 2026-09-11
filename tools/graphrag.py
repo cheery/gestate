@@ -7,6 +7,7 @@
     python tools/graphrag.py check                 the door rule, and how many chunks a run would still have to call
     python tools/graphrag.py extract --backend cli --workers 4    every document, chunked, one call per chunk, cached
     python tools/graphrag.py extract --dry-run     the files, the chunks and the token estimate, no call made
+    python tools/graphrag.py stop                  ask a running extract to finish its calls in flight and exit
     python tools/graphrag.py lookup <name>         the local read: one entity across every document, its relations, no model
     python tools/graphrag.py entities [--top N]    the entities most documents name
 
@@ -247,6 +248,14 @@ def _call_cli(model_key: str, text: str) -> dict:
     cmd = ["claude", "-p", "--model", model_key, "--output-format", "json",
            "--no-session-persistence", "--tools", "", "--system-prompt", SYSTEM,
            "--effort", CLI_PARAMS["effort"]]
+    #: **Run it outside the project.**  A headless `claude -p` started in
+    #: this checkout inherits `.claude/settings.json`'s hooks, and on
+    #: 2026-09-11 the sitting limit (`tools/limit.sh --hook`,
+    #: UserPromptSubmit) blocked every call from 20:48 on — 276 replies
+    #: that were the hook's message, cached as extractions.  The cache
+    #: directory is a working directory with no hooks.
+    cwd = cache_dir()
+    cwd.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     #: A four-hour run must not die on one refused call: a rate limit, a
     #: hiccup, an overloaded model.  Three tries, backing off, then out
@@ -256,7 +265,7 @@ def _call_cli(model_key: str, text: str) -> dict:
         if wait:
             time.sleep(wait)
         try:
-            r = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=900)
+            r = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=900, cwd=cwd)
         except FileNotFoundError:
             sys.exit("graphrag: `claude` is not on PATH — the cli backend needs Claude Code installed")
         except subprocess.TimeoutExpired:
@@ -268,9 +277,16 @@ def _call_cli(model_key: str, text: str) -> dict:
             d = json.loads(raw[i:]) if i >= 0 else {}
         except json.JSONDecodeError:
             d = {}
-        if r.returncode == 0 and not d.get("is_error") and "result" in d:
+        u = d.get("usage", {})
+        result = d.get("result", "")
+        #: A reply is a reply only if the model was asked: tokens out,
+        #: and an object in the text.  Anything else — a hook's refusal,
+        #: an empty result, a usage-limit page — is a failure to retry
+        #: and never a thing to cache.
+        if (r.returncode == 0 and not d.get("is_error") and isinstance(result, str)
+                and u.get("output_tokens", 0) > 0 and "{" in result):
             break
-        last = f"exit {r.returncode}: {(r.stderr or raw)[:300]}"
+        last = f"exit {r.returncode}: {(r.stderr or result or raw)[:300]}"
         print(f"  retry {attempt + 1}/3 after {last[:80]}", file=sys.stderr, flush=True)
     else:
         sys.exit(f"graphrag: claude -p failed four times; last: {last}")
@@ -407,10 +423,18 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
     if limit:
         js = js[:limit]
     store_path = cache_dir() / f"extract-{arm}-{backend}.json"
+    #: The tool writes its own pid, because `$!` behind `nohup` on
+    #: 2026-09-11 named the shell and the scheduled kill took that and
+    #: not this.
+    (cache_dir() / "extract.pid").write_text(f"pid {os.getpid()}\n", encoding="utf-8")
     records: dict[str, dict] = {}
     if store_path.exists():
         try:
-            records = {r["id"]: r for r in json.loads(store_path.read_text(encoding="utf-8"))["records"]}
+            #: A record with no output tokens is a refusal that was once
+            #: cached as a reply (2026-09-11); it is dropped on load so a
+            #: rerun re-asks for that chunk instead of carrying the hole.
+            records = {r["id"]: r for r in json.loads(store_path.read_text(encoding="utf-8"))["records"]
+                       if r.get("usage", {}).get("output_tokens", 0) > 0}
         except (OSError, ValueError, KeyError):
             records = {}
     t_start = time.time()
@@ -440,32 +464,45 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
                                           "records": list(records.values())},
                                          ensure_ascii=False), encoding="utf-8")
 
+    #: `stop` touches this; the loop looks between batches, finishes the
+    #: calls in flight, flushes and leaves — a kill lost the four in
+    #: flight and, once, took the wrong process.
+    stop_flag = cache_dir() / "extract.stop"
+    stop_flag.unlink(missing_ok=True)
+    k = 0
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(one, j): j for j in js}
-        for k, fut in enumerate(as_completed(futures), 1):
-            rec = fut.result()
-            records[rec["id"]] = rec
-            u = rec["usage"]
-            in_tok += u.get("input_tokens", 0)
-            out_tok += u.get("output_tokens", 0)
-            if not rec["cached"]:
-                done_fresh += 1
-                secs_fresh += rec["seconds"] or 0
-            g = sum(1 for e in rec["entities"] if e["grounded"])
-            took = "  (cached)" if rec["cached"] else f"  {rec['seconds'] or 0:5.1f}s"
-            print(f"  {k:4d}/{len(js)} {rec['id']:56s} ents {len(rec['entities']):3d} grounded {g:3d} "
-                  f"in {u.get('input_tokens', 0):6d} out {u.get('output_tokens', 0):5d}{took}"
-                  f"{'  TRUNCATED' if rec['stop_reason'] == 'max_tokens' else ''}"
-                  f"{'  PARSE ERROR' if rec['parse_error'] else ''}", flush=True)
-            if done_fresh == 10 and not estimate_printed:
-                estimate_printed = True
-                per = secs_fresh / done_fresh
-                remaining = len(js) - k
-                print(f"  --- after 10 fresh calls: {per:.1f} s each, {in_tok/k:.0f} in + {out_tok/k:.0f} out tokens each; "
-                      f"{remaining} left ≈ {remaining*per/workers/60:.0f} min at {workers} workers, "
-                      f"≈ {remaining*in_tok/k/1e6:.2f} M in + {remaining*out_tok/k/1e6:.2f} M out ---", flush=True)
-            if k % 25 == 0:
-                flush()
+        for start in range(0, len(js), workers):
+            if stop_flag.exists():
+                print(f"extract: stop asked at chunk {k}/{len(js)} — flushing and leaving; "
+                      f"rerun the same command to continue", flush=True)
+                stop_flag.unlink(missing_ok=True)
+                break
+            futures = {pool.submit(one, j): j for j in js[start:start + workers]}
+            for fut in as_completed(futures):
+                k += 1
+                rec = fut.result()
+                records[rec["id"]] = rec
+                u = rec["usage"]
+                in_tok += u.get("input_tokens", 0)
+                out_tok += u.get("output_tokens", 0)
+                if not rec["cached"]:
+                    done_fresh += 1
+                    secs_fresh += rec["seconds"] or 0
+                g = sum(1 for e in rec["entities"] if e["grounded"])
+                took = "  (cached)" if rec["cached"] else f"  {rec['seconds'] or 0:5.1f}s"
+                print(f"  {k:4d}/{len(js)} {rec['id']:56s} ents {len(rec['entities']):3d} grounded {g:3d} "
+                      f"in {u.get('input_tokens', 0):6d} out {u.get('output_tokens', 0):5d}{took}"
+                      f"{'  TRUNCATED' if rec['stop_reason'] == 'max_tokens' else ''}"
+                      f"{'  PARSE ERROR' if rec['parse_error'] else ''}", flush=True)
+                if done_fresh == 10 and not estimate_printed:
+                    estimate_printed = True
+                    per = secs_fresh / done_fresh
+                    remaining = len(js) - k
+                    print(f"  --- after 10 fresh calls: {per:.1f} s each, {in_tok/k:.0f} in + {out_tok/k:.0f} out tokens each; "
+                          f"{remaining} left ≈ {remaining*per/workers/60:.0f} min at {workers} workers, "
+                          f"≈ {remaining*in_tok/k/1e6:.2f} M in + {remaining*out_tok/k/1e6:.2f} M out ---", flush=True)
+                if k % 25 == 0:
+                    flush()
     flush()
     ents = sum(len(r["entities"]) for r in records.values())
     gr = sum(1 for r in records.values() for e in r["entities"] if e["grounded"])
@@ -678,6 +715,7 @@ def main(argv=None) -> int:
     p.add_argument("--backend", choices=BACKENDS, default="api",
                    help="api: the key pays at list price; cli: claude -p, the subscription pays in usage")
     p.add_argument("--files", type=int, default=len(PILOT), help="only the first N pilot files")
+    sub.add_parser("stop", help="ask a running extract to finish in-flight calls and exit")
     c = sub.add_parser("check", help="the door rule, and how much of the tree the graph has")
     c.add_argument("--arm", default="haiku", choices=list(MODELS))
     c.add_argument("--backend", choices=BACKENDS, default="cli")
@@ -699,6 +737,11 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check(a.arm, a.backend)
+    if a.cmd == "stop":
+        (cache_dir() / "extract.stop").touch()
+        pid = (cache_dir() / "extract.pid").read_text().split()[-1] if (cache_dir() / "extract.pid").exists() else "?"
+        print(f"graphrag: stop asked; the run (pid {pid}) finishes its calls in flight and exits")
+        return 0
     if a.cmd == "lookup":
         return lookup(a.name, a.arm, a.backend, a.limit)
     if a.cmd == "entities":
