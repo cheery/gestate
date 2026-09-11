@@ -4061,3 +4061,83 @@ def test_a_sections_caption_starts_where_the_section_starts():
             f"the caption starts at the body's left ({left}), "
             f"not at {said[0][1]}")
         assert said[0][5] == 2, "at the size a caption has always been"
+
+
+# ── The playhead — 2026-09-11 ────────────────────────────────────────────
+
+
+def test_the_playhead_draws_in_the_section_the_piece_has_reached():
+    """**Henri's last ask on `card:notes-editor.md`:** *"I also think I
+    didn't see the playback head moving in the score."*
+
+    A page's rolls each begin at tick zero and the transport counts from
+    the start of the score, so section B's roll draws ticks 0…3071 while
+    the piece is at 4000.  Each box therefore carries **where its
+    section starts** and draws at `tick - offset`; a tick outside its own
+    span is nothing at all, because three sections showing three
+    playheads — two of them lying — is the picture that rule avoids.
+
+    Nothing new crosses the wire for this: `observe` already writes
+    named readings into every canvas once a frame, and the playhead
+    rides with `peak` and the bands.  It is in **ticks**, converted at
+    the bench, because the conversion needs the rate and the tempo and
+    the picture knows neither.
+    """
+    from gestate.gui import Substrate
+    from gestate.scorebox import PLAYHEAD, scale_of
+
+    rolls, (baked, _r, entries), _l = _live_and_baked()
+    assert baked.count(f"{PLAYHEAD} : Chan Float") == 1, \
+        "one declaration for the page; the boxes are one program"
+
+    spans = [scale_of(r)[2] for r in rolls]
+    starts, at = [], 0
+    for span in spans:
+        starts.append(at)
+        at += span
+
+    views = Substrate.several(baked, 44100, entries)
+    still = [len(v.picture()) for v in views]
+    for k, start in enumerate(starts):
+        inside = start + spans[k] // 2
+        for v in views:
+            v.write(PLAYHEAD, float(inside))
+            v.tick()
+        drew = [len(v.picture()) - still[i] for i, v in enumerate(views)]
+        assert drew[k] == 1, (
+            f"tick {inside} is in section {k} and it drew {drew[k]} there")
+        assert sum(drew) == 1, (
+            f"tick {inside} drew in {sum(drew)} sections: {drew}")
+
+    # And past the end of the piece, nowhere.
+    for v in views:
+        v.write(PLAYHEAD, float(at + 100))
+        v.tick()
+    assert [len(v.picture()) for v in views] == still, \
+        "a tick past the last section draws no playhead at all"
+
+
+def test_a_compact_box_beside_a_ges_line_has_no_playhead():
+    """**Henri's call, 2026-09-11**, given the three readings: *the
+    editing page only.*  The compact box is held **item-identical** by
+    snapshot — `chopin`, `minute`, `noted` and `arcnotes` were pinned
+    pixel-for-pixel when the editing scale landed — so a playhead there
+    would change every `.ges` piece's picture and the tests that guard
+    them.
+
+    The program keeps one *shape* either way: a box the page gave no
+    offset lifts over a channel nobody writes, whose initial value is in
+    no section's span, so `rollHead` draws nothing.  A second shape
+    would be a second thing to keep in step.
+    """
+    from gestate.scorebox import PLAYHEAD, build_rolls, roll_program
+
+    text = notes.wrapper(NOTES)
+    source, _origins = notes.expanded(text, NOTES.parent)
+    line = next(i + 1 for i, l in enumerate(source.splitlines())
+                if l.startswith("notes "))
+    roll = build_rolls(source, [(line, "notes_A_melody")], 22050, 0)[0]
+    compact, _hands = roll_program(roll, 0)
+    assert PLAYHEAD not in compact, "the page's channel is not this box's"
+    assert "__nb_nohead__" in compact, "it lifts over a standstill instead"
+    assert "rollHead" in compact, "and keeps the one shape"

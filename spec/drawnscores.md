@@ -1689,6 +1689,46 @@ body's centre, so on a page wider than the window it is nowhere near
 the bars it names — at bar 1 it sits off the right edge and after the
 carry it sits at the left.  Not fixed here: the slice was the carry.
 
+### The playhead — 2026-09-11
+
+*Henri's last ask on `card:notes-editor.md`:* **"I also think I didn't
+see the playback head moving in the score."*  Nothing drew a transport
+position, and the card had priced it as *the first thing here that
+needs a number crossing the wire every frame rather than one per
+rebuild*.
+
+**The wire was already there.**  `audioeditor.observe` is called once a
+*frame* by the view and writes named readings into every canvas —
+`peak`, the spectrum bands, the hand's own preview — returning them so
+the window's own walk is fed from one reading.  The playhead rides with
+them, and nothing about the seam changed.
+
+**In ticks, converted at the bench**, because the conversion wants the
+rate and the tempo and a roll knows neither: `position_in_beats() *
+TICKS_PER_BEAT`, written to a channel named `playhead`.
+
+**What was actually hard is tick space.**  A page's rolls each begin at
+tick zero — section B's roll draws 0…3071 — and the transport counts
+from the start of the piece, so at tick 4000 the hand is in B and
+nowhere in A or C.  Each box therefore carries **where its section
+starts**, `page_program` running the spans down in the order
+`notes.wrapper` plays them, and `roll.ges`' `rollHead` draws at
+`tick - offset` only while that falls inside its own span.  A tick
+outside is **nothing at all**: three sections showing three playheads,
+two of them lying, is the picture that rule exists to refuse.
+
+**The compact box beside a `.ges` line has none** — his call, given
+three readings, 2026-09-11: *the editing page only*.  Those pictures are
+held item-identical by snapshot and a playhead would have changed every
+`.ges` piece's.  The program keeps **one shape** rather than two: a box
+the page gave no offset lifts over a channel nobody writes, whose
+initial value is in no span, so `rollHead` draws nothing for it.
+
+Two tests at the foot of `test/test_drawnscores.py` — the playhead in
+each section and in no other, nothing past the end, and the compact
+box's exemption.  224 green across `test_scorebox.py` and
+`test_drawnscores.py`, the snapshots among them.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

@@ -2470,3 +2470,47 @@ someone who knew the plugin and did not believe the sentence.
 **The gallery's rows, as they stand:** audio-ports, gui, params and
 note-ports built; `clap.state` refused here and left with
 `card:online.md` question 5, which is where its answer already lives.
+
+## The playhead cost nothing the card had budgeted for — 2026-09-11
+
+*"I also think I didn't see the playback head moving in the score."*
+The last of his asks on `card:notes-editor.md`, and the card had priced
+it as the expensive one: **the first thing here that needs a number
+crossing the wire every frame rather than one per rebuild.**
+
+That sentence was wrong, and it had stood since 2026-09-06.
+`audioeditor.observe` is called once a *frame* by the view and writes
+named readings into every canvas, returning them so the window's own
+walk is fed from the same reading — `peak`, the spectrum bands, and the
+hand's own preview have ridden it the whole time.  The playhead is one
+more `put`.  Nothing about the seam changed, and the slice that was
+going to be the hard one was the shortest of the day.
+
+**Twice today a card's own sentence about its subject was false**, at
+opposite ends of the board.  `card:audiovisual-gallery.md` said the
+three refused pieces were its test set and one `grep` disproved it;
+this card said the playhead needed a new wire and one `grep` disproved
+that.  Both sentences were written by a session at a moment when they
+were the best guess available, and both then sat being read as
+findings.  The question harvested from the first — *which of the things
+this card is about can actually take the change, and how many are
+there?* — would have caught the second as well, an hour before it was
+harvested.
+
+**What was actually hard was the one thing nobody had written down.**  A
+page's rolls each begin at tick zero and the transport counts from the
+start of the piece, so at tick 4000 the hand is in section B and
+nowhere in A or C.  Each box carries where its section starts now, and
+draws at `tick - offset` only inside its own span.  A tick outside is
+nothing at all — three sections showing three playheads, two of them
+lying, is a picture that would have been *believed*, which is worse than
+one that is plainly missing.
+
+**And the compact box got none, by his call**, which kept the
+item-identical snapshots intact and cost one decision asked before
+anything was built.  The program keeps one shape either way: a box the
+page gave no offset lifts over a channel nobody writes, whose initial
+value is in no span.  Two shapes would have been a second thing to keep
+in step, which is how this file's oldest entries all start.
+
+`card:notes-editor.md` now has every ask he has made on it built.

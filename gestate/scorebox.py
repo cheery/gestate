@@ -76,6 +76,21 @@ MAX_LEAVES = 512
 
 TICKS_PER_BEAT = 96
 
+#: **The playhead's channel**, and it is shared by every box of a page.
+#:
+#: `audioeditor.observe` writes it once a frame, by name, to whatever
+#: canvas declared it — the same journey `peak` and the bands take, so
+#: nothing new crosses the wire for this (`card:notes-editor.md`, the
+#: playhead).  In **score ticks from the start of the piece**, converted
+#: where the numbers live: the bench knows the rate and the tempo and
+#: the picture knows neither.
+#:
+#: One declaration for the page rather than one a box, because the boxes
+#: are concatenated into one program and a name declared twice is two
+#: definitions wanting one name.
+PLAYHEAD = "playhead"
+PLAYHEAD_SIG = "__nb_head_s__"
+
 #: The one-line wrapper an ask's expression is parsed inside.  Named
 #: because two places need its width: the parse, and the column an atom
 #: written on the ask's own line really sits at (`_col_bias`).
@@ -1533,14 +1548,35 @@ def page_program(rolls: list, *, stacked: bool = False,
     another's colours.
     """
     texts, entries = [], []
+    # **Where each section starts in the piece**, running: a page's rolls
+    # each begin at tick zero and the transport counts from the start of
+    # the score, so a playhead in section B is at `tick - offset` there
+    # and nowhere in A or C (`roll.ges`' `rollHead`).  The order is the
+    # order the wrapper plays them in, which is the order they are drawn
+    # in — `notes.wrapper` runs the sections down the file.
+    #
+    # Only for a **stacked** page: a compact box beside a `.ges` line
+    # gets no playhead, which is Henri's call of 2026-09-11 and keeps
+    # those pictures item-identical.
+    at, offsets = 0, []
+    for roll in rolls:
+        offsets.append(at if stacked else None)
+        if not isinstance(roll, Exception):
+            at += scale_of(roll)[2]
     for k, roll in enumerate(rolls):
         if isinstance(roll, Exception):
             entries.append(None)
             continue
         entry = f"__notes_{k}__"
-        text, _hands = roll_program(roll, k, entry=entry, live=live)
+        text, _hands = roll_program(roll, k, entry=entry, live=live,
+                                    offset=offsets[k])
         texts.append(text)
         entries.append(entry)
+    if stacked:
+        # One declaration for the page — see `PLAYHEAD`.
+        texts.insert(0, f"{PLAYHEAD} : Chan Float\n{PLAYHEAD} = chan\n"
+                        f"{PLAYHEAD_SIG} : Sig Float\n"
+                        f"{PLAYHEAD_SIG} = (0.0 - 1.0) ::: mkSig (wait {PLAYHEAD})\n\n")
     drawn = [e for e in entries if e is not None]
     if drawn and stacked and len(drawn) > 1:
         # **The page is the file's own picture** — rung 5, for a
@@ -1776,7 +1812,8 @@ def _caption_w(caption: str) -> int:
     return max(8 * len(caption) - 2, 8)
 
 
-def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
+def _module_program(roll: Roll, box: int, entry: str, live: bool,
+                    offset: int | None = None) -> tuple:
     """The editing-scale box's program **over `roll.ges`** — the box's
     numbers, its channels, and one picture lifted over them.
 
@@ -1820,6 +1857,23 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
         caption += " · CUT"
     body_g, scale_g, ground_g, hands_g, pic_g = (N("body"), N("scale"), N("ground"),
                                                  N("hands"), N("pic"))
+    # **A box the page gave no offset draws no playhead**, and says so
+    # by lifting over a constant that is never in any section's span —
+    # so the *shape* of the program is one shape.  A `.ges` line's
+    # compact box is the caller that takes this branch, and its picture
+    # is held item-identical by snapshot (`spec/drawnscores.md` §"Two
+    # scales, one arithmetic"): Henri, 2026-09-11, given the three
+    # readings — *the editing page only*.
+    head_s = PLAYHEAD_SIG if offset is not None else "__nb_nohead___s"
+    nohead = ("" if offset is not None else
+              # A channel nobody ever writes, so its initial value is
+              # the only one it has — and `-1` is in no section's span,
+              # which `rollHead` reads as *draw nothing*.  The signal
+              # idiom is the file's own (`sig` below); `constSig` lives
+              # in `audio.ges`, which a roll program does not prepend.
+              "__nb_nohead__ : Chan Float\n__nb_nohead__ = chan\n"
+              "__nb_nohead___s : Sig Float\n"
+              "__nb_nohead___s = (0.0 - 1.0) ::: mkSig (wait __nb_nohead__)\n\n")
     ruler_pic = (f"Sized {rail_w} {rail_h} (rollRuler {body_g} {scale_g} {_n(rail_x)} "
                  f"{rail_w} {rail_h} {beat} ({bars_list}))")
     ruler = (f"Shift {_n(rail_x)} {_n(rail_y)} (TouchX {_ruler(box)} ({ruler_pic}))"
@@ -1827,7 +1881,7 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
     body = (f"Shift {_n(bcx)} {_n(bcy)} (TouchY {pitch_c} (TouchX {rail_c} (Sized {body_w} "
             f"{reach_bottom - reach_top} (Gap 0 0))))")
     sig = lambda c, zero: f"{c}_s : Sig Float\n{c}_s = {zero} ::: mkSig (wait {c})\n\n"
-    text = (chans + "\n"
+    text = (chans + nohead + "\n"
             + sig(held_c, "(0.0 - 1.0)") + sig(lift_c, "0.0") + sig(sel_c, "(0.0 - 1.0)")
             + sig(slide_c, "0.0") + sig(grow_c, "0.0") + sig(endx_c, "(0.0 - 10000.0)")
             + f"{sels_c}_s : Sig (List Float)\n{sels_c}_s = Nil ::: mkSig (wait {sels_c})\n\n"
@@ -1846,12 +1900,13 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
                        still=f"rollStill {note_c} {_n(rail_y)}",
                        moving=f"rollMoving {note_c} (floor h) (floor v) (floor dx) (floor gg) {_n(rail_y)}")
                if live else "")
-            + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Sub\n"
-               f"{pic_g} still moving bd ex = " if live else
-               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd gg ex = ")
+            + (f"{pic_g} : Sub -> Sub -> List Float -> Float -> Float -> Sub\n"
+               f"{pic_g} still moving bd ex ph = " if live else
+               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg ex ph = ")
             + f"Sized {geo.w} {geo.h} (Over (Over (Over\n"
-            + f"    (Over {ground_g} (rollBand bd))\n"
+            + f"    (Over (Over {ground_g} (rollBand bd)) "
+              f"(rollHead {body_g} {scale_g} {offset or 0} (floor ph)))\n"
             + (f"    (Over (Over still moving) (rollEnd {body_g} (floor ex))))\n" if live else
                f"    (Over (rollNotesBaked {note_c} (floor h) (floor v) (floor s) "
                f"(floor dx) ss (floor gg) {_n(rail_y)} {N('rows')}) "
@@ -1874,9 +1929,10 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
               f"(RGB 120 124 134))))\n"
             + f"    {hands_g})\n\n"
             + f"{entry} : Sig Sub\n"
-            + (f"{entry} = !{pic_g} {N('still')} {N('moving')} {band_c}_s {endx_c}_s\n" if live else
+            + (f"{entry} = !{pic_g} {N('still')} {N('moving')} {band_c}_s "
+               f"{endx_c}_s {head_s}\n" if live else
                f"{entry} = !{pic_g} {held_c}_s {lift_c}_s {sel_c}_s {slide_c}_s {sels_c}_s "
-               f"{band_c}_s {grow_c}_s {endx_c}_s\n"))
+               f"{band_c}_s {grow_c}_s {endx_c}_s {head_s}\n"))
     return text, named
 
 
@@ -1920,7 +1976,7 @@ def _layers(N, rows_s: str, sel_s: str, sels_s: str, held_s: str, lift_s: str,
 
 
 def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
-                 live: bool = False) -> tuple:
+                 live: bool = False, offset: int | None = None) -> tuple:
     """The box's substrate program, and the hands it hands out.
 
     Returns `(ges_text, [chan_name])`, in column order.  The program is
@@ -1938,7 +1994,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
         # **The editing scale is written over `roll.ges`** — the box's
         # numbers and channels, and one picture; the drawing is the
         # library's.  The compact box below stays the program it was.
-        return _module_program(roll, box, entry, live)
+        return _module_program(roll, box, entry, live, offset)
     events, leaves = roll.events, roll.leaves
     lo, hi, span_ticks = scale_of(roll)
     geo = geometry_of(roll)

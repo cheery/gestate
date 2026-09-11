@@ -1672,6 +1672,8 @@ class Workbench:
         instrument's facts ride out — never a touch's echo, which
         would snap a fader back under the hand that had moved on.
         """
+        from . import scorebox
+
         told = []
         # **Every canvas in the house** — the file's own and each
         # `canvas <expr>` box's (B2): one reading, written to all of
@@ -1707,6 +1709,19 @@ class Workbench:
             put("peak", self.transport.take_peak())
         if "position" in wanted:
             put("position", self.transport.position)
+        # **The playhead, in score ticks** — `card:notes-editor.md`, and
+        # Henri's last ask on it: *"I also think I didn't see the
+        # playback head moving in the score."*
+        #
+        # Converted here because the conversion needs the rate and the
+        # tempo, and the picture knows neither: a roll draws in ticks
+        # and nothing in `roll.ges` could turn a sample into one.  The
+        # same journey `peak` takes, so the wire is unchanged — which
+        # is the whole reason this was a small slice and not the
+        # per-frame payload the card feared.
+        if scorebox.PLAYHEAD in wanted:
+            put(scorebox.PLAYHEAD,
+                self.position_in_beats() * scorebox.TICKS_PER_BEAT)
         if "rms" in wanted:
             put("rms", self.transport.take_rms())
         for k, name in enumerate(self.BANDS):

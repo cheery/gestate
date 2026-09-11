@@ -614,8 +614,34 @@ a schedule that is no longer in the argument.  The branch is gone
 rather than kept in case; the finding and its gate stand, because what
 they hold is *what the engine reads*.
 
-**Left of his asks:** the playhead across the page — *"I also think I
-didn't see the playback head moving in the score."*  Not built.
+### The playhead, built — 2026-09-11
+
+*"I also think I didn't see the playback head moving in the score."*
+Built, and **it needed nothing new on the wire** — which is the part
+worth keeping, because this card had priced it as the opposite: *the
+first thing here that needs a number crossing the wire every frame
+rather than one per rebuild*.  `audioeditor.observe` has been doing
+exactly that since long before this card, once a frame, by name, into
+every canvas; `peak` and the spectrum bands ride it.  The playhead
+rides with them.
+
+**A price stated in a card is a claim like any other**, and this one had
+stood unexamined since 2026-09-06 — the same lesson the gallery's close
+harvested a question about, an hour earlier, from the other end of the
+board.
+
+What was actually hard is tick space: a page's rolls each begin at zero
+and the transport counts from the start of the piece, so each box
+carries where its section starts and draws at `tick - offset`, or
+nothing.  The compact box beside a `.ges` line has no playhead — his
+call — and the program keeps one shape by lifting that box over a
+channel nobody writes.  `spec/drawnscores.md` §"The playhead" is the
+contract.
+
+**Every ask he has made on this card is now built.**  What remains open
+is what the card always said was not its own: the score view, *"a bit
+of a pie in the sky right now"*, his to open; Q1's default standing;
+and the four defects under the page, F205, F206, F208 and F212.
 Nothing draws a transport position today, and it is the first thing
 here that needs a number crossing the wire every frame rather than one
 per rebuild.

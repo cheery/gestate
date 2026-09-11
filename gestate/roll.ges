@@ -505,3 +505,24 @@ rollEnd : Body -> Int -> Sub
 rollEnd b e = case e > 0 - 9000 of
     True -> Shift e (rollTop b + rollHeight b / 2) (Rect 2 (rollHeight b) rollEndInk)
     False -> Gap 0 0
+
+rollHeadInk : Colour
+rollHeadInk = RGB 236 240 248
+
+#: **The playhead** — where the transport has reached, drawn in *this*
+#: section's own ticks.
+#:
+#: `off` is where the section starts in the piece, because a page's
+#: rolls each begin at tick zero and the transport counts from the
+#: beginning of the score: section B's roll draws ticks 0…3071 and the
+#: piece is at 4000 when the hand is in it.  So the subtraction is the
+#: whole of it, and a tick outside this section's span is **nothing**
+#: rather than a line pinned to an edge — three sections showing three
+#: playheads, two of them lying, is the picture that rule avoids.
+rollHead : Body -> Scale -> Int -> Int -> Sub
+rollHead b s off tk = case tk - off >= 0 of
+    True -> case tk - off < rollSpan s of
+        True -> Shift (rollX b s (tk - off)) (rollTop b + rollHeight b / 2)
+                      (Rect 1 (rollHeight b) rollHeadInk)
+        False -> Gap 0 0
+    False -> Gap 0 0
