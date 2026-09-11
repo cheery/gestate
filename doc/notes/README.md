@@ -1,6 +1,6 @@
 # doc/notes/ — the conversations several rules came out of
 
-Eighteen files, the first twelve transcripts from five evenings and
+Nineteen files, the first twelve transcripts from five evenings and
 five days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
@@ -48,6 +48,7 @@ produced it rather than take the summary on trust.
 | [notes-on-gui.md](notes-on-gui.md) | the GUI card read from outside — identity as the missing decision · Kale, and the pin to set before building · the vision verbalised at 10:49, and the filter it makes · generality when it is cheaper than the special case · why the earlier toolkits became gunk, and why this one started from the roll |
 | [notes-on-the-model.md](notes-on-the-model.md) | the model and its command language *are* the framework · why text editors are a solved GUI and node editors are not · there is no general framework, only a substrate · the relational model as the candidate, with four failure modes to watch |
 | [notes-on-reviews.md](notes-on-reviews.md) | why the guest's reviews worked and how to keep one — a role, not a tool · a fresh context is transferable, being outside the tree is not · the loop cannot audit itself · what the reviewed party owes |
+| [notes-on-the-find.md](notes-on-the-find.md) | what was found, asked again three weeks after the name — the ingredients have names in the literature and the tree did not cite them · the tree is the specimen, the find is a sentence that can fall · the inventor is the one who recognised and kept, and the wording offered for `spec/author.md` |
 
 ## Provenance, and what to distrust
 
@@ -123,6 +124,17 @@ which of the page's four failure modes the tree has since decided,
 which is open, and — the part worth having — that the sitting in this
 tree reached the same conclusions the same day and that this is **not**
 two witnesses, because his questions there came after this conversation.
+
+**The nineteenth, `notes-on-the-find.md`, is the third kind again**,
+and the first written *inside* this tree by the session in the
+conversation, 2026-09-11, with no file of his in between: his four
+passages verbatim in Finnish, each with the session's own gloss in
+brackets, the answers condensed by the answerer.  It is the successor
+to `notes-on-the-name.md`, the same question three weeks on, and the
+session was in `spec/roles/reviewer.md` for its first answer.  Its
+closing section separates what it checked in the tree from what it
+claims about one model's memory, and carries the wording offered for
+`spec/author.md` — offered there because that file is his.
 
 **The seventeenth, `notes-on-reviews.md`, is the third kind again**,
 from the same guest session as the sixteenth and the same day, about
@@ -228,6 +240,11 @@ The eighteenth, `notes-on-the-model.md`, went in on 2026-09-09 at his
 ask — *"~/misc/notes/notes-on-the-model.md could be added into the
 notes and to card:gui-is-difficult.md"* — and nobody but the author and
 a session speaks in it; no third party is named.
+The nineteenth, `notes-on-the-find.md`, went in on 2026-09-11 at his
+ask — *"Kirjoita tämä keskustelu doc/notes/ -sivuksi"* — and nobody but
+the author and a session speaks in it; Michael is referred to by name
+for one ask already on `card:online.md` and in the register, and the
+surnames in it are authors of books cited.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as
