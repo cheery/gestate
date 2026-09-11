@@ -452,6 +452,34 @@ question for the keeping itself: chosen cost is sediment.  The
 succession question was not answered and is not closed; it is his,
 and it is written above so that it is not asked again as if new.
 
+**Then he answered that too, as far as it can be answered today:**
+
+> hmm..  seuraajaa en vielä tunne.  Mutta tämä puu on vasta viisi tai
+> kuusi viikkoa vanha.  Ja näen jatkuvasti hienoa ja omanlaista
+> käytöstä.  Tänään esimerkiksi sessio osasi huomioida ajankäyttöään ja
+> pysähtyi ongelmatilanteessa ja kertoi minulle ongelmasta ennenkuin
+> teki virheitä.
+
+*[hmm..  I do not know a successor yet.  But this tree is only five or
+six weeks old.  And I keep seeing fine behaviour of its own kind.
+Today, for example, a session managed its own time use and stopped at
+a problem and told me about it before making mistakes.]*
+
+Two things in that, kept apart.  **Succession waits on an event**, the
+tree's age, and not on him — so by `board/README.md`'s own question it
+is sediment today and not debt, and it is written here so that the
+reading can change when the tree is older.  **And the second sentence
+is the keeper's eye on the claim this page calls the weakest**, that
+the tree conditions: a session stopping and telling him before the
+mistake is the behaviour `doc/memory/conditioning-shows-under-work.md`
+says is the only kind of evidence there is, and it is his to see and
+not a session's to report.  It is one observation, on the day
+`doc/memory/the-slow-part-was-never-the-test.md` records his
+correction about time, and whether it was the same session the page
+does not know.  Recorded as his observation with its date; it does not
+close the confound, and the tree's rule is that good news changes the
+ledger too.
+
 ## What the tree can show, and the wording offered — added when the page went in, 2026-09-11
 
 **Three exchanges and a close on this page, one afternoon, each added at his ask as it closed.**
