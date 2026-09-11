@@ -8,7 +8,10 @@ metadata:
 **Henri, 2026-08-28, at the end of the first fire:** *"I'm planning to
 subscribe to openrouter and then test different models on the tree."*
 
-Planned, not done.  It is the next round of what
+Planned, and the account exists: 2026-09-11, his words in passing —
+*"On minulla jo openrouter:ssa tili"* — while weighing whether a
+GraphRAG pass over the tree would run there or on a local model
+(`card:GraphRAG.md`).  No arm has been run through it yet.  It is the next round of what
 [[gestate-blind-model-test]] and [[smaller-models-and-the-tree]] began
 with local models and three Claude sizes: the same tree pulled onto
 different substrates, and the sameness or its absence measured under
