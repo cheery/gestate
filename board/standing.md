@@ -87,6 +87,16 @@ here too, dated, with the card it came from.*
   *— `board/README.md` §"What a card is": the board's most expensive
   lesson, a card that named `type Duration = Float` when the need was
   the argument names*
+- Which of the things this card is about can actually take the change,
+  and how many are there?
+  *— harvested at the close of `card:audiovisual-gallery.md`,
+  2026-09-11.  That card said "the three refused pieces are the test
+  set either way" and one `grep` disproved it: they are the one set
+  that cannot be, their score reading what a hand holds where the page
+  bakes.  Counted first, the MIDI row would have been the right shape
+  on day one instead of on day three.  A card's own sentence about its
+  subject is a claim like any other, and the oldest claims in a card
+  are the least often checked.*
 - What would kill the reading you are about to take?
   *— move 3 of the questioning, and the pre-registration rule in
   `doc/memory/a-trial-is-refused-until-its-sheet-can-decide.md`*
