@@ -234,16 +234,17 @@ fi
 # ── The subject graph (graphrag) ──────────────────────────────────────
 #
 # `card:graphrag-c.md`: `tools/graphrag.py` extracts a graph of the
-# tree's documents through the Anthropic API and reaches it with the
-# standard library, so there is nothing to pip-install.  What it needs
-# is the key in the environment — reported here as present or absent,
-# never printed — and it is the one line on this bench that costs money
-# when used: the pilot is cents, an extraction pass over the documents
-# a few dollars, and `tools/graphrag.py` prints tokens and an assumed
-# price with every run.
-report anthropic-key "$( [ -n "${ANTHROPIC_API_KEY:-}" ] && echo yes || echo no)" \
-    "the subject graph: tools/graphrag.py pilot | extract (costs money)" \
-    "export ANTHROPIC_API_KEY=… in the shell that runs it (personal, personally paid)" || true
+# tree's documents and answers questions over it.  Since 2026-09-12 its
+# calls go through `claude -p` on the subscription by default — Henri:
+# "the api backend was good for bootstrapping this thing, but I'd like
+# it to use cli otherwise" — so what it needs is `claude` on PATH; the
+# API key is optional, for `--backend api`, and is the one thing on this
+# bench that costs money when used.  The graph itself lives under
+# ~/.cache/gestate/graphrag/ and `graphrag check` says how much of the
+# tree it has read, without a call.
+report claude-cli "$(command -v claude >/dev/null 2>&1 && echo yes || echo no)" \
+    "the subject graph on the subscription: tools/graphrag.py extract | query | lookup | cue" \
+    "install Claude Code, or export ANTHROPIC_API_KEY=… and use --backend api (personal, personally paid)" || true
 
 echo
 if [ "$missing" = 0 ]; then

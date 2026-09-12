@@ -580,6 +580,44 @@ about $12.50 of the $14 spent.  What comes before any eighth is the
 month: finds written into the tree with the graph as the finder, and
 the cue's follow count on the backlinks lamp.
 
+## In use — what shows up in the work from now on, 2026-09-12
+
+Henri: *"tell me how we put this new tool into use?  What do we
+setup such that it shows up in the work from now on?"*  Three things
+arrive on their own and two are by hand.
+
+- **On every read, the cue.**  The backlinks hook already fires on
+  every `Read` and every shell command that reads a file, and since
+  this morning its answer ends with the graph's line — *this file
+  shares X with A, B* — with no setup beyond the hook that is
+  installed.  Its follow count prints with `tools/backlinks.py
+  --earned`.
+- **At every commit, the lamp.**  `tools/pre-commit.sh` prints
+  `graphrag check`'s first line beside the backlinks, flow and
+  standing lamps: how many chunks the graph has not read, half a
+  second, no call, never refuses.  Added today.
+- **On the bench, the report.**  `tools/toolbox.sh` reports whether
+  `claude` is on PATH, which is what the tool needs now; the key is
+  optional.  Its entry was rewritten today from the api-first text.
+- **By hand, the increments** — `python tools/graphrag.py extract`
+  on the cli when the lamp's number says so; only changed chunks are
+  called.  The natural place is the keeper's evening, step 1, *read
+  the lamps*: `keeper.md` is his page, so the line is offered here and
+  not written there — *when the graphrag lamp says more than a
+  handful, run extract; then `subjects` and `contradictions` once, and
+  read them*.
+- **By hand, the questions** — `python tools/graphrag.py query
+  "<question>"` from any shell in the checkout, 20–60 s on the
+  subscription, printed and never written; `lookup <name>` for one
+  subject across the tree in a second.  The rule stands: what the
+  graph finds goes into the tree citing the document, never the
+  graph, and the journal says *found by the graph*.
+
+*The first question put to it in use, the same evening, his: "How
+does TPS manifest inside this project?" — eleven citations resolving,
+none uncited, jidoka, poka-yoke, kaizen, gemba and kanban each traced
+to a file; reproduced from the cache by the same command.*
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

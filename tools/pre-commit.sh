@@ -134,6 +134,12 @@ if "$PY" tools/suite.py --gates; then
     # card to done/ is asked what question would have helped at its start
     # (card:standing-questions.md).  Prints, never refuses.
     "$PY" tools/standing.py --check || true
+    # The subject graph's lamp (card:graphrag-c.md, 2026-09-12): how many
+    # chunks of the tree the graph has not read, in half a second and
+    # without a call — the call is the keeper's, on the cli, when the
+    # number says so.  Prints, never refuses, silent when the tool is
+    # not there.
+    [ -f tools/graphrag.py ] && "$PY" tools/graphrag.py check 2>/dev/null | head -1 || true
     exit 0
 fi
 
