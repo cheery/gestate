@@ -11,6 +11,9 @@
     asked    Henri, 2026-09-07 — "Write the cards into later/ shelf."
     see      card:gui-is-difficult.md — what this waits on: the
              framework, and its first client with identity by address
+             card:gui-is-difficult.md §"The whole notes GUI in one
+             `.ges` file" — what waits on *this*, since 2026-09-12:
+             the sheet is the client that tests the seams first
              card:drawn-scores.md — `.notes`, a flat table of records
              already; the grid is its second view
              card:notes-editor.md — the data road a cell edit must take:

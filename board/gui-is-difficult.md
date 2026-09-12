@@ -2590,6 +2590,125 @@ end-of-note decision is still `EDGE_PX` against `x_of`.  Those are the
 places the five spellings actually leave, and they wait on the
 tolerance question above.
 
+### The whole notes GUI in one `.ges` file — asked 2026-09-12, sequenced after gex
+
+**Henri:** *"I wonder.  what kind of innovation would be required that
+the whole notes -GUI could be written in a single .ges -file?  And
+what would it possibly look like?"*  And, on reading the answer:
+*"I think I want to see how gex sheets would be implemented before we
+move onto this."*  So this section is a reading written down and
+**not a slice**: `card:gex-sheet.md` comes off the shelf first, and
+this is picked up after it, if at all.  *Session's reading, marked as
+its own; the sketch is a sketch.*
+
+**The short answer.**  Most of the notes GUI is `.ges` already —
+`roll.ges` draws, `hand.ges` and `gesture.ges` hold the gestures,
+`facts.ges` says what the file is, `command.ges` names the verbs, and
+the synth is `synth.ges`.  What is not is three seams the host still
+owns, and none of them is a language feature.  Ordered by how much of
+each is already in the tree:
+
+1. **The document as a signal, and assert/retract as the host's only
+   verbs.**  `facts.ges` declares a `.notes` file and nothing in `.ges`
+   reads or writes one: `notes.py` parses, `scorebox.py` holds the
+   `Roll`, `session.py` rewrites a line.  In one file the program reads
+   the file as `Sig (Set Note)`, fed by the host, and a command answers
+   a list of `Assert` and `Retract` acts the host applies to the file
+   — `chart.ges`'s shape, widened from a gesture to the whole model.
+   This is also the answer to his own objection of 2026-09-08, that
+   gestate's datatypes were not designed to store a model: they would
+   not.  The file stores it, the program reads a projection, and a
+   rebuild loses nothing — the problem `desk.py` had to solve for
+   knobs, dissolved rather than solved.
+2. **Commands as pure functions to act lists, refusals included.**
+   `command.ges` has the names and types; the ~800 lines of `do_*` in
+   `session.py` are the bodies — find the line, check the refusal,
+   rewrite.  In one file a verb is `Set Note -> Set Note -> Args ->
+   List Act`, over the facts and the selection, and a refusal is a
+   value in the list, not an exception.  The palette derives as now.
+3. **A touch that carries a fact's key.**  `gui.ges` has `Meaning` and
+   the note channel names the pressed note already, but the pad's two
+   halves still send fractions, `note_under` finds the note in Python,
+   and `agreed`/`disagreed` count whether picture and model named the
+   same one.  If the walk reports the key of the fact drawn under the
+   press, the lookup and the counters go — §"The name, and what falls
+   out"'s claim that hard thing 4 is removed outright, built.  Empty
+   roll and drag distance stay fractions.
+4. **Relations incremental at frame rate.**  The two layers recompute
+   in 7 ms for 88 notes; a whole piece needs the derived sets to update
+   by difference — `spec/data.md`'s seminaive evaluation, present
+   monomorphically for audio and not yet for the picture.
+5. **The score as a stream from the document, not recompiled source.**
+   `card:notes-editor.md` slice 2, and the risky one: the synth
+   compiles once through LLVM and the performer reads events from the
+   relation.  The two-machine parity rule is what could kill it, and
+   that is a decision, not a build.
+6. **Small pieces.**  A clock channel, so the double-click and the tap
+   tempo become chart events — `chart.ges` already says *an `after 2s`
+   is an event from a clock channel*.  `Cancel` wired to something.
+   The substrate growing text measurement and a scroll, since it says
+   of itself it is *not a drawing library*.
+
+*Not needed:* imports.  A single file with the four libraries in front
+of it is what the prelude chain already does.
+
+**What it would look like**, roughly, with the three new host words
+marked:
+
+```
+# notes.ges — the .notes editor, whole
+
+kinds : List Kind
+kinds = notesKinds                              # facts.ges, as today
+
+notes : Sig (Set Note)
+notes = document "notes"                        # NEW: the file, keyed by kind
+
+Act := Assert Note | Retract Note | Refuse Text | Sound Int Int
+
+move : Set Note -> Set Note -> Int -> List Act
+move ns sel by = case elems sel of
+    Nil -> Refuse "nothing selected" :: Nil
+    _   -> for n in sel: Retract n :: Assert (shifted n by) :: Nil
+
+Hit := OnNote Note | OnEnd Note | OnRoll          # hand.ges, a key not a number
+hand : Chart Hand Touch Act                       # as hand.ges today
+
+scale : Sig Scale
+scale = lift scaleOf notes                        # scale_of moves in
+
+substrate : Sig Sub
+substrate = lift2 (\ns h -> Over (rollStill ...) (rollMoving ...)) notes state
+
+piano : Voice                                     # synth.ges, the default voice
+score = perform notes piano                       # NEW: the performer reads the relation
+```
+
+The file would be short, because `roll.ges`, `hand.ges`, `facts.ges`
+and the synth are libraries.  What a person writes is the kinds, the
+verbs, the picture lifted over the facts and the hand, and the voice.
+
+**Two things against it, said now.**
+
+- *The host surface is the interesting part.*  `document`, `perform`
+  and a touch carrying a key are exactly the imports such a program
+  would declare if it were a wasm module — `doc/memory/the-language-goal.md`.
+  So the single file is also the shape of `card:online.md`, and that
+  is the strongest reason to want it.
+- *Layout is untouched.*  Hard thing 2 stays: nothing in a set of
+  notes says piano roll rather than staff, and `roll.ges` is a
+  hand-written arithmetic that a single file keeps hand-written.  The
+  seams above remove the two machines and the generator; they do not
+  make the picture derive from the model.
+
+**Why gex first, in his order.**  A sheet is the second view of the
+same facts (`card:gex-sheet.md` — *.notes could use excel view as
+well*), and it is the client with the least layout in it: a cell is a
+record's field, and nothing has to be invented about where it goes.
+So it tests seams 1–3 without seam 5 and without hard thing 2, which
+is the right order to find out whether *the GUI is what falls out*
+before the roll is rewritten on that belief.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
