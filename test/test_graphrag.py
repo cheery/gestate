@@ -171,3 +171,48 @@ def test_disagreements_is_units_only_and_agreement_anywhere_clears_it():
     assert [(r[1], r[2]) for r in rows] == [("spec/rules.md", "line")]
     assert rows[0][3] == {"j": {"2000"}, "r": {"2500"}}
     assert graphrag.unit_numbers("1,554 lines and 2026-09-06 and 15 %") == {("1554", "line"), ("15", "%")}
+
+
+def test_retrieve_matches_low_to_names_high_to_relation_keywords_and_hops_once():
+    ents = {
+        "vision": _ent(["vision.md"], ["document"], ["a", "b", "c"], [("a", "the author's own document")]),
+        "henri": _ent(["Henri"], ["person"], ["a", "b"], [("b", "the keeper")]),
+        "tps": _ent(["Toyota Production System"], ["concept"], ["c"], [("c", "the source")]),
+        "far": _ent(["far"], ["concept"], ["d"], [("d", "unrelated")]),
+    }
+    ents["vision"]["relations"] = [("a", "henri", "Henri wrote vision.md", 9, ("authorship",))]
+    ents["henri"]["relations"] = [("a", "vision", "Henri wrote vision.md", 9, ("authorship",)),
+                                  ("c", "tps", "Henri read TPS in July", 6, ("method sources", "prior art"))]
+    ents["tps"]["relations"] = [("c", "henri", "Henri read TPS in July", 6, ("method sources", "prior art"))]
+    r = graphrag.retrieve(ents, low=["vision.md"], high=["prior art"])
+    assert set(r["matched"]) == {"vision", "henri"}          # low by name; high by the relation's keyword
+    assert r["hop"] == 1 and "Toyota Production System" in r["context"]   # one hop from henri reaches tps
+    assert "unrelated" not in r["context"] and r["relations"] == 2
+    assert "(`a`)" in r["context"]                            # every line carries its document
+
+
+def test_cited_paths_is_the_tree_and_not_the_answer():
+    ok, bad = graphrag.cited_paths("See `doc/method.md`, `card:online.md`, `doc/nothing-here.md` and `tools/graphrag.py`; also `F169`.")
+    assert ok == ["doc/method.md", "card:online.md", "tools/graphrag.py"]
+    assert bad == ["doc/nothing-here.md"]
+
+
+def test_a_system_prompt_is_part_of_the_cache_key_and_the_default_keeps_the_old_keys():
+    a = graphrag.cache_path_for("haiku", "q")
+    assert a == graphrag.cache_path_for("haiku", "q", system=graphrag.SYSTEM)
+    assert a != graphrag.cache_path_for("haiku", "q", system=graphrag.KEYWORDS_SYSTEM)
+
+
+def test_the_graph_never_reads_its_own_answers():
+    assert not [d for d in graphrag.documents() if "/graphrag-global/" in d or "/graphrag-pilot/" in d]
+
+
+def test_uncited_sentences_counts_claims_and_not_headings():
+    text = "## Heading\nThe keeper is Henri, see `keeper.md`. This sentence makes a claim with no citation at all.\n*a footer line*\nShort one."
+    assert graphrag.uncited_sentences(text) == 1
+
+
+def test_an_answer_cites_a_card_by_id_never_by_shelf():
+    shelf = "board/"                                          # spelled at run time: the citation gate reads this file too
+    text = f"see `{shelf}gui-is-difficult.md`, `{shelf}done/peep-window.md`, `{shelf}README.md` and `doc/method.md`"
+    assert graphrag.card_ids(text) == f"see `card:gui-is-difficult.md`, `card:peep-window.md`, `{shelf}README.md` and `doc/method.md`"

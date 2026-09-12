@@ -385,6 +385,28 @@ the shape of both:
 His prediction above said 1 and 2 would produce something real.  On
 the session's reading, each produced one.
 
+**Item 3 ran — 2026-09-12, the same morning.**  Henri: *"ok. lets
+proceed, what do we have next?"*  The sheet first,
+`doc/trial/graphrag-global.md`, passed `tools/prereg.sh` before a
+call; then `query`, LightRAG's shape in the tool — Haiku turns the
+question into keywords at two levels, the specific ones matched to
+entity names and the themes to the keywords on relations, one hop,
+and one Sonnet call over a context cut at 40,000 characters, every
+line of which carries its document; the tool prints and never
+writes, the shell put the three answers under
+`doc/trial/graphrag-global/`.  The mechanical half is on the sheet:
+32 of 32 citations resolve, two to four sentences per answer carry
+none, under $0.10 and under a minute each against an afternoon by
+hand.  Three findings about the tool before any reading of quality,
+all on the sheet: on the neighbours question **the store knew and the
+query did not find** — the five prior-art names are in the store,
+and a ranking by document count cut them out under 514 matched
+entities; the keyword step does not know the tree's vocabulary; and
+the first answer cited a card by shelf path, which the citation gate
+refused, so the tool now rewrites shelf paths to ids.  **The decision
+line waits on his reading** of the three files against the two hand
+answers, and nothing was tuned before it.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

@@ -13,6 +13,7 @@
     python tools/graphrag.py entities [--top N] [--type T]    the entities most documents name
     python tools/graphrag.py subjects              item 1: well-cited subjects nothing in the tree titles — no model
     python tools/graphrag.py contradictions        item 2: numbers about one subject that disagree across documents — no model
+    python tools/graphrag.py query "<question>"    the global search, LightRAG's shape: two calls, printed, never written
 
 `card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`,
 `lookup` and `entities`.  What follows is `query`, the dual-level
@@ -182,26 +183,27 @@ def cache_dir() -> Path:
     return home / "gestate" / "graphrag"
 
 
-def cache_path_for(model_key: str, text: str, max_tokens: int = MAX_TOKENS) -> Path:
+def cache_path_for(model_key: str, text: str, max_tokens: int = MAX_TOKENS, system: str = SYSTEM) -> Path:
     """Where one call's reply lives: model, prompt version, ceiling and
     the text itself key it — not the backend, so a reply made on the
     API is found by a run on the CLI and the other way round — and a
     changed file or a changed prompt is a fresh call and nothing else is."""
-    key = hashlib.sha1(f"{MODELS[model_key]}\n{PROMPT_VERSION}\n{max_tokens}\n{SYSTEM}\n{text}".encode()).hexdigest()
+    key = hashlib.sha1(f"{MODELS[model_key]}\n{PROMPT_VERSION}\n{max_tokens}\n{system}\n{text}".encode()).hexdigest()
     return cache_dir() / model_key / f"{key}.json"
 
 
-def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api") -> dict:
-    """One extraction call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`."""
+def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api", system: str = SYSTEM) -> dict:
+    """One call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`.
+    `system` is the extraction prompt unless the caller is `query`."""
     model = MODELS[model_key]
     params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
-    cp = cache_path_for(model_key, text, max_tokens)
+    cp = cache_path_for(model_key, text, max_tokens, system)
     if cp.exists():
         out = json.loads(cp.read_text(encoding="utf-8"))
         out["cached"] = True
         return out
     if backend == "cli":
-        out = {**_call_cli(model_key, text), "backend": "cli"}
+        out = {**_call_cli(model_key, text, system), "backend": "cli"}
         cp.parent.mkdir(parents=True, exist_ok=True)
         cp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
         return out
@@ -212,7 +214,7 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str =
         "model": model,
         "max_tokens": max_tokens,
         **params,
-        "system": SYSTEM,
+        "system": system,
         "messages": [{"role": "user", "content": text}],
     }
     req = urllib.request.Request(
@@ -229,7 +231,7 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str =
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:500]
         if e.code in (429, 529, 500, 502, 503) and _retries_left(model_key, text):
-            return call(model_key, text, max_tokens, backend)
+            return call(model_key, text, max_tokens, backend, system)
         sys.exit(f"graphrag: {model} returned HTTP {e.code}: {detail}")
     out = {
         "model": resp.get("model", model),
@@ -261,13 +263,13 @@ def _retries_left(model_key: str, text: str) -> bool:
     return True
 
 
-def _call_cli(model_key: str, text: str) -> dict:
+def _call_cli(model_key: str, text: str, system: str = SYSTEM) -> dict:
     """`claude -p`, headless, the API key unset so the subscription pays,
     no tools, our system prompt in place of the CLI's own."""
     import subprocess
     env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
     cmd = ["claude", "-p", "--model", model_key, "--output-format", "json",
-           "--no-session-persistence", "--tools", "", "--system-prompt", SYSTEM,
+           "--no-session-persistence", "--tools", "", "--system-prompt", system,
            "--effort", CLI_PARAMS["effort"]]
     #: **Run it outside the project.**  A headless `claude -p` started in
     #: this checkout inherits `.claude/settings.json`'s hooks, and on
@@ -420,7 +422,9 @@ def documents() -> list[str]:
             rel = p.relative_to(ROOT).as_posix()
             if any(part in SKIP_DIRS for part in p.parts):
                 continue
-            if rel.startswith(GRAPH_DIR) or "/graphrag-pilot/" in rel:
+            #: The graph never reads its own outputs: the pilot's, and the
+            #: query's answers kept as trial artefacts (2026-09-12).
+            if rel.startswith(GRAPH_DIR) or "/graphrag-pilot/" in rel or "/graphrag-global/" in rel:
                 continue
             out.append(rel)
     return out
@@ -669,7 +673,8 @@ def merged(store: dict) -> dict[str, dict]:
             a, b = norm(str(r.get("source", ""))), norm(str(r.get("target", "")))
             for side, other in ((a, b), (b, a)):
                 if side in ents:
-                    ents[side]["relations"].append((rec["file"], other, r.get("description", ""), r.get("strength")))
+                    ents[side]["relations"].append((rec["file"], other, r.get("description", ""), r.get("strength"),
+                                                    tuple(r.get("keywords") or ())))
     return ents
 
 
@@ -692,7 +697,7 @@ def lookup(name: str, arm: str, limit: int) -> int:
             print(f"   {f}: {d[:160]}")
         rels = sorted(m["relations"], key=lambda r: -(r[3] or 0))
         seen = set()
-        for f, other, d, st in rels:
+        for f, other, d, st, _kw in rels:
             if other in seen:
                 continue
             seen.add(other)
@@ -849,6 +854,162 @@ def contradictions(arm: str, min_docs: int, top: int) -> int:
     return 0
 
 
+# --- the query: LightRAG's dual-level retrieval, one hop, one answer ------
+
+KEYWORDS_SYSTEM = """You turn a question about a software project's repository into search keywords for a knowledge graph.
+Return ONLY a JSON object: {"low": ["..."], "high": ["..."]}.
+- "low": the specific things the question names or clearly refers to — files, people, tools, rules, defect numbers, named concepts — as they would be written in the repository.  Up to 8.
+- "high": the themes the question is about, as one-to-three-word phrases a relation between two things might be tagged with — "working method", "authorship", "prior art".  Up to 8.
+"""
+
+ANSWER_SYSTEM = """You answer a question about a software project's repository from a CONTEXT that is a model's extraction of its documents: entities with descriptions, and relations between them, each tagged with the document it came from.
+Rules:
+- Answer only from the context.  Where the context does not carry what the question needs, say so in one sentence rather than filling in.
+- Every claim cites the document it rests on, as the document's path in backticks, e.g. `doc/method.md` or `card:online.md`.  A sentence with no citation is a sentence the reader will discard.
+- The context is testimony about the documents, not the documents; where two descriptions disagree, say both and cite both.
+- 300 to 700 words, plain prose, headings allowed.
+"""
+
+STOP = set("a an the of in on at to for and or is are was were be by with from as it its this that these those which what who how does do did not no into over under about".split())
+
+
+def tokens_of(text: str) -> set[str]:
+    return {w.rstrip("s") for w in re.findall(r"[a-z0-9][\w./-]*", text.lower()) if w not in STOP and len(w) > 2}
+
+
+def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_chars: int = 40_000) -> dict:
+    """The dual-level match, no model.  Low keywords to entity names (normalised,
+    exact first, then containment); high keywords to the keywords on relations by
+    shared token; then one hop from every matched entity.  Returns the context text
+    and the counts.  Entities are ranked by how many documents name them,
+    relations by strength, and the context is cut at `budget_chars`."""
+    hit_ents: dict[str, str] = {}                                   # key -> why
+    for kw in low:
+        k = norm(kw)
+        if not k:
+            continue
+        if k in ents:
+            hit_ents.setdefault(k, f"low:{kw}")
+            continue
+        for cand in sorted((c for c in ents if len(k) > 3 and (k in c or c in k)), key=lambda c: -len(ents[c]["docs"]))[:3]:
+            hit_ents.setdefault(cand, f"low:{kw}")
+    high_tokens = set().union(*(tokens_of(h) for h in high)) if high else set()
+    hit_rels: list[tuple[int, str, str, str, str]] = []             # (strength, file, a, b, desc)
+    seen_rel = set()
+    for key, m in ents.items():
+        for f, other, d, st, kw in m["relations"]:
+            if not kw or not (high_tokens & set().union(*(tokens_of(x) for x in kw))):
+                continue
+            sig = (f, min(key, other), max(key, other))
+            if sig in seen_rel:
+                continue
+            seen_rel.add(sig)
+            hit_rels.append((int(st or 0), f, key, other, d))
+            hit_ents.setdefault(key, f"high:{','.join(kw)}")
+    hit_rels.sort(key=lambda r: -r[0])
+    hop: dict[str, str] = {}
+    for key in list(hit_ents):
+        for f, other, d, st, kw in sorted(ents[key]["relations"], key=lambda r: -(r[3] or 0))[:12]:
+            if other in ents and other not in hit_ents:
+                hop.setdefault(other, f"hop:{key}")
+            sig = (f, min(key, other), max(key, other))
+            if sig not in seen_rel:
+                seen_rel.add(sig)
+                hit_rels.append((int(st or 0), f, key, other, d))
+    lines = ["## Entities"]
+    ranked = sorted(list(hit_ents) + list(hop), key=lambda k: -len(ents[k]["docs"]))
+    for key in ranked:
+        m = ents[key]
+        name = m["names"].most_common(1)[0][0]
+        t = m["types"].most_common(1)[0][0] if m["types"] else "?"
+        lines.append(f"- **{name}** [{t}] — in {len(m['docs'])} documents")
+        for f, d in m["descriptions"][:3]:
+            lines.append(f"    - {d.strip()}  (`{f}`)")
+    lines.append("\n## Relations")
+    hit_rels.sort(key=lambda r: -r[0])
+    for st, f, a, b, d in hit_rels:
+        na = ents[a]["names"].most_common(1)[0][0] if a in ents else a
+        nb = ents[b]["names"].most_common(1)[0][0] if b in ents else b
+        lines.append(f"- {na} → {nb} ({st}): {d.strip()}  (`{f}`)")
+    text = "\n".join(lines)
+    cut = len(text) > budget_chars
+    return {"context": text[:budget_chars], "entities": len(hit_ents), "hop": len(hop),
+            "relations": len(hit_rels), "cut": cut, "matched": hit_ents}
+
+
+def card_ids(text: str) -> str:
+    """A card cited by its shelf path becomes its id — the tree's own rule
+    (`board/README.md` §"How a card is cited"), which `test_citations.py`
+    refused on the first trial answer (2026-09-12): the store carries
+    shelf paths, and the answer copied one."""
+    return re.sub(r"`board/(?:done/|later/|refused/)?([\w.-]+\.md)`",
+                  lambda m: "`card:%s`" % m.group(1) if m.group(1) != "README.md" else m.group(0), text)
+
+
+def cited_paths(answer: str) -> tuple[list[str], list[str]]:
+    """`(resolving, not resolving)` — every backticked path or card id in
+    the answer, checked against the tree.  The mechanical judge."""
+    ok, bad = [], []
+    for c in dict.fromkeys(re.findall(r"`([^`\n]+)`", answer)):
+        c = c.strip()
+        if c.startswith("card:"):
+            hit = any((ROOT / shelf / c[5:]).exists() for shelf in SHELVES)
+        else:
+            hit = "/" in c or c.endswith(".md") or c.endswith(".py")
+            hit = hit and (ROOT / c.split("#")[0].split("§")[0].strip()).exists()
+        if hit:
+            ok.append(c)
+        elif c.endswith(".md") or c.startswith("card:") or "/" in c:
+            bad.append(c)
+    return ok, bad
+
+
+def uncited_sentences(answer: str) -> int:
+    """Sentences of the answer with no backticked citation — headings,
+    the closing line and fragments under six words not counted.  The
+    sheet's *a claim with no citation is counted too*."""
+    n = 0
+    for para in answer.split("\n"):
+        para = para.strip()
+        if not para or para.startswith("#") or para.startswith("*") or para.startswith("---"):
+            continue
+        for sent in re.split(r"(?<=[.!?])\s+", para):
+            if len(sent.split()) >= 6 and "`" not in sent:
+                n += 1
+    return n
+
+
+def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: str, budget_chars: int) -> int:
+    """The global question: keywords, retrieve, answer, count the citations.
+    Prints; never writes into the tree — a person redirects it if a trial
+    wants the artefact."""
+    store = load_store(arm)
+    ents = merged(store)
+    r1 = call(keywords_arm, question, max_tokens=1024, backend=backend, system=KEYWORDS_SYSTEM)
+    kw = parse(r1["text"])
+    low = [str(x) for x in kw.get("low", []) if str(x).strip()]
+    high = [str(x) for x in kw.get("high", []) if str(x).strip()]
+    ret = retrieve(ents, low, high, budget_chars)
+    prompt = f"QUESTION: {question}\n\nCONTEXT:\n{ret['context']}"
+    r2 = call(answer_arm, prompt, max_tokens=4096, backend=backend, system=ANSWER_SYSTEM)
+    answer = card_ids(r2["text"].strip())
+    ok, bad = cited_paths(answer)
+    spent = cost(keywords_arm, r1["usage"]) + cost(answer_arm, r2["usage"])
+    print("*This is a model's reading of a model's extraction of the tree — testimony, not evidence.  "
+          "`card:graphrag-c.md`.*\n")
+    print(f"**Question:** {question}\n")
+    print(f"*keywords ({MODELS[keywords_arm]}): low {low}; high {high}*  ")
+    print(f"*retrieved: {ret['entities']} entities matched + {ret['hop']} by one hop, {ret['relations']} relations, "
+          f"{len(ret['context'])} chars{' (cut)' if ret['cut'] else ''}; answer by {MODELS[answer_arm]}; "
+          f"{r1['usage'].get('input_tokens', 0) + r2['usage'].get('input_tokens', 0)} in, "
+          f"{r1['usage'].get('output_tokens', 0) + r2['usage'].get('output_tokens', 0)} out, ${spent:.3f} at assumed prices*\n")
+    print(answer)
+    print(f"\n---\n*citations: {len(ok)} resolve, {len(bad)} do not"
+          + (f" — {', '.join(bad)}" if bad else "")
+          + f"; {uncited_sentences(answer)} sentence(s) with no citation*")
+    return 0
+
+
 # --- the door ----------------------------------------------------------------
 
 def intruders(index: dict) -> list[tuple[str, int, str]]:
@@ -1000,6 +1161,13 @@ def main(argv=None) -> int:
     cd.add_argument("--arm", default="haiku", choices=list(MODELS))
     cd.add_argument("--min-docs", type=int, default=2)
     cd.add_argument("--top", type=int, default=40)
+    q = sub.add_parser("query", help="a global question to the graph: keywords, two-level match, one hop, one answer")
+    q.add_argument("question")
+    q.add_argument("--arm", default="haiku", choices=list(MODELS), help="whose extraction")
+    q.add_argument("--keywords-arm", default="haiku", choices=list(MODELS))
+    q.add_argument("--answer-arm", default="sonnet", choices=list(MODELS))
+    q.add_argument("--backend", choices=BACKENDS, default="api")
+    q.add_argument("--budget-chars", type=int, default=40_000, help="context size handed to the answer call")
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check(a.arm)
@@ -1016,6 +1184,8 @@ def main(argv=None) -> int:
         return subjects(a.arm, a.min_docs)
     if a.cmd == "contradictions":
         return contradictions(a.arm, a.min_docs, a.top)
+    if a.cmd == "query":
+        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
