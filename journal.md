@@ -3016,3 +3016,137 @@ as his own profile, and said the tree mirrors its author, which the
 tree already knew and had written down with its counter beside it.
 
 About $12.50 of the $14, and the rest of the day at his father's.
+
+## Four questions about the language, and a grid that needed a person to try it — 2026-09-12
+
+He came back in the evening with a question about the tree rather than
+about a task: *"right now part of the note-editor is drawn with .ges
+script and part of it is written in python.  Is that true?  How much
+and which things are done in which?"*  It is true, and the shape of it
+is that about a thousand lines of `.ges` draw — `roll.ges` and
+`gui.ges`, hand-written — while ten thousand lines of Python decide
+and *generate*: `scorebox.py` writes each box's program, `session.py`
+turns a press into a command, the model and the selection live outside
+the program because a gestate value dies at a rebuild, which `.desk`
+had to solve for knobs in August.  Rust walks the picture and reports a
+name and a fraction.  The interpreter runs the picture; only the sound
+goes through LLVM.
+
+**Then: does the GUI use the executable statecharts?**  In part, and
+the part is exact — four run: `transport.ges`, `hands.ges`,
+`gesture.ges` for the ruler, `hand.ges` for the roll's pad.  One host
+compiles each once and steps it in twenty to a hundred microseconds.
+What is not a chart is the geometry, the double-click clock and the
+tempo taps, by the rule the ruler taught in September: *the chart holds
+the time, the host holds the geometry.*
+
+**And then the question the day turned on:** *"what kind of innovation
+would be required that the whole notes -GUI could be written in a
+single .ges -file?"*  The answer, written into
+`card:gui-is-difficult.md` at his ask as a reading and not a slice: no
+language features, three host seams.  The document read as
+`Sig (Set Note)` with assert and retract as acts a host applies; the
+verbs as pure functions to act lists, refusals included; and a touch
+that carries a fact's key, which is his own hard thing four removed
+outright.  Two smaller ones, a clock channel and text measurement, and
+one risk that is a decision rather than a build — the score streamed
+from the document instead of recompiled.  The strongest reason to want
+it is that `document` and `perform` are exactly the imports such a
+program would declare as a wasm module, so the single file is also the
+shape of the browser tab.  The honest objection is that layout is
+untouched: nothing in a set of notes says piano roll rather than staff.
+**His call was to sequence it:** *"I think I want to see how gex sheets
+would be implemented before we move onto this."*
+
+**The graph's own measure, asked and answered plainly.**  He remembered
+there was one.  Read at the time of asking: `backlinks --earned` 174 of
+760 fires followed, 24%, over fourteen days; the graph cue **0 of 5**
+and the commit lamp **0 of 7**; and the count that settles the card —
+finds written into the tree with the graph as the finder — **zero**.
+Both graph logs were a day old, which is the whole of what those zeros
+meant.
+
+**And the day's own work moved one of them**, which he checked himself
+at the close: *"it seems it has about same rate as backlinks had, maybe
+a bit lighter.  too little data to conclude anything right yet."*  By
+then the lamp was **3 of 15, 20%**, against backlinks' 23% — his
+reading, and the numbers agree with it.  The cue was **0 of 11** and
+had only grown its denominator, which is what a session reading files
+all evening does to it.  The floor was set before the tool was built
+and it is the same floor backlinks was held to; fifteen fires is not
+yet a denominator that can carry a verdict either way.
+
+**The sheet came off the shelf, and he named the challenge before I
+did:** *"I think they have one challenge prep for us: they need a
+textbox or text input."*  Three readings went to him — the file's own
+text view, the window's one line editor, or a monospaced `Text` in the
+substrate — and he took the middle one and the cheap first client:
+*"B.  yes.  .notes as the first grid."*  The substrate's refusal of a
+text editor turns out narrower than its sentence: it withdrew because
+the language cannot measure text, and both hosts already agree on a
+monospaced cell, which is the arithmetic that admits a label.  Then
+*"begin.  This looks like a good situation."*
+
+**Built in two slices.**  `grid.ges` is the drawing, a library from the
+first day because `roll.ges` paid for that lesson the other way round;
+`gridbox.py` writes only what differs per file, so the program is
+byte-identical across a value edit and the rows cross as a reading.
+`field <region> <key> <name> <value>` sets one field of one record by
+its key through the document's own parser, and a press on a cell names
+the line and the field.  The second slice was supposed to be the one
+thing touching the window, and it was **already built**, for
+`complete`: `Order::Ask` opens the palette on a named command with
+arguments given, `fill` puts text in the box.  So the press asks for
+the value with the cell's own in it and Return is the edit.  Twelve
+tests, the drawn-scores suite unchanged, the gates green.
+
+**And then he typed it.**  *"It just shows 'grid - it will appear when
+it builds' and it doesn't appear.  I tried untitled.notes and
+arc.notes."*  Two defects under that sentence, neither reachable from
+a harness built out of the model.  The first was mine and plain:
+`grid` handed the redraw worker the raw `.notes` buffer, which has no
+`notes` ask and no `substrate` in it, where `redraw` takes the
+*expanded* program — invisible because a `.ges` buffer is its own
+program and `transpose`'s call reads the same either way.  The second
+was the window's and older than the grid: `ged_set_readings` replaced
+its held text on every send while the window reads once a frame, so a
+rows trace sent between two `position` readings, two milliseconds
+apart, was overwritten before the look.  The roll's rows had been
+running that race since slice 3 of `card:notes-editor.md` and winning
+it on size.  The box appends now and the window drains it.
+
+**What found it was not a test.**  It was `tools/driven.py` on an
+`Xvfb :99` of the bench's own, a copy of the file, `Ctrl-K grid
+Return`, and a photograph every few seconds: three rows drew,
+ninety-six drew the head alone, the Rust walker handed that same
+payload and trace in a test drew 1,747 items in 81 ms with no fault,
+and with the transport *stopped first* the ninety-six drew.  That
+bracket named the mechanism.  The card had said a driven run *takes
+his screen and is his to call*; it takes the bench's display and is a
+session's to run before anyone says built, and that correction went
+into `doc/memory/test-what-a-person-would-do.md`.
+
+**The run meant to witness the repair found a third defect instead.**
+With the clock going on a page that also has a grid, the model process
+dies: `ReactiveError — a signal may only depend on ones allocated
+before it`.  The grid's program is appended to the page's and shares
+its machine, so a playhead write steps a reactive whose sweep order the
+grid's signals violate; the four earlier runs missed it because a
+stopped transport writes no playhead, which is the case that drew.
+`fixme.md` **F227**, with the traceback and the suspected repair — the
+grid should be its own `Substrate`, being a different picture of the
+same file and not a box of the page — not taken at the close of a
+sitting, because every claim about it needs the driven run again.
+
+**So F226's second half is compiled and has no witness**, and the word
+*resolved* came off it before the commit.  Its two Rust tests have
+never run: the `cargo test` was still building when the sitting ended.
+He read the day's report as a fix — *"you fixed the issue"* — which is
+what my own report had claimed, and the claim was a step ahead of the
+evidence; the ledger now says which half has a mechanism, which has a
+repair, and which has neither.  **Compiled and loaded is not
+witnessed.**
+
+He overslept, came back on a different model to close, and said it had
+been a great day.  Three commits, the tree clean, and the first sheet
+draws.
