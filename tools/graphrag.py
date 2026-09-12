@@ -435,7 +435,7 @@ def documents() -> list[str]:
                 continue
             #: The graph never reads its own outputs: the pilot's, and the
             #: query's answers kept as trial artefacts (2026-09-12).
-            if rel.startswith(GRAPH_DIR) or any(x in rel for x in ("/graphrag-pilot/", "/graphrag-global/", "/graphrag-ranking/", "/graphrag-keywords/", "/graphrag-hubs/", "/graphrag-themes/")):
+            if rel.startswith(GRAPH_DIR) or "/graphrag-" in rel:      # the pilot's outputs and every trial's answers: the graph never reads its own
                 continue
             out.append(rel)
     return out

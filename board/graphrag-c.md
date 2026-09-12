@@ -535,6 +535,29 @@ answers, written first — a change to the sheet, not the tool, and
 written down before it so it cannot be read as chosen after.
 About **$11.50 of the $14** spent in all.
 
+**The sixth sheet ran — three new questions, judged by their hand
+answers.**  Henri: *"ok. do the sixth sheet.  I think the B answers
+seemed slightly better than the A answers.  Though, it depended on
+what was asked."*  `doc/trial/graphrag-hand.md`: the three earlier
+questions could not be re-judged, their arms' answers already
+existing, so three notes pages became the hand answers — drift,
+secretion, reviews — and the two surviving retrievals were put to
+them.  Each arm won one and they tied one; the line asked for a
+winner; **not decided**.  What the run found: neither arm reached
+the secretion page or the reviews page, because the vocabulary
+prompt made the keyword step prefer the tree's most-cited names over
+the question's own rare word — *secretion* is in no top-150 list,
+and rare is what made it the right keyword.  The seventh sheet
+would keep the question's own words beside the vocabulary; the
+hand-answer judge is kept.  **Six sheets in one day**, every one
+read as written, none decided, and the map of the query is now
+drawn: the split budget is needed or no relation reaches the answer;
+rarity in the theme channel gives the richest specific answer;
+vocabulary wins a question in the tree's words and loses one in its
+own; the store holds what every question needed.  The defaults are
+still the first morning's, and changing them is one word of his over
+the sheets' lines, recorded as such.  About **$12 of the $14** spent.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
