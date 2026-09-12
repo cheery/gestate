@@ -324,6 +324,15 @@ against it: `card:backlinks.md` was the same shape — built on a
 `because` in a session's own words, proved by a lamp that counted
 use, and the first evening's count was the number that settled it.
 
+**The first reading, against the prediction — 2026-09-12, at chunk
+357 of 535, the api run still going.**  Henri, having tried `lookup`
+and `entities` on the half-built store while it ran: *"It feels like
+some sort of brains at this point, or what I imagine brains would be.
+It may very well be that this was worth it."*  Recorded here as what
+a first look felt like, beside his prediction above; what settles it
+is still the count the plan names — finds written into the tree with
+the graph as the finder — and that count is zero until the first one.
+
 **The loop, said aloud.**  A session judging the graph's answers is a
 product of the same tree and of the same model family as the
 extractor.  So in 3 the judge is Henri's blind reading and the
