@@ -675,6 +675,19 @@ about 1,500 lines with its tests and reversible by construction, as
 the card said on day one; a tree that wants it copies the file on
 the day it meets the trigger, and no earlier.
 
+*The second question in use, his, the same night: "What are the
+major emotions the tree holds?"  The graph answered thin — Henri's
+care that the tree withers, one anger in `spec/firstpiece.md`, the
+vision's longing — and misread "the fire" as heat where it is the
+keeper's evening.  The limit is the extraction's, not the retrieval's:
+the prompt asks for the entities and relations of a software project,
+and an emotion is neither, so the store has no tag for it and the
+keyword *sentiment* matched nothing.  A grep for the plain words finds
+what the graph did not — doubt in 24 files, trust in 29, guilt and
+shame in the defect-is-a-caller memory, grief in the guests page,
+gratitude in the horizontal one.  Written here as the first found
+limit of the store, and a `see` for any later prompt version.*
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
