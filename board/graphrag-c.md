@@ -21,6 +21,8 @@
              self-referential
              doc/memory/the-evaluation-loop.md — why nothing the graph says
              is evidence
+             arXiv 2410.05779 — LightRAG (Guo, Xia, Yu, Ao, Huang, 2024),
+             the shape the query layer takes since 2026-09-12
 
 ## What this is, what it is not, and when it runs
 
@@ -95,17 +97,21 @@ go below when it ends.
    Code (`gestate/`, `test/`, `shell/`) is left out on day one: the
    atlas already maps it by subject and it is more than half the
    tokens.
-2. **`communities`** — over the entity graph, reusing
-   `tools/communities.py`'s Louvain, levels exposed.
-3. **`summarise`** — one page per community per level under
-   `doc/graph/`, stamped with commit and model, regenerated when the
-   community's members change; a lamp, not a gate, says when a page is
-   behind.
-4. **`query`** — the global search: map over the summaries, reduce
-   once; the answer is printed with the sentence *this is a model's
-   reading of a model's summaries* on it, and is never written into
-   the tree by the tool.  **Decided to be built and tried, 2026-09-11,
-   by him** — see the plan's order above.
+2. ~~**`communities`**~~ and 3. ~~**`summarise`**~~ — *struck
+   2026-09-12*, §"LightRAG instead of summaries" below.  Communities
+   were there to be summarised; with no summaries nothing on the build
+   path needs them, and `tools/communities.py` stays what it was, a
+   lamp over the citation graph.
+4. **`query`** — the global search, in LightRAG's shape: one small
+   call turns the question into keywords at two levels, the specific
+   ones matched to entity names, the abstract ones to the keywords on
+   relations; one hop of neighbours; one generation call over the
+   matched descriptions, each pointing at its document.  The answer is
+   printed with the sentence *this is a model's reading of a model's
+   extraction* on it, and is never written into the tree by the tool.
+   **Decided to be built and tried, 2026-09-11, by him** — see the
+   plan's order above; the shape changed on 2026-09-12, the reasons
+   did not.
 
 ## The first run was stopped by the sitting limit, and the tool cached the stop — 2026-09-11, 21:01
 
@@ -129,6 +135,93 @@ cache by hand; 71 real extractions stand, 462 remain for tomorrow.
 *The sitting limit did what it is for — a person's hours are the
 person's — and it is the mechanism that stopped a batch job nobody
 had told it about.  `doc/memory/headless-claude-inherits-the-hooks.md`.*
+
+## LightRAG instead of summaries — 2026-09-12
+
+**Henri, the morning after the first run stopped:** *"I have to say
+it's really heavy to initialise.  I wonder whether this paper
+[arXiv 2410.05779] would help us make a lighter solution that's be
+easier to keep up to date."*  And on the session's reading of it:
+*"ok.  Lets do them."*
+
+**What the paper is.**  LightRAG (Guo, Xia, Yu, Ao, Huang, 2024):
+the same extraction as GraphRAG — chunks, one call per chunk, entities
+and relations with descriptions, merged by name — and then it stops.
+No communities, no community summaries, no map-reduce at query time.
+A query is one small call that turns the question into keywords, a
+match of those against entity names (low level) and against keywords
+carried on relations (high level), one hop of neighbours, and one
+generation call over the matched descriptions.  A new document is
+unioned into the graph and nothing is regenerated.  The paper's own
+cost section says the indexing overhead is GraphRAG's; the saving is
+after extraction, and it is structural.
+
+**What it lightens here, and what it does not.**  The heaviness he
+felt is extraction on the CLI backend — 8 k tokens of the CLI's own
+context per call and about 10 k output tokens a chunk, most of it
+thinking — and the paper changes none of that; the backend would
+(the session's estimate for the remaining 486 chunks: about 3 h and
+10 M subscription tokens on the CLI, about 1 h and $8 at assumed
+prices on the API).  What it removes is the one piece of the plan
+that was not incremental: summaries regenerated whenever a
+community's member set moved, and Louvain moves members on every
+rerun, so that lamp would have been lit most weeks.  The tree already
+had the rest of LightRAG without meaning to — the chunk-hash cache is
+its incremental update, `merged()` its deduplication, the entity
+descriptions its profiling, `lookup` its low-level retrieval, the
+chunk-to-file link the pointer a finder needs (and the paper's own
+ablation, *-Origin*, found the original text adds nothing to the
+answer, which suits a graph that is never a source).
+
+**What the paper does not earn.**  Its quality claims are an LLM
+judge scoring answers from the same model, the loop
+`doc/memory/the-evaluation-loop.md` refuses; against GraphRAG the
+overall win rate is 52–54 % on three corpora and 49.6 % on the fourth,
+which is parity.  The cost argument needs no judge.  And the thing
+communities buy that keyword matching cannot is a whole-corpus view:
+*what is this tree* has no keyword to match, and it is one of the
+three questions in the trial below.
+
+**What changed, the same morning, the session's work:**
+
+- The prompt asks for `keywords` on every relation — one to three
+  short phrases at the level a question would use — and
+  `PROMPT_VERSION` is `2026-09-12a`.  Bumped while 49 of 535 chunks
+  were paid for, which is when a bump costs least: the 49 are
+  re-extracted, the per-call cache keeps their old replies, and the
+  old store is set aside as `extract-haiku-cli.2026-09-11a.json`
+  rather than carried, because a record without keywords is not what
+  the prompt now produces.  `test/test_graphrag.py` holds both.
+- Build steps 2 and 3 are struck; `query` is LightRAG's dual-level
+  retrieval.  Keyword matching is string and token matching against
+  a few thousand names until a real question defeats it — Q3's
+  default stands.
+- The trial in the plan's step 3 keeps its sheet, its control and its
+  kill rule; only the arm under test changed.
+
+**The trigger for summaries after all:** the dual-level query fails
+the kill rule on the whole-corpus question specifically.  That is the
+only question communities answer better by construction, and one
+failure there is a reason to build them, not two failures elsewhere.
+
+**The extraction is restarted by him, in his own terminal**, after
+the new prompt was watched to work in the sitting: four chunks on the
+CLI backend, 2026-09-12 morning — `fixme.md` and `README.md` gave 33
+and 36 entities, 0.959 grounded, 60 relations and every one carrying
+one or two theme keywords of the kind asked for (*specification
+compliance*, *native code generation*), no parse error.  The old store
+was set aside as `extract-haiku-cli.2026-09-11a.json` on the first
+call, as designed.  Two numbers from those calls, for the reader who
+restarts it: 112–132 s a call and 16–22 k output tokens for a 12 k-char
+chunk, so the remaining 531 chunks are about four hours at four
+workers and about 10 M output tokens from the subscription pot.  The
+CLI's per-call overhead read 4.4 k tokens on one call and 0 on the
+next where the evening before read 8 k on every call; observed, not
+explained.
+
+    python tools/graphrag.py extract --backend cli --workers 4 2>&1 | tee -a ~/.cache/gestate/graphrag/extract-haiku-cli.log
+    python tools/graphrag.py stop        # finishes the calls in flight and leaves; rerun the same command to continue
+    python tools/graphrag.py check       # how many chunks a run would still call
 
 ## How the graph proves its value — the plan, 2026-09-11
 
@@ -212,11 +305,14 @@ and `PROMPT_VERSION` is bumped by hand for that reason: it is a $30
 decision, not a tidy-up.  A renamed file re-extracts once, because the
 path is in the prompt; the journal's monthly rotation is one such.
 
-**Communities are recomputed, never stored** — seconds, from the
+~~**Communities are recomputed, never stored** — seconds, from the
 store.  **Summaries are regenerated per community when its member set
 changes**: each page under `doc/graph/` carries the commit, the model
 and a hash of its members, and a lamp — not a gate — lists the pages
-whose members have moved since.  **It runs by hand and on a cadence**:
+whose members have moved since.~~  *Struck 2026-09-12: there are no
+summaries to regenerate, which was the point of §"LightRAG instead of
+summaries"; the store is the graph, and a changed chunk changes only
+its own records.*  **It runs by hand and on a cadence**:
 the keeper's evening, `keeper.md`, is the natural place, and never the
 commit hook, because it costs money and minutes.  A page behind its
 members is a lamp lit, the same standing as the atlas's stamp
@@ -229,13 +325,15 @@ stale — what it is not allowed to be is stale without saying so.
    clean and makes a fresh clone pay again; inside makes the extraction
    a committed specimen, several megabytes that rot.  Default: outside,
    and the pages under `doc/graph/` are what is committed.  *Open.*
-2. **Which model for summaries and the reduce step?**  Default: Sonnet,
-   because there is judgment in a summary and forty calls cost about a
-   dollar.  The pilot may change the extraction model, not this.
-   *Open.*
-3. **Embeddings for local search, or backlinks?**  Default: none —
-   backlinks already does the local move deterministically.  *Open,
-   and not before the global query works.*
+2. **Which model for the query's two calls?**  *reframed on 2026-09-12;
+   there is no summary step.*  Default: Haiku for the keyword call, it
+   is a list of phrases; Sonnet for the generation call, because the
+   judgment is there and it is one call a question.  *Open.*
+3. **Embeddings for keyword matching, or strings?**  *reframed on
+   2026-09-12.*  The paper matches through a vector database; the
+   default here is string and token matching against a few thousand
+   names and relation keywords, no embeddings, until a real question
+   in the trial is defeated by a synonym.  *Open, with that trigger.*
 
 ## What would kill it
 

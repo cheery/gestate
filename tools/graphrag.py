@@ -11,9 +11,13 @@
     python tools/graphrag.py lookup <name>         the local read: one entity across every document, its relations, no model
     python tools/graphrag.py entities [--top N]    the entities most documents name
 
-`card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`;
-`communities`, `summarise` and `query` follow in that order, each when
-the one before has earned it.  `extract`'s store is
+`card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`,
+`lookup` and `entities`.  What follows is `query`, the dual-level
+retrieval of LightRAG (Guo et al., arXiv 2410.05779) — keywords from
+the question, matched to entity names and to the keywords on
+relations, one hop, one generation call — in place of communities,
+summaries and a map-reduce over them; Henri's decision 2026-09-12,
+the card's §"LightRAG instead of summaries".  `extract`'s store is
 `~/.cache/gestate/graphrag/extract-<arm>-<backend>.json` — outside the
 tree, the card's Q1 default — one record per chunk, rewritten whole
 at the end of every run from the per-call cache, so a run interrupted
@@ -117,14 +121,18 @@ MAX_CHARS = 24_000
 #: it is printed as TRUNCATED rather than scored as empty.
 MAX_TOKENS = 16_384
 
-PROMPT_VERSION = "2026-09-11a"
+#: A changed prompt re-extracts everything, so the version is bumped by
+#: hand.  2026-09-12a: relations carry `keywords`, the field LightRAG's
+#: high-level retrieval matches a question's themes against; bumped
+#: while 49 of 535 chunks were paid for, which is when it costs least.
+PROMPT_VERSION = "2026-09-12a"
 TYPES = ("person", "session", "document", "tool", "test", "rule", "defect",
          "card", "memory", "concept", "project", "event")
 SYSTEM = f"""You extract a knowledge graph from one document of a software project's repository.
 
 Return ONLY a JSON object, no prose, of the form:
 {{"entities": [{{"name": "...", "type": "...", "description": "..."}}],
- "relations": [{{"source": "...", "target": "...", "description": "...", "strength": 1-10}}]}}
+ "relations": [{{"source": "...", "target": "...", "description": "...", "keywords": ["..."], "strength": 1-10}}]}}
 
 Rules:
 - An entity is something the document names: a person, a tool, a file, a rule, a defect number, a card, a memory, a concept, a project, an event.
@@ -132,6 +140,7 @@ Rules:
 - Use the document's own name for each entity, verbatim where possible (file paths as written, F-numbers as written, people as named).
 - Do not invent entities the document does not mention.
 - A relation joins two entities you listed, with one sentence saying how, and a strength from 1 (mentioned together) to 10 (one defines the other).
+- "keywords" on a relation are one to three short phrases naming the theme the relation is about, at the level a question would use — "testing standard", "commit rights", "audio teardown" — not the entity names again.
 - Descriptions are one or two sentences, in the document's own terms.
 """
 
@@ -321,6 +330,17 @@ def parse(text: str) -> dict:
     return obj
 
 
+def relation(x: dict) -> dict:
+    """A relation as the store keeps it: `keywords` a list of non-empty
+    strings, whatever shape the model gave it — a string, a list, nothing."""
+    kw = x.get("keywords", [])
+    if isinstance(kw, str):
+        kw = [k for k in re.split(r"[,;]", kw)]
+    if not isinstance(kw, list):
+        kw = []
+    return {**x, "keywords": [str(k).strip() for k in kw if str(k).strip()]}
+
+
 def norm(name: str) -> str:
     n = name.strip().lower().strip("`*_\"' ")
     n = re.sub(r"\.md$", "", n)
@@ -406,6 +426,30 @@ def _prompt(rel: str, i: int, n: int, text: str) -> str:
     return f"{where}:\n\n{text}"
 
 
+def seed_records(store_path: Path) -> dict[str, dict]:
+    """The records a run starts from: the store's, when the store was
+    written under this prompt.  A record with no output tokens is a
+    refusal that was once cached as a reply (2026-09-11) and is dropped,
+    so a rerun re-asks for that chunk instead of carrying the hole.  A
+    store from another prompt version is not carried at all (2026-09-12):
+    its records lack what the prompt now asks for, and the per-call cache
+    still holds every reply, so nothing is lost by starting the store
+    over — the old file is renamed beside it, not deleted."""
+    if not store_path.exists():
+        return {}
+    try:
+        store = json.loads(store_path.read_text(encoding="utf-8"))
+        if store.get("prompt") != PROMPT_VERSION:
+            old = store_path.with_name(f"{store_path.stem}.{store.get('prompt') or 'unversioned'}.json")
+            store_path.rename(old)
+            print(f"extract: the store was written under prompt {store.get('prompt')!r}, not {PROMPT_VERSION!r}; "
+                  f"set aside as {old.name} and starting the store over", flush=True)
+            return {}
+        return {r["id"]: r for r in store["records"] if r.get("usage", {}).get("output_tokens", 0) > 0}
+    except (OSError, ValueError, KeyError):
+        return {}
+
+
 def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bool) -> int:
     from concurrent.futures import ThreadPoolExecutor, as_completed
     js = jobs()
@@ -427,16 +471,7 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
     #: 2026-09-11 named the shell and the scheduled kill took that and
     #: not this.
     (cache_dir() / "extract.pid").write_text(f"pid {os.getpid()}\n", encoding="utf-8")
-    records: dict[str, dict] = {}
-    if store_path.exists():
-        try:
-            #: A record with no output tokens is a refusal that was once
-            #: cached as a reply (2026-09-11); it is dropped on load so a
-            #: rerun re-asks for that chunk instead of carrying the hole.
-            records = {r["id"]: r for r in json.loads(store_path.read_text(encoding="utf-8"))["records"]
-                       if r.get("usage", {}).get("output_tokens", 0) > 0}
-        except (OSError, ValueError, KeyError):
-            records = {}
+    records = seed_records(store_path)
     t_start = time.time()
     done_fresh, secs_fresh, in_tok, out_tok = 0, 0.0, 0, 0
     estimate_printed = False
@@ -454,7 +489,7 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
             "entities": [{"name": e["name"], "norm": norm(e["name"]), "type": e.get("type"),
                           "description": e.get("description", ""),
                           "grounded": grounded(e["name"], text)} for e in ents],
-            "relations": [x for x in obj["relations"] if isinstance(x, dict)],
+            "relations": [relation(x) for x in obj["relations"] if isinstance(x, dict)],
         }
 
     def flush():

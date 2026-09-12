@@ -57,3 +57,28 @@ def test_the_pilot_files_exist_and_fit():
         p = graphrag.path_of(rel)
         assert p.exists(), rel
         assert len(p.read_text(encoding="utf-8")) <= graphrag.MAX_CHARS, f"{rel} would be truncated"
+
+
+def test_a_relation_keeps_its_keywords_whatever_shape_the_model_gave():
+    """2026-09-12: the prompt asks for `keywords` on a relation, the field
+    LightRAG's high-level retrieval matches; the store normalises it."""
+    assert "keywords" in graphrag.SYSTEM
+    assert graphrag.relation({"source": "a", "target": "b", "keywords": ["testing standard", " ", "commit rights"]})["keywords"] == ["testing standard", "commit rights"]
+    assert graphrag.relation({"source": "a", "target": "b", "keywords": "audio teardown, sound card"})["keywords"] == ["audio teardown", "sound card"]
+    assert graphrag.relation({"source": "a", "target": "b"})["keywords"] == []
+    assert graphrag.relation({"source": "a", "target": "b", "keywords": 7})["keywords"] == []
+
+
+def test_a_store_from_another_prompt_is_set_aside_and_not_carried(tmp_path):
+    """A record extracted under an older prompt lacks what the prompt now
+    asks for; the run starts its store over and keeps the old file."""
+    import json
+    sp = tmp_path / "extract-haiku-cli.json"
+    rec = {"id": "x.md#0", "usage": {"output_tokens": 5}, "entities": [], "relations": []}
+    hole = {"id": "y.md#0", "usage": {"output_tokens": 0}, "entities": [], "relations": []}
+    sp.write_text(json.dumps({"prompt": "2000-01-01a", "records": [rec]}), encoding="utf-8")
+    assert graphrag.seed_records(sp) == {}
+    assert not sp.exists() and (tmp_path / "extract-haiku-cli.2000-01-01a.json").exists()
+    sp.write_text(json.dumps({"prompt": graphrag.PROMPT_VERSION, "records": [rec, hole]}), encoding="utf-8")
+    assert list(graphrag.seed_records(sp)) == ["x.md#0"]
+    assert graphrag.seed_records(tmp_path / "none.json") == {}

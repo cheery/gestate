@@ -647,7 +647,9 @@ sort by kind.
 ### `tools/graphrag.py` — the subject graph, and the door that keeps it out of the evidence
 
     python tools/graphrag.py pilot            ten files, two models; cached, so a rerun is free
-    python tools/graphrag.py check            nothing outside doc/graph/ cites into it
+    python tools/graphrag.py check            nothing outside doc/graph/ cites into it, and how many chunks a run would call
+    python tools/graphrag.py extract          every document, chunked, one call per chunk, cached by prompt and text
+    python tools/graphrag.py lookup <name>    one entity across every document, no model
 
 `card:graphrag-c.md`: a model's reading of the tree's documents, kept
 in one directory that nothing outside may cite (`test/test_graphrag.py`
@@ -655,7 +657,11 @@ is the gate), because a summary is testimony and a global answer over
 summaries is testimony squared.  **It costs money when run** — the API
 key in the environment, tokens printed with every call, prices assumed
 and labelled so.  The pilot of 2026-09-11 put the extraction pass on
-Haiku: grounded 1.000, a sixth of Sonnet's cost.
+Haiku: grounded 1.000, a sixth of Sonnet's cost.  Since the morning of 2026-09-12 the
+query layer takes LightRAG's shape (arXiv 2410.05779) — no communities,
+no summaries, keywords on relations and one generation call — so
+nothing is regenerated when a document changes; the card's §"LightRAG
+instead of summaries".
 
 ### `tools/covercount.py` — which lines the suite has never run
 
