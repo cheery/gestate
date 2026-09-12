@@ -213,7 +213,10 @@ impl Host for Shared {
         if at == 0 {
             return None;
         }
-        self.readings.lock().ok().map(|t| (at, t.clone()))
+        // **Drained, not copied** — see `ged_set_readings`: what the
+        // host sent since the last look, all of it, and then nothing
+        // until it sends again.
+        self.readings.lock().ok().map(|mut t| (at, std::mem::take(&mut *t)))
     }
 
     fn orders(&self) -> Vec<String> {
@@ -461,9 +464,37 @@ pub unsafe extern "C" fn ged_set_readings(e: *const Editor,
                                           text: *const c_char) {
     let ed = editor!(e, ());
     if let Ok(mut held) = ed.shared.readings.lock() {
-        *held = text_of(text);
+        append_readings(&mut held, &text_of(text));
     }
     ed.shared.heard.fetch_add(1, Ordering::Release);
+}
+
+/// How much unread readings text the mailbox holds before the oldest
+/// lines go — a host that keeps sending to a window that has stopped
+/// looking must not grow it without limit (`gesture_now`'s rule).
+const READINGS_KEPT: usize = 1 << 20;
+
+/// **A mailbox, not a slot** — `fixme.md` F226.  The host sends two
+/// kinds of thing through here: the per-frame facts (`peak`,
+/// `position`) as often as they move, and a live roll's or a grid's
+/// rows as a `trace`, once, when they change.  This used to *replace*
+/// the held text on every send, and the window reads it once a frame —
+/// so a trace sent between two `position` readings, ~2 ms apart, was
+/// overwritten before the window looked, and a grid of 96 rows showed
+/// its head and nothing else (2026-09-12, the first `grid` typed in a
+/// window).  Appended, every send is read; the window's `traces`
+/// coalesce a channel to its newest, so a repeated reading costs one
+/// parse and nothing on screen.
+fn append_readings(held: &mut String, text: &str) {
+    if !held.is_empty() && !held.ends_with('\n') {
+        held.push('\n');
+    }
+    held.push_str(text);
+    if held.len() > READINGS_KEPT {
+        let cut = held.len() - READINGS_KEPT;
+        let at = held[cut..].find('\n').map(|i| cut + i + 1).unwrap_or(cut);
+        held.drain(..at);
+    }
 }
 
 /// Ask the window to do something — see `furniture::Order`.
@@ -518,5 +549,41 @@ pub unsafe extern "C" fn ged_close(e: *mut Editor) {
     // and this waits for the loop to come back.
     if let Some(t) = ed.thread.take() {
         let _ = t.join();
+    }
+}
+
+#[cfg(test)]
+mod mailbox_tests {
+    use super::*;
+
+    /// F226: two sends between two looks are both read, and a look
+    /// empties the box.
+    #[test]
+    fn every_send_between_two_looks_is_read() {
+        let shared = Shared::new(String::new());
+        {
+            let mut held = shared.readings.lock().unwrap();
+            append_readings(&mut held, "trace\trows\t1\t2\t3");
+            append_readings(&mut held, "reading\tposition\t0.5");
+        }
+        shared.heard.fetch_add(2, Ordering::Release);
+        let (at, text) = shared.readings().expect("something arrived");
+        assert_eq!(at, 2);
+        assert_eq!(text, "trace\trows\t1\t2\t3\nreading\tposition\t0.5");
+        let (_, again) = shared.readings().expect("the counter still says so");
+        assert_eq!(again, "", "a look drains the box");
+    }
+
+    /// The box is bounded by whole lines, oldest first.
+    #[test]
+    fn an_unread_box_drops_its_oldest_lines() {
+        let mut held = String::new();
+        let line = "reading\tpeak\t0.123456789";
+        while held.len() <= READINGS_KEPT {
+            append_readings(&mut held, line);
+        }
+        assert!(held.len() <= READINGS_KEPT + line.len() + 1);
+        assert!(held.starts_with("reading\tpeak"), "cut on a line boundary");
+        assert!(held.ends_with(line));
     }
 }

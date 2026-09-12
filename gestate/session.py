@@ -2627,21 +2627,41 @@ class Session:
         if getattr(self.bench, "kind", None) is None:
             return "grid: this file is not a document — a `.notes` opened alone is"
         self.bench.grid_view = True
-        again = getattr(self.bench, "redraw", None)
-        if again is not None:
-            again(self.view.text())
+        self._redraw_document()
         if not self.view.show("canvas"):
             return "this window shows the source only"
         return "grid — it will appear when it builds"
+
+    def _redraw_document(self) -> None:
+        """Rebuild the pictures of the document in the window.
+
+        **`redraw` takes the program, not the buffer** — it hands its
+        text to `_load_substrate`, which reads `notes` asks and a
+        `substrate` off the *expanded* text.  Handed the raw `.notes`
+        buffer it found neither and drew nothing, which is how `grid`
+        said *it will appear when it builds* and nothing appeared
+        (Henri, 2026-09-12, on `arc.notes` and `untitled.notes`).  A
+        `.ges` buffer is its own program, so `transpose`'s call reads
+        the same either way; a document's is the wrapper over it.
+        """
+        again = getattr(self.bench, "redraw", None)
+        if again is None:
+            return
+        text = self.view.text()
+        expand = getattr(self.bench, "program", None)
+        if expand is not None:
+            try:
+                text = expand(text)
+            except Exception:                        # noqa: BLE001
+                pass                       # the build will say why
+        again(text)
 
     def do_roll(self) -> str:
         """Show the document as its roll again."""
         if getattr(self.bench, "kind", None) is None:
             return "roll: this file is not a document"
         self.bench.grid_view = False
-        again = getattr(self.bench, "redraw", None)
-        if again is not None:
-            again(self.view.text())
+        self._redraw_document()
         if not self.view.show("canvas"):
             return "this window shows the source only"
         return "roll — it will appear when it builds"

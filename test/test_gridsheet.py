@@ -335,3 +335,44 @@ def test_a_notes_file_opened_alone_draws_the_grid_when_asked():
     bench.grid_view = False
     bench._load_substrate(bench.program())
     assert not bench.grid_regions and bench.substrate.entry == "substrate"
+
+
+def test_grid_typed_as_a_command_builds_the_grid_in_the_window_view():
+    """**What a person does**: open `arc.notes`, type `grid`.  Henri did,
+    2026-09-12, and got *it will appear when it builds* and nothing —
+    `redraw` had been handed the raw buffer, which has no `notes` ask
+    and no `substrate`, so it drew nothing.  This goes the same road:
+    the real bench, the command, the redraw worker, and then the
+    canvas view's picture is the grid; `roll` puts the page back."""
+    import time
+
+    from gestate.session import Session
+    from test_drawnscores import _opened_alone
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program())
+    assert bench.substrate.entry == "substrate"
+
+    class _Sight(_View):
+        shown = []
+
+        def show(self, what):
+            self.shown.append(what)
+            return True
+
+    seat = Session(bench=bench)
+    seat.view = _Sight(here.read_text())
+    said = seat.do_grid()
+    assert said.startswith("grid")
+    until = time.time() + 60
+    while bench._redraws.busy and time.time() < until:
+        time.sleep(0.05)
+    assert not bench._redraws.busy, "the redraw never finished"
+    assert bench.substrate is not None and bench.substrate.entry == "__grid_0__", said
+    assert "__ng_cell_0__" in bench.grid_regions
+    assert seat.view.shown == ["canvas"]
+    assert seat.do_roll().startswith("roll")
+    until = time.time() + 60
+    while bench._redraws.busy and time.time() < until:
+        time.sleep(0.05)
+    assert bench.substrate.entry == "substrate" and not bench.grid_regions

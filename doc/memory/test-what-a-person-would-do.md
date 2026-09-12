@@ -41,3 +41,15 @@ only symptom was "it doesn't respond".
 
 See [[gestate-editor-latency]] for the same shape in a different key:
 a burst of the *same* character could not reveal a one-behind bug.
+
+**2026-09-12, the grid.** Twelve headless tests green, the suite green,
+and the first `grid` typed in a window showed a head and no rows. Two
+defects, neither reachable by a harness built from the model: `redraw`
+given the wrong text, and a mailbox on the wire that lost a message to
+the next one (`fixme.md` F226). What found the second was
+`tools/driven.py` on `Xvfb :99` — the bench's own display, not his — so
+*the driven run is his to call* was wrong: it is a session's to run
+before saying *built*. And the run that was meant to *witness* the
+repair found a third defect instead (F227), which is the same lesson
+one turn deeper: a fix is not verified until the run that would show
+it has actually run, and *compiled and loaded* is not *witnessed*.

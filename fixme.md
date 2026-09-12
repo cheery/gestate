@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 226 entries, **181 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 228 entries, **181 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7821,6 +7821,101 @@ same defect, with the fields wider — so a zoomed window is the cheapest
 way to reproduce it, which the original entry could not say.
 
 gate: none yet — the photograph is the evidence.
+
+### F227. **[bug]** a grid sharing the page's machine makes the reference reactive refuse a playhead write: *a signal may only depend on ones allocated before it*
+
+Found 2026-09-12, 19:07, by the driven run that was meant to witness
+F226's repair — so the repair still has no witness, and this is why.
+`mid.notes`, 96 notes, `grid` typed, transport running: the *model*
+process dies 25 s in.
+
+    File "gestate/audioeditor.py", line 1768, in observe
+      put(scorebox.PLAYHEAD, ...)
+    File "gestate/reactive.py", line 146, in _require_current
+    ReactiveError: tail of a signal on the earlier heap: it has not
+    been updated yet this step.  Signals are swept in allocation
+    order, so a signal may only depend on ones allocated before it
+
+**Mine, and new.** `audioeditor._load_substrate` appends the grid's
+program to the *page's* text and takes its view from the same
+`Substrate.several` — one machine, one reactive, the grid's signals
+allocated last because its text is appended last. Writing the page's
+`PLAYHEAD` channel then steps a reactive whose sweep order the grid's
+tree violates. Four earlier driven runs did not hit it: three had
+fewer rows or a stopped transport, and a stopped transport writes no
+playhead at all, which is exactly the case that drew.
+
+**The suspected repair, not taken:** the grid is a *different picture
+of the same file*, not a box of the page, so it should be its own
+`Substrate` over its own program rather than an entry appended to the
+page's. That also drops the page's compile from the grid's cost. Not
+done at the close of a sitting, because it changes how the two views
+are built and every claim about it would need the driven run again.
+
+**And it is a lamp on a rule, not only a bug:** `Substrate.several`'s
+docstring says the views *share the machine, which is the honest
+reading of what they are: one program, several pictures.* A picture
+appended after the program was assembled is not that, and nothing
+refused it at the seam — the refusal came from the reactive, at run
+time, in a window.
+
+gate: none. What would be one: the driven run above, and a headless
+test that writes `PLAYHEAD` to a page built with `grid_view` on —
+which the twelve tests of `test_gridsheet.py` never do, because none
+of them plays.
+
+### F226. **[bug]** the readings mailbox on the editor's wire is a slot, so a rows trace sent between two per-frame readings is overwritten before the window looks
+
+Found 2026-09-12 by Henri typing `grid` in a window — *"It just shows
+'grid - it will appear when it builds' and it doesn't appear"* — after
+twelve headless tests and the drawn-scores suite had passed over it.
+Two defects stood under that sentence.  The first was the model's:
+`grid` handed `redraw` the raw `.notes` buffer, which has no `notes`
+ask and no `substrate`, so `_load_substrate` drew nothing; `redraw`
+takes the *expanded* program, as `transpose`'s call on a `.ges` buffer
+happens to be its own.  Repaired in `session._redraw_document`, held
+by `test_gridsheet.py::test_grid_typed_as_a_command_builds_the_grid_in_the_window_view`,
+which goes through the real bench and the redraw worker.
+
+The second was the window's, and it was bracketed by driven runs on the
+bench's own display: a 3-note grid drew, a 96-note grid drew its head
+and no rows, and the Rust walker given the same 96-row payload and trace
+in a test drew 1,747 items in 81 ms with no fault.  So the picture was
+right and the trace never reached the walker.  With the transport
+*stopped first*, the 96-row grid drew — which named the mechanism.
+`ged_set_readings` replaced the held text on every send and the window
+read it once a frame; the loop sends `reading position` every ~2 ms
+while the clock runs and a live roll's or a grid's rows as a `trace`
+once, when they change.  A trace sent between two position readings
+was gone before the window looked.  A small trace won the race by
+timing; the roll's rows had been running the same race since slice 3
+of `card:notes-editor.md`.
+
+Repaired in `shell/editor/src/abi.rs`: the box **appends** on send and
+the window **drains** on read (`append_readings`, `Shared::readings`),
+bounded to a megabyte of unread text by whole lines, oldest first.
+The window's `traces` already coalesce a channel to its newest, so a
+repeated reading costs a parse and nothing on screen.
+
+**What is verified, and what is not** — 2026-09-12, at the close of
+the sitting.  *Verified:* the model's half, by a test through the real
+bench; the mechanism, by the contrast between two driven runs (96 rows
+with the transport stopped drew, with it running drew the head alone)
+and by the Rust walker drawing 1,747 items from that same payload and
+trace in 81 ms with no fault.  *Not verified:* the repair itself.  It
+is compiled into the library the editor loads (md5 `0d80ffd89bb0`,
+16:45), and neither of its two Rust tests has ever been run — the
+`cargo test` was still building when the sitting ended — and the
+driven run that would show 96 rows with the transport running is
+blocked by **F227**, which crashed the model process first.  So this
+entry names a mechanism with evidence and a repair without a witness.
+**The word *resolved* above is therefore too strong for the second
+half**, and it stays as `[bug]` until one of the two runs.
+
+gate: none yet.  Written and unrun: `shell/editor/src/abi.rs::mailbox_tests`
+— two sends between two looks both read, a look drains, the bound cuts
+on a line.  Held for the model's half:
+`test_gridsheet.py::test_grid_typed_as_a_command_builds_the_grid_in_the_window_view`.
 
 ### F225. **[resolved]** a rebuilt walker is not handed the traces the old one had, so a page's notes vanish for ever when an edit changes the program text
 

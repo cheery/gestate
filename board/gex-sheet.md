@@ -378,3 +378,66 @@ is the textbox — and the shape is what made the grep find it.*
    grid, once the note grid has been used on a piece.
 4. **The `.gex` itself** — its schema in the file (§"Added
    2026-09-10"), formulas as derived fields; not before 1.
+
+### What a person did — 2026-09-12, the same evening: two defects under one sentence
+
+**Henri:** *"It just shows 'grid - it will appear when it builds' and
+it doesn't appear.  I tried untitled.notes and arc.notes."*  Twelve
+headless tests and the drawn-scores suite were green over it.  Both
+defects are in `fixme.md` **F226**; the short of it:
+
+1. **The model's.**  `grid` handed `redraw` the raw `.notes` buffer,
+   and `redraw` takes the *expanded* program — the buffer has no
+   `notes` ask and no `substrate`, so nothing drew.  `transpose`'s
+   call on a `.ges` buffer reads the same either way, which is how it
+   went unseen.  `session._redraw_document`, and a test that goes the
+   road a person goes: the real bench, the command, the worker.
+2. **The window's, and older than the grid.**  Driven runs on the
+   bench's own display bracketed it — 3 rows drew, 96 rows drew the
+   head and no rows, the Rust walker given the same payload and trace
+   drew 1,747 items in 81 ms with no fault, and with the transport
+   *stopped first* the 96 rows drew.  The readings mailbox on the
+   wire was a slot: the per-frame `position` reading, every ~2 ms
+   while the clock runs, overwrote a rows trace before the window's
+   once-a-frame look.  The roll's rows had run the same race since
+   `card:notes-editor.md` slice 3 and won it by timing.  The box
+   appends now and the window drains it — `shell/editor/src/abi.rs`,
+   two Rust tests, the build broken on purpose once before it was
+   believed.
+
+**The instrument that found the second one** was not a test: it was
+`tools/driven.py` on `Xvfb :99`, a copy of the file, `Ctrl-K grid
+Return`, and a photograph every few seconds.  The card had said the
+driven run *takes his screen and is his to call*; it takes the
+bench's display and is a session's to run, and the next slice that
+touches the window should run it before saying *built*.
+
+**What the photographs also showed.**  The grid is centred in the
+canvas view like the page, so a long grid opens on its middle rows
+and the head is a scroll away — the top is where a grid opens, and
+that is a small slice for the view.  And the window's first picture
+of 96 rows was painted in 1.9 ms a frame: the Rust number the card
+was waiting for is not the problem; 291 rows are measured below.
+
+**And a third defect, found by the run that was meant to close the
+second — `fixme.md` F227.**  With the transport *running* on a page
+that also has a grid, the model process dies: the grid's program is
+appended to the page's and shares its machine, so a playhead write
+steps a reactive whose sweep order the grid's signals violate.  Four
+earlier runs missed it because a stopped transport writes no playhead
+— the very case that drew.  So **F226's repair is compiled and has no
+witness**: its two Rust tests were still building when the sitting
+ended, and the run that would show 96 rows with the clock going
+crashes first.
+
+*The suspected repair is that the grid should be its own `Substrate`
+over its own program rather than an entry appended to the page's — it
+is a different picture of the same file, not a box of the page — and
+it is not taken here, because it changes how both views are built and
+every claim about it needs the driven run again.*
+
+**So the honest state of this card at the close of 2026-09-12:** the
+grid draws, a press names a cell, `field` edits the file, and the
+palette asks for the value — all of it held by tests and seen in a
+window on three and ninety-six rows with the clock stopped.  What is
+not true yet is *a grid on a piece that is playing*, and that is F227.
