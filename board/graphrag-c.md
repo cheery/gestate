@@ -407,8 +407,14 @@ refused, so the tool now rewrites shelf paths to ids.  **His reading, the
 same morning:** *"These three files graphrag-global seem pretty good
 and spot on."*  On the sheet: *spot on* settles the *invents* half,
 none of three; the *adds* half is settled against the query for q2 by
-its own answer and is his to say for q1 and q3.  Nothing was tuned
-before it.
+its own answer, and for q1 and q3 he read them against the hand
+answers the same morning: *"The graph found a different perspective,
+and maybe some things not apparent in the hands answers.  I think
+they're both valuable."*  **Two of three added, none invented: the
+query stays**, the sheet's decision line taken as written, his
+*maybe* kept.  Nothing was tuned before it.  Next by the plan: item 4,
+the cue at the moment; and a second sheet for the ranking that cut
+the prior-art names out of q2.
 
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`

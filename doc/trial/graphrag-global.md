@@ -131,3 +131,22 @@ settled for q2 by the answer itself — it says the context lacks the
 names — and is his to say for q1 and q3; the sheet does not round
 *pretty good* into it.  Standing as of this line: invents 0 of 3,
 adds 0 of 1 read, two unread.
+
+**His reading of q1 and q3 against the hand answers — 2026-09-12:**
+*"The graph found a different perspective, and maybe some things not
+apparent in the hands answers.  I think they're both valuable."*
+
+**The decision line, taken.**  Adds something the hand answer did not
+find: q1 and q3 by his reading, two of three, with his *maybe* kept
+as written; q2 no, by the answer's own admission.  Invents: none of
+three.  Two of three added and none invented is the sheet's *stays*
+case: **the query layer stays in the tool**, and the card's next step
+is the plan's item 4, the cue at the moment.  What this does not
+decide is the month's count of finds the card names; the sheet said
+so above and it still holds.
+
+**The first thing a second sheet would test** is finding 1 above:
+the store held the prior-art names and the ranking cut them out.
+A ranking that weighs a keyword match above a hub's document count is
+the obvious change, and it is a change to be predicted and measured,
+not made.
