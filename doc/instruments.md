@@ -652,7 +652,7 @@ sort by kind.
     python tools/graphrag.py lookup <name>    one entity across every document, no model
     python tools/graphrag.py subjects         well-cited subjects nothing in the tree titles, no model
     python tools/graphrag.py contradictions   numbers about one subject that disagree across documents, no model
-    python tools/graphrag.py query "<q>"      the global search: two calls, printed, never written
+    python tools/graphrag.py query "<q>"      the global search: two calls on the cli, printed, never written; defaults decided by doc/trial/graphrag-union.md
     python tools/graphrag.py cue <path>       the line the backlinks hook adds for a file, no model
 
 `card:graphrag-c.md`: a model's reading of the tree's documents, kept

@@ -558,6 +558,28 @@ own; the store holds what every question needed.  The defaults are
 still the first morning's, and changing them is one word of his over
 the sheets' lines, recorded as such.  About **$12 of the $14** spent.
 
+**The seventh sheet decided — 2026-09-12, evening.**  Henri: *"ok.
+lets do the seventh sheet."*  `doc/trial/graphrag-union.md`: one
+sentence in the keyword prompt, the question's own specific words
+always kept as low keywords beside the vocabulary's names.  Against
+the sixth sheet's hand answers the arm shared at least as many
+documents as B on three of three — 3 against 1, a tie, 2 against 1 —
+cited the notes page on drift and secretion where B cited one, and
+held the tree question at three; *secretion*, *reviewing guest* and
+*reviewer* were its keywords.  All three conditions of the line held,
+so **`query`'s defaults are now union keywords and the themes ranking
+over the split budget**, the second to sixth sheets' open lines
+close on it, and the earlier settings stay as options and as the
+record.  His reading of invention on the four answers is owed and
+can overturn it.  Under the sheet the checker learned the tree's own
+rule, a unique basename resolves, with the reason on the sheet.
+What the seventh did not fix is on it too: the words reach the door
+and not always the room, and two to six sentences an answer still
+carry no citation.  **Seven sheets in one day, one decided**, and
+about $12.50 of the $14 spent.  What comes before any eighth is the
+month: finds written into the tree with the graph as the finder, and
+the cue's follow count on the backlinks lamp.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

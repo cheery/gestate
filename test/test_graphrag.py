@@ -328,3 +328,22 @@ def test_the_themes_ranking_puts_evidence_before_hubs_and_rare_tags_before_commo
     assert ent_a.find("manifesto.md") < ent_a.find("Rother 2009")               # by count alone the hub still wins — arm A's limit
     rel_themes = themes["context"][themes["context"].find("## Relations"):]
     assert rel_themes.find("rare row 1") < rel_themes.find("common row 0")       # rare tag first
+
+
+def test_the_union_prompt_is_the_vocabulary_prompt_plus_one_sentence():
+    v = (["gestate"], ["working method"])
+    assert graphrag.keywords_system(v, union=True) != graphrag.keywords_system(v)
+    assert graphrag.keywords_system(v, union=True).replace(graphrag.UNION_SENTENCE, "") == graphrag.keywords_system(v)
+    assert "however rare" in graphrag.UNION_SENTENCE
+
+
+def test_a_unique_basename_resolves_as_the_tree_says_and_an_ambiguous_one_does_not():
+    ok, bad = graphrag.cited_paths("see `notes-on-secretion.md` and `README.md` and `no-such-page.md`")
+    assert ok == ["notes-on-secretion.md", "README.md"]         # unique in the tree; the root file by path
+    assert bad == ["no-such-page.md"]
+
+
+def test_the_query_defaults_are_the_seventh_sheets():
+    import inspect
+    sig = inspect.signature(graphrag.query).parameters
+    assert sig["ranking"].default == "themes" and sig["keywords"].default == "union"

@@ -942,7 +942,7 @@ Return ONLY a JSON object: {"low": ["..."], "high": ["..."]}.
 - "high": the themes the question is about, as one-to-three-word phrases a relation between two things might be tagged with — "working method", "authorship", "prior art".  Up to 8.
 """
 
-KEYWORD_MODES = ("bare", "vocab")
+KEYWORD_MODES = ("bare", "vocab", "union")
 VOCAB_ENTITIES, VOCAB_TAGS = 150, 100
 
 
@@ -971,12 +971,20 @@ def vocabulary(ents: dict[str, dict], n_entities: int = VOCAB_ENTITIES, n_tags: 
     return names, [t for t, _n in tags.most_common(n_tags)]
 
 
-def keywords_system(vocab: tuple[list[str], list[str]] | None) -> str:
+#: The seventh sheet's sentence (`doc/trial/graphrag-union.md`): the
+#: sixth found the vocabulary made the step drop *secretion* for six
+#: hub names, and rare is what makes a word the right keyword.
+UNION_SENTENCE = ("Always keep, as low keywords, the question's own specific words — every noun it uses that names a thing, "
+                  "however rare and whether or not a listed name matches it — beside the listed names that fit.\n")
+
+
+def keywords_system(vocab: tuple[list[str], list[str]] | None, union: bool = False) -> str:
     if not vocab:
         return KEYWORDS_SYSTEM
     names, tags = vocab
     return (KEYWORDS_SYSTEM
             + "\nThe repository calls things by its own names.  Prefer these where one fits the question, and use your own words only where none does.\n"
+            + (UNION_SENTENCE if union else "")
             + "Entity names, most-cited first: " + "; ".join(names) + "\n"
             + "Relation tags, most-used first: " + "; ".join(tags) + "\n")
 
@@ -1144,15 +1152,23 @@ def card_ids(text: str) -> str:
 
 def cited_paths(answer: str) -> tuple[list[str], list[str]]:
     """`(resolving, not resolving)` — every backticked path or card id in
-    the answer, checked against the tree.  The mechanical judge."""
+    the answer, checked against the tree.  The mechanical judge.  A bare
+    basename resolves when exactly one document carries it, which is
+    the tree's own rule (`tools/backlinks.py`, *a file named by path or
+    by unique basename*); the seventh sheet's secretion answer cited
+    `notes-on-secretion.md` so and the checker refused it (2026-09-12)."""
     ok, bad = [], []
+    by_base: dict[str, list[str]] = {}
+    for rel in documents():
+        by_base.setdefault(rel.split("/")[-1], []).append(rel)
     for c in dict.fromkeys(re.findall(r"`([^`\n]+)`", answer)):
         c = c.strip()
         if c.startswith("card:"):
             hit = any((ROOT / shelf / c[5:]).exists() for shelf in SHELVES)
         else:
+            bare = c.split("#")[0].split("§")[0].strip()
             hit = "/" in c or c.endswith(".md") or c.endswith(".py")
-            hit = hit and (ROOT / c.split("#")[0].split("§")[0].strip()).exists()
+            hit = hit and ((ROOT / bare).exists() or ("/" not in bare and len(by_base.get(bare, [])) == 1))
         if hit:
             ok.append(c)
         elif c.endswith(".md") or c.startswith("card:") or "/" in c:
@@ -1176,14 +1192,17 @@ def uncited_sentences(answer: str) -> int:
 
 
 def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: str, budget_chars: int,
-          ranking: str = "docs", keywords: str = "bare", hop_from: str = "all") -> int:
+          ranking: str = "themes", keywords: str = "union", hop_from: str = "all") -> int:
     """The global question: keywords, retrieve, answer, count the citations.
     Prints; never writes into the tree — a person redirects it if a trial
-    wants the artefact."""
+    wants the artefact.  The defaults — the union keywords, the themes
+    ranking over the split budget — are the seventh sheet's decision,
+    `doc/trial/graphrag-union.md`, 2026-09-12, the first of seven sheets
+    to decide; the earlier settings stay as options and as the record."""
     store = load_store(arm)
     ents = merged(store)
-    vocab = vocabulary(ents) if keywords == "vocab" else None
-    r1 = call(keywords_arm, question, max_tokens=1024, backend=backend, system=keywords_system(vocab))
+    vocab = vocabulary(ents) if keywords in ("vocab", "union") else None
+    r1 = call(keywords_arm, question, max_tokens=1024, backend=backend, system=keywords_system(vocab, keywords == "union"))
     kw = parse(r1["text"])
     low = [str(x) for x in kw.get("low", []) if str(x).strip()]
     high = [str(x) for x in kw.get("high", []) if str(x).strip()]
@@ -1372,11 +1391,12 @@ def main(argv=None) -> int:
     q.add_argument("--backend", choices=BACKENDS, default="cli",
                    help="cli by default — Henri, 2026-09-12: the api was for bootstrapping; a cached reply is found either way")
     q.add_argument("--budget-chars", type=int, default=40_000, help="context size handed to the answer call")
-    q.add_argument("--keywords", choices=KEYWORD_MODES, default="bare",
-                   help="bare: the question alone; vocab: the store's entity names and relation tags in the prompt — doc/trial/graphrag-keywords.md")
+    q.add_argument("--keywords", choices=KEYWORD_MODES, default="union",
+                   help="bare: the question alone; vocab: the store's entity names and relation tags in the prompt (doc/trial/graphrag-keywords.md); "
+                        "union: vocab and the question's own words always kept (doc/trial/graphrag-union.md)")
     q.add_argument("--hop-from", choices=HOPS, default="all",
                    help="all: every matched entity hops; subjects: a document matched by a low keyword does not — doc/trial/graphrag-hubs.md")
-    q.add_argument("--ranking", choices=RANKINGS, default="docs",
+    q.add_argument("--ranking", choices=RANKINGS, default="themes",
                    help="docs: the first trial's, one list by document count; split: half the budget to relations, matched entities first (doc/trial/graphrag-ranking.md); "
                         "themes-entities: split with theme-reached entities ranked by their tagged relations; themes: that and relations by tag rarity (doc/trial/graphrag-themes.md)")
     a = ap.parse_args(argv)
