@@ -112,3 +112,9 @@ finding, not the answer's.
 
 **His reading of the new q2 against the old and the hand answer** is
 the person's half, and goes below when he gives it.
+
+**His reading, 2026-09-12, mid-morning, of the split answers against
+the old:** *"the split was more informative, but maybe even too
+dense."*  Kept as written: *more informative* is the *adds* half, the
+density is a reading of the answer prompt's length rule and not of
+the ranking, and the *invents* half is still owed.

@@ -256,3 +256,31 @@ def test_the_split_ranking_keeps_relations_in_the_context_and_matched_entities_f
     assert "## Relations" not in docs["context"] and docs["relations_in_context"] == 0
     assert split["relations_in_context"] >= 1 and "neighbours are named here" in split["context"]
     assert split["context"].find("Rother 2009") < split["context"].find("hub")
+
+
+def test_the_cli_judges_a_reply_by_what_the_caller_expects():
+    """An extraction needs an object in the reply; an answer is prose.
+    A refusal — no output tokens — is never a reply either way."""
+    good = {"result": "The keeper is Henri, see `keeper.md`.", "usage": {"output_tokens": 12}}
+    obj = {"result": '{"entities": []}', "usage": {"output_tokens": 5}}
+    hook = {"result": "sitting limit: stop", "usage": {"output_tokens": 0}}
+    assert graphrag.cli_reply_ok(0, good, expect_json=False)
+    assert not graphrag.cli_reply_ok(0, good, expect_json=True)
+    assert graphrag.cli_reply_ok(0, obj, expect_json=True)
+    assert not graphrag.cli_reply_ok(0, hook, expect_json=False)
+    assert not graphrag.cli_reply_ok(1, good, expect_json=False)
+    assert not graphrag.cli_reply_ok(0, {**good, "is_error": True}, expect_json=False)
+
+
+def test_the_vocabulary_is_the_stores_names_and_tags_most_cited_first_without_dates():
+    ents = {
+        "gestate": _ent(["gestate"], ["project"], list("abcdefgh"), []),
+        "2026-09-12": _ent(["2026-09-12"], ["event"], list("abcdefghij"), []),
+        "keeper": _ent(["keeper.md"], ["document"], list("abc"), []),
+        "lone": _ent(["lone"], ["concept"], ["a"], []),
+    }
+    ents["gestate"]["relations"] = [("a", "keeper", "d1", 5, ("working method", "authorship")), ("b", "keeper", "d2", 5, ("working method",))]
+    ents["keeper"]["relations"] = [("a", "gestate", "d1", 5, ("working method", "authorship"))]   # the same relation, seen from the other end
+    names, tags = graphrag.vocabulary(ents, n_entities=2, n_tags=5)
+    assert names == ["gestate", "keeper.md"] and tags == ["working method", "authorship"]
+    assert "working method" in graphrag.keywords_system((names, tags)) and graphrag.keywords_system(None) == graphrag.KEYWORDS_SYSTEM

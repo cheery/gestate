@@ -193,9 +193,11 @@ def cache_path_for(model_key: str, text: str, max_tokens: int = MAX_TOKENS, syst
     return cache_dir() / model_key / f"{key}.json"
 
 
-def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api", system: str = SYSTEM) -> dict:
+def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api", system: str = SYSTEM,
+         expect_json: bool = True) -> dict:
     """One call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`.
-    `system` is the extraction prompt unless the caller is `query`."""
+    `system` is the extraction prompt unless the caller is `query`, and
+    `expect_json` is what the cli backend judges a reply by."""
     model = MODELS[model_key]
     params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
     cp = cache_path_for(model_key, text, max_tokens, system)
@@ -204,7 +206,7 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str =
         out["cached"] = True
         return out
     if backend == "cli":
-        out = {**_call_cli(model_key, text, system), "backend": "cli"}
+        out = {**_call_cli(model_key, text, system, expect_json), "backend": "cli"}
         cp.parent.mkdir(parents=True, exist_ok=True)
         cp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
         return out
@@ -264,7 +266,21 @@ def _retries_left(model_key: str, text: str) -> bool:
     return True
 
 
-def _call_cli(model_key: str, text: str, system: str = SYSTEM) -> dict:
+def cli_reply_ok(returncode: int, d: dict, expect_json: bool) -> bool:
+    """A reply is a reply only if the model was asked: tokens out, a
+    result, and — for an extraction — an object in it.  Anything else, a
+    hook's refusal, an empty result, a usage-limit page, is a failure to
+    retry and never a thing to cache.  An answer is prose (2026-09-12,
+    when `query` moved to the cli), so the object is asked for only when
+    the caller expects one."""
+    u = d.get("usage", {})
+    result = d.get("result", "")
+    return (returncode == 0 and not d.get("is_error") and isinstance(result, str)
+            and u.get("output_tokens", 0) > 0 and bool(result.strip())
+            and (not expect_json or "{" in result))
+
+
+def _call_cli(model_key: str, text: str, system: str = SYSTEM, expect_json: bool = True) -> dict:
     """`claude -p`, headless, the API key unset so the subscription pays,
     no tools, our system prompt in place of the CLI's own."""
     import subprocess
@@ -301,14 +317,8 @@ def _call_cli(model_key: str, text: str, system: str = SYSTEM) -> dict:
             d = json.loads(raw[i:]) if i >= 0 else {}
         except json.JSONDecodeError:
             d = {}
-        u = d.get("usage", {})
         result = d.get("result", "")
-        #: A reply is a reply only if the model was asked: tokens out,
-        #: and an object in the text.  Anything else — a hook's refusal,
-        #: an empty result, a usage-limit page — is a failure to retry
-        #: and never a thing to cache.
-        if (r.returncode == 0 and not d.get("is_error") and isinstance(result, str)
-                and u.get("output_tokens", 0) > 0 and "{" in result):
+        if cli_reply_ok(r.returncode, d, expect_json):
             break
         last = f"exit {r.returncode}: {(r.stderr or result or raw)[:300]}"
         print(f"  retry {attempt + 1}/3 after {last[:80]}", file=sys.stderr, flush=True)
@@ -932,6 +942,45 @@ Return ONLY a JSON object: {"low": ["..."], "high": ["..."]}.
 - "high": the themes the question is about, as one-to-three-word phrases a relation between two things might be tagged with — "working method", "authorship", "prior art".  Up to 8.
 """
 
+KEYWORD_MODES = ("bare", "vocab")
+VOCAB_ENTITIES, VOCAB_TAGS = 150, 100
+
+
+def vocabulary(ents: dict[str, dict], n_entities: int = VOCAB_ENTITIES, n_tags: int = VOCAB_TAGS) -> tuple[list[str], list[str]]:
+    """The tree's own words, from the store: the entity names the most
+    documents name (dates left out) and the relation keywords the most
+    relations carry.  Deterministic; `doc/trial/graphrag-keywords.md`."""
+    names = []
+    for k, m in sorted(ents.items(), key=lambda kv: (-len(kv[1]["docs"]), kv[0])):
+        name = m["names"].most_common(1)[0][0]
+        if re.fullmatch(r"\d{4}-\d\d-\d\d", name.strip()):
+            continue
+        names.append(name)
+        if len(names) >= n_entities:
+            break
+    tags: Counter = Counter()
+    seen = set()
+    for m in ents.values():
+        for f, other, d, st, kw in m["relations"]:
+            sig = (f, d)
+            if sig in seen:
+                continue
+            seen.add(sig)
+            for t in kw:
+                tags[t.lower()] += 1
+    return names, [t for t, _n in tags.most_common(n_tags)]
+
+
+def keywords_system(vocab: tuple[list[str], list[str]] | None) -> str:
+    if not vocab:
+        return KEYWORDS_SYSTEM
+    names, tags = vocab
+    return (KEYWORDS_SYSTEM
+            + "\nThe repository calls things by its own names.  Prefer these where one fits the question, and use your own words only where none does.\n"
+            + "Entity names, most-cited first: " + "; ".join(names) + "\n"
+            + "Relation tags, most-used first: " + "; ".join(tags) + "\n")
+
+
 ANSWER_SYSTEM = """You answer a question about a software project's repository from a CONTEXT that is a model's extraction of its documents: entities with descriptions, and relations between them, each tagged with the document it came from.
 Rules:
 - Answer only from the context.  Where the context does not carry what the question needs, say so in one sentence rather than filling in.
@@ -1084,31 +1133,34 @@ def uncited_sentences(answer: str) -> int:
 
 
 def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: str, budget_chars: int,
-          ranking: str = "docs") -> int:
+          ranking: str = "docs", keywords: str = "bare") -> int:
     """The global question: keywords, retrieve, answer, count the citations.
     Prints; never writes into the tree — a person redirects it if a trial
     wants the artefact."""
     store = load_store(arm)
     ents = merged(store)
-    r1 = call(keywords_arm, question, max_tokens=1024, backend=backend, system=KEYWORDS_SYSTEM)
+    vocab = vocabulary(ents) if keywords == "vocab" else None
+    r1 = call(keywords_arm, question, max_tokens=1024, backend=backend, system=keywords_system(vocab))
     kw = parse(r1["text"])
     low = [str(x) for x in kw.get("low", []) if str(x).strip()]
     high = [str(x) for x in kw.get("high", []) if str(x).strip()]
     ret = retrieve(ents, low, high, budget_chars, ranking)
     prompt = f"QUESTION: {question}\n\nCONTEXT:\n{ret['context']}"
-    r2 = call(answer_arm, prompt, max_tokens=4096, backend=backend, system=ANSWER_SYSTEM)
+    r2 = call(answer_arm, prompt, max_tokens=4096, backend=backend, system=ANSWER_SYSTEM, expect_json=False)
     answer = card_ids(r2["text"].strip())
     ok, bad = cited_paths(answer)
     spent = cost(keywords_arm, r1["usage"]) + cost(answer_arm, r2["usage"])
     print("*This is a model's reading of a model's extraction of the tree — testimony, not evidence.  "
           "`card:graphrag-c.md`.*\n")
     print(f"**Question:** {question}\n")
-    print(f"*keywords ({MODELS[keywords_arm]}): low {low}; high {high}*  ")
+    tagged = f"; {sum(1 for h in high if h.lower() in set(vocab[1]))} of {len(high)} high keywords are tags in the store" if vocab else ""
+    print(f"*keywords ({MODELS[keywords_arm]}, {keywords}): low {low}; high {high}{tagged}*  ")
     print(f"*retrieved: {ret['entities']} entities matched + {ret['hop']} by one hop, {ret['relations']} relations "
           f"({ret['relations_in_context']} in the context); ranking {ranking}; "
           f"{len(ret['context'])} chars{' (cut)' if ret['cut'] else ''}; answer by {MODELS[answer_arm]}; "
           f"{r1['usage'].get('input_tokens', 0) + r2['usage'].get('input_tokens', 0)} in, "
-          f"{r1['usage'].get('output_tokens', 0) + r2['usage'].get('output_tokens', 0)} out, ${spent:.3f} at assumed prices*\n")
+          f"{r1['usage'].get('output_tokens', 0) + r2['usage'].get('output_tokens', 0)} out, "
+          + (f"${spent:.3f} at assumed prices" if backend == "api" else "billed to the subscription") + "*\n")
     print(answer)
     print(f"\n---\n*citations: {len(ok)} resolve, {len(bad)} do not"
           + (f" — {', '.join(bad)}" if bad else "")
@@ -1274,8 +1326,11 @@ def main(argv=None) -> int:
     q.add_argument("--arm", default="haiku", choices=list(MODELS), help="whose extraction")
     q.add_argument("--keywords-arm", default="haiku", choices=list(MODELS))
     q.add_argument("--answer-arm", default="sonnet", choices=list(MODELS))
-    q.add_argument("--backend", choices=BACKENDS, default="api")
+    q.add_argument("--backend", choices=BACKENDS, default="cli",
+                   help="cli by default — Henri, 2026-09-12: the api was for bootstrapping; a cached reply is found either way")
     q.add_argument("--budget-chars", type=int, default=40_000, help="context size handed to the answer call")
+    q.add_argument("--keywords", choices=KEYWORD_MODES, default="bare",
+                   help="bare: the question alone; vocab: the store's entity names and relation tags in the prompt — doc/trial/graphrag-keywords.md")
     q.add_argument("--ranking", choices=RANKINGS, default="docs",
                    help="docs: the first trial's, one list by document count; split: half the budget to relations, matched entities first — doc/trial/graphrag-ranking.md")
     a = ap.parse_args(argv)
@@ -1299,7 +1354,7 @@ def main(argv=None) -> int:
         print(line or f"cue: nothing to say about {a.path}")
         return 0
     if a.cmd == "query":
-        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars, a.ranking)
+        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars, a.ranking, a.keywords)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]

@@ -468,6 +468,31 @@ until the keyword sheet runs, and if he would rather have the split
 now on the strength of q2 alone, that is one word and the sheet
 records it as his call over its own line.
 
+**The tool's calls are the subscription's from here — 2026-09-12,
+mid-morning.**  Henri: *"the api backend was good for bootstrapping
+this thing, but I'd like it to use cli otherwise."*  `query` defaults
+to the cli now, the cli accepts a prose reply where an extraction
+needed an object, and a cached reply is found either way; proven on
+one fresh question, 22 s for both calls, 11 citations resolving.  The
+trials' arms ran on the api by their sheets' word, so that each
+differed from its control in one thing.  About **$10.50 of the $14**
+went on the whole morning: the graph, three trials, and the pilot's
+$1.50 the day before.
+
+**The third sheet ran — the keyword step, and not decided either.**
+`doc/trial/graphrag-keywords.md`: the keyword step is handed the
+store's own vocabulary, 150 names and 100 tags, deterministic.  It
+read *what is this tree* as *the tree* and q3 kept 9 of its 14
+documents, above the line — and q2 fell from five prior-art names to
+none, because the vocabulary steered the specific channel to five
+hub documents, whose hops filled the half.  Read as written: **not
+decided**, both options stay options, both defaults stay.  What the
+three sheets agree on, on the sheet: a document-type entity as a low
+keyword is a hub, and 40,000 characters cannot hold a hub's
+neighbourhood and a specific answer at once.  A fourth sheet would
+test that one thing.  His readings so far: the three first answers
+*spot on*; the split *more informative, maybe too dense*.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
