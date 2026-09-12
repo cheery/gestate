@@ -116,3 +116,21 @@ def test_extraction_jobs_run_the_central_documents_first():
     assert order[0] != sorted(order)[0] or pr.get(order[0], 0) >= max(pr.get(r, 0) for r in order)
     ranks = [pr.get(r, 0.0) for r in order]
     assert ranks == sorted(ranks, reverse=True)
+
+
+def test_a_reply_with_one_stray_brace_is_salvaged_object_by_object():
+    """Chunk 80 of the 2026-09-12 run, in miniature: the second relation
+    closes after its description; the rest is recovered, the error kept."""
+    text = """```json
+{"entities": [{"name": "F126", "type": "defect", "description": "a crash"},
+              {"name": "vision.md", "type": "document", "description": "the vision"}],
+ "relations": [{"source": "F126", "target": "vision.md", "description": "ok", "keywords": ["k"], "strength": 7},
+               {"source": "doc/consent.md", "target": "Henri", "description": "broken"},
+      "keywords": ["consent protocol"], "strength": 9},
+               {"source": "vision.md", "target": "F126", "description": "fine", "keywords": ["x"], "strength": 6}]}
+```"""
+    obj = graphrag.parse(text)
+    assert [e["name"] for e in obj["entities"]] == ["F126", "vision.md"]
+    assert [r["description"] for r in obj["relations"]] == ["ok", "broken", "fine"]
+    assert obj["parse_error"].endswith("salvaged 2 entities, 3 relations")
+    assert graphrag.relation(obj["relations"][1])["keywords"] == []

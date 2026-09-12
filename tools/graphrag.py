@@ -334,10 +334,34 @@ def parse(text: str) -> dict:
     try:
         obj = json.loads(text[start:end + 1])
     except json.JSONDecodeError as e:
-        return {"entities": [], "relations": [], "parse_error": str(e)}
+        return salvage(text[start:end + 1], str(e))
     obj.setdefault("entities", [])
     obj.setdefault("relations", [])
     return obj
+
+
+def salvage(body: str, error: str) -> dict:
+    """What a reply that is not JSON still holds: every innermost
+    `{…}` that parses on its own, sorted by its keys into an entity or a
+    relation.  2026-09-12, chunk 80 of the api run: one relation closed
+    after its description and went on writing keywords outside it, and
+    the whole chunk — 30-odd entities — was scored as empty.  The error
+    is kept on the record, with what was recovered, so the lamp still
+    shows and the graph still has the chunk."""
+    ents, rels = [], []
+    for m in re.finditer(r"\{[^{}]*\}", body):
+        try:
+            o = json.loads(m.group(0))
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(o, dict):
+            continue
+        if "name" in o:
+            ents.append(o)
+        elif "source" in o and "target" in o:
+            rels.append(o)
+    return {"entities": ents, "relations": rels,
+            "parse_error": f"{error}; salvaged {len(ents)} entities, {len(rels)} relations"}
 
 
 def relation(x: dict) -> dict:
