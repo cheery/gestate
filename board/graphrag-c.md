@@ -659,6 +659,22 @@ as the backlinks number is, and the honest floor is the same zero.
 The first fire is the commit that added the lamp, and its own
 lines are on this card's tail below.
 
+**His concern, closing the day:** *"I'm a bit concerned that it is
+getting really advanced.  The future trees may benefit from getting
+this in 'mother's milk', but I wonder whether any of them accepts it
+right away since it's fairly complex piece here and for small
+projects it's even overshoot."*  The session's answer, for the
+record and his to overrule: the graph is not seed material.  It is
+an instrument a tree grows into, and the trigger is the one this
+card's `because` names — a global question that takes an afternoon
+by hand — which a small tree never meets, because grep and backlinks
+answer it in a minute there.  What transfers at no cost is the shape
+and not the tool: a derived layer nothing cites, a door held by a
+test, lamps with follow counts, a sheet before any arm.  The tool is
+about 1,500 lines with its tests and reversible by construction, as
+the card said on day one; a tree that wants it copies the file on
+the day it meets the trigger, and no earlier.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
