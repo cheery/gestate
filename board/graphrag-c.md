@@ -493,6 +493,26 @@ neighbourhood and a specific answer at once.  A fourth sheet would
 test that one thing.  His readings so far: the three first answers
 *spot on*; the split *more informative, maybe too dense*.
 
+**The fourth sheet ran — hubs kept from hopping — and changed
+nothing, which is its result.**  Henri: *"graphrag-keywords seem a
+bit like doing conclusions that I think do not hold entirely.  But
+otherwise it's naming real things and subjects across the tree.
+So.. lets do that fourth sheet."*  `doc/trial/graphrag-hubs.md`: a
+document matched by a low keyword contributes itself and does not
+hop.  Both arms' contexts came out byte-identical to their controls
+and every answer was served from the cache, $0.  The lesson is
+mechanical and it corrects three sheets' shared assumption: **under
+the split ranking no hop entity has ever reached the context**; the
+entity half is filled by the theme channel, a thousand entities
+ranked within their group by document count, and the top forty-five
+are the hubs.  A fifth sheet would rank the theme channel's entities
+by how many of their relations carry the question's tags, and its
+relations by the rarity of the shared tag.  Four sheets, four
+not-decideds read as written, and each one narrowed where the cause
+is; the defaults are still the first morning's.  His reading of the
+vocabulary answers is on the third sheet: conclusions past what the
+things support, over things that are real.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

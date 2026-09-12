@@ -284,3 +284,19 @@ def test_the_vocabulary_is_the_stores_names_and_tags_most_cited_first_without_da
     names, tags = graphrag.vocabulary(ents, n_entities=2, n_tags=5)
     assert names == ["gestate", "keeper.md"] and tags == ["working method", "authorship"]
     assert "working method" in graphrag.keywords_system((names, tags)) and graphrag.keywords_system(None) == graphrag.KEYWORDS_SYSTEM
+
+
+def test_a_hub_document_matched_by_a_low_keyword_does_not_hop_under_subjects():
+    ents = {
+        "manifesto": _ent(["manifesto.md"], ["document"], list("abcdefghij"), [("a", "the manifesto")]),
+        "rizzo": _ent(["Rizzo"], ["concept"], ["f"], [("f", "a calculus")]),
+        "far": _ent(["far"], ["concept"], ["a"], [("a", "reached only by hop")]),
+        "frp": _ent(["spec/frp.md"], ["document"], ["f"], [("f", "the frp spec")]),
+    }
+    ents["manifesto"]["relations"] = [("a", "far", "the manifesto names far", 9, ("structure",))]
+    ents["rizzo"]["relations"] = [("f", "frp", "Rizzo lives in frp", 9, ("calculus",))]
+    a = graphrag.retrieve(ents, low=["manifesto.md", "Rizzo"], high=[], hop_from="all")
+    b = graphrag.retrieve(ents, low=["manifesto.md", "Rizzo"], high=[], hop_from="subjects")
+    assert a["hop"] == 2 and "reached only by hop" in a["context"]
+    assert b["hop"] == 1 and "reached only by hop" not in b["context"]      # the hub stays, its hop does not
+    assert "the manifesto" in b["context"] and "the frp spec" in b["context"]   # a subject still hops

@@ -111,3 +111,10 @@ q1 not counted.  q3 at least 9 of 14: yes, 9.  q2 five of five:
 
 **His reading** goes below when he gives it; the person's half is
 still the *invents* question, and it stands owed on all three sheets.
+
+**His reading, 2026-09-12, of the vocabulary answers:** *"graphrag-keywords
+seem a bit like doing conclusions that I think do not hold entirely.
+But otherwise it's naming real things and subjects across the tree."*
+The *invents* half, answered in its soft form: not invented things,
+but conclusions drawn past what the things support.  The things
+themselves are real.  Kept as written.

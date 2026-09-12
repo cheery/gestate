@@ -435,7 +435,7 @@ def documents() -> list[str]:
                 continue
             #: The graph never reads its own outputs: the pilot's, and the
             #: query's answers kept as trial artefacts (2026-09-12).
-            if rel.startswith(GRAPH_DIR) or any(x in rel for x in ("/graphrag-pilot/", "/graphrag-global/", "/graphrag-ranking/")):
+            if rel.startswith(GRAPH_DIR) or any(x in rel for x in ("/graphrag-pilot/", "/graphrag-global/", "/graphrag-ranking/", "/graphrag-keywords/", "/graphrag-hubs/")):
                 continue
             out.append(rel)
     return out
@@ -997,10 +997,11 @@ def tokens_of(text: str) -> set[str]:
 
 
 RANKINGS = ("docs", "split")
+HOPS = ("all", "subjects")
 
 
 def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_chars: int = 40_000,
-             ranking: str = "docs") -> dict:
+             ranking: str = "docs", hop_from: str = "all") -> dict:
     """The dual-level match, no model.  Low keywords to entity names (normalised,
     exact first, then containment); high keywords to the keywords on relations by
     shared token; then one hop from every matched entity.  Returns the context text
@@ -1013,7 +1014,12 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
     halves the budget between the two sections and orders entities by
     how they were reached — named by a low keyword, then reached by a
     high keyword's relation, then by one hop — and relations by how many
-    of the question's theme tokens they carry, then strength."""
+    of the question's theme tokens they carry, then strength.
+
+    `hop_from="subjects"` keeps a document-type entity matched by a low
+    keyword from hopping — it contributes itself and its descriptions,
+    not its neighbourhood, because the most-cited documents are hubs
+    (`doc/trial/graphrag-hubs.md`, 2026-09-12)."""
     hit_ents: dict[str, str] = {}                                   # key -> why
     for kw in low:
         k = norm(kw)
@@ -1046,6 +1052,9 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
     hit_rels.sort(key=lambda r: -r[0])
     hop: dict[str, str] = {}
     for key in list(hit_ents):
+        if (hop_from == "subjects" and hit_ents[key].startswith("low:") and ents[key]["types"]
+                and ents[key]["types"].most_common(1)[0][0] == "document"):
+            continue
         for f, other, d, st, kw in sorted(ents[key]["relations"], key=lambda r: -(r[3] or 0))[:12]:
             if other in ents and other not in hit_ents:
                 hop.setdefault(other, f"hop:{key}")
@@ -1133,7 +1142,7 @@ def uncited_sentences(answer: str) -> int:
 
 
 def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: str, budget_chars: int,
-          ranking: str = "docs", keywords: str = "bare") -> int:
+          ranking: str = "docs", keywords: str = "bare", hop_from: str = "all") -> int:
     """The global question: keywords, retrieve, answer, count the citations.
     Prints; never writes into the tree — a person redirects it if a trial
     wants the artefact."""
@@ -1144,7 +1153,7 @@ def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: 
     kw = parse(r1["text"])
     low = [str(x) for x in kw.get("low", []) if str(x).strip()]
     high = [str(x) for x in kw.get("high", []) if str(x).strip()]
-    ret = retrieve(ents, low, high, budget_chars, ranking)
+    ret = retrieve(ents, low, high, budget_chars, ranking, hop_from)
     prompt = f"QUESTION: {question}\n\nCONTEXT:\n{ret['context']}"
     r2 = call(answer_arm, prompt, max_tokens=4096, backend=backend, system=ANSWER_SYSTEM, expect_json=False)
     answer = card_ids(r2["text"].strip())
@@ -1156,7 +1165,7 @@ def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: 
     tagged = f"; {sum(1 for h in high if h.lower() in set(vocab[1]))} of {len(high)} high keywords are tags in the store" if vocab else ""
     print(f"*keywords ({MODELS[keywords_arm]}, {keywords}): low {low}; high {high}{tagged}*  ")
     print(f"*retrieved: {ret['entities']} entities matched + {ret['hop']} by one hop, {ret['relations']} relations "
-          f"({ret['relations_in_context']} in the context); ranking {ranking}; "
+          f"({ret['relations_in_context']} in the context); ranking {ranking}, hop from {hop_from}; "
           f"{len(ret['context'])} chars{' (cut)' if ret['cut'] else ''}; answer by {MODELS[answer_arm]}; "
           f"{r1['usage'].get('input_tokens', 0) + r2['usage'].get('input_tokens', 0)} in, "
           f"{r1['usage'].get('output_tokens', 0) + r2['usage'].get('output_tokens', 0)} out, "
@@ -1331,6 +1340,8 @@ def main(argv=None) -> int:
     q.add_argument("--budget-chars", type=int, default=40_000, help="context size handed to the answer call")
     q.add_argument("--keywords", choices=KEYWORD_MODES, default="bare",
                    help="bare: the question alone; vocab: the store's entity names and relation tags in the prompt — doc/trial/graphrag-keywords.md")
+    q.add_argument("--hop-from", choices=HOPS, default="all",
+                   help="all: every matched entity hops; subjects: a document matched by a low keyword does not — doc/trial/graphrag-hubs.md")
     q.add_argument("--ranking", choices=RANKINGS, default="docs",
                    help="docs: the first trial's, one list by document count; split: half the budget to relations, matched entities first — doc/trial/graphrag-ranking.md")
     a = ap.parse_args(argv)
@@ -1354,7 +1365,7 @@ def main(argv=None) -> int:
         print(line or f"cue: nothing to say about {a.path}")
         return 0
     if a.cmd == "query":
-        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars, a.ranking, a.keywords)
+        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars, a.ranking, a.keywords, a.hop_from)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
