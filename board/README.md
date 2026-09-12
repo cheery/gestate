@@ -85,6 +85,10 @@ still the tiebreak between two workable cards, and it is still his.
    cites; the pilot first, ten files against two models.  *Arrived
    unplaced, 2026-09-11, his decision after `card:GraphRAG.md`
    closed.*
+9. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
+   are gestate expressions, and `.notes` as the first grid; the textbox
+   is the window's own line editor.  *Off the shelf 2026-09-12,
+   unplaced.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

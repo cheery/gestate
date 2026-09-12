@@ -1,6 +1,7 @@
 # gex-sheet — gestate's own spreadsheet, and the sequencer that is one
 
-    status   shelved — 2026-09-07
+    status   doing — 2026-09-12.  Off the shelf the same day, the
+             textbox decided and `.notes` the first grid
     because  "I'd like to implement excel and markdown reader to gestate
              some day.  I wonder if that's crazy talk or whether it
              makes sense." — Henri, 2026-09-07; then, of the three
@@ -223,3 +224,71 @@ derivable from the file alone* now includes the schema.
   refuses a file that has both — one line.  *Trigger:* the first
   `.gex` parsed.  This is the only place the two cards conflict.
 
+
+## Off the shelf — 2026-09-12, the textbox decided
+
+**Henri:** *"Let's start looking at how gex sheets would be
+implemented.  I think they have one challenge prep for us: they need
+a textbox or text input."*  Then, of the three readings below: *"B.
+yes.  .notes as the first grid."*  And: *"begin.  This looks like a
+good situation."*
+
+**What the tree already had for the text input**, measured before
+the readings were shaped.  The Rust editor has the half of a text
+editor nobody writes twice — a rope, a caret that keeps its column,
+undo, clipboard, a monospaced bitmap font with every character this
+repository uses (`shell/editor/src/keys.rs`, `document.rs`,
+`font.rs`).  The palette already asks for a command's argument as
+typed text and returns it as a command with its arguments
+(`shell/editor/src/palette.rs`, `Asks::Wants`).  And the substrate's
+refusal of a text editor — *the language cannot measure text* — is
+narrower than it sounds: both hosts agree on a monospaced cell, and a
+caret in a monospaced font is the same arithmetic that admits a label.
+What the substrate lacks is a `Text` constructor in the editor's font
+(the label font is 3×5, uppercase) and any `Key` reaching a canvas.
+
+**The three readings, and his choice.**
+
+| | the textbox is | cost |
+|---|---|---|
+| A | the file's own text view; a press on a cell puts the caret on that token | nothing; the person then looks at text, not a grid |
+| **B — chosen** | the window's one line editor, drawn where the canvas asks, its result one command line (`field …`) | one furniture verb; the substrate unchanged |
+| C | a monospaced `Text` in the substrate, the edit buffer a signal over `Key` events, the editing state a chart | a constructor in both machines, the editor font in the walk, key delivery to the canvas |
+
+*Trigger to revisit B:* the first cell that must be drawn differently
+while it is typed in, or the browser tab needing the sheet.
+
+**A cell is a span of source.**  Every field value in the record
+format is one whitespace-free token, and `spec/editor.md`'s literal
+rule says a widget is a view over a span of source and dragging it is
+a text edit.  A cell edit is that rule on a record line instead of a
+`.ges` declaration; the verbs are `assert` and `retract`, and setting
+one field is `notes.retune`, which transpose and move already use.
+The textbox is the last piece, not the first.
+
+**Readiness, checked in the code the same day.**  Ready: the kinds
+(`gestate/notes.ges`), the canonical parser and writer, `assert` and
+`retract` as commands, a label whose text is computed in the program
+(`rollNum`), a meaning per element and the window's hit walk, the
+headless press harness in `test/test_drawnscores.py`, the palette's
+argument mode, one canvas per `canvas <line> <key>` furniture line,
+and the bench.  Missing, in build order:
+
+1. **The grid program** — `gestate/grid.ges`, a library from the
+   start: rows from the rows channel, a column per declared field, a
+   label per cell, a meaning per cell.  The number to watch: a full
+   piece is ~800 labels, each glyph blits where a note was one
+   rectangle.
+2. **A `field` command** — one line in `command.ges` over `retune`;
+   a cell edit is then one transcript line, `field <region> <voice>
+   <tick> <key> <name> <value>`, transpose's address with a field.
+3. **One furniture verb, model to window: `ask <verb> <args…>`** —
+   the palette asks for an argument today only when the window opens
+   it; a press on a cell must make the model open it, pre-filled.
+   The one thing that touches the window; break its build on purpose
+   once before trusting it.
+
+*In the first slice the typed field opens where the palette lives,
+not at the cell's rectangle* — the cheapest honest B, exercising the
+whole road from press to command to file to redraw.  Moving the field
+onto the cell is a later slice, taken only if the grid earns it.
