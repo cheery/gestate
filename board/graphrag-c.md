@@ -618,6 +618,17 @@ does TPS manifest inside this project?" — eleven citations resolving,
 none uncited, jidoka, poka-yoke, kaizen, gemba and kanban each traced
 to a file; reproduced from the cache by the same command.*
 
+**His direction, the same evening:** *"I got a feeling that the
+creative use of this tool would be the best.  That we somehow
+internalise it into the whole work, rather than run queries
+separately so much or write down what it answers.  We're already
+converging towards that BTW."*  Recorded as the card's direction:
+the graph speaking at the moment, unasked, through the hooks the
+tree already has — the cue on every read is the first instance —
+and each such moment with the follow measure the cue has, so that a
+cue nobody follows comes out.  The candidates are on the card's
+tail, shaped and not built.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
