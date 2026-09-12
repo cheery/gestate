@@ -343,3 +343,38 @@ used — is a new program, once, and the card says so where the word
 table is written.  Labels are the chrome font, 3×5 and uppercase, so
 `melody` reads `MELODY`; a grid in the editor's own font is reading C
 of the textbox question and is not taken.
+
+### Slice 2, built the same hour — the press asks the question, and the window needed nothing
+
+The plan above said the third missing piece was *one furniture verb,
+model to window*, and that it was the one thing touching the window.
+**It was already built**, for `complete`: the window takes an `ask`
+order — *the model's own question*, `shell/editor/src/furniture.rs`
+`Order::Ask`, `palette.ask` — that opens the palette on a named
+command with arguments already given, and a `fill` order that puts
+text in the box.  `workbench.Window.ask` and `.fill` are the model's
+hands on them.  So a press on a cell now orders `ask field <region>
+<key> <name>` and `fill <value>`: the palette asks for the value with
+the cell's own in the box, Return is the edit, Esc is nothing, and
+nothing new crossed the wire.  `session._grid_touched`, one test.
+
+*Readiness said the window was the one seam to touch, and it was
+wrong by one grep: the order existed under the completion's name.
+What the plan got right was the shape — the palette's argument mode
+is the textbox — and the shape is what made the grep find it.*
+
+**What is next, and whose.**
+
+1. **The window's number.**  A driven run on `arc.notes`: `grid`,
+   then a press on a cell, photographed — how long the Rust walk takes
+   over 5,257 items, and whether the palette opens with the value in
+   it.  It takes his screen (`tools/driven.py`), so it is his to
+   call; the card's prediction is written above so the number can be
+   read against it.
+2. **Rows in the window only**, if that number says so — the scroll
+   offset arriving as a channel, `gridRows` taking a first row and a
+   count.
+3. **The other kinds** — `section` and `bpm` as rows of their own
+   grid, once the note grid has been used on a piece.
+4. **The `.gex` itself** — its schema in the file (§"Added
+   2026-09-10"), formulas as derived fields; not before 1.

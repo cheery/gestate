@@ -163,6 +163,16 @@ class _View:
     def show(self, what):
         return True
 
+    orders: list = []
+
+    def ask(self, verb, *given):
+        self.orders.append(("ask", verb, *given))
+        return True
+
+    def fill(self, text):
+        self.orders.append(("fill", text))
+        return True
+
 
 def _seat(text: str | None = None):
     from gestate.session import Session
@@ -170,6 +180,7 @@ def _seat(text: str | None = None):
     text = NOTES.read_text() if text is None else text
     seat = Session(bench=_Bench(_rels(text)))
     seat.view = _View(text)
+    seat.view.orders = []
     return seat
 
 
@@ -195,6 +206,27 @@ def test_a_press_on_a_cell_names_the_line_and_the_field():
     assert seat.touched("__ng_cell_0__", 10_000 * gridbox.COLS) == "grid: no cell there"
 
 
+def test_a_press_asks_the_window_for_the_value_with_the_cell_filled_in():
+    """Reading B, built on what `complete` already had: the press orders
+    the palette to ask `field` with the region, the record's key and
+    the field given, and the cell's own value in the box — so Return
+    is the edit.  An absent field leaves the box empty; a refused
+    press asks nothing."""
+    seat = _seat()
+    region = seat.bench.grid_regions["__ng_cell_0__"]
+    names = list(region.fields)
+    seat.touched("__ng_cell_0__", 0 * gridbox.COLS + names.index("vel"))
+    key = "note section A bar 1 voice melody at 0 key 62"
+    assert seat.view.orders == [("ask", "field", "__ng_cell_0__", key, "vel"),
+                                ("fill", "ff")]
+    seat.view.orders = []
+    seat.touched("__ng_cell_0__", 0 * gridbox.COLS + names.index("spell"))
+    assert seat.view.orders == [("ask", "field", "__ng_cell_0__", key, "spell")]
+    seat.view.orders = []
+    seat.touched("__ng_cell_0__", 10_000 * gridbox.COLS)
+    assert seat.view.orders == []
+
+
 def test_the_row_names_the_records_key_in_the_documents_own_syntax():
     """What `field` and `retract` take — the model's key, never the
     picture's index."""
@@ -213,6 +245,10 @@ def test_field_sets_one_field_of_one_line_and_nothing_else():
     key = "note section A bar 1 voice melody at 0 key 62"
     said = seat.do_field("__ng_cell_0__", key, "vel", "f")
     assert said == "field: arc.notes — set vel ff → f on line 9"
+    # And through the door the window's palette uses — the gesture is
+    # tab-split, so a key with spaces arrives as one argument.
+    seat2 = _seat()
+    assert seat2.run("field", "__ng_cell_0__", key, "vel", "f") == said
     after = seat.view.text()
     changed = [(a, b) for a, b in zip(before.splitlines(), after.splitlines()) if a != b]
     assert len(changed) == 1

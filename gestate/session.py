@@ -4839,8 +4839,20 @@ class Session:
         one, name_ = found.rows[row], found.fields[col]
         value = one.get(name_)
         value = ",".join(value) if isinstance(value, tuple) else value
-        return (f"line {one['line']}: {name_} "
-                f"{value if value not in (None, '', ()) else '-'}")
+        shown = str(value) if value not in (None, "", ()) else "-"
+        # **And the window is asked the question** — reading B of the
+        # textbox (`card:gex-sheet.md` §"Off the shelf"): the palette
+        # asks `field` with the region, the key and the name given and
+        # the cell's value in the box, so Return is the edit and Esc is
+        # nothing.  The same two orders `complete` uses; nothing new
+        # crosses the wire.
+        asker = getattr(self.view, "ask", None)
+        if asker is not None:
+            asker("field", name, gridbox.key_of(found, row), name_)
+            filler = getattr(self.view, "fill", None)
+            if filler is not None and shown != "-":
+                filler(shown)
+        return f"line {one['line']}: {name_} {shown}"
 
     def _note_touched(self, name: str, down: float) -> str | None:
         """A hand on a score box, or `None` for any other hand.

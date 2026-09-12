@@ -947,9 +947,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 3015 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
 | 3157 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
 | 3168 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5430 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5871 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5877 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 5442 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5883 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5889 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `tempo.py`
 
