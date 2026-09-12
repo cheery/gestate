@@ -435,7 +435,7 @@ def documents() -> list[str]:
                 continue
             #: The graph never reads its own outputs: the pilot's, and the
             #: query's answers kept as trial artefacts (2026-09-12).
-            if rel.startswith(GRAPH_DIR) or any(x in rel for x in ("/graphrag-pilot/", "/graphrag-global/", "/graphrag-ranking/", "/graphrag-keywords/", "/graphrag-hubs/")):
+            if rel.startswith(GRAPH_DIR) or any(x in rel for x in ("/graphrag-pilot/", "/graphrag-global/", "/graphrag-ranking/", "/graphrag-keywords/", "/graphrag-hubs/", "/graphrag-themes/")):
                 continue
             out.append(rel)
     return out
@@ -996,7 +996,7 @@ def tokens_of(text: str) -> set[str]:
     return {w.rstrip("s") for w in re.findall(r"[a-z0-9][\w./-]*", text.lower()) if w not in STOP and len(w) > 2}
 
 
-RANKINGS = ("docs", "split")
+RANKINGS = ("docs", "split", "themes-entities", "themes")
 HOPS = ("all", "subjects")
 
 
@@ -1016,6 +1016,12 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
     high keyword's relation, then by one hop — and relations by how many
     of the question's theme tokens they carry, then strength.
 
+    `"themes-entities"` is `split` with an entity reached by theme ranked
+    by how many of its relations carry the question's tags; `"themes"`
+    is that and a relation ranked by the rarity of the tags it shares,
+    the sum of log(rows / rows carrying the token) over shared tokens
+    (`doc/trial/graphrag-themes.md`, 2026-09-12).
+
     `hop_from="subjects"` keeps a document-type entity matched by a low
     keyword from hopping — it contributes itself and its descriptions,
     not its neighbourhood, because the most-cited documents are hubs
@@ -1031,8 +1037,24 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
         for cand in sorted((c for c in ents if len(k) > 3 and (k in c or c in k)), key=lambda c: -len(ents[c]["docs"]))[:3]:
             hit_ents.setdefault(cand, f"low:{kw}")
     high_tokens = set().union(*(tokens_of(h) for h in high)) if high else set()
-    hit_rels: list[tuple[int, str, str, str, str, int]] = []        # (strength, file, a, b, desc, theme tokens shared)
+    hit_rels: list[tuple[int, str, str, str, str, float]] = []      # (strength, file, a, b, desc, theme score)
     seen_rel = set()
+    evidence: Counter = Counter()                                    # entity -> relations of its carrying a theme tag
+    #: Tag rarity over the store's relations, each counted once, for the
+    #: `themes` ranking: a token on 900 rows is worth little.
+    df: Counter = Counter()
+    n_rows = 0
+    if ranking == "themes":
+        seen_df = set()
+        for m in ents.values():
+            for f, other, d, st, kw in m["relations"]:
+                if (f, d) in seen_df:
+                    continue
+                seen_df.add((f, d))
+                n_rows += 1
+                for t in set().union(*(tokens_of(x) for x in kw)) if kw else ():
+                    df[t] += 1
+    import math
     for key, m in ents.items():
         for f, other, d, st, kw in m["relations"]:
             shared = high_tokens & set().union(*(tokens_of(x) for x in kw)) if kw else set()
@@ -1041,14 +1063,23 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
             #: Both ends of a matched relation are matched entities — the
             #: first trial marked only the end it was seen from and the
             #: other never got its hop (found by a test, 2026-09-12).
+            score = (sum(math.log(n_rows / df[t]) for t in shared if df[t]) if ranking == "themes" else float(len(shared)))
             hit_ents.setdefault(key, f"high:{','.join(kw)}")
+            #: An entity's evidence is its own relations' theme scores —
+            #: a count under `themes-entities`, rarity-weighted under
+            #: `themes` — counted from its own list only, so each row
+            #: counts once per endpoint.
+            evidence[key] += score
             if other in ents:
                 hit_ents.setdefault(other, f"high:{','.join(kw)}")
-            sig = (f, min(key, other), max(key, other))
+            #: One row per (file, pair, description): the same pair in
+            #: the same file may be related twice for two reasons, and
+            #: keying without the description kept one (2026-09-12).
+            sig = (f, min(key, other), max(key, other), d)
             if sig in seen_rel:
                 continue
             seen_rel.add(sig)
-            hit_rels.append((int(st or 0), f, key, other, d, len(shared)))
+            hit_rels.append((int(st or 0), f, key, other, d, score))
     hit_rels.sort(key=lambda r: -r[0])
     hop: dict[str, str] = {}
     for key in list(hit_ents):
@@ -1058,14 +1089,17 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
         for f, other, d, st, kw in sorted(ents[key]["relations"], key=lambda r: -(r[3] or 0))[:12]:
             if other in ents and other not in hit_ents:
                 hop.setdefault(other, f"hop:{key}")
-            sig = (f, min(key, other), max(key, other))
+            sig = (f, min(key, other), max(key, other), d)
             if sig not in seen_rel:
                 seen_rel.add(sig)
                 hit_rels.append((int(st or 0), f, key, other, d, 0))
-    if ranking == "split":
+    if ranking in ("split", "themes-entities", "themes"):
         group = {k: (0 if why.startswith("low:") else 1) for k, why in hit_ents.items()}
         group.update({k: 2 for k in hop})
-        ranked = sorted(list(hit_ents) + list(hop), key=lambda k: (group[k], -len(ents[k]["docs"]), k))
+        if ranking == "split":
+            ranked = sorted(list(hit_ents) + list(hop), key=lambda k: (group[k], -len(ents[k]["docs"]), k))
+        else:
+            ranked = sorted(list(hit_ents) + list(hop), key=lambda k: (group[k], -evidence[k], -len(ents[k]["docs"]), k))
         hit_rels.sort(key=lambda r: (-r[5], -r[0]))
     else:
         ranked = sorted(list(hit_ents) + list(hop), key=lambda k: -len(ents[k]["docs"]))
@@ -1084,7 +1118,7 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
         nb = ents[b]["names"].most_common(1)[0][0] if b in ents else b
         rel_lines.append(f"- {na} → {nb} ({st}): {d.strip()}  (`{f}`)")
     ent_text, rel_text = "\n".join(ent_lines), "\n".join(rel_lines)
-    if ranking == "split":
+    if ranking in ("split", "themes-entities", "themes"):
         half = budget_chars // 2
         #: Each section gets half, and what one does not use the other may.
         e_take = min(len(ent_text), max(half, budget_chars - len(rel_text)))
@@ -1343,7 +1377,8 @@ def main(argv=None) -> int:
     q.add_argument("--hop-from", choices=HOPS, default="all",
                    help="all: every matched entity hops; subjects: a document matched by a low keyword does not — doc/trial/graphrag-hubs.md")
     q.add_argument("--ranking", choices=RANKINGS, default="docs",
-                   help="docs: the first trial's, one list by document count; split: half the budget to relations, matched entities first — doc/trial/graphrag-ranking.md")
+                   help="docs: the first trial's, one list by document count; split: half the budget to relations, matched entities first (doc/trial/graphrag-ranking.md); "
+                        "themes-entities: split with theme-reached entities ranked by their tagged relations; themes: that and relations by tag rarity (doc/trial/graphrag-themes.md)")
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check(a.arm)

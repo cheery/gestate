@@ -300,3 +300,31 @@ def test_a_hub_document_matched_by_a_low_keyword_does_not_hop_under_subjects():
     assert a["hop"] == 2 and "reached only by hop" in a["context"]
     assert b["hop"] == 1 and "reached only by hop" not in b["context"]      # the hub stays, its hop does not
     assert "the manifesto" in b["context"] and "the frp spec" in b["context"]   # a subject still hops
+
+
+def test_the_themes_ranking_puts_evidence_before_hubs_and_rare_tags_before_common():
+    """`doc/trial/graphrag-themes.md`: a hub with one tagged relation
+    ranks under a small entity with three; a row sharing a rare tag ranks
+    over one sharing a common tag under `themes` and ties with it under
+    `split`."""
+    ents = {
+        "hub": _ent(["manifesto.md"], ["document"], [f"d{i}" for i in range(40)], [("a", "the hub")]),
+        "rother": _ent(["Rother 2009"], ["concept"], ["j"], [("j", "Citation for Toyota Kata.")]),
+        "x": _ent(["x"], ["concept"], ["a"], [("a", "x")]),
+    }
+    ents["hub"]["relations"] = [("a", "x", "hub row", 9, ("reference",))]
+    ents["x"]["relations"] = [("a", "hub", "hub row", 9, ("reference",))]
+    ents["rother"]["relations"] = [("j", "x", "rare row 1", 5, ("prior art",)), ("j", "hub", "rare row 2", 5, ("prior art",)), ("j", "x", "rare row 3", 5, ("prior art", "reference"))]
+    for i in range(30):                                            # thirty more rows carrying the common tag, in both endpoints' lists as merged() keeps them
+        ents["x"]["relations"].append(("a", "hub", f"common row {i}", 8, ("reference",)))
+        ents["hub"]["relations"].append(("a", "x", f"common row {i}", 8, ("reference",)))
+    split = graphrag.retrieve(ents, low=[], high=["prior art", "reference"], ranking="split")
+    themes = graphrag.retrieve(ents, low=[], high=["prior art", "reference"], ranking="themes")
+    ent_split = split["context"][:split["context"].find("## Relations")]
+    ent_themes = themes["context"][:themes["context"].find("## Relations")]
+    assert ent_split.find("manifesto.md") < ent_split.find("Rother 2009")       # split: the hub first, by document count
+    assert ent_themes.find("Rother 2009") < ent_themes.find("manifesto.md")     # themes: three rare rows outweigh thirty-one common ones
+    ent_a = graphrag.retrieve(ents, low=[], high=["prior art", "reference"], ranking="themes-entities")["context"]
+    assert ent_a.find("manifesto.md") < ent_a.find("Rother 2009")               # by count alone the hub still wins — arm A's limit
+    rel_themes = themes["context"][themes["context"].find("## Relations"):]
+    assert rel_themes.find("rare row 1") < rel_themes.find("common row 0")       # rare tag first

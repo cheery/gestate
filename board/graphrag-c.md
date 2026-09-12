@@ -513,6 +513,28 @@ is; the defaults are still the first morning's.  His reading of the
 vocabulary answers is on the third sheet: conclusions past what the
 things support, over things that are real.
 
+**The fifth sheet ran — the theme channel ranked by its own evidence.**
+Henri: *"lets do the fifth sheet.  This is worthwhile to do, and I'm
+still sharp."*  `doc/trial/graphrag-themes.md`, two arms under the
+vocabulary keywords: entities by how many of their relations carry
+the question's tags, and that plus relations by the rarity of the
+shared tag.  Writing the test found two more defects in retrieval —
+the relation dedupe collapsed every row between one pair in one
+file to a single row, and the entity evidence had to be
+rarity-weighted or a hub's thirty *reference* rows beat a citation's
+three — both fixed with tests before any call.  Arm B names **five
+of five** prior-art names on q2, the richest answer to that question
+in five sheets, and drops q1 and q3 under the line; A fails two.
+**Not decided**, read as written.  The sheet's real result is about
+its judge: *keeping the first answers' documents* was the line, and
+the first answers came from the hub-ranked context, so the number
+rewards hubs and cannot separate the arms; against the hand answer's
+thirteen documents every arm shares three to five.  A sixth sheet
+would keep the questions and judge q1 and q3 against the hand
+answers, written first — a change to the sheet, not the tool, and
+written down before it so it cannot be read as chosen after.
+About **$11.50 of the $14** spent in all.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
