@@ -240,6 +240,21 @@ rate limit; a refused call is retried three times, 30/90/240 s apart,
 and then the run dies with everything so far in the cache, so the
 same command continues it.
 
+**And the order is centrality, not the alphabet — 2026-09-12, before
+the run.**  He brought KET-RAG (Huang, Zhang, Xiao, KDD 2025, arXiv
+2502.09304): rank the chunks by PageRank and give the model only the
+central fraction.  Local search only, and the fraction would blind the
+global question, so the fraction is not taken; the order is.  *"ok.
+lets do it before I start."*  `jobs()` sorts documents by PageRank in
+the tree's own citation graph, `tools/communities.py`'s, built from
+the backlinks index in a third of a second: `fixme.md`, the journal,
+`doc/memory/README.md`, `doc/instruments.md` first, `CLAUDE.md` last.
+A run that completes is the same graph whatever the order; a run the
+budget stops has left out the periphery.  The paper's other finding
+— a keyword-to-chunk graph with no model beat GraphRAG on local
+coverage at a hundredth of the cost — is outside support for Q3's
+default and changes nothing.
+
     python tools/graphrag.py extract --backend api --workers 6 --budget 12 2>&1 | tee -a ~/.cache/gestate/graphrag/extract-haiku.log
     python tools/graphrag.py extract --backend cli --workers 4          # the increments, later: only the chunks whose text changed are called
     python tools/graphrag.py stop        # finishes the calls in flight and leaves; rerun the same command to continue

@@ -420,10 +420,44 @@ def chunks(text: str, size: int = CHUNK_CHARS) -> list[str]:
     return out
 
 
+def pagerank(adj: dict[str, dict[str, float]], alpha: float = 0.85, iters: int = 50) -> dict[str, float]:
+    """PageRank over an undirected adjacency, the power iteration; a node
+    with no neighbours gets the teleport share and nothing else."""
+    nodes = list(adj)
+    if not nodes:
+        return {}
+    n = len(nodes)
+    pr = {v: 1.0 / n for v in nodes}
+    for _ in range(iters):
+        dangling = sum(pr[v] for v in nodes if not adj[v])      # spread evenly, so the total stays 1
+        pr = {v: (1 - alpha + alpha * dangling) / n + alpha * sum(pr[u] / len(adj[u]) for u in adj[v] if adj[u])
+              for v in nodes}
+    return pr
+
+
+def centrality() -> dict[str, float]:
+    """Every document's PageRank in the tree's own citation graph —
+    `tools/communities.py`'s, undirected, built from the backlinks index;
+    a document nothing cites and that cites nothing is absent, so 0."""
+    import backlinks
+    import communities
+    adj, _read = communities.graph(backlinks.Tree(ROOT))
+    return pagerank(adj)
+
+
 def jobs() -> list[tuple[str, int, int, str]]:
-    """`(rel, i, n, text)` for every chunk of every document."""
+    """`(rel, i, n, text)` for every chunk of every document, **the most
+    central document first** — KET-RAG's observation (Huang, Zhang, Xiao,
+    KDD 2025) that a run allowed to extract only part of a corpus should
+    take the chunks central to it, applied to the order rather than to a
+    fraction: a run that completes is the same graph whatever the order,
+    and a run the budget stops has left out the periphery, not the end
+    of the alphabet.  Henri, 2026-09-12: "ok. lets do it before I
+    start."  Ties, and the documents outside the citation graph, stay
+    alphabetical."""
+    pr = centrality()
     out = []
-    for rel in documents():
+    for rel in sorted(documents(), key=lambda rel: (-pr.get(rel, 0.0), rel)):
         text = (ROOT / rel).read_text(encoding="utf-8")
         cs = chunks(text)
         for i, c in enumerate(cs):
@@ -468,6 +502,13 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
     print(f"extract: {len(documents())} documents, {len(js)} chunks, {total_chars/1e6:.2f} M chars "
           f"≈ {total_chars/4/1e6:.2f} M tokens, arm {arm}, backend {backend}, {workers} workers")
     if dry_run:
+        seen, first = set(), []
+        for rel, _i, _n, _text in js:
+            if rel not in seen:
+                seen.add(rel)
+                first.append(rel)
+        print("  first by centrality in the citation graph: " + ", ".join(first[:8]))
+        print("  last: " + ", ".join(first[-3:]))
         by_top = {}
         for rel, _i, _n, text in js:
             top = rel.split("/")[0] if "/" in rel else "(root)"

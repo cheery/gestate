@@ -94,3 +94,25 @@ def test_the_cache_does_not_know_the_backend():
     assert a != graphrag.cache_path_for("sonnet", "Document `x.md`:\n\nsome text")
     assert a != graphrag.cache_path_for("haiku", "Document `x.md`:\n\nother text")
     assert a.parent.name == "haiku" and a.parent.parent == graphrag.cache_dir()
+
+
+def test_pagerank_ranks_the_hub_first_and_the_isolate_last():
+    star = {"hub": {"a": 1.0, "b": 1.0, "c": 1.0}, "a": {"hub": 1.0}, "b": {"hub": 1.0}, "c": {"hub": 1.0}, "lone": {}}
+    pr = graphrag.pagerank(star)
+    assert pr["hub"] > pr["a"] == pr["b"] == pr["c"] > pr["lone"] > 0
+    assert abs(sum(pr.values()) - 1.0) < 1e-6
+    assert graphrag.pagerank({}) == {}
+
+
+def test_extraction_jobs_run_the_central_documents_first():
+    """A budget stop leaves out the periphery, not the end of the alphabet."""
+    js = graphrag.jobs()
+    order = []
+    for rel, _i, _n, _t in js:
+        if rel not in order:
+            order.append(rel)
+    pr = graphrag.centrality()
+    assert pr.get(order[0], 0) > pr.get(order[-1], 0)
+    assert order[0] != sorted(order)[0] or pr.get(order[0], 0) >= max(pr.get(r, 0) for r in order)
+    ranks = [pr.get(r, 0.0) for r in order]
+    assert ranks == sorted(ranks, reverse=True)
