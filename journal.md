@@ -2965,3 +2965,54 @@ mechanism held against a batch job that its author had not imagined.
 `doc/memory/headless-claude-inherits-the-hooks.md` carries the rule;
 the memory's own wording is that the defect was the tool's, not the
 limit's.
+
+## The graph was whole by seven, and seven sheets ran before the day ended — 2026-09-12
+
+Henri opened before five with a paper — LightRAG, arXiv 2410.05779 —
+and a complaint: the GraphRAG initialisation was heavy.  The paper
+lightened the half not yet built, communities and summaries and the
+map-reduce, and left extraction as it was; so the prompt gained
+keywords on relations, the extraction ran on the API by his choice —
+*"the api backend was good for bootstrapping this thing"* — with the
+central documents first by PageRank over the citation graph, taken
+from KET-RAG (arXiv 2502.09304) as an order and not as a fraction, and
+was whole by 06:32: 535 chunks, 5,591 merged entities, 11,399 relations,
+0.990 grounded, **$9.57**.  Six replies that were not JSON were
+salvaged by a parser written while the run was going.  The card is
+`card:graphrag-c.md`; it carries the day in order.
+
+**The model-free reads earned their place the same morning.**
+`subjects` found Toyota Production System named in seven documents and
+titled in none.  `contradictions` found the 2000-against-2500 rules cap
+by arithmetic and seven stale line counts.  `lookup` gave him the Rizzo
+paragraph no single file holds — *"it feels like some sort of brains at
+this point"* — and the cue went onto the backlinks hook with its own
+follow count.
+
+**Then the query, and seven sheets.**  The first trial: three global
+questions, 32 of 32 citations resolving, his reading *spot on*, and
+the query stayed.  Then six more sheets, each with `tools/prereg.sh`
+before a call and each read as written: the split budget (no relation
+had ever reached the answer), the vocabulary (won *the tree*, lost
+*secretion*), hubs kept from hopping (no hop had ever reached the
+context), the theme channel by rarity (five of five prior-art names,
+and a judge that rewarded hubs), three new questions judged by their
+hand answers (a winner and a loser and one each), and the union — the
+question's own words kept beside the vocabulary — which decided.
+`query` defaults to it, on the cli.  Six not-decideds and one decision,
+and the lesson is `doc/memory/a-judge-built-from-the-arms.md`.
+
+**By evening the graph spoke unasked.**  His direction: *"internalise
+it into the whole work, rather than run queries separately so much or
+write down what it answers."*  The cue on every read, the lamp at every
+commit — a changed document's contradictions, a new document's subjects
+already at home elsewhere — each with a follow count, each with zero as
+the honest floor.  Two questions in use closed the day: TPS, which the
+graph traced principle by principle to a file; and the tree's emotions,
+which it answered thin, because an emotion is not an entity and the
+store has no tag for it — the store's first found limit.  A grep found
+doubt in twenty-four files and trust in twenty-nine; he read the answer
+as his own profile, and said the tree mirrors its author, which the
+tree already knew and had written down with its counter beside it.
+
+About $12.50 of the $14, and the rest of the day at his father's.
