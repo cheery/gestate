@@ -10,7 +10,9 @@
     python tools/graphrag.py extract --dry-run     the files, the chunks and the token estimate, no call made
     python tools/graphrag.py stop                  ask a running extract to finish its calls in flight and exit
     python tools/graphrag.py lookup <name>         the local read: one entity across every document, its relations, no model
-    python tools/graphrag.py entities [--top N]    the entities most documents name
+    python tools/graphrag.py entities [--top N] [--type T]    the entities most documents name
+    python tools/graphrag.py subjects              item 1: well-cited subjects nothing in the tree titles — no model
+    python tools/graphrag.py contradictions        item 2: numbers about one subject that disagree across documents — no model
 
 `card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`,
 `lookup` and `entities`.  What follows is `query`, the dual-level
@@ -719,6 +721,134 @@ def entities_top(arm: str, top: int, type_: str | None = None) -> int:
     return 0
 
 
+# --- reading the graph: the two model-free lists, the plan's items 1 and 2 ---
+
+#: The types a subject can have.  A document, tool, card, memory or defect
+#: has a home by construction — it is a file or a numbered entry — so
+#: item 1 asks only about the kinds that can be named in twenty places
+#: and titled in none.
+SUBJECT_TYPES = ("concept", "rule", "event", "project")
+
+
+def headings() -> set[str]:
+    """Every name the tree has *titled* something with, normalised: a
+    document's path and stem, every markdown heading, every memory-index
+    hook.  Being grounded is occurring in text; having a home is this."""
+    out = set()
+    for rel in documents():
+        out.add(norm(rel))
+        out.add(norm(Path(rel).stem))
+        for line in (ROOT / rel).read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("#"):
+                out.add(norm(line.lstrip("# ").strip()))
+            elif line.startswith("- ["):
+                out.add(norm(re.sub(r"^- \[([^\]]*)\].*", r"\1", line)))
+    return out
+
+
+def has_home(name: str, heads: set[str]) -> bool:
+    n = norm(name)
+    return any(n == h or (len(n) > 3 and n in h) for h in heads)
+
+
+def subjects_without_home(ents: dict[str, dict], heads: set[str], min_docs: int) -> list[tuple[int, str, str]]:
+    """Item 1: `(docs, shown name, type)` for every subject-typed entity
+    that at least `min_docs` documents name and nothing titles, most
+    cited first.  A subject in twenty documents with no name in the tree
+    is `card:GraphRAG.md`'s *rule stated twice* at the level of subjects."""
+    out = []
+    for k, m in ents.items():
+        if len(m["docs"]) < min_docs or not m["types"]:
+            continue
+        t = m["types"].most_common(1)[0][0]
+        if t not in SUBJECT_TYPES:
+            continue
+        name = m["names"].most_common(1)[0][0]
+        if not has_home(name, heads):
+            out.append((len(m["docs"]), name, t))
+    return sorted(out, key=lambda r: (-r[0], r[1]))
+
+
+#: A number with a unit.  Bare counts — *2 questions*, *the 4 hard
+#: things* — disagree everywhere and mean nothing; a number of lines,
+#: seconds, tokens or per cent quoted about one subject in two documents
+#: is a claim, and two claims that differ are the list.
+UNIT_NUMBER = re.compile(
+    r"(?<![\w./-])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*"
+    r"(%|k|M|s|ms|min|MB|kB|GB|lines?|days?|hours?|minutes?|seconds?|tokens?|chunks?|files?|cards?|tests?|entries|documents?|defects?|hooks?|places?)"
+    r"(?![\w-])", re.I)
+
+
+def unit_numbers(text: str) -> set[tuple[str, str]]:
+    return {(n.replace(",", ""), u.lower().rstrip("s")) for n, u in UNIT_NUMBER.findall(text)}
+
+
+def disagreements(ents: dict[str, dict]) -> list[tuple[int, str, str, dict[str, set[str]]]]:
+    """Item 2: `(docs, shown name, unit, {document: values})` for every
+    entity whose descriptions quote a number with the same unit in two or
+    more documents and no two documents agree on it.  No model: the
+    descriptions are the model's, the comparison is arithmetic."""
+    out = []
+    for k, m in ents.items():
+        by_unit: dict[str, dict[str, set[str]]] = {}
+        for f, d in m["descriptions"]:
+            for n, u in unit_numbers(d):
+                by_unit.setdefault(u, {}).setdefault(f, set()).add(n)
+        for u, byf in by_unit.items():
+            if len(byf) < 2:
+                continue
+            vals = [frozenset(v) for v in byf.values()]
+            if any(a & b for i, a in enumerate(vals) for b in vals[i + 1:]):
+                continue                                  # two documents agree: not a disagreement
+            out.append((len(m["docs"]), m["names"].most_common(1)[0][0], u, byf))
+    return sorted(out, key=lambda r: (-r[0], r[1], r[2]))
+
+
+def doc_dates() -> dict[str, str]:
+    """Each document's last commit date, one `git log` for the tree."""
+    import subprocess
+    log = subprocess.run(["git", "log", "--format=%as", "--name-only", "--", "."],
+                         capture_output=True, text=True, cwd=ROOT).stdout
+    out, cur = {}, None
+    for line in log.splitlines():
+        if re.fullmatch(r"\d{4}-\d\d-\d\d", line):
+            cur = line
+        elif line and line not in out:
+            out[line] = cur
+    return out
+
+
+def subjects(arm: str, min_docs: int) -> int:
+    store = load_store(arm)
+    ents = merged(store)
+    rows = subjects_without_home(ents, headings(), min_docs)
+    considered = sum(1 for m in ents.values() if len(m["docs"]) >= min_docs and m["types"]
+                     and m["types"].most_common(1)[0][0] in SUBJECT_TYPES)
+    print(f"(store: {len(store['records'])} chunks, written {store['written']} — a model's reading, not evidence)")
+    print(f"subjects: {len(rows)} of {considered} subjects in ≥{min_docs} documents have no heading, "
+          f"filename or memory hook anywhere in the tree — the plan's item 1; which are real is a person's reading")
+    for d, name, t in rows:
+        print(f"  {d:4d} docs  {name:44s} [{t}]")
+    return 0
+
+
+def contradictions(arm: str, min_docs: int, top: int) -> int:
+    store = load_store(arm)
+    ents = merged(store)
+    rows = [r for r in disagreements(ents) if r[0] >= min_docs]
+    dates = doc_dates()
+    print(f"(store: {len(store['records'])} chunks, written {store['written']} — a model's reading, not evidence)")
+    print(f"contradictions: {len(rows)} (subject, unit) pairs where two or more documents quote a number "
+          f"and none agree — the plan's item 2; newest document last, and the number is *how many real*")
+    for d, name, u, byf in rows[:top]:
+        print(f"\n  {d:4d} docs  {name}  [{u}]")
+        for f, v in sorted(byf.items(), key=lambda kv: (dates.get(kv[0], ""), kv[0])):
+            print(f"       {dates.get(f, '?'):10s}  {f:48s} {', '.join(sorted(v, key=lambda x: float(x)))}")
+    if len(rows) > top:
+        print(f"\n  … and {len(rows) - top} more; --top {len(rows)} for all")
+    return 0
+
+
 # --- the door ----------------------------------------------------------------
 
 def intruders(index: dict) -> list[tuple[str, int, str]]:
@@ -862,7 +992,14 @@ def main(argv=None) -> int:
     t = sub.add_parser("entities", help="the entities most documents name")
     t.add_argument("--arm", default="haiku", choices=list(MODELS))
     t.add_argument("--top", type=int, default=30)
-    t.add_argument("--type", choices=TYPES, help="only entities whose commonest type is this — `concept` is the plan's item 1")
+    t.add_argument("--type", choices=TYPES, help="only entities whose commonest type is this")
+    sj = sub.add_parser("subjects", help="item 1: well-cited subjects that nothing in the tree titles — no model")
+    sj.add_argument("--arm", default="haiku", choices=list(MODELS))
+    sj.add_argument("--min-docs", type=int, default=6)
+    cd = sub.add_parser("contradictions", help="item 2: one subject, numbers that disagree across documents — no model")
+    cd.add_argument("--arm", default="haiku", choices=list(MODELS))
+    cd.add_argument("--min-docs", type=int, default=2)
+    cd.add_argument("--top", type=int, default=40)
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check(a.arm)
@@ -875,6 +1012,10 @@ def main(argv=None) -> int:
         return lookup(a.name, a.arm, a.limit)
     if a.cmd == "entities":
         return entities_top(a.arm, a.top, a.type)
+    if a.cmd == "subjects":
+        return subjects(a.arm, a.min_docs)
+    if a.cmd == "contradictions":
+        return contradictions(a.arm, a.min_docs, a.top)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]

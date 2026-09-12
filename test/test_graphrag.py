@@ -134,3 +134,40 @@ def test_a_reply_with_one_stray_brace_is_salvaged_object_by_object():
     assert [r["description"] for r in obj["relations"]] == ["ok", "broken", "fine"]
     assert obj["parse_error"].endswith("salvaged 2 entities, 3 relations")
     assert graphrag.relation(obj["relations"][1])["keywords"] == []
+
+
+def _ent(names, types, docs, descriptions):
+    from collections import Counter
+    return {"names": Counter(names), "types": Counter(types), "docs": set(docs),
+            "descriptions": descriptions, "relations": []}
+
+
+def test_subjects_without_home_is_the_well_cited_and_untitled():
+    ents = {
+        "toyota production system": _ent(["Toyota Production System"], ["concept"], list("abcdefg"), []),
+        "andon": _ent(["andon"], ["concept"], list("abcdefg"), []),               # titled: a heading
+        "rare thing": _ent(["rare thing"], ["concept"], ["a"], []),               # one document
+        "fixme": _ent(["fixme.md"], ["document"], list("abcdefg"), []),           # a document has a home by construction
+    }
+    heads = {"the andon", "fixme", "board/readme"}
+    assert graphrag.subjects_without_home(ents, heads, 6) == [(7, "Toyota Production System", "concept")]
+    assert graphrag.has_home("andon", heads) and not graphrag.has_home("F169", heads)
+
+
+def test_disagreements_is_units_only_and_agreement_anywhere_clears_it():
+    ents = {
+        "spec/rules": _ent(["spec/rules.md"], ["document"], ["j", "r", "m"], [
+            ("j", "The rules, capped at 2000 lines."),
+            ("r", "Five documents under a 2500 lines cap."),
+        ]),
+        "agreed": _ent(["agreed"], ["concept"], ["a", "b", "c"], [
+            ("a", "runs in 15 s"), ("b", "about 15 s"), ("c", "30 s on a cold start"),   # a and b agree
+        ]),
+        "bare": _ent(["bare"], ["concept"], ["a", "b"], [
+            ("a", "the 2 questions"), ("b", "the 4 questions"),                          # no unit: not a claim
+        ]),
+    }
+    rows = graphrag.disagreements(ents)
+    assert [(r[1], r[2]) for r in rows] == [("spec/rules.md", "line")]
+    assert rows[0][3] == {"j": {"2000"}, "r": {"2500"}}
+    assert graphrag.unit_numbers("1,554 lines and 2026-09-06 and 15 %") == {("1554", "line"), ("15", "%")}

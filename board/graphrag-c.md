@@ -344,6 +344,47 @@ against it: `card:backlinks.md` was the same shape — built on a
 `because` in a session's own words, proved by a lamp that counted
 use, and the first evening's count was the number that settled it.
 
+**Items 1 and 2 ran — 2026-09-12, the morning the graph was whole.**
+Henri: *"ok. Lets do the items 1 and 2."*  Two commands, no model,
+each a list for a person and a count, `test/test_graphrag.py` holds
+the shape of both:
+
+- **`subjects`** — item 1.  A subject is an entity typed concept,
+  rule, event or project (a document, tool, card, memory or defect
+  has a home by construction); a *home* is a filename, a markdown
+  heading or a memory-index hook, normalised.  **10 of 89** subjects
+  in six or more documents have no home: `GESTATE_BUILD_TIME`,
+  `GESTATE_EDITOR_TIME`, `render_block`, `~/tend`, the event
+  `2026-08-13`, **Toyota Production System**, `Sig`, `SigHead`,
+  `Workbench.control`, `export.substrate_of`.  The session's reading,
+  marked as such: six are the language's own identifiers and are
+  named where they are defined, in code the extraction does not read;
+  `~/tend` has a memory whose hook the matcher missed; the event is
+  a date.  Toyota Production System is the one: named in five
+  documents by grep, seven by the graph, titled nowhere — the method's
+  source, and `doc/memory/method-sources.md` already says crediting it
+  is `spec/author.md` and his to write.  So item 1's first real find
+  is a thing the tree knew and had filed under somebody, and the graph
+  found it anyway, which is the shape the plan wanted.
+- **`contradictions`** — item 2.  For one entity, descriptions that
+  quote a number *with a unit* in two or more documents where no two
+  agree; bare counts are excluded, they disagree everywhere and mean
+  nothing.  Each document is dated by its last commit, newest last.
+  **15 pairs.**  The pilot's own example is in the list, found by
+  arithmetic: `spec/rules.md` at 2000 lines in the August journal
+  and 2500 in the spec since 2026-09-06.  Seven of the fifteen are
+  line counts quoted about a document that has since grown or been
+  rotated — `spec/summary.md` still says the journal is 6,948 lines,
+  from 2026-08-19; it is 2,967 after the rotation — which is the
+  *stale number* class `doc/memory/small-edits-to-his-pages-said-out-loud.md`
+  covers.  One checked and found not real: `doc/testimony.md`'s
+  *2000 lines* is a dated quotation of what he said on 2026-08-20,
+  which is what that page is for.  The rest are his to read; the
+  number the plan asked for, *how many real*, is his count.
+
+His prediction above said 1 and 2 would produce something real.  On
+the session's reading, each produced one.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like
