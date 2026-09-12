@@ -219,7 +219,29 @@ CLI's per-call overhead read 4.4 k tokens on one call and 0 on the
 next where the evening before read 8 k on every call; observed, not
 explained.
 
-    python tools/graphrag.py extract --backend cli --workers 4 2>&1 | tee -a ~/.cache/gestate/graphrag/extract-haiku-cli.log
+**Then he chose the API for the first run and the CLI for the
+increments, the same morning:** *"I'd want to use api backend with
+haiku and 6 workers, then later, do the incremental updates with cli.
+Is that possible?  I still have about 14$ available and Haiku is
+1$/5$ per MTok."*  It was not, as the tool stood: the cache and the
+store were both keyed by backend, so the CLI would have seen none of
+the API's replies and re-extracted everything.  So the session rekeyed
+them — a reply is keyed by model, prompt version, ceiling and text,
+the store is one file per arm, `extract-haiku.json`, and each reply
+and record says which backend made it — and gave `extract` a
+`--budget` in dollars at the assumed prices, the same stop as `stop`
+pulled by the price table.  Watched in the sitting: two chunks fresh
+on the API at 2 s a call, then the same two on the CLI, both
+*(cached)*.  The estimate for the whole tree on the API: about
+1.3 M tokens in and 1.3 M out, about $8 at his prices; the run prints
+its own projection after ten fresh calls, and `--budget 12` leaves
+$2 of the $14 as slack.  Six workers may meet the account's
+rate limit; a refused call is retried three times, 30/90/240 s apart,
+and then the run dies with everything so far in the cache, so the
+same command continues it.
+
+    python tools/graphrag.py extract --backend api --workers 6 --budget 12 2>&1 | tee -a ~/.cache/gestate/graphrag/extract-haiku.log
+    python tools/graphrag.py extract --backend cli --workers 4          # the increments, later: only the chunks whose text changed are called
     python tools/graphrag.py stop        # finishes the calls in flight and leaves; rerun the same command to continue
     python tools/graphrag.py check       # how many chunks a run would still call
 

@@ -73,12 +73,24 @@ def test_a_store_from_another_prompt_is_set_aside_and_not_carried(tmp_path):
     """A record extracted under an older prompt lacks what the prompt now
     asks for; the run starts its store over and keeps the old file."""
     import json
-    sp = tmp_path / "extract-haiku-cli.json"
+    sp = tmp_path / "extract-haiku.json"
     rec = {"id": "x.md#0", "usage": {"output_tokens": 5}, "entities": [], "relations": []}
     hole = {"id": "y.md#0", "usage": {"output_tokens": 0}, "entities": [], "relations": []}
     sp.write_text(json.dumps({"prompt": "2000-01-01a", "records": [rec]}), encoding="utf-8")
     assert graphrag.seed_records(sp) == {}
-    assert not sp.exists() and (tmp_path / "extract-haiku-cli.2000-01-01a.json").exists()
+    assert not sp.exists() and (tmp_path / "extract-haiku.2000-01-01a.json").exists()
     sp.write_text(json.dumps({"prompt": graphrag.PROMPT_VERSION, "records": [rec, hole]}), encoding="utf-8")
     assert list(graphrag.seed_records(sp)) == ["x.md#0"]
     assert graphrag.seed_records(tmp_path / "none.json") == {}
+
+
+def test_the_cache_does_not_know_the_backend():
+    """2026-09-12, Henri: the first run on the api, the increments on the
+    cli — so a reply is keyed without the backend and found by either."""
+    import inspect
+    assert "backend" not in inspect.signature(graphrag.cache_path_for).parameters
+    a = graphrag.cache_path_for("haiku", "Document `x.md`:\n\nsome text")
+    assert a == graphrag.cache_path_for("haiku", "Document `x.md`:\n\nsome text")
+    assert a != graphrag.cache_path_for("sonnet", "Document `x.md`:\n\nsome text")
+    assert a != graphrag.cache_path_for("haiku", "Document `x.md`:\n\nother text")
+    assert a.parent.name == "haiku" and a.parent.parent == graphrag.cache_dir()

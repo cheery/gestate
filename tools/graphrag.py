@@ -5,7 +5,8 @@
     python tools/graphrag.py pilot                 ten files, two models, one prompt; the sheet is doc/trial/graphrag-pilot.md
     python tools/graphrag.py pilot --dry-run       the files, the sizes and the prompt, no call made
     python tools/graphrag.py check                 the door rule, and how many chunks a run would still have to call
-    python tools/graphrag.py extract --backend cli --workers 4    every document, chunked, one call per chunk, cached
+    python tools/graphrag.py extract --backend api --workers 6 --budget 12    every document, chunked, one call per chunk, cached; stops at $12
+    python tools/graphrag.py extract --backend cli --workers 4               the same, billed to the subscription; finds the api run's replies
     python tools/graphrag.py extract --dry-run     the files, the chunks and the token estimate, no call made
     python tools/graphrag.py stop                  ask a running extract to finish its calls in flight and exit
     python tools/graphrag.py lookup <name>         the local read: one entity across every document, its relations, no model
@@ -18,8 +19,8 @@ the question, matched to entity names and to the keywords on
 relations, one hop, one generation call — in place of communities,
 summaries and a map-reduce over them; Henri's decision 2026-09-12,
 the card's §"LightRAG instead of summaries".  `extract`'s store is
-`~/.cache/gestate/graphrag/extract-<arm>-<backend>.json` — outside the
-tree, the card's Q1 default — one record per chunk, rewritten whole
+`~/.cache/gestate/graphrag/extract-<arm>.json` — outside the tree, the
+card's Q1 default — one record per chunk, rewritten whole
 at the end of every run from the per-call cache, so a run interrupted
 halfway loses nothing but the time.
 
@@ -29,7 +30,16 @@ door rule is what keeps that true mechanically: `test/test_graphrag.py`
 refuses a commit in which any file outside `doc/graph/` cites a file
 inside it other than `doc/graph/README.md`.
 
-**Two backends, one cache.**  `--backend api` reaches the Messages API
+**Two backends, one cache — and the cache does not know which.**
+Since 2026-09-12 a reply is keyed by model, prompt version, ceiling
+and text, not by backend, so the first run on the API and the
+week's increments on the CLI fill one cache and one store; each
+reply and each record says which backend produced it.  Henri's ask,
+the same morning: *"I'd want to use api backend with haiku and 6
+workers, then later, do the incremental updates with cli."*  The two
+backends sample differently (temperature 0 against `--effort low`),
+which the record keeps and the graph does not mind.
+`--backend api` reaches the Messages API
 with the standard library, `urllib`, billed to the key in
 `ANTHROPIC_API_KEY` at list price.  `--backend cli` runs `claude -p`
 headless with that key *unset*, so it is billed to the claude.ai
@@ -170,27 +180,26 @@ def cache_dir() -> Path:
     return home / "gestate" / "graphrag"
 
 
-def cache_path_for(model_key: str, backend: str, text: str, max_tokens: int = MAX_TOKENS) -> Path:
-    """Where one call's reply lives: model, backend, prompt version,
-    ceiling, sampling parameters and the text itself all key it, so a
+def cache_path_for(model_key: str, text: str, max_tokens: int = MAX_TOKENS) -> Path:
+    """Where one call's reply lives: model, prompt version, ceiling and
+    the text itself key it — not the backend, so a reply made on the
+    API is found by a run on the CLI and the other way round — and a
     changed file or a changed prompt is a fresh call and nothing else is."""
-    model = MODELS[model_key]
-    params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
-    key = hashlib.sha1(f"{model}\n{backend}\n{PROMPT_VERSION}\n{max_tokens}\n{json.dumps(params, sort_keys=True)}\n{SYSTEM}\n{text}".encode()).hexdigest()
-    return cache_dir() / backend / model_key / f"{key}.json"
+    key = hashlib.sha1(f"{MODELS[model_key]}\n{PROMPT_VERSION}\n{max_tokens}\n{SYSTEM}\n{text}".encode()).hexdigest()
+    return cache_dir() / model_key / f"{key}.json"
 
 
 def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str = "api") -> dict:
     """One extraction call, cached.  Returns `{"text", "usage", "model", "stop_reason", "cached"}`."""
     model = MODELS[model_key]
     params = PARAMS.get(model_key, {}) if backend == "api" else CLI_PARAMS
-    cp = cache_path_for(model_key, backend, text, max_tokens)
+    cp = cache_path_for(model_key, text, max_tokens)
     if cp.exists():
         out = json.loads(cp.read_text(encoding="utf-8"))
         out["cached"] = True
         return out
     if backend == "cli":
-        out = _call_cli(model_key, text)
+        out = {**_call_cli(model_key, text), "backend": "cli"}
         cp.parent.mkdir(parents=True, exist_ok=True)
         cp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
         return out
@@ -227,6 +236,7 @@ def call(model_key: str, text: str, max_tokens: int = MAX_TOKENS, backend: str =
         "stop_reason": resp.get("stop_reason"),
         "seconds": round(time.time() - t0, 1),
         "cached": False,
+        "backend": "api",
     }
     cp.parent.mkdir(parents=True, exist_ok=True)
     cp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -450,7 +460,8 @@ def seed_records(store_path: Path) -> dict[str, dict]:
         return {}
 
 
-def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bool) -> int:
+def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bool,
+            budget: float | None = None) -> int:
     from concurrent.futures import ThreadPoolExecutor, as_completed
     js = jobs()
     total_chars = sum(len(j[3]) for j in js)
@@ -466,14 +477,14 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
         return 0
     if limit:
         js = js[:limit]
-    store_path = cache_dir() / f"extract-{arm}-{backend}.json"
+    store_path = cache_dir() / f"extract-{arm}.json"
     #: The tool writes its own pid, because `$!` behind `nohup` on
     #: 2026-09-11 named the shell and the scheduled kill took that and
     #: not this.
     (cache_dir() / "extract.pid").write_text(f"pid {os.getpid()}\n", encoding="utf-8")
     records = seed_records(store_path)
     t_start = time.time()
-    done_fresh, secs_fresh, in_tok, out_tok = 0, 0.0, 0, 0
+    done_fresh, secs_fresh, in_tok, out_tok, spent = 0, 0.0, 0, 0, 0.0
     estimate_printed = False
 
     def one(job):
@@ -483,7 +494,7 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
         ents = [e for e in obj["entities"] if isinstance(e, dict) and e.get("name")]
         return {
             "id": f"{rel}#{i}", "file": rel, "chunk": i, "of": n, "chars": len(text),
-            "model": r["model"], "usage": r["usage"], "seconds": r.get("seconds"),
+            "model": r["model"], "backend": r.get("backend", backend), "usage": r["usage"], "seconds": r.get("seconds"),
             "cached": r["cached"], "stop_reason": r.get("stop_reason"),
             "parse_error": obj.get("parse_error"),
             "entities": [{"name": e["name"], "norm": norm(e["name"]), "type": e.get("type"),
@@ -494,7 +505,7 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
 
     def flush():
         store_path.parent.mkdir(parents=True, exist_ok=True)
-        store_path.write_text(json.dumps({"arm": arm, "backend": backend, "prompt": PROMPT_VERSION,
+        store_path.write_text(json.dumps({"arm": arm, "prompt": PROMPT_VERSION,
                                           "written": time.strftime("%Y-%m-%d %H:%M"),
                                           "records": list(records.values())},
                                          ensure_ascii=False), encoding="utf-8")
@@ -512,6 +523,13 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
                       f"rerun the same command to continue", flush=True)
                 stop_flag.unlink(missing_ok=True)
                 break
+            #: `--budget` is the same stop, pulled by the assumed price
+            #: table instead of a hand; the money already spent is not
+            #: lost, every reply is in the cache and the store.
+            if budget is not None and spent >= budget:
+                print(f"extract: budget ${budget:.2f} reached at chunk {k}/{len(js)} (${spent:.2f} at assumed prices) "
+                      f"— flushing and leaving; rerun with a higher --budget or --backend cli to continue", flush=True)
+                break
             futures = {pool.submit(one, j): j for j in js[start:start + workers]}
             for fut in as_completed(futures):
                 k += 1
@@ -523,6 +541,8 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
                 if not rec["cached"]:
                     done_fresh += 1
                     secs_fresh += rec["seconds"] or 0
+                    if rec["backend"] == "api":
+                        spent += cost(arm, u)
                 g = sum(1 for e in rec["entities"] if e["grounded"])
                 took = "  (cached)" if rec["cached"] else f"  {rec['seconds'] or 0:5.1f}s"
                 print(f"  {k:4d}/{len(js)} {rec['id']:56s} ents {len(rec['entities']):3d} grounded {g:3d} "
@@ -535,7 +555,9 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
                     remaining = len(js) - k
                     print(f"  --- after 10 fresh calls: {per:.1f} s each, {in_tok/k:.0f} in + {out_tok/k:.0f} out tokens each; "
                           f"{remaining} left ≈ {remaining*per/workers/60:.0f} min at {workers} workers, "
-                          f"≈ {remaining*in_tok/k/1e6:.2f} M in + {remaining*out_tok/k/1e6:.2f} M out ---", flush=True)
+                          f"≈ {remaining*in_tok/k/1e6:.2f} M in + {remaining*out_tok/k/1e6:.2f} M out"
+                          + (f" ≈ ${remaining*spent/done_fresh:.2f} more at assumed prices" if backend == "api" else "")
+                          + " ---", flush=True)
                 if k % 25 == 0:
                     flush()
     flush()
@@ -546,14 +568,16 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
     print(f"extract: {len(records)} records, {ents} entities ({gr/ents:.3f} grounded), "
           f"{sum(len(r['relations']) for r in records.values())} relations, "
           f"{errs} parse errors, {trunc} truncated; tokens in {in_tok} out {out_tok}; "
-          f"{done_fresh} fresh calls in {(time.time()-t_start)/60:.1f} min; store {store_path}")
+          f"{done_fresh} fresh calls in {(time.time()-t_start)/60:.1f} min"
+          + (f", ${spent:.2f} at assumed prices" if backend == "api" else "")
+          + f"; store {store_path}")
     return 0
 
 
 # --- reading the graph: the local move, no model -----------------------------
 
-def load_store(arm: str = "haiku", backend: str = "cli") -> dict:
-    sp = cache_dir() / f"extract-{arm}-{backend}.json"
+def load_store(arm: str = "haiku") -> dict:
+    sp = cache_dir() / f"extract-{arm}.json"
     if not sp.exists():
         sys.exit(f"graphrag: no store at {sp} — run `extract` first")
     return json.loads(sp.read_text(encoding="utf-8"))
@@ -582,8 +606,8 @@ def merged(store: dict) -> dict[str, dict]:
     return ents
 
 
-def lookup(name: str, arm: str, backend: str, limit: int) -> int:
-    store = load_store(arm, backend)
+def lookup(name: str, arm: str, limit: int) -> int:
+    store = load_store(arm)
     ents = merged(store)
     key = norm(name)
     hits = [k for k in ents if k == key] or sorted((k for k in ents if key in k), key=lambda k: -len(ents[k]["docs"]))
@@ -615,8 +639,8 @@ def lookup(name: str, arm: str, backend: str, limit: int) -> int:
     return 0
 
 
-def entities_top(arm: str, backend: str, top: int) -> int:
-    store = load_store(arm, backend)
+def entities_top(arm: str, top: int) -> int:
+    store = load_store(arm)
     ents = merged(store)
     print(f"(store: {len(store['records'])} chunks, {len(ents)} entities, written {store['written']})")
     for k, m in sorted(ents.items(), key=lambda kv: -len(kv[1]["docs"]))[:top]:
@@ -639,20 +663,20 @@ def intruders(index: dict) -> list[tuple[str, int, str]]:
     return sorted(out)
 
 
-def freshness(arm: str = "haiku", backend: str = "cli") -> tuple[int, int]:
+def freshness(arm: str = "haiku") -> tuple[int, int]:
     """`(chunks the tree has now, of them already extracted)` — what a
     run would have to call, without calling anything."""
     js = jobs()
-    have = sum(1 for rel, i, n, text in js if cache_path_for(arm, backend, _prompt(rel, i, n, text)).exists())
+    have = sum(1 for rel, i, n, text in js if cache_path_for(arm, _prompt(rel, i, n, text)).exists())
     return len(js), have
 
 
-def check(arm: str = "haiku", backend: str = "cli") -> int:
+def check(arm: str = "haiku") -> int:
     import backlinks
     tree = backlinks.Tree(ROOT)
     bad = intruders(backlinks.index(tree))
-    total, have = freshness(arm, backend)
-    print(f"graphrag: {have} of {total} chunks extracted ({arm}, {backend}); "
+    total, have = freshness(arm)
+    print(f"graphrag: {have} of {total} chunks extracted ({arm}); "
           f"{total - have} would be called by `extract`"
           + (" — the graph is current" if have == total else ""))
     if not bad:
@@ -753,36 +777,34 @@ def main(argv=None) -> int:
     sub.add_parser("stop", help="ask a running extract to finish in-flight calls and exit")
     c = sub.add_parser("check", help="the door rule, and how much of the tree the graph has")
     c.add_argument("--arm", default="haiku", choices=list(MODELS))
-    c.add_argument("--backend", choices=BACKENDS, default="cli")
     e = sub.add_parser("extract", help="every document, chunked, one call per chunk, cached")
     e.add_argument("--dry-run", action="store_true")
     e.add_argument("--arm", default="haiku", choices=list(MODELS))
     e.add_argument("--backend", choices=BACKENDS, default="cli")
     e.add_argument("--workers", type=int, default=4)
     e.add_argument("--limit", type=int, help="only the first N chunks")
+    e.add_argument("--budget", type=float, help="USD at the assumed prices; the run stops when fresh api calls reach it")
     l = sub.add_parser("lookup", help="one entity across every document — the local read, no model")
     l.add_argument("name")
     l.add_argument("--arm", default="haiku", choices=list(MODELS))
-    l.add_argument("--backend", choices=BACKENDS, default="cli")
     l.add_argument("--limit", type=int, default=3)
     t = sub.add_parser("entities", help="the entities most documents name")
     t.add_argument("--arm", default="haiku", choices=list(MODELS))
-    t.add_argument("--backend", choices=BACKENDS, default="cli")
     t.add_argument("--top", type=int, default=30)
     a = ap.parse_args(argv)
     if a.cmd == "check":
-        return check(a.arm, a.backend)
+        return check(a.arm)
     if a.cmd == "stop":
         (cache_dir() / "extract.stop").touch()
         pid = (cache_dir() / "extract.pid").read_text().split()[-1] if (cache_dir() / "extract.pid").exists() else "?"
         print(f"graphrag: stop asked; the run (pid {pid}) finishes its calls in flight and exits")
         return 0
     if a.cmd == "lookup":
-        return lookup(a.name, a.arm, a.backend, a.limit)
+        return lookup(a.name, a.arm, a.limit)
     if a.cmd == "entities":
-        return entities_top(a.arm, a.backend, a.top)
+        return entities_top(a.arm, a.top)
     if a.cmd == "extract":
-        return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run)
+        return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
     for x in arms:
         if x not in MODELS:
