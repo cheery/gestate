@@ -121,3 +121,13 @@ them, and a change to either is a second trial with its own sheet.
 answer did not find* and *invents* are his reading of the three
 files against the two hand answers, and the sheet's decision is
 taken when he has given it.
+
+**His reading — 2026-09-12, the same morning, after the three files:**
+*"These three files graphrag-global seem pretty good and spot on."*
+Read against the decision line: *spot on* is the *invents* half, none
+of the three; that is one of the two conditions the query needed.
+The other half, *adds something the hand answer did not find*, is
+settled for q2 by the answer itself — it says the context lacks the
+names — and is his to say for q1 and q3; the sheet does not round
+*pretty good* into it.  Standing as of this line: invents 0 of 3,
+adds 0 of 1 read, two unread.

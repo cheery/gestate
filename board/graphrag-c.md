@@ -403,9 +403,12 @@ query did not find** — the five prior-art names are in the store,
 and a ranking by document count cut them out under 514 matched
 entities; the keyword step does not know the tree's vocabulary; and
 the first answer cited a card by shelf path, which the citation gate
-refused, so the tool now rewrites shelf paths to ids.  **The decision
-line waits on his reading** of the three files against the two hand
-answers, and nothing was tuned before it.
+refused, so the tool now rewrites shelf paths to ids.  **His reading, the
+same morning:** *"These three files graphrag-global seem pretty good
+and spot on."*  On the sheet: *spot on* settles the *invents* half,
+none of three; the *adds* half is settled against the query for q2 by
+its own answer and is his to say for q1 and q3.  Nothing was tuned
+before it.
 
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
