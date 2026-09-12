@@ -62,6 +62,7 @@ Each renderer writes it, so **a program that defines its own `now` keeps it** an
 - **[Music](music.md)** — Programs with a `score` — the MIDI backend and performances.
 - **[Canvas](gui.md)** — Programs with a `substrate` — `gui`, and the editor's canvas tab.
 - **[Roll](roll.md)** — A score box's editing scale — what a `.notes` page is drawn with; in front of the page's program, after `gui.ges`.
+- **[Grid](grid.md)** — A document as a grid — a row per record, a column per field; in front of a `.notes` page's program that shows one, after `roll.ges`.
 - **[Charts](chart.md)** — Executable statecharts, one per subsystem — in front of a chart file such as `transport.ges`, which the editor runs.
 - **[Facts](facts.md)** — What a document is made of — in front of a file that declares `kinds`, such as `notes.ges`, which says what a `.notes` is.
 

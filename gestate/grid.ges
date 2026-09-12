@@ -1,0 +1,166 @@
+# grid.ges — a document as a grid: a row per record, a column per field.
+#
+# `card:gex-sheet.md` §"Off the shelf — 2026-09-12": the first grid is a
+# `.notes` file, and this is the vocabulary its picture is drawn with,
+# in front of the page's program after `roll.ges` (`audio.preludes`).
+# A library from the first day, because `roll.ges` paid for the lesson
+# the other way round: the page's program grew to eighty thousand
+# characters of unrolled repetition before the drawing was written once
+# as functions of a box's few numbers.
+#
+# **What a file's program still says**, written by `gestate/gridbox.py`:
+# its channels, the column widths and heads of its kind, how a column's
+# number is shown (`show` — a word table for the file's own words, the
+# domain's names for a bounded field), and one picture lifted over the
+# rows and the selected cell.  **The rows arrive on a channel** as a
+# flat `List Float`, `n` numbers a record, so an edited value is a new
+# reading and never a new program — `card:notes-editor.md` slice 3,
+# the drawn-scores lesson, kept here by `test/test_gridsheet.py`.
+#
+# **A cell carries a meaning, not a place.**  `Meaning` writes
+# `row * gridCols + col` on the press (`gui.ges` §`onPress`), and what
+# the number means is the model's: `gridbox.cell_of` splits it and the
+# row names the record's key in the document's own syntax.  Nothing
+# here measures text: a cell's box is declared and the host draws the
+# glyphs into it, the label's own rule.
+
+# ── The scale ────────────────────────────────────────────────────────────
+
+#: A row's height, in pixels — glyphs at scale two are ten tall, and a
+#: cell keeps two above and two below.
+gridRowH : Int
+gridRowH = 14
+
+#: Columns a row may have at most; a cell's meaning is
+#: `row * gridCols + col`, and `gridbox.COLS` is held to this.
+gridCols : Int
+gridCols = 16
+
+# ── Colours ──────────────────────────────────────────────────────────────
+
+gridNight : Colour
+gridNight = RGB 18 20 26
+
+gridTile : Colour
+gridTile = RGB 30 33 42
+
+gridStripe : Colour
+gridStripe = RGB 37 41 51
+
+gridHeadTile : Colour
+gridHeadTile = RGB 48 52 64
+
+gridSelTile : Colour
+gridSelTile = RGB 70 96 130
+
+gridInk : Colour
+gridInk = RGB 214 218 226
+
+gridHeadInk : Colour
+gridHeadInk = RGB 150 156 170
+
+# ── Numbers as text ──────────────────────────────────────────────────────
+
+#: One digit.
+gridDigit : Int -> String
+gridDigit d = case d of
+    0 -> "0"
+    1 -> "1"
+    2 -> "2"
+    3 -> "3"
+    4 -> "4"
+    5 -> "5"
+    6 -> "6"
+    7 -> "7"
+    8 -> "8"
+    9 -> "9"
+    _ -> "?"
+
+#: A number in digits, with its sign when it has one — where
+#: `roll.ges`' `rollNum` is a case table to sixty-four, a field may say
+#: any number, so this is the recursion.
+gridNum : Int -> String
+gridNum n = case n < 0 of
+    True -> append "-" (gridNum (0 - n))
+    False -> case n < 10 of
+        True -> gridDigit n
+        False -> append (gridNum (n / 10)) (gridDigit (n % 10))
+
+# ── The rows, from the reading ───────────────────────────────────────────
+
+#: The flat reading cut into records of `n` numbers, each floored.
+gridChunk : Int -> List Float -> List (List Int)
+gridChunk n xs = case xs of
+    Nil -> Nil
+    _ -> gridTake n xs :: gridChunk n (gridDrop n xs)
+
+gridTake : Int -> List Float -> List Int
+gridTake n xs = case n == 0 of
+    True -> Nil
+    False -> case xs of
+        Nil -> Nil
+        x :: rest -> floor x :: gridTake (n - 1) rest
+
+gridDrop : Int -> List Float -> List Float
+gridDrop n xs = case n == 0 of
+    True -> xs
+    False -> case xs of
+        Nil -> Nil
+        x :: rest -> gridDrop (n - 1) rest
+
+#: The widths summed — the page's width.
+gridSum : List Int -> Int
+gridSum ws = case ws of
+    Nil -> 0
+    w :: rest -> w + gridSum rest
+
+# ── The cells ────────────────────────────────────────────────────────────
+
+#: A row's tile: alternate rows a shade apart, so the eye keeps its line.
+gridBand : Int -> Colour
+gridBand i = case i % 2 of
+    0 -> gridTile
+    _ -> gridStripe
+
+#: The selected cell's tile, or the row's.
+gridTint : Colour -> Int -> Int -> Colour
+gridTint tile sel k = case sel == k of
+    True -> gridSelTile
+    False -> tile
+
+#: One cell: its meaning, a tile, the text centred in it.  The label's
+#: box is the cell less a margin, so the host draws at scale two while
+#: the text fits and visibly smaller when it does not.
+gridCell : Chan Float -> Int -> Int -> String -> Colour -> Sub
+gridCell c key w s tile = Meaning c (toFloat key) (Sized w gridRowH (Over (Rect (w - 1) (gridRowH - 1) tile) (Label (w - 6) 10 s gridInk)))
+
+#: A row's cells over its widths and values; `show col v` is the text.
+gridCells : Chan Float -> (Int -> Int -> String) -> Colour -> Int -> Int -> List Int -> List Int -> Int -> Sub
+gridCells c show tile key sel ws vs col = case ws of
+    Nil -> Gap 0 0
+    w :: wr -> case vs of
+        Nil -> Gap 0 0
+        v :: vr -> Row (gridCell c (key + col) w (show col v) (gridTint tile sel (key + col))) (gridCells c show tile key sel wr vr (col + 1))
+
+#: The rows, one under the other, numbered from `i`.
+gridRows : Chan Float -> (Int -> Int -> String) -> Int -> List Int -> List (List Int) -> Int -> Sub
+gridRows c show sel ws rs i = case rs of
+    Nil -> Gap 0 0
+    r :: rest -> Column (gridCells c show (gridBand i) (i * gridCols) sel ws r 0) (gridRows c show sel ws rest (i + 1))
+
+#: The head: a field's name over each column.
+gridHead : List Int -> List String -> Sub
+gridHead ws hs = case ws of
+    Nil -> Gap 0 0
+    w :: wr -> case hs of
+        Nil -> Gap 0 0
+        h :: hr -> Row (Sized w gridRowH (Over (Rect (w - 1) (gridRowH - 1) gridHeadTile) (Label (w - 6) 10 h gridHeadInk))) (gridHead wr hr)
+
+#: The ground under the page: as wide as the columns, as tall as the
+#: head and the rows.
+gridBack : List Int -> Int -> List Float -> Sub
+gridBack ws n rows = Rect (gridSum ws) ((length rows / n + 1) * gridRowH) gridNight
+
+#: The page: the head, then a row per record, over the ground.
+gridPage : Chan Float -> (Int -> Int -> String) -> List Int -> List String -> Int -> List Float -> Int -> Sub
+gridPage c show ws hs n rows sel = Over (gridBack ws n rows) (Column (gridHead ws hs) (gridRows c show sel ws (gridChunk n rows) 0))

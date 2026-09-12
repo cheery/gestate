@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**496 complaints**, in 48 files.
+**502 complaints**, in 48 files.
 
 | | |
 |---|---|
-| `author` | 275 |
+| `author` | 281 |
 | `command` | 43 |
 | `world` | 27 |
 | `machine` | 151 |
-| say where | 178 |
+| say where | 184 |
 | say `nowhere`, on purpose | 52 |
 | `unplaced`, with a defect that owns it | 59 |
 
@@ -99,13 +99,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | where | error | why |
 |---|---|---|
-| `audio.py:530` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:614` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:620` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:626` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:636` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:842` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:862` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:545` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:629` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:635` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:641` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:651` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:857` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:877` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audioalloc.py:103` | `AllocError` | a bank with no voices is a count in a declaration; the declaration places it before this is reached |
 | `audioalloc.py:172` | `AllocError` | the piece's notes and the bank's payload disagree, which is about two declarations and not one line |
 | `audiodynamic.py:80` | `ScoreError` | the piece names a bank that was given no allocator, which is about two declarations and not one line |
@@ -160,20 +160,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 467 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
-| 530 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
-| 614 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
-| 620 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
-| 626 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
-| 636 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
-| 666 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
-| 706 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
-| 711 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
-| 720 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
-| 820 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
-| 842 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
-| 854 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
-| 862 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
+| 482 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
+| 545 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
+| 629 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
+| 635 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
+| 641 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
+| 651 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
+| 681 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
+| 721 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
+| 726 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
+| 735 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
+| 835 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
+| 857 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
+| 869 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
+| 877 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
 
 ### `audioalloc.py`
 
@@ -814,16 +814,22 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 950 | `NotesError` | `author` | handed in | '{place}: `{word}` cannot be retracted by hand; this version retracts a note or a section' |
 | 954 | `NotesError` | `author` | handed in | '{place}: no `{word}` here says that' |
 | 959 | `NotesError` | `author` | handed in | '{place}: retracting it would leave the file unreadable — {why}' |
-| 990 | `NotesError` | `author` | handed in | '{place}: name one `{kind.name}` — its key is its `{kind.shape[1]}`' |
-| 999 | `NotesError` | `author` | handed in | '{place}: `{field}` has no value' |
-| 1002 | `NotesError` | `author` | handed in | '{place}: a `{kind.name}` is named by ' + ', '.join((f'`{f}`' for f in kind.key)) + ' and this … |
-| 1077 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
-| 1083 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
-| 1091 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
-| 1093 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1589 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1596 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1646 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 994 | `NotesError` | `author` | handed in | '{place} is empty' |
+| 999 | `NotesError` | `author` | handed in | '{place}: `{word}` is not a record; a line is ' + _oneof([f'`{k} …`' for k in document.names]) |
+| 1003 | `NotesError` | `author` | handed in | "{place}: this version sets a note's field; a `{word}` is edited as text" |
+| 1008 | `NotesError` | `author` | handed in | '{place}: a `{word}` has no field `{field}`; it has ' + ', '.join((f'`{n}`' for n in names)) |
+| 1015 | `NotesError` | `author` | handed in | '{place}: no `{word}` here says that' |
+| 1040 | `NotesError` | `author` | handed in | '{place}: that would name the note on line {other['line']} — a doubled line is one note said tw… |
+| 1076 | `NotesError` | `author` | handed in | '{place}: name one `{kind.name}` — its key is its `{kind.shape[1]}`' |
+| 1085 | `NotesError` | `author` | handed in | '{place}: `{field}` has no value' |
+| 1088 | `NotesError` | `author` | handed in | '{place}: a `{kind.name}` is named by ' + ', '.join((f'`{f}`' for f in kind.key)) + ' and this … |
+| 1163 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
+| 1169 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
+| 1177 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
+| 1179 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
+| 1675 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1682 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1732 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -929,21 +935,21 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2646 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2653 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
-| 2667 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2781 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2787 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2793 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
-| 2812 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2875 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2714 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2721 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
+| 2735 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2849 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2855 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2861 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
+| 2880 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
 | 2943 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2947 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 3089 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 3100 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5330 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5771 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5777 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 3011 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 3015 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 3157 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 3168 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5430 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5871 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5877 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `tempo.py`
 

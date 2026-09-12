@@ -890,6 +890,11 @@ class Workbench:
         #: `__canvas_<k>__` → its own compiled `Substrate` — one per
         #: `canvas <expr>` ask (B2), each walked as its own box.
         self.canvases: dict = {}
+        #: **The document as a grid** — `card:gex-sheet.md`: `grid` sets
+        #: this and the next build draws the file's records as rows in
+        #: the canvas view instead of the page; `roll` clears it.
+        self.grid_view: bool = False
+        self.grid_regions: dict = {}
         #: A score box's touch channel → the line it jumps to
         #: (`spec/scorebox.md`).  The one gesture the read-only box
         #: owns: a press on a note reveals where it is written.
@@ -1517,6 +1522,7 @@ class Workbench:
         # what went wrong is said once, in the author's terms.
         self.note_regions = {}
         self.note_rows = []
+        self.grid_regions = {}
         # **A rebuilt picture is the file's own answer**, so whatever a
         # hand was showing over the old one is spent: kept, it would be
         # applied to the new roll and move a note that had already
@@ -1558,6 +1564,18 @@ class Workbench:
                 # page's — the `substrate` entry the stacked program
                 # declares, walked by the canvas view.
                 drawn = drawn + ["substrate"]
+            # **Or the grid is** — `card:gex-sheet.md`: the same program
+            # grows the grid's box, so one compile draws either, and
+            # the canvas view takes the grid's entry while `grid_view`
+            # says so.  The rows arrive on a channel like the roll's.
+            grid_entry = None
+            rels = getattr(self, "notes_relations", None)
+            if drawn and stacked and getattr(self, "grid_view", False) and rels is not None:
+                from . import gridbox
+                gtext, _gchans = gridbox.grid_program(rels)
+                program = program + "\n" + gtext
+                grid_entry = gridbox.entry_of(0)
+                drawn = drawn + [grid_entry]
             if drawn:
                 # **One program for the page, drawn as many.**  Each box
                 # used to be its own gui program — another 35,000-character
@@ -1566,9 +1584,16 @@ class Workbench:
                 # once and gives a view per entry.
                 try:
                     views = Substrate.several(program, self.rate, drawn)
+                    grid_view = None
+                    if grid_entry is not None and drawn[-1] == grid_entry:
+                        grid_view = views[-1]
+                        views, drawn = views[:-1], drawn[:-1]
                     if stacked and drawn[-1] == "substrate":
                         self.substrate = views[-1]
                         views, drawn = views[:-1], drawn[:-1]
+                    if grid_view is not None:
+                        self.substrate = grid_view
+                        self.grid_regions = gridbox.grid_regions(rels)
                     boxes.update(zip(drawn, views))
                     self.note_regions.update(regions)
                     if regions:
@@ -1608,6 +1633,13 @@ class Workbench:
                             flat = scorebox.rows_reading(roll)
                             view.write(chan, flat)
                             rows.append((chan, flat))
+                    if grid_view is not None:
+                        chan = gridbox.GridRegion.rows_channel.fget(
+                            next(iter(self.grid_regions.values())))
+                        flat = gridbox.grid_reading(rels)
+                        grid_view.write(chan, flat)
+                        rows.append((chan, flat))
+                        grid_view.tick()
                     for view in views:
                         view.tick()
                     self.note_rows = rows

@@ -62,6 +62,9 @@ LIBRARIES = (
     ("roll.ges", "Roll",
      "A score box's editing scale — what a `.notes` page is drawn with; "
      "in front of the page's program, after `gui.ges`."),
+    ("grid.ges", "Grid",
+     "A document as a grid — a row per record, a column per field; in "
+     "front of a `.notes` page's program that shows one, after `roll.ges`."),
     ("chart.ges", "Charts",
      "Executable statecharts, one per subsystem — in front of a chart "
      "file such as `transport.ges`, which the editor runs."),

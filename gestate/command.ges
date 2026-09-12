@@ -320,6 +320,19 @@ assert region record = Stated
 retract : Text -> Text -> Command
 retract region key = Stated
 
+#: **Set one field of one record** — the derived edit, retract and
+#: assert in one line, said with the record's key (`card:gex-sheet.md`,
+#: 2026-09-12).  What a press on a grid's cell and a typed value run.
+#:
+#: `region` is the grid's cell channel; `key` the record's key in the
+#: document's own syntax, as `retract` takes it; `name` one of the
+#: kind's fields; `value` one token, or `-` to drop a field the record
+#: need not carry.  Refused in the parser's words when the value is not
+#: one the field may say, and when setting a key field would double a
+#: line that is already written.
+field : Text -> Text -> Text -> Text -> Command
+field region key name value = Stated
+
 #: Give the section a score box draws a new length in bars — what a
 #: hand on the box's **ruler** runs when it lets go (`card:notes-editor.md`
 #: slice 4, *resize the clip*, which Henri answered as the section's
@@ -763,6 +776,17 @@ canvas = Stated
 #: Show the text again.
 source : Command
 source = Stated
+
+#: Show the document as a **grid** — a row per record, a column per
+#: field — in the canvas view (`card:gex-sheet.md`).  A `.notes` opened
+#: alone; a `.ges` has no records to grid.  Press a cell to select it.
+grid : Command
+grid = Stated
+
+#: Show the document as its **roll** again — the page of sections
+#: `Ctrl-Tab` showed before `grid`.
+roll : Command
+roll = Stated
 
 #: Make the letters bigger, one rung of the ladder.
 zoomIn : Command

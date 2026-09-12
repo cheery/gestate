@@ -134,6 +134,7 @@ WHERE: dict[str, str] = {
     # ── The window ──────────────────────────────────────────────────────
     "session": "window", "sessionlog": "window", "audioeditor": "window",
     "workbench": "window", "audiospans": "window", "scorebox": "window",
+    "gridbox": "window",
     "editor": "window", "buildtime": "window", "unchanged": "window",
     "presence": "window", "icon": "window", "transportstate": "window",
     # `charts` and `facts` are one job: the host reading a `.ges` value

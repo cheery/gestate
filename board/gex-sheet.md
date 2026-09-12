@@ -292,3 +292,54 @@ and the bench.  Missing, in build order:
 not at the cell's rectangle* — the cheapest honest B, exercising the
 whole road from press to command to file to redraw.  Moving the field
 onto the cell is a later slice, taken only if the grid earns it.
+
+### Slice 1, built — 2026-09-12: the grid, the press, and `field`
+
+*Henri: "begin.  This looks like a good situation."*  Headless, on
+`arc.notes`, the road from a press to a command to the file to the
+picture; the window's half — the `ask` verb — is slice 2.
+
+| built | where |
+|---|---|
+| the drawing, a library from the first day: rows cut from a flat reading, a cell a `Meaning` over a tile and a label, the head, alternate rows a shade apart, the selected cell lit | `gestate/grid.ges` |
+| the host half: the per-file program (channels, the file's word table, a case table per bounded field, widths and heads, one picture lifted over rows and selection), the reading, the regions, the record's key from a row | `gestate/gridbox.py` |
+| the prelude door: a program declaring a rows channel gets `grid.ges` after `roll.ges` | `audio.has_grid`, `preludes` |
+| `assigned` — one field of one record by key, read back through the parser, the spelling dropped with a set key, a doubled key refused | `notes.assigned` |
+| **`field <region> <key> <name> <value>`**, and `grid` / `roll` to choose the canvas view's picture | `command.ges`, `session.do_field`, `do_grid`, `do_roll` |
+| a press on a cell names the line and the field, the selection outliving it on the box's `sel` channel | `session._grid_touched`, `grid_cell` |
+| the bench: `grid_view` grows the page's one program by the grid's box, the canvas view takes its entry, the rows cross as a trace beside the roll's | `audioeditor._load_substrate`, `grid_regions` |
+| the tests — eleven, under *the first sheet* | `test/test_gridsheet.py` |
+
+**Measured on the reference machine, `arc.notes`, 291 notes × 9
+fields:**
+
+| | |
+|---|---|
+| the program's text | 1,869 chars — the kind's columns and the file's words; the rows are a reading |
+| compiled once | 0.99 s |
+| the first picture | **5.9 s**, 5,257 items, 2,619 cells with a meaning |
+| the program after a value edit | byte-identical; the reading differs in one number |
+| a press aimed by the host's arithmetic | answered by the picture with the cell's own meaning, three corners tried |
+
+**The 5.9 s is the Python interpreter's cost per item** — 1.1 ms an
+item, where the roll's first picture is 366 ms for 248 items, 1.5 ms —
+and it is the number a headless test pays, not the one a person sees:
+the window walks the program in Rust.  **That number is not measured
+here** and it is the next one that matters, because a grid of a whole
+piece is ten times the roll's items.  It takes a driven run
+(`tools/driven.py`), which takes his screen.  If the Rust walk is slow
+too, the answer is the one every grid has — draw the rows in the
+window and no more, the scroll offset arriving as a channel — and it
+is a slice, not a rewrite: the library's `gridRows` takes a first row
+and a count today in all but name.
+
+**What the first slice does not do, said now:** nothing opens the
+textbox — a press selects and says the value, and `field` is typed in
+the palette by hand; the `ask` furniture verb that opens the palette
+pre-filled from a press is slice 2, the one thing that touches the
+window.  Only the `note` kind is a grid; `section` and `bpm` lines
+are edited as text.  A new word in the file — a spelling it has not
+used — is a new program, once, and the card says so where the word
+table is written.  Labels are the chrome font, 3×5 and uppercase, so
+`melody` reads `MELODY`; a grid in the editor's own font is reading C
+of the textbox question and is not taken.

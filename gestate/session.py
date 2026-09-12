@@ -986,6 +986,12 @@ class Session:
     #: `audiomidi.Notes.sound` is the seam; `spec/annotations.md`
     #: §"The three paths, priced" is what it costs.
     sounding: dict = field(default_factory=dict)
+    #: **The cell the last press on a grid selected**, per grid box:
+    #: `(row, col)` — the record's row in `gridbox`'s order and the
+    #: field's column (`card:gex-sheet.md`).  What `field` is typed
+    #: over; the picture reads the same fact through the box's `sel`
+    #: channel.
+    grid_cell: dict = field(default_factory=dict)
     #: How often the picture and the model named the same note under a
     #: press, and every press where they did not — the parity this
     #: slice is held by until the model's lookup is deleted.
@@ -2577,6 +2583,68 @@ class Session:
             return f"retract: {exc}"
         self.bench.audition(self.view.text())
         return f"retract: {name} — {said}"
+
+    def do_field(self, region: str, key: str, name: str, value: str) -> str:
+        """Set one field of one record of the document a grid draws.
+
+        **The derived edit, in the command language** — retract and
+        assert in one line, said with the record's key
+        (`card:gex-sheet.md`, 2026-09-12).  The record is read back
+        through the document's own parser, so the refusal for a value
+        the field may not say is the parser's sentence; the file comes
+        back canonical through `_write_included`, as every gesture's
+        write does.
+        """
+        from .notes import NotesError, assigned
+
+        found = (getattr(self.bench, "grid_regions", None) or {}).get(region)
+        if found is None:
+            return f"field: no grid region called `{region}`"
+        got = self._grid_document()
+        if got is None:
+            return "field: this window's file is not a document"
+        path, docname, text = got
+        try:
+            out, said = assigned(text, key, name, value, docname, where=path)
+            self._write_included(path, out, True)
+        except (OSError, NotesError) as exc:
+            return f"field: {exc}"
+        self.bench.audition(self.view.text())
+        return f"field: {docname} — {said}"
+
+    def _grid_document(self):
+        """`(path, name, text)` — the document a grid draws: the file in
+        the window, when it is one (`audioeditor.KINDS`); else `None`."""
+        from pathlib import Path as _Path
+
+        if getattr(self.bench, "kind", None) is None:
+            return None
+        path = _Path(getattr(self.bench, "path", "."))
+        return path, path.name, self.view.text()
+
+    def do_grid(self) -> str:
+        """Show the document as a grid in the canvas view."""
+        if getattr(self.bench, "kind", None) is None:
+            return "grid: this file is not a document — a `.notes` opened alone is"
+        self.bench.grid_view = True
+        again = getattr(self.bench, "redraw", None)
+        if again is not None:
+            again(self.view.text())
+        if not self.view.show("canvas"):
+            return "this window shows the source only"
+        return "grid — it will appear when it builds"
+
+    def do_roll(self) -> str:
+        """Show the document as its roll again."""
+        if getattr(self.bench, "kind", None) is None:
+            return "roll: this file is not a document"
+        self.bench.grid_view = False
+        again = getattr(self.bench, "redraw", None)
+        if again is not None:
+            again(self.view.text())
+        if not self.view.show("canvas"):
+            return "this window shows the source only"
+        return "roll — it will appear when it builds"
 
     def do_move(self, region: str, was: int, at: int) -> str:
         """Move the note a score box has selected, in time.
@@ -4733,6 +4801,9 @@ class Session:
         # press that *moves* is a transposition waiting for the hand to
         # come off (`spec/north_star.md`).  Nothing is written while it
         # moves; `released` commits.
+        cell = self._grid_touched(name, value)
+        if cell is not None:
+            return cell
         held = self._note_touched(name, value)
         if held is not None:
             return held
@@ -4741,6 +4812,35 @@ class Session:
             doing(name, value)
         self._journal().slid("touched", (name, value))
         return ""
+
+    def _grid_touched(self, name: str, down: float) -> str | None:
+        """A press on a grid's cell, or `None` for any other hand.
+
+        **The cell carries its meaning** — `row * COLS + col`, written by
+        the picture on the press (`gui.ges`' `Meaning`) — so nothing is
+        recovered from a coordinate: the row names the record, the
+        column the field, and the answer says both with the value the
+        file has there.  The selection outlives the press, in `grid_cell`
+        and on the box's `sel` channel for the picture.
+        """
+        from . import gridbox
+
+        found = (getattr(self.bench, "grid_regions", None) or {}).get(name)
+        if found is None:
+            return None
+        self._journal().slid("touched", (name, down))
+        row, col = gridbox.cell_of(down)
+        if not (0 <= row < len(found.rows) and 0 <= col < len(found.fields)):
+            return "grid: no cell there"
+        self.grid_cell[found.box] = (row, col)
+        shown = dict(getattr(self.bench, "previewing", None) or {})
+        shown[found.sel] = float(int(down))
+        self.bench.previewing = shown
+        one, name_ = found.rows[row], found.fields[col]
+        value = one.get(name_)
+        value = ",".join(value) if isinstance(value, tuple) else value
+        return (f"line {one['line']}: {name_} "
+                f"{value if value not in (None, '', ()) else '-'}")
 
     def _note_touched(self, name: str, down: float) -> str | None:
         """A hand on a score box, or `None` for any other hand.

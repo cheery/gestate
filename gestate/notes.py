@@ -966,6 +966,92 @@ def retracted(text: str, key: str, name: str = "<notes>",
     return made, f"retracted {word} {' '.join(tokens[1:])}{lines}"
 
 
+def assigned(text: str, key: str, field: str, value: str,
+             name: str = "<notes>", where=None) -> tuple:
+    """`(text, said)` — one field of one record set, by the record's key.
+
+    **The derived edit, in the command language** — `card:gex-sheet.md`
+    §"Off the shelf — 2026-09-12": a cell of the grid is one field of one
+    record, and setting it is what `retune` does for a drag, said with
+    the record's key instead of a line number.  `key` is the key in the
+    document's own syntax, as `retract` takes it; `field` is one of the
+    kind's fields; `value` is one token, or `-` to drop a field the
+    record need not carry.
+
+    Refused in the parser's words when the value is not one the field
+    may say — `vel loud`, `bar 9` of an eight-bar section — because the
+    record is read back through the same reader every typed line meets.
+    A field that names the record is set too, and a key that would then
+    be already written is refused, as `asserted` refuses a doubled line.
+    """
+    rels = parse(text, name, where=where)
+    document = _kinds(where)
+    sections, notes_ = sections_of(rels), notes_of(rels)
+    line, _beside = _uncomment(key)
+    tokens = line.split()
+    place = f"{name}: the record to set"
+    if not tokens:
+        raise NotesError(f"{place} is empty")
+    word = tokens[0]
+    place = f"{name}: `{field}` of the `{word}`"
+    kind = document.kind(word)
+    if kind is None:
+        raise NotesError(
+            f"{place}: `{word}` is not a record; a line is "
+            + _oneof([f"`{k} …`" for k in document.names]))
+    if word != "note":
+        raise NotesError(
+            f"{place}: this version sets a note's field; a `{word}` is "
+            "edited as text")
+    names = [f.name for f in kind.fields]
+    if field not in names:
+        raise NotesError(
+            f"{place}: a `{word}` has no field `{field}`; it has "
+            + ", ".join(f"`{n}`" for n in names))
+    wanted = _given_key(kind, tokens[1:], place)
+    hits = [one for one in notes_ if _key(kind, one) == tuple(
+        wanted[f] for f in kind.key)]
+    if not hits:
+        raise NotesError(f"{place}: no `{word}` here says that")
+    by_name = {s["name"]: s for s in sections}
+    made = []
+    for one in hits:
+        record, _said = _uncomment(_line({**one, "beside": None}))
+        parts = record.split()[1:]
+        pairs = [(parts[i], parts[i + 1]) for i in range(0, len(parts), 2)]
+        pairs = [(f, v) for f, v in pairs if f != field]
+        if str(value) != "-":
+            pairs.append((field, str(value)))
+        #: **The spelling goes with the key it spelt**, as a drag drops
+        #: it (`retune`): a letter chosen for one pitch is no intention
+        #: about another.
+        dropped = ""
+        if field == "key" and one.get("spell"):
+            pairs = [(f, v) for f, v in pairs if f != "spell"]
+            dropped = f", and `spell {one['spell']}` with it"
+        flat = [w for pair in pairs for w in pair]
+        new = {**_note(flat, kind, f"{name}:{one['line']}", by_name, sections),
+               "line": one["line"], "above": one["above"], "beside": one["beside"]}
+        made.append((one, new, dropped))
+    for one, new, _d in made:
+        if _key(kind, new) != _key(kind, one):
+            for other in notes_:
+                if other not in hits and _key(kind, other) == _key(kind, new):
+                    raise NotesError(
+                        f"{place}: that would name the note on line "
+                        f"{other['line']} — a doubled line is one note said twice")
+    for one, new, _d in made:
+        notes_[notes_.index(one)] = new
+    notes_ = _in_order(sections, notes_)
+    one, new, dropped = made[0]
+    was = one.get(field)
+    was = ",".join(was) if isinstance(was, tuple) else was
+    said = (f"{field} {was if was not in (None, '') else '-'} → "
+            f"{value} on line {one['line']}{dropped}")
+    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels)),
+            f"set {said}")
+
+
 def _key(kind, one: dict) -> tuple:
     """A record's key, as the declaration names it, written as a person
     writes it — so that a key given on the command line compares."""

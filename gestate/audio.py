@@ -296,11 +296,20 @@ def preludes(source: str) -> str:
     sounds, draws = has_sound(source), has_substrate(source)
     if sounds and draws:
         return _AUDIO_GUI
+    if draws and has_grid(source):
+        return _GUI_GRID
     if draws and has_roll(source):
         return _GUI_ROLL
     if draws:
         return _GUI_ONLY
     return _AUDIO
+
+
+def has_grid(source: str) -> bool:
+    """Does this program draw a document as a grid?  `gridbox.grid_program`
+    declares each box's rows channel, `__ng_rows_k__`, and a hand-written
+    canvas never does (`card:gex-sheet.md`)."""
+    return re.search(r"^__ng_rows_\d+__ : Chan \(List Float\)$", source, re.M) is not None
 
 
 def has_roll(source: str) -> bool:
@@ -329,6 +338,12 @@ _GUI_ONLY = (_SIGNAL + "\n"
 #: vocabulary is a library").
 _GUI_ROLL = (_GUI_ONLY + "\n"
              + library_text("roll.ges"))
+
+#: A page that also draws a document as a **grid** — `grid.ges` after
+#: `roll.ges`, because the page a `.notes` opened alone builds holds
+#: both pictures in one program (`card:gex-sheet.md`).
+_GUI_GRID = (_GUI_ROLL + "\n"
+             + library_text("grid.ges"))
 
 #: 22,050 is a compromise: high enough that a sawtooth is recognisably
 #: itself, low enough that a second of sound is a few seconds of work.

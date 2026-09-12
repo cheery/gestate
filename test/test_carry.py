@@ -84,6 +84,9 @@ DELIBERATELY_FRESH = {
     "_diff_last": "the last diff made, of the old text",
     "proposed": "the `(verb, argument)` a name was already filled into",
     "given": "the arguments the old box was holding",
+    "grid_cell": "the cell the last press on a grid selected, per box — a row of "
+                 "the *old* file's records and a column of its kind, and the new "
+                 "file's grid is built with no selection (`card:gex-sheet.md`)",
     "group": "the notes a band selected in a score box, per box — no box "
              "of the new file has been swept",
     "sizing": "a hand on the ruler, the section's end — there is no hand on "
