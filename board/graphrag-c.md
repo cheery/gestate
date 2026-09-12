@@ -629,6 +629,36 @@ and each such moment with the follow measure the cue has, so that a
 cue nobody follows comes out.  The candidates are on the card's
 tail, shaped and not built.
 
+**The moments, built the same evening — `lamp`, and the one that was
+already there.**  Henri: *"ok. lets do these features you just
+listed, or at least write it down to the card, so we'll do it later."*
+Three moments were listed; two needed building.
+
+- **Opening a card** needed nothing: a card is opened by a Read, the
+  backlinks hook fires on a Read, and the cue is on the hook's
+  answer since this morning.  Done by construction.
+- **A document changed, at commit** — `python tools/graphrag.py
+  lamp`, run by `tools/pre-commit.sh` in place of the freshness line
+  (it prints that first): for each staged document, the
+  contradictions list restricted to the subjects that document
+  names — *you changed the rules cap here; the August journal still
+  says 2000, dated*.  Item 2 at the moment the disagreement is made.
+- **A document added, at commit** — the same command: the store's
+  subjects that occur in the new file's text and already live in two
+  to twelve documents, with those documents — *this note names Rizzo,
+  also in spec/frp.md, spec/data.md, doc/manual.md*.  Move 4 of
+  `board/README.md`, *check it does not already exist*, mechanised at
+  the moment of writing.  Hubs, dates and code identifiers are left
+  out, as the cue leaves them out.
+
+At most four lines a commit, no model, half a second.  **Each line
+is a fire in its own log**, `~/.local/state/gestate/graphrag-lamp.log`,
+and **the follow is read from git**: `lamp --earned` counts a fire
+whose named document was changed in a later commit.  Correlation,
+as the backlinks number is, and the honest floor is the same zero.
+The first fire is the commit that added the lamp, and its own
+lines are on this card's tail below.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

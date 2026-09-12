@@ -15,6 +15,7 @@
     python tools/graphrag.py contradictions        item 2: numbers about one subject that disagree across documents — no model
     python tools/graphrag.py query "<question>"    the global search, LightRAG's shape: two calls, printed, never written
     python tools/graphrag.py cue <path>            item 4: what the backlinks hook adds for this file — no model
+    python tools/graphrag.py lamp [--earned]       at commit: freshness, and what the staged documents contradict or repeat — no model
 
 `card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`,
 `lookup` and `entities`.  What follows is `query`, the dual-level
@@ -934,6 +935,150 @@ def cue(rel: str, exclude: set[str], store: dict | None = None, top: int = 3, pe
             + "  (a model's reading, not evidence — python tools/graphrag.py lookup <subject>)"), offered
 
 
+# --- the lamp at commit: the graph speaking at the moment, unasked --------
+#
+# Henri, 2026-09-12: "the creative use of this tool would be the best.
+# That we somehow internalise it into the whole work, rather than run
+# queries separately so much or write down what it answers."  Two
+# moments the commit already has, no model in either:
+#   a document changed  -> the contradictions list, restricted to the
+#                          subjects that document names: *you changed
+#                          this here, and that file still says 2000*
+#   a document added    -> the store's subjects that occur in the new
+#                          text and already have documents: *this is also
+#                          in these three* — the board's move 4, at the
+#                          moment of writing
+# Each line is a fire in its own log, and a follow is the offered
+# document changed in a later commit — read from git, by `lamp --earned`.
+
+LAMP_MAX_LINES = 4
+
+
+def lamp_log_path() -> Path:
+    if os.environ.get("GESTATE_GRAPHRAG_LOG"):
+        return Path(os.environ["GESTATE_GRAPHRAG_LOG"])
+    return Path.home() / ".local" / "state" / "gestate" / "graphrag-lamp.log"
+
+
+def staged() -> tuple[list[str], list[str]]:
+    """`(modified, added)` documents in the index, by git."""
+    import subprocess
+    out = subprocess.run(["git", "diff", "--cached", "--name-status", "--", "*.md"],
+                         capture_output=True, text=True, cwd=ROOT).stdout
+    mod, add = [], []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 2 or not parts[-1].endswith(".md"):
+            continue
+        (add if parts[0].startswith("A") else mod).append(parts[-1])
+    return mod, add
+
+
+def lamp_lines(modified: list[str], added: list[str], ents: dict[str, dict], texts: dict[str, str],
+               dates: dict[str, str] | None = None, max_lines: int = LAMP_MAX_LINES) -> list[tuple[str, str, str, list[str]]]:
+    """`(kind, file, subject, offered documents)` per line, most specific
+    first.  `texts` is the added files' contents, since the store has not
+    read them."""
+    out: list[tuple[str, str, str, list[str]]] = []
+    dates = dates or {}
+    changed = set(modified)
+    if changed:
+        for d, name, unit, byf in disagreements(ents):
+            here = [f for f in byf if f in changed]
+            if not here or len(byf) < 2:
+                continue
+            others = sorted((f for f in byf if f not in changed), key=lambda f: (dates.get(f, ""), f))
+            if not others:
+                continue
+            out.append(("contradiction", here[0], f"{name} [{unit}]: {', '.join(sorted(byf[here[0]]))} here",
+                        [f"{f} says {', '.join(sorted(byf[f]))}" + (f" ({dates[f]})" if f in dates else "") for f in others[:2]]))
+    for a in added:
+        text = texts.get(a, "").lower()
+        if not text:
+            continue
+        found = []
+        for k, m in ents.items():
+            t = m["types"].most_common(1)[0][0] if m["types"] else ""
+            if t not in CUE_TYPES or re.search(r"[_./()]", k) or not (CUE_MIN_DOCS <= len(m["docs"]) <= CUE_MAX_DOCS):
+                continue
+            if len(k) > 3 and k in text:
+                found.append((len(m["docs"]), k, sorted(d for d in m["docs"] if d != a)))
+        for n, k, docs in sorted(found, key=lambda r: (r[0], r[1]))[:2]:
+            out.append(("also-in", a, k, [cite_key(d) for d in docs[:3]]))
+    return out[:max_lines]
+
+
+def lamp(earned: bool = False) -> int:
+    total, have = freshness("haiku")
+    print(f"graphrag: {have} of {total} chunks extracted; {total - have} would be called by `extract`"
+          + (" — the graph is current" if have == total else ""))
+    if earned:
+        return lamp_earned()
+    mod, add = staged()
+    if not (mod or add):
+        return 0
+    sp = cache_dir() / "extract-haiku.json"
+    if not sp.exists():
+        return 0
+    ents = merged(json.loads(sp.read_text(encoding="utf-8")))
+    texts = {a: (ROOT / a).read_text(encoding="utf-8", errors="replace") for a in add if (ROOT / a).exists()}
+    rows = lamp_lines(mod, add, ents, texts, doc_dates())
+    for kind, f, subject, offered in rows:
+        if kind == "contradiction":
+            print(f"  graph: {f} — {subject}; {'; '.join(offered)}")
+        else:
+            print(f"  graph: {f} names *{subject}*, also in {', '.join(offered)}")
+    try:
+        lp = lamp_log_path()
+        lp.parent.mkdir(parents=True, exist_ok=True)
+        with lp.open("a", encoding="utf-8") as fh:
+            for kind, f, subject, offered in rows:
+                names = ",".join(o.split(" says ")[0] for o in offered)
+                fh.write(f"{int(time.time())}\t{kind}\t{f}\t{subject.split(' [')[0]}\t{names}\n")
+    except OSError:
+        pass
+    return 0
+
+
+def lamp_earned(days: int = 30) -> int:
+    """A fire is followed when an offered document was changed in a commit
+    after the fire.  Read from git, so it needs no second log."""
+    import subprocess
+    lp = lamp_log_path()
+    if not lp.exists():
+        print(f"graphrag lamp: no fires logged")
+        return 0
+    since = time.time() - days * 86400
+    fires = []
+    for ln in lp.read_text(encoding="utf-8").splitlines():
+        parts = ln.split("\t")
+        if len(parts) < 5:
+            continue
+        try:
+            when = int(parts[0])
+        except ValueError:
+            continue
+        if when >= since:
+            fires.append((when, parts[1], parts[2], parts[3], [n for n in parts[4].split(",") if n]))
+    if not fires:
+        print(f"graphrag lamp: no fires in {days} days")
+        return 0
+    followed = 0
+    for when, kind, f, subject, names in fires:
+        hit = False
+        for n in names:
+            rel = str(path_of(n).relative_to(ROOT)) if n.startswith("card:") else n
+            log = subprocess.run(["git", "log", "--format=%ct", f"--since=@{when + 1}", "--", rel],
+                                 capture_output=True, text=True, cwd=ROOT).stdout.strip()
+            if log:
+                hit = True
+                break
+        followed += hit
+    print(f"graphrag lamp --earned, {days} days: {followed} of {len(fires)} fires were followed by a change to a document they named"
+          " — correlation, as the backlinks number is")
+    return 0
+
+
 # --- the query: LightRAG's dual-level retrieval, one hop, one answer ------
 
 KEYWORDS_SYSTEM = """You turn a question about a software project's repository into search keywords for a knowledge graph.
@@ -1381,6 +1526,8 @@ def main(argv=None) -> int:
     cd.add_argument("--arm", default="haiku", choices=list(MODELS))
     cd.add_argument("--min-docs", type=int, default=2)
     cd.add_argument("--top", type=int, default=40)
+    la = sub.add_parser("lamp", help="at commit: freshness, and what the staged documents contradict or repeat — no model")
+    la.add_argument("--earned", action="store_true", help="how many lamp lines were followed by a change to a document they named")
     cu = sub.add_parser("cue", help="item 4: the line the backlinks hook adds for a file, from the store — no model")
     cu.add_argument("path")
     q = sub.add_parser("query", help="a global question to the graph: keywords, two-level match, one hop, one answer")
@@ -1415,6 +1562,8 @@ def main(argv=None) -> int:
         return subjects(a.arm, a.min_docs)
     if a.cmd == "contradictions":
         return contradictions(a.arm, a.min_docs, a.top)
+    if a.cmd == "lamp":
+        return lamp(a.earned)
     if a.cmd == "cue":
         line, offered = cue(a.path, set())
         print(line or f"cue: nothing to say about {a.path}")

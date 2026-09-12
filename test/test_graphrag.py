@@ -347,3 +347,22 @@ def test_the_query_defaults_are_the_seventh_sheets():
     import inspect
     sig = inspect.signature(graphrag.query).parameters
     assert sig["ranking"].default == "themes" and sig["keywords"].default == "union"
+
+
+def test_the_commit_lamp_names_a_contradiction_in_a_changed_file_and_a_subject_in_a_new_one():
+    ents = {
+        "spec/rules": _ent(["spec/rules.md"], ["document"], ["j", "spec/rules.md"], [
+            ("journal/2026-08.md", "capped at 2000 lines"), ("spec/rules.md", "a 2500 lines cap")]),
+        "rizzo": _ent(["Rizzo"], ["concept"], ["spec/frp.md", "spec/data.md", "doc/manual.md"], []),
+        "gestate": _ent(["gestate"], ["project"], [f"d{i}" for i in range(30)], []),        # a hub: never offered
+    }
+    rows = graphrag.lamp_lines(["spec/rules.md"], ["doc/memory/new-note.md"], ents,
+                               {"doc/memory/new-note.md": "A note on Rizzo and gestate."}, {"journal/2026-08.md": "2026-09-01"})
+    kinds = [(k, f) for k, f, _s, _o in rows]
+    assert ("contradiction", "spec/rules.md") in kinds and ("also-in", "doc/memory/new-note.md") in kinds
+    c = next(r for r in rows if r[0] == "contradiction")
+    assert c[2].startswith("spec/rules.md [line]: 2500 here") and c[3] == ["journal/2026-08.md says 2000 (2026-09-01)"]
+    a = next(r for r in rows if r[0] == "also-in")
+    assert a[2] == "rizzo" and a[3] == ["doc/manual.md", "spec/data.md", "spec/frp.md"]       # sorted, three at most
+    assert not [r for r in rows if r[2] == "gestate"]
+    assert graphrag.lamp_lines([], [], ents, {}) == []

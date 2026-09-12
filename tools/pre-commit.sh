@@ -139,7 +139,7 @@ if "$PY" tools/suite.py --gates; then
     # without a call — the call is the keeper's, on the cli, when the
     # number says so.  Prints, never refuses, silent when the tool is
     # not there.
-    [ -f tools/graphrag.py ] && "$PY" tools/graphrag.py check 2>/dev/null | head -1 || true
+    [ -f tools/graphrag.py ] && "$PY" tools/graphrag.py lamp 2>/dev/null || true
     exit 0
 fi
 
