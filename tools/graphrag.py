@@ -704,10 +704,16 @@ def lookup(name: str, arm: str, limit: int) -> int:
     return 0
 
 
-def entities_top(arm: str, top: int) -> int:
+def entities_top(arm: str, top: int, type_: str | None = None) -> int:
+    """The entities most documents name; `--type concept` is the plan's
+    item 1 — the top of the unfiltered list is the citation graph again,
+    documents and the one person, which backlinks already draws
+    (Henri, 2026-09-12, reading the half-built store)."""
     store = load_store(arm)
     ents = merged(store)
-    print(f"(store: {len(store['records'])} chunks, {len(ents)} entities, written {store['written']})")
+    if type_:
+        ents = {k: m for k, m in ents.items() if m["types"] and m["types"].most_common(1)[0][0] == type_}
+    print(f"(store: {len(store['records'])} chunks, {len(ents)} entities{f' of type {type_}' if type_ else ''}, written {store['written']})")
     for k, m in sorted(ents.items(), key=lambda kv: -len(kv[1]["docs"]))[:top]:
         print(f"  {len(m['docs']):4d} docs  {m['names'].most_common(1)[0][0]:50s} [{m['types'].most_common(1)[0][0] if m['types'] else '?'}]")
     return 0
@@ -856,6 +862,7 @@ def main(argv=None) -> int:
     t = sub.add_parser("entities", help="the entities most documents name")
     t.add_argument("--arm", default="haiku", choices=list(MODELS))
     t.add_argument("--top", type=int, default=30)
+    t.add_argument("--type", choices=TYPES, help="only entities whose commonest type is this — `concept` is the plan's item 1")
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check(a.arm)
@@ -867,7 +874,7 @@ def main(argv=None) -> int:
     if a.cmd == "lookup":
         return lookup(a.name, a.arm, a.limit)
     if a.cmd == "entities":
-        return entities_top(a.arm, a.top)
+        return entities_top(a.arm, a.top, a.type)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
