@@ -487,7 +487,7 @@ none of them by reading it.  Its range prints under every run.
 
     python tools/backlinks.py PATH            every place that cites a file
     python tools/backlinks.py card:<name>.md  … a card, F123 a defect, [[name]] a memory
-    python tools/backlinks.py --check --earned   the lamp; whether it is used
+    python tools/backlinks.py --check --earned   the lamp; whether it is used — and, since 2026-09-12, whether the graph's cue on it is
 
 Every citation runs one way: a session reading `gestate/host.c` cannot
 see that a card and a memory lean on it.  This is the inverse index —
@@ -650,6 +650,10 @@ sort by kind.
     python tools/graphrag.py check            nothing outside doc/graph/ cites into it, and how many chunks a run would call
     python tools/graphrag.py extract          every document, chunked, one call per chunk, cached by prompt and text
     python tools/graphrag.py lookup <name>    one entity across every document, no model
+    python tools/graphrag.py subjects         well-cited subjects nothing in the tree titles, no model
+    python tools/graphrag.py contradictions   numbers about one subject that disagree across documents, no model
+    python tools/graphrag.py query "<q>"      the global search: two calls, printed, never written
+    python tools/graphrag.py cue <path>       the line the backlinks hook adds for a file, no model
 
 `card:graphrag-c.md`: a model's reading of the tree's documents, kept
 in one directory that nothing outside may cite (`test/test_graphrag.py`

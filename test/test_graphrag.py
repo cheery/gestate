@@ -216,3 +216,25 @@ def test_an_answer_cites_a_card_by_id_never_by_shelf():
     shelf = "board/"                                          # spelled at run time: the citation gate reads this file too
     text = f"see `{shelf}gui-is-difficult.md`, `{shelf}done/peep-window.md`, `{shelf}README.md` and `doc/method.md`"
     assert graphrag.card_ids(text) == f"see `card:gui-is-difficult.md`, `card:peep-window.md`, `{shelf}README.md` and `doc/method.md`"
+
+
+def test_the_cue_names_shared_subjects_and_offers_routes_backlinks_did_not_show():
+    """Item 4: from a made-up store, the file's subject that a few other
+    documents name, offered as citation keys, hubs and excluded routes
+    left out."""
+    def rec(f, *names, t="concept"):
+        return {"file": f, "entities": [{"name": n, "norm": graphrag.norm(n), "type": t} for n in names], "relations": []}
+    shelf, card = "board/", "card:"                                 # spelled at run time: the citation gate reads this file too
+    store = {"records": [
+        rec("spec/frp.md", "Rizzo", "gestate"),
+        rec("spec/data.md", "Rizzo", "gestate"),
+        rec(f"{shelf}done/x.md", "Rizzo", "gestate"),
+        rec("doc/manual.md", "Rizzo", "gestate"),
+        *[rec(f"h{i}.md", "gestate") for i in range(20)],          # a hub: no route anywhere
+        rec("spec/lonely.md", "Rizzo", t="document"),               # a document is not a subject
+    ]}
+    line, offered = graphrag.cue("spec/frp.md", exclude={"spec/data.md"}, store=store)
+    assert "*rizzo*" in line and "gestate" not in line
+    assert offered == [f"{card}x.md", "doc/manual.md"]               # data.md excluded; the card by id; two per subject
+    assert graphrag.cue("nowhere.md", set(), store=store) == ("", [])
+    assert graphrag.cite_key(f"{shelf}later/y.md") == f"{card}y.md" and graphrag.cite_key(f"{shelf}README.md") == f"{shelf}README.md"

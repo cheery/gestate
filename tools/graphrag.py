@@ -14,6 +14,7 @@
     python tools/graphrag.py subjects              item 1: well-cited subjects nothing in the tree titles — no model
     python tools/graphrag.py contradictions        item 2: numbers about one subject that disagree across documents — no model
     python tools/graphrag.py query "<question>"    the global search, LightRAG's shape: two calls, printed, never written
+    python tools/graphrag.py cue <path>            item 4: what the backlinks hook adds for this file — no model
 
 `card:graphrag-c.md`.  Built so far: the door, the pilot, `extract`,
 `lookup` and `entities`.  What follows is `query`, the dual-level
@@ -854,6 +855,75 @@ def contradictions(arm: str, min_docs: int, top: int) -> int:
     return 0
 
 
+# --- the cue at the moment: the plan's item 4 --------------------------------
+
+#: A subject worth a cue is one a few other documents name — a hub named
+#: by seventy is no route anywhere, a subject named by one other is the
+#: citation graph again.
+CUE_MIN_DOCS, CUE_MAX_DOCS = 2, 12
+#: Not an event: the model types a date as one, and a date is a route
+#: to nothing (`card:online.md`'s first cue was three dates, 2026-09-12).
+CUE_TYPES = tuple(t for t in SUBJECT_TYPES if t != "event")
+
+
+def cite_key(path: str) -> str:
+    """A store path in the form the backlinks log names a fire by: a card
+    by its id, anything else by its path."""
+    m = re.match(r"board/(?:done/|later/|refused/)?([\w.-]+\.md)$", path)
+    return f"card:{m.group(1)}" if m and m.group(1) != "README.md" else path
+
+
+def cue(rel: str, exclude: set[str], store: dict | None = None, top: int = 3, per: int = 2) -> tuple[str, list[str]]:
+    """The cue at the moment — `card:graphrag-c.md`'s item 4, decided
+    2026-09-12.  For the file just read: the subjects it names that a
+    few *other* documents also name, and for each, documents the reader
+    had no other route to — `exclude` is what backlinks already showed,
+    in citation-key form.  Deterministic, from the store, no model;
+    `(line, offered keys)`, both empty when there is nothing to say.  The
+    measure is the hook's own: a later fire on an offered key."""
+    if store is None:
+        sp = cache_dir() / "extract-haiku.json"
+        if not sp.exists():
+            return "", []
+        store = json.loads(sp.read_text(encoding="utf-8"))
+    rel = str(path_of(rel).relative_to(ROOT)) if rel.startswith("card:") else rel
+    named_here: Counter = Counter()
+    types: dict[str, str] = {}
+    docs: dict[str, set[str]] = {}
+    for rec in store["records"]:
+        for e in rec["entities"]:
+            k = e["norm"]
+            docs.setdefault(k, set()).add(rec["file"])
+            if rec["file"] == rel:
+                named_here[k] += 1
+                types.setdefault(k, e.get("type") or "")
+    if not named_here:
+        return "", []
+    exclude = set(exclude) | {cite_key(rel), rel}
+    parts, offered = [], []
+    #: The most specific first — the subject the fewest other documents
+    #: share — then the one this file names most; a generic word named
+    #: everywhere ranks last, and a hub is out by the bound below.
+    ranked = sorted(named_here, key=lambda k: (len(docs[k]), -named_here[k], k))
+    for k in ranked:
+        if types.get(k) not in CUE_TYPES or re.search(r"[_./()]", k):
+            continue                    # a code identifier typed as a concept: code is not what this graph is over
+        others = sorted(d for d in docs[k] if d != rel)
+        if not CUE_MIN_DOCS <= len(others) <= CUE_MAX_DOCS:
+            continue
+        routes = [cite_key(d) for d in others if cite_key(d) not in exclude and d not in exclude][:per]
+        if not routes:
+            continue
+        parts.append(f"*{k}* with {', '.join(routes)}")
+        offered += routes
+        if len(parts) >= top:
+            break
+    if not parts:
+        return "", []
+    return ("graph: this file shares " + "; ".join(parts)
+            + "  (a model's reading, not evidence — python tools/graphrag.py lookup <subject>)"), offered
+
+
 # --- the query: LightRAG's dual-level retrieval, one hop, one answer ------
 
 KEYWORDS_SYSTEM = """You turn a question about a software project's repository into search keywords for a knowledge graph.
@@ -1161,6 +1231,8 @@ def main(argv=None) -> int:
     cd.add_argument("--arm", default="haiku", choices=list(MODELS))
     cd.add_argument("--min-docs", type=int, default=2)
     cd.add_argument("--top", type=int, default=40)
+    cu = sub.add_parser("cue", help="item 4: the line the backlinks hook adds for a file, from the store — no model")
+    cu.add_argument("path")
     q = sub.add_parser("query", help="a global question to the graph: keywords, two-level match, one hop, one answer")
     q.add_argument("question")
     q.add_argument("--arm", default="haiku", choices=list(MODELS), help="whose extraction")
@@ -1184,6 +1256,10 @@ def main(argv=None) -> int:
         return subjects(a.arm, a.min_docs)
     if a.cmd == "contradictions":
         return contradictions(a.arm, a.min_docs, a.top)
+    if a.cmd == "cue":
+        line, offered = cue(a.path, set())
+        print(line or f"cue: nothing to say about {a.path}")
+        return 0
     if a.cmd == "query":
         return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars)
     if a.cmd == "extract":

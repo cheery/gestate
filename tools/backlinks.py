@@ -435,7 +435,7 @@ def log_path() -> Path:
 
 
 def note(rel: str, total: int, shown: int, session: str = "",
-         offered=()) -> None:
+         offered=(), graph=()) -> None:
     """One line per fire, never fatal — the same shape as the sitting
     log, and for the same reason: a number a session picked (twenty)
     that nobody has checked needs the denominator kept somewhere.
@@ -457,9 +457,13 @@ def note(rel: str, total: int, shown: int, session: str = "",
         lp = log_path()
         lp.parent.mkdir(parents=True, exist_ok=True)
         names = ",".join(sorted({r for r in offered if "," not in r}))
+        #: A seventh field since 2026-09-12: the keys the graph's cue
+        #: put in front of the reader (`tools/graphrag.py cue`), kept
+        #: apart so its follows are counted apart.
+        gnames = ",".join(sorted({r for r in graph if "," not in r}))
         with lp.open("a", encoding="utf-8") as f:
             f.write(f"{int(time.time())}\t{rel}\t{total}\t{shown}\t"
-                    f"{session}\t{names}\n")
+                    f"{session}\t{names}\t{gnames}\n")
     except OSError:
         pass
 
@@ -467,7 +471,7 @@ def note(rel: str, total: int, shown: int, session: str = "",
 def fires(days: int = LAMP_DAYS, now: float | None = None) -> list[tuple[int, str, int, int]]:
     """The log's lines from the last `days`, parsed — `(when, file,
     total, shown)`, which is what the lamp and the report read."""
-    return [(w, rel, total, shown) for w, rel, total, shown, _s, _o
+    return [(w, rel, total, shown) for w, rel, total, shown, *_rest
             in _rows(days, now)]
 
 
@@ -496,7 +500,9 @@ def _rows(days: int = LAMP_DAYS, now: float | None = None) -> list:
             session = parts[4] if len(parts) > 4 else ""
             offered = [r for r in (parts[5].split(",") if len(parts) > 5 else [])
                        if r]
-            out.append((when, parts[1], total, shown, session, offered))
+            graph = [r for r in (parts[6].split(",") if len(parts) > 6 else [])
+                     if r]
+            out.append((when, parts[1], total, shown, session, offered, graph))
     except OSError:
         return []
     return out
@@ -566,6 +572,7 @@ def earned(days: int = LAMP_DAYS, now: float | None = None) -> dict:
         if row[4]:
             sittings.setdefault(row[4], []).append(row)
     fires_seen = follows = 0
+    graph_fires = graph_follows = 0
     offers: set[str] = set()
     taken: set[str] = set()
     lag: list[int] = []
@@ -574,21 +581,34 @@ def earned(days: int = LAMP_DAYS, now: float | None = None) -> dict:
         #: which files this sitting had already opened.  A name offered
         #: *after* it was read is not an offer that led anywhere.
         first_offer: dict[str, int] = {}
+        #: The same for the graph's cue, kept apart (2026-09-12): a key
+        #: backlinks had already offered is backlinks' follow, not the
+        #: graph's, and the graph's count is the one `card:graphrag-c.md`
+        #: item 4 is read by.
+        first_graph: dict[str, int] = {}
         read: set[str] = set()
-        for when, rel, _total, _shown, _s, offered in rows_of:
+        for when, rel, _total, _shown, _s, offered, *rest in rows_of:
+            graph = rest[0] if rest else []
             fires_seen += 1
+            if graph:
+                graph_fires += 1
             if rel in first_offer and rel not in read:
                 follows += 1
                 taken.add(rel)
                 lag.append(when - first_offer[rel])
+            elif rel in first_graph and rel not in read:
+                graph_follows += 1
             read.add(rel)
             for name in offered:
                 if name not in read and name not in first_offer:
                     first_offer[name] = when
                     offers.add(name)
+            for name in graph:
+                if name not in read and name not in first_offer and name not in first_graph:
+                    first_graph[name] = when
     return {"days": days, "fires": fires_seen, "blind": blind,
             "follows": follows, "offered": len(offers), "taken": len(taken),
-            "lag": lag}
+            "lag": lag, "graph_fires": graph_fires, "graph_follows": graph_follows}
 
 
 def report_earned(days: int = LAMP_DAYS) -> str:
@@ -598,6 +618,9 @@ def report_earned(days: int = LAMP_DAYS) -> str:
                 + (f" ({g['blind']} older ones cannot be followed)"
                    if g["blind"] else ""))
     rate = g["follows"] / g["fires"]
+    if g["graph_fires"]:
+        graph_line = (f"  graph cue: {g['graph_follows']} of {g['graph_fires']} fires that carried one were followed"
+                      f" ({g['graph_follows'] / g['graph_fires']:.0%}) — card:graphrag-c.md item 4")
     lines = [f"backlinks --earned, {days} days: {g['follows']} of "
              f"{g['fires']} fires were followed ({rate:.0%})"]
     if g["offered"]:
@@ -609,6 +632,8 @@ def report_earned(days: int = LAMP_DAYS) -> str:
     if g["blind"]:
         lines.append(f"  {g['blind']} fires predate the sitting id and are "
                      "not in the numbers above")
+    if g["graph_fires"]:
+        lines.append(graph_line)
     lines.append("  a follow is correlation, not cause — the docstring says "
                  "what it cannot rule out")
     return "\n".join(lines)
@@ -714,7 +739,7 @@ def already_answered(session: str, days: int = LAMP_DAYS) -> set[str]:
     """
     if not session:
         return set()
-    return {rel for _w, rel, _t, _s, sess, _o in _rows(days) if sess == session}
+    return {rel for _w, rel, _t, _s, sess, *_rest in _rows(days) if sess == session}
 
 
 def hook(stdin: str, root: Path = ROOT) -> str:
@@ -787,6 +812,22 @@ def shape(name: str, rows) -> tuple:
     return shown, counted
 
 
+def graph_cue(name: str, exclude: set[str], root: Path) -> tuple[str, list[str]]:
+    """`card:graphrag-c.md` item 4, 2026-09-12: one line from the subject
+    graph's store, naming what this file shares with documents the
+    citers list did not show.  Never fatal and never slow: no store, no
+    tool, any error — no line.  Only for the real tree; a test tree has
+    no graph."""
+    if root != ROOT:
+        return "", []
+    try:
+        sys.path.insert(0, str(root / "tools"))
+        import graphrag                                    # noqa: PLC0415
+        return graphrag.cue(name, exclude)
+    except Exception:                                      # noqa: BLE001
+        return "", []
+
+
 def _for_paths(paths: list[str], session: str, root: Path) -> str:
     """One answer for however many files the reader just opened."""
     if not paths:
@@ -800,12 +841,13 @@ def _for_paths(paths: list[str], session: str, root: Path) -> str:
             continue
         done.add(name)
         shown, counted = shape(name, rows)
+        shown_keys = {rel for rel, _line, _text in shown}
+        cue_line, cue_keys = graph_cue(name, shown_keys | {rel for rel, _l, _t in rows}, root)
         # The sitting, and what was actually put in front of the reader
         # — the two fields `earned` needs.  `session_id` is the harness's
         # own; when it is absent the fire still counts as a fire and
         # simply cannot take part in a follow.
-        note(name, len(rows), len(shown), session,
-             {rel for rel, _line, _text in shown})
+        note(name, len(rows), len(shown), session, shown_keys, cue_keys)
         lines = [f"{name} is cited by {len(rows)} place{'s' if len(rows) != 1 else ''} "
                  f"(tools/backlinks.py):"]
         lines += grouped(shown)
@@ -815,6 +857,8 @@ def _for_paths(paths: list[str], session: str, root: Path) -> str:
             lines.append(f"  … and {total} more"
                          + (f" — {rest}" if rest else "")
                          + f": python tools/backlinks.py {name}")
+        if cue_line:
+            lines.append("  " + cue_line)
         blocks.append("\n".join(lines))
     if not blocks:
         return ""

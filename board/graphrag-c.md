@@ -416,6 +416,34 @@ query stays**, the sheet's decision line taken as written, his
 the cue at the moment; and a second sheet for the ranking that cut
 the prior-art names out of q2.
 
+**Item 4 built — 2026-09-12, the same morning.**  Henri: *"ok. lets
+do the item 4 next."*  `tools/graphrag.py cue <path>`: for the file
+just read, the subjects it names that two to twelve *other* documents
+also name, the most specific first, and for each up to two of those
+documents the citers list did not show — offered as citation keys, a
+card by its id.  Dates and code identifiers typed as concepts are
+left out; a hub named by seventy documents is a route to nowhere and
+is out by the bound.  Deterministic, from the store, 0.17 s, no
+model.  The backlinks hook appends the line under its own cut line —
+`graph_cue` in `tools/backlinks.py`, never fatal, never on a test
+tree — and logs the graph's offers in a seventh field, so **the
+measure is the hook's own**: a later fire on a key the graph offered
+and backlinks had not is the graph's follow, and `tools/backlinks.py
+--earned` prints *graph cue: N of M fires that carried one were
+followed* apart from backlinks' own number.  Zero over a real number
+of fires is the same verdict it is for backlinks: decoration with a
+context bill, and the line comes out.
+
+*What the first cues look like, the session's reading:* `spec/frp.md`
+shares *sigcons* with `spec/crust.md` and *sample* with
+`spec/sampling.md` — routes the fifty citers did not show;
+`doc/method.md` shares *wait* with the manual, which is a word and
+not a subject; a memory page mostly gets nothing, its subjects being
+named by one document or by thirty.  The quality of a cue is the
+store's entity typing, which is loose (`subjects` above says the
+same), and no rule here was tuned past the two exclusions named.
+The number decides.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

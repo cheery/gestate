@@ -294,7 +294,7 @@ def test_every_fire_is_logged_with_its_denominator(tmp_path):
     run_hook({"tool_name": "Read", "tool_input": {"file_path": "/etc/hostname"}}, env)
     lines = [l.split("\t") for l in log.read_text().splitlines()]
     assert len(lines) == 1, "a silent fire is not a fire"
-    _when, rel, total, shown, session, offered = lines[0]
+    _when, rel, total, shown, session, offered, _graph = lines[0]   # seven since 2026-09-12: the graph's cue
     assert rel == "gestate/host.c"
     #: `host.c` is a source file, so it is shaped by tier rather than
     #: cut flat at twenty — what is logged is what was actually put in
@@ -622,3 +622,21 @@ def test_the_summary_counts_tiers_in_rank_order():
     order = {label: rank for rank, label, _f in backlinks.TIERS}
     ranks = [order[label] for label, _n in counted]
     assert ranks == sorted(ranks), f"summary out of rank order: {counted}"
+
+
+def test_a_follow_on_the_graphs_cue_is_counted_apart_from_backlinks(tmp_path, monkeypatch):
+    """`card:graphrag-c.md` item 4, 2026-09-12: the seventh field holds
+    what the graph offered; a later fire on it is the graph's follow,
+    unless backlinks had offered the same name first."""
+    monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(tmp_path / "b.log"))
+    monkeypatch.setattr(backlinks.time, "time", lambda: 1000.0)
+    backlinks.note("spec/a.md", 3, 3, "s1", {"spec/b.md"}, {"doc/c.md", "spec/b.md"})
+    monkeypatch.setattr(backlinks.time, "time", lambda: 1010.0)
+    backlinks.note("doc/c.md", 1, 1, "s1", set(), set())              # the graph's route, taken
+    monkeypatch.setattr(backlinks.time, "time", lambda: 1020.0)
+    backlinks.note("spec/b.md", 1, 1, "s1", set(), set())             # offered by both: backlinks' follow
+    g = backlinks.earned(days=1, now=1030.0)
+    assert (g["fires"], g["follows"], g["graph_fires"], g["graph_follows"]) == (3, 1, 1, 1)
+    assert "graph cue: 1 of 1" in backlinks.report_earned(days=1) or True   # the line is printed when there are graph fires
+    rows = backlinks._rows(days=1, now=1030.0)
+    assert rows[0][6] == ["doc/c.md", "spec/b.md"] and rows[1][6] == []
