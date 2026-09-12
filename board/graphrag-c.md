@@ -240,6 +240,26 @@ rate limit; a refused call is retried three times, 30/90/240 s apart,
 and then the run dies with everything so far in the cache, so the
 same command continues it.
 
+**The run — 2026-09-12, 05:27 to 06:32, his terminal.**  535 chunks,
+533 fresh calls on the API in 65.5 min at six workers; two rate-limit
+retries, both recovered; no truncation; six replies that were not
+JSON, all six salvaged object by object by the parser written while
+the run was going, so no chunk is empty.  Then the same command once
+more: one fresh call, because this card had been edited under the
+run, which is the incremental update doing its job on the first day.
+
+| | |
+|---|---|
+| entities, raw / merged by name | 14,657 / 5,591 |
+| grounded — the name occurs in the chunk | 0.990 |
+| relations, all carrying keywords | 11,399 |
+| tokens in / out | 1.48 M / 1.62 M |
+| cost at his prices, $1 / $5 per M | **$9.57** of the $14 |
+
+The estimate after ten calls read $15 more, from `fixme.md`'s dense
+chunks; the estimate by remaining text at the halfway mark read
+$9.50; the ordering front-loaded the cost, as it was meant to.
+
 **And the order is centrality, not the alphabet — 2026-09-12, before
 the run.**  He brought KET-RAG (Huang, Zhang, Xiao, KDD 2025, arXiv
 2502.09304): rank the chunks by PageRank and give the model only the
