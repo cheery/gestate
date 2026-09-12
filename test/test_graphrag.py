@@ -185,8 +185,8 @@ def test_retrieve_matches_low_to_names_high_to_relation_keywords_and_hops_once()
                                   ("c", "tps", "Henri read TPS in July", 6, ("method sources", "prior art"))]
     ents["tps"]["relations"] = [("c", "henri", "Henri read TPS in July", 6, ("method sources", "prior art"))]
     r = graphrag.retrieve(ents, low=["vision.md"], high=["prior art"])
-    assert set(r["matched"]) == {"vision", "henri"}          # low by name; high by the relation's keyword
-    assert r["hop"] == 1 and "Toyota Production System" in r["context"]   # one hop from henri reaches tps
+    assert set(r["matched"]) == {"vision", "henri", "tps"}   # low by name; high by the relation's keyword, both ends
+    assert r["hop"] == 0 and "Toyota Production System" in r["context"]
     assert "unrelated" not in r["context"] and r["relations"] == 2
     assert "(`a`)" in r["context"]                            # every line carries its document
 
@@ -238,3 +238,21 @@ def test_the_cue_names_shared_subjects_and_offers_routes_backlinks_did_not_show(
     assert offered == [f"{card}x.md", "doc/manual.md"]               # data.md excluded; the card by id; two per subject
     assert graphrag.cue("nowhere.md", set(), store=store) == ("", [])
     assert graphrag.cite_key(f"{shelf}later/y.md") == f"{card}y.md" and graphrag.cite_key(f"{shelf}README.md") == f"{shelf}README.md"
+
+
+def test_the_split_ranking_keeps_relations_in_the_context_and_matched_entities_first():
+    """`doc/trial/graphrag-ranking.md`: under `docs` a small budget is all
+    entities; under `split` half of it is relations and the entity named
+    by the question comes before the hubs reached by hop."""
+    ents = {f"hub{i}": _ent([f"hub{i}"], ["concept"], [f"d{j}" for j in range(30)], [(f"d{j}", "a hub with a long description " * 5) for j in range(3)]) for i in range(20)}
+    ents["rother"] = _ent(["Rother 2009"], ["concept"], ["j"], [("j", "Citation for Toyota Kata.")])
+    ents["method"] = _ent(["doc/method.md"], ["document"], ["a", "b"], [("a", "the method page")])
+    ents["method"]["relations"] = [("j", "rother", "the method's neighbours are named here", 8, ("prior art",))]
+    ents["rother"]["relations"] = [("j", "method", "the method's neighbours are named here", 8, ("prior art",))]
+    for i in range(20):
+        ents["method"]["relations"].append(("a", f"hub{i}", "a hub relation", 3, ("structure",)))
+    docs = graphrag.retrieve(ents, low=["Rother"], high=["prior art"], budget_chars=1500, ranking="docs")
+    split = graphrag.retrieve(ents, low=["Rother"], high=["prior art"], budget_chars=1500, ranking="split")
+    assert "## Relations" not in docs["context"] and docs["relations_in_context"] == 0
+    assert split["relations_in_context"] >= 1 and "neighbours are named here" in split["context"]
+    assert split["context"].find("Rother 2009") < split["context"].find("hub")

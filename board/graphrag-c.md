@@ -444,6 +444,30 @@ store's entity typing, which is loose (`subjects` above says the
 same), and no rule here was tuned past the two exclusions named.
 The number decides.
 
+**The second sheet ran — 2026-09-12, the same morning.**  Henri: *"ok.
+lets do the second sheet for the ranking."*  `doc/trial/graphrag-ranking.md`,
+prereg first.  The measurement it was built on sharpened the first
+sheet's finding: in all three answers of the first trial the context
+was cut inside the entities section and **no relation ever reached
+the answer** — the dual-level design's second level had been
+retrieved and thrown away.  A `--ranking split` option halves the
+budget between entities and relations and puts matched entities
+before hopped ones; building its test found a retrieval defect,
+both ends of a theme-matched relation now count as matched, so the
+old ranking was rerun with the fix as a third arm.  On the
+neighbours question the split answer names **five of five** prior-art
+names where the old named none, 12 citations, one uncited sentence.
+But q3 kept 6 of its 14 documents, under the half the sheet demanded,
+so **the sheet says not decided and the default stays**; the cause
+is visible and mechanical — the keyword step read *what is this
+tree* as *tree structure*, and the split ranking faithfully spent
+half the budget on the language's data structures.  **Next sheet:
+the keyword step**, with q3 as its case, and this sheet rerun after
+it.  A decision shaped for him meanwhile: the default stays `docs`
+until the keyword sheet runs, and if he would rather have the split
+now on the strength of q2 alone, that is one word and the sheet
+records it as his call over its own line.
+
 **The first reading, against the prediction — 2026-09-12, at chunk
 357 of 535, the api run still going.**  Henri, having tried `lookup`
 and `entities` on the half-built store while it ran: *"It feels like

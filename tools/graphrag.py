@@ -425,7 +425,7 @@ def documents() -> list[str]:
                 continue
             #: The graph never reads its own outputs: the pilot's, and the
             #: query's answers kept as trial artefacts (2026-09-12).
-            if rel.startswith(GRAPH_DIR) or "/graphrag-pilot/" in rel or "/graphrag-global/" in rel:
+            if rel.startswith(GRAPH_DIR) or any(x in rel for x in ("/graphrag-pilot/", "/graphrag-global/", "/graphrag-ranking/")):
                 continue
             out.append(rel)
     return out
@@ -947,12 +947,24 @@ def tokens_of(text: str) -> set[str]:
     return {w.rstrip("s") for w in re.findall(r"[a-z0-9][\w./-]*", text.lower()) if w not in STOP and len(w) > 2}
 
 
-def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_chars: int = 40_000) -> dict:
+RANKINGS = ("docs", "split")
+
+
+def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_chars: int = 40_000,
+             ranking: str = "docs") -> dict:
     """The dual-level match, no model.  Low keywords to entity names (normalised,
     exact first, then containment); high keywords to the keywords on relations by
     shared token; then one hop from every matched entity.  Returns the context text
     and the counts.  Entities are ranked by how many documents name them,
-    relations by strength, and the context is cut at `budget_chars`."""
+    relations by strength, and the context is cut at `budget_chars`.
+
+    `ranking="docs"` is the first trial's: one list, entities by document
+    count, relations after — which on 2026-09-12 meant no relation ever
+    reached the answer (`doc/trial/graphrag-ranking.md`).  `"split"`
+    halves the budget between the two sections and orders entities by
+    how they were reached — named by a low keyword, then reached by a
+    high keyword's relation, then by one hop — and relations by how many
+    of the question's theme tokens they carry, then strength."""
     hit_ents: dict[str, str] = {}                                   # key -> why
     for kw in low:
         k = norm(kw)
@@ -964,18 +976,24 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
         for cand in sorted((c for c in ents if len(k) > 3 and (k in c or c in k)), key=lambda c: -len(ents[c]["docs"]))[:3]:
             hit_ents.setdefault(cand, f"low:{kw}")
     high_tokens = set().union(*(tokens_of(h) for h in high)) if high else set()
-    hit_rels: list[tuple[int, str, str, str, str]] = []             # (strength, file, a, b, desc)
+    hit_rels: list[tuple[int, str, str, str, str, int]] = []        # (strength, file, a, b, desc, theme tokens shared)
     seen_rel = set()
     for key, m in ents.items():
         for f, other, d, st, kw in m["relations"]:
-            if not kw or not (high_tokens & set().union(*(tokens_of(x) for x in kw))):
+            shared = high_tokens & set().union(*(tokens_of(x) for x in kw)) if kw else set()
+            if not shared:
                 continue
+            #: Both ends of a matched relation are matched entities — the
+            #: first trial marked only the end it was seen from and the
+            #: other never got its hop (found by a test, 2026-09-12).
+            hit_ents.setdefault(key, f"high:{','.join(kw)}")
+            if other in ents:
+                hit_ents.setdefault(other, f"high:{','.join(kw)}")
             sig = (f, min(key, other), max(key, other))
             if sig in seen_rel:
                 continue
             seen_rel.add(sig)
-            hit_rels.append((int(st or 0), f, key, other, d))
-            hit_ents.setdefault(key, f"high:{','.join(kw)}")
+            hit_rels.append((int(st or 0), f, key, other, d, len(shared)))
     hit_rels.sort(key=lambda r: -r[0])
     hop: dict[str, str] = {}
     for key in list(hit_ents):
@@ -985,26 +1003,42 @@ def retrieve(ents: dict[str, dict], low: list[str], high: list[str], budget_char
             sig = (f, min(key, other), max(key, other))
             if sig not in seen_rel:
                 seen_rel.add(sig)
-                hit_rels.append((int(st or 0), f, key, other, d))
-    lines = ["## Entities"]
-    ranked = sorted(list(hit_ents) + list(hop), key=lambda k: -len(ents[k]["docs"]))
+                hit_rels.append((int(st or 0), f, key, other, d, 0))
+    if ranking == "split":
+        group = {k: (0 if why.startswith("low:") else 1) for k, why in hit_ents.items()}
+        group.update({k: 2 for k in hop})
+        ranked = sorted(list(hit_ents) + list(hop), key=lambda k: (group[k], -len(ents[k]["docs"]), k))
+        hit_rels.sort(key=lambda r: (-r[5], -r[0]))
+    else:
+        ranked = sorted(list(hit_ents) + list(hop), key=lambda k: -len(ents[k]["docs"]))
+        hit_rels.sort(key=lambda r: -r[0])
+    ent_lines = ["## Entities"]
     for key in ranked:
         m = ents[key]
         name = m["names"].most_common(1)[0][0]
         t = m["types"].most_common(1)[0][0] if m["types"] else "?"
-        lines.append(f"- **{name}** [{t}] — in {len(m['docs'])} documents")
+        ent_lines.append(f"- **{name}** [{t}] — in {len(m['docs'])} documents")
         for f, d in m["descriptions"][:3]:
-            lines.append(f"    - {d.strip()}  (`{f}`)")
-    lines.append("\n## Relations")
-    hit_rels.sort(key=lambda r: -r[0])
-    for st, f, a, b, d in hit_rels:
+            ent_lines.append(f"    - {d.strip()}  (`{f}`)")
+    rel_lines = ["## Relations"]
+    for st, f, a, b, d, _shared in hit_rels:
         na = ents[a]["names"].most_common(1)[0][0] if a in ents else a
         nb = ents[b]["names"].most_common(1)[0][0] if b in ents else b
-        lines.append(f"- {na} → {nb} ({st}): {d.strip()}  (`{f}`)")
-    text = "\n".join(lines)
-    cut = len(text) > budget_chars
-    return {"context": text[:budget_chars], "entities": len(hit_ents), "hop": len(hop),
-            "relations": len(hit_rels), "cut": cut, "matched": hit_ents}
+        rel_lines.append(f"- {na} → {nb} ({st}): {d.strip()}  (`{f}`)")
+    ent_text, rel_text = "\n".join(ent_lines), "\n".join(rel_lines)
+    if ranking == "split":
+        half = budget_chars // 2
+        #: Each section gets half, and what one does not use the other may.
+        e_take = min(len(ent_text), max(half, budget_chars - len(rel_text)))
+        r_take = min(len(rel_text), budget_chars - e_take)
+        text = ent_text[:e_take] + "\n\n" + rel_text[:r_take]
+        cut = len(ent_text) > e_take or len(rel_text) > r_take
+    else:
+        full = ent_text + "\n\n" + rel_text
+        text, cut = full[:budget_chars], len(full) > budget_chars
+    return {"context": text, "entities": len(hit_ents), "hop": len(hop),
+            "relations": len(hit_rels), "cut": cut, "matched": hit_ents,
+            "relations_in_context": text.count("\n- ") - text[:text.find("## Relations")].count("\n- ") if "## Relations" in text else 0}
 
 
 def card_ids(text: str) -> str:
@@ -1049,7 +1083,8 @@ def uncited_sentences(answer: str) -> int:
     return n
 
 
-def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: str, budget_chars: int) -> int:
+def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: str, budget_chars: int,
+          ranking: str = "docs") -> int:
     """The global question: keywords, retrieve, answer, count the citations.
     Prints; never writes into the tree — a person redirects it if a trial
     wants the artefact."""
@@ -1059,7 +1094,7 @@ def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: 
     kw = parse(r1["text"])
     low = [str(x) for x in kw.get("low", []) if str(x).strip()]
     high = [str(x) for x in kw.get("high", []) if str(x).strip()]
-    ret = retrieve(ents, low, high, budget_chars)
+    ret = retrieve(ents, low, high, budget_chars, ranking)
     prompt = f"QUESTION: {question}\n\nCONTEXT:\n{ret['context']}"
     r2 = call(answer_arm, prompt, max_tokens=4096, backend=backend, system=ANSWER_SYSTEM)
     answer = card_ids(r2["text"].strip())
@@ -1069,7 +1104,8 @@ def query(question: str, arm: str, keywords_arm: str, answer_arm: str, backend: 
           "`card:graphrag-c.md`.*\n")
     print(f"**Question:** {question}\n")
     print(f"*keywords ({MODELS[keywords_arm]}): low {low}; high {high}*  ")
-    print(f"*retrieved: {ret['entities']} entities matched + {ret['hop']} by one hop, {ret['relations']} relations, "
+    print(f"*retrieved: {ret['entities']} entities matched + {ret['hop']} by one hop, {ret['relations']} relations "
+          f"({ret['relations_in_context']} in the context); ranking {ranking}; "
           f"{len(ret['context'])} chars{' (cut)' if ret['cut'] else ''}; answer by {MODELS[answer_arm]}; "
           f"{r1['usage'].get('input_tokens', 0) + r2['usage'].get('input_tokens', 0)} in, "
           f"{r1['usage'].get('output_tokens', 0) + r2['usage'].get('output_tokens', 0)} out, ${spent:.3f} at assumed prices*\n")
@@ -1240,6 +1276,8 @@ def main(argv=None) -> int:
     q.add_argument("--answer-arm", default="sonnet", choices=list(MODELS))
     q.add_argument("--backend", choices=BACKENDS, default="api")
     q.add_argument("--budget-chars", type=int, default=40_000, help="context size handed to the answer call")
+    q.add_argument("--ranking", choices=RANKINGS, default="docs",
+                   help="docs: the first trial's, one list by document count; split: half the budget to relations, matched entities first — doc/trial/graphrag-ranking.md")
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return check(a.arm)
@@ -1261,7 +1299,7 @@ def main(argv=None) -> int:
         print(line or f"cue: nothing to say about {a.path}")
         return 0
     if a.cmd == "query":
-        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars)
+        return query(a.question, a.arm, a.keywords_arm, a.answer_arm, a.backend, a.budget_chars, a.ranking)
     if a.cmd == "extract":
         return extract(a.arm, a.backend, a.workers, a.limit, a.dry_run, a.budget)
     arms = [x.strip() for x in a.arms.split(",") if x.strip()]
