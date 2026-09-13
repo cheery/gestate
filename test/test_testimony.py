@@ -26,14 +26,26 @@ def test_every_row_names_a_memory_that_exists_and_a_kind_that_is_one():
 
 
 def test_the_count_on_the_page_is_the_count_the_table_gives():
-    """The page quotes the tool's first line; a row added or re-sorted
-    without re-running the tool leaves a stale number, and this is the
-    thing that says so."""
+    """The page quotes the table's line; a row added or re-kinded
+    without the line leaves a stale number, and this is the thing that
+    says so.  **A gate since 2026-09-13**, and it can be one only
+    because the line reads nothing but the table — see the next test."""
     page = testimony.PAGE.read_text(encoding="utf-8")
     quoted = re.search(r"^\s+(testimony: .*)$", page, re.M)
     assert quoted, "the page carries the tool's summary line under §\"The count\""
-    have = testimony.memories()
-    assert quoted.group(1) == testimony.summary(testimony.rows(), have).splitlines()[0]
+    assert quoted.group(1) == testimony.table_line(testimony.rows())
+
+
+def test_a_new_memory_is_named_and_does_not_move_the_quoted_line():
+    """`card:testimony-inventory.md` Q1, *report, not gate*: a memory
+    with no row is printed by the commit's lamp, and the line the gate
+    holds the page to does not change — so the gate cannot refuse it."""
+    table = [("one", "henri", "his words")]
+    before = testimony.summary(table, {"one"}).splitlines()
+    after = testimony.summary(table, {"one", "a-new-one"}).splitlines()
+    assert before[0] == after[0] == testimony.table_line(table)
+    assert "1 of 2 memories classified" in after[1]
+    assert after[2] == "  unclassified (1): a-new-one"
 
 
 def test_a_row_that_points_at_nothing_is_refused(tmp_path):

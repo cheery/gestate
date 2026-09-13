@@ -8,16 +8,24 @@ counts it, and it classifies nothing — every kind below is a session's
 judgment, which is the loop the count is about.  A reader who
 disagrees with a row changes the row; the count follows.*
 
-    python tools/testimony.py                 the counts, and any memory with no row
+    python tools/testimony.py                 the counts, and any memory with no row — printed at every commit
     python tools/testimony.py --kind session  the fourteen, with what each rests on
-    python tools/testimony.py --check         every row resolves; the gate
+    python tools/testimony.py --check         every row resolves
 
 ## The count
 
-    testimony: 89 of 89 memories classified — 29 harness, 40 henri, 14 session, 6 argument
+    testimony: 89 rows — 29 harness, 40 henri, 14 session, 6 argument
 
-**Read it this way.**  Sixty-nine of eighty-nine rest on something a reader
-can check without trusting a session — a command, a test, a transcript, or
+*The line counts the table and nothing else, and a gate holds this
+page to it: a row added or re-kinded without the line cannot land.
+How many memories have no row is the commit's lamp, not this page's —
+a new memory is never refused for lacking one
+(`card:testimony-inventory.md` Q1).  The old line counted the
+directory too and went stale behind four new memories; Henri,
+2026-09-13: "build both".*
+
+**Read it this way.**  Sixty-nine of the eighty-nine rows rest on
+something a reader can check without trusting a session — a command, a test, a transcript, or
 his own dated words.  Fourteen rest on a session's word, and the
 fourteen are the list this page exists to produce: each is a candidate
 for the measurement that would make it `harness`, or the sentence from

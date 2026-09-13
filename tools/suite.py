@@ -162,6 +162,13 @@ GATES = {
     #: belongs where a person finds out before the commit lands.
     "test/test_fixme.py":
         "no defect is marked closed with nothing in the tree to catch it",
+    #: **Joined 2026-09-13**, Henri's "build both": went stale twice in
+    #: four days, each time found only by a full pass.  It can be a gate
+    #: because the quoted line counts the table and not the directory —
+    #: a new memory never turns it red (`card:testimony-inventory.md` Q1);
+    #: the unclassified names are `tools/pre-commit.sh`'s lamp instead.
+    "test/test_testimony.py::test_the_count_on_the_page_is_the_count_the_table_gives":
+        "doc/testimony.md quotes the count its own table gives",
 }
 
 

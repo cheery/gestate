@@ -134,6 +134,11 @@ if "$PY" tools/suite.py --gates; then
     # card to done/ is asked what question would have helped at its start
     # (card:standing-questions.md).  Prints, never refuses.
     "$PY" tools/standing.py --check || true
+    # The testimony lamp (card:testimony-inventory.md Q1, report not gate;
+    # built 2026-09-13): the table's count, how many memories it covers,
+    # and the names of any it does not.  Prints, never refuses — a gate
+    # would make a new memory cost its own classification at once.
+    "$PY" tools/testimony.py || true
     # The subject graph's lamp (card:graphrag-c.md, 2026-09-12): how many
     # chunks of the tree the graph has not read, in half a second and
     # without a call — the call is the keeper's, on the cli, when the

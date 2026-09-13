@@ -3,7 +3,7 @@
 #: "and do the measurement as well." — card:testimony-inventory.md
 """tools/testimony.py — what each memory's load-bearing claim rests on
 
-    python tools/testimony.py            the counts, and every memory with no row
+    python tools/testimony.py            the counts, and every memory with no row — the lamp at every commit
     python tools/testimony.py --check    exit 1 when a row names a memory that is not there, or a kind that is not one
     python tools/testimony.py --kind session   the rows of one kind, with what each rests on
 
@@ -27,6 +27,11 @@ rests on, not the one most of its sentences are:
 A memory with no row is **unclassified**, printed and not refused:
 `card:testimony-inventory.md` Q1 — a gate here would make every new
 memory cost a classification line from a session about its own claim.
+So the page quotes only the table's line, which a gate holds, and the
+directory's half — *N of M classified*, and the names — is printed by
+`tools/pre-commit.sh` after the gates and refuses nothing.  *Henri,
+2026-09-13: "build both", after four memories had waited three days
+unclassified behind a count only the full suite read.*
 """
 from __future__ import annotations
 
@@ -80,12 +85,20 @@ def faults(table, have: set[str]) -> list[str]:
     return out
 
 
-def summary(table, have: set[str]) -> str:
+def table_line(table) -> str:
+    """The line the page quotes: the table's own count, and nothing
+    about the directory.  A new memory does not change it, so the gate
+    that holds the page to it cannot refuse a memory for lacking a row —
+    `card:testimony-inventory.md` Q1, *report, not gate*."""
     c = counts(table)
-    n = len(table)
-    line = ", ".join(f"{c[k]} {k}" for k in KINDS)
-    missing = sorted(have - {name for name, _k, _r in table})
-    out = [f"testimony: {n} of {len(have)} memories classified — {line}"]
+    return f"testimony: {len(table)} rows — " + ", ".join(f"{c[k]} {k}" for k in KINDS)
+
+
+def summary(table, have: set[str]) -> str:
+    names = {name for name, _k, _r in table}
+    missing = sorted(have - names)
+    out = [table_line(table),
+           f"  {len(have & names)} of {len(have)} memories classified"]
     if missing:
         out.append(f"  unclassified ({len(missing)}): " + ", ".join(missing))
     return "\n".join(out)
