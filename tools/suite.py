@@ -169,6 +169,13 @@ GATES = {
     #: the unclassified names are `tools/pre-commit.sh`'s lamp instead.
     "test/test_testimony.py::test_the_count_on_the_page_is_the_count_the_table_gives":
         "doc/testimony.md quotes the count its own table gives",
+    #: And the rows, the same day, at his "make that a gate too": a row
+    #: naming a memory that is gone, a kind that is not one of four, or a
+    #: memory with two rows.  Every one is made in the commit that edits
+    #: the page or deletes the memory — `gestate-salvage-week`'s row
+    #: outlived its file on 2026-09-11 — and none is made by adding one.
+    "test/test_testimony.py::test_every_row_names_a_memory_that_exists_and_a_kind_that_is_one":
+        "every row of doc/testimony.md names a memory that exists, once, with one of the four kinds",
 }
 
 
