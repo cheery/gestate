@@ -134,6 +134,12 @@ four cards closed and four questions came back to `board/standing.md`
 
 **What it does not finish:** promotion.  Eleven questions wait under
 `proposed` — seven from the first choosing, four harvested — and
-choosing among them is his, at the fire, not a card's.  The follow
+choosing among them is his, at the fire, not a card's.  *Answered the
+same sitting, Henri, 2026-09-13: "they are all good questions, promote
+all."*  The live shelf came to twelve against a cap of three, and put
+to him — rotate, raise the cap, or three standing first — he chose
+rotation: a shelf over the cap asks the next three at each fire, and
+`test/test_standing.py` holds that every question comes round within
+⌈n/3⌉ fires.  The follow
 count, Q2 (b), was not built.  `journal.md` §"The standing questions
 closed on their own trigger" is the story.

@@ -149,10 +149,12 @@ GATES = {
         "the hook is installed here, parses, and runs the gates and nothing else",
     #: **Joined 2026-09-06**, with `card:standing-questions.md`: the
     #: questions file is edited by hand, by Henri, and a heading over the
-    #: cap is a question nobody is ever asked — sub-second, structural,
-    #: and exactly the edit that breaks it.
+    #: cap was a question nobody is ever asked — sub-second, structural,
+    #: and exactly the edit that breaks it.  Since 2026-09-13 a heading
+    #: over the cap asks in turn, and what is refused is a question
+    #: standing twice.
     "test/test_standing.py::test_this_trees_questions_file_is_usable":
-        "board/standing.md parses and no shelf holds more questions than are asked",
+        "board/standing.md parses and no shelf asks a question twice; a shelf over the cap asks in turn",
     #: `fixme.md` is edited at every closure, by hand, and the edit that
     #: breaks this is *marking one resolved* — the cheapest keystroke in
     #: the file and the one `card:ungated-fixes.md` measured refilling

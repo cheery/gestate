@@ -97,6 +97,34 @@ def test_a_live_card_gets_the_live_questions_capped(tree):
     assert "Fourth" not in out, "the cap is the reader's attention"
 
 
+def test_a_shelf_over_the_cap_asks_the_next_three_at_the_next_fire(tree):
+    """Rotation: the second sitting's fire starts where the first left
+    off, so the fourth question is asked, and wraps to the first."""
+    fire(tree, str(tree / "board" / "thing.md"), session="a")
+    out = fire(tree, str(tree / "board" / "thing.md"), session="b")
+    assert out.index("Fourth") < out.index("professional") < out.index("Second")
+    assert "Third" not in out
+
+
+def test_every_question_on_a_shelf_is_asked_within_its_turns():
+    """The postcondition, over sizes the cap does and does not divide:
+    every standing question reaches a session within ⌈n/CAP⌉ fires."""
+    for n in range(1, 14):
+        sections = {"live": [f"q{i}?" for i in range(n)]}
+        seen = set()
+        for turn in range(-(-n // standing.CAP)):
+            asked = standing.ask(SHELF + "thing.md", ROOT, sections, turn=turn)
+            assert len(asked) == min(n, standing.CAP) == len(set(asked))
+            seen.update(asked)
+        assert seen == set(sections["live"]), n
+
+
+def test_the_turn_is_counted_per_shelf(tree):
+    fire(tree, str(tree / "board" / "later" / "rest.md"), session="a")
+    assert standing.fires_on("shelved", tree) == 1
+    assert standing.fires_on("live", tree) == 0
+
+
 def test_a_shelved_card_gets_the_shelved_question_only(tree):
     out = fire(tree, str(tree / "board" / "later" / "rest.md"))
     assert "event, or on Henri" in out
@@ -144,9 +172,19 @@ def test_a_file_outside_the_tree_is_silent(tree, tmp_path_factory):
 
 # --- the lamp -----------------------------------------------------------------
 
-def test_the_lamp_names_a_heading_over_the_cap(tree):
+def test_the_lamp_says_a_heading_over_the_cap_asks_in_turn(tree):
+    settings = tree / "settings.json"
+    settings.write_text(json.dumps({"hooks": {"PostToolUse": [
+        {"matcher": "Read|Bash", "hooks": [{"type": "command",
+                                            "command": "~/gestate/tools/standing.py --hook"}]}]}}))
+    code, line = standing.check(tree, settings=settings)
+    assert code == 0 and "live asks 3 of 4 in turn" in line
+
+
+def test_the_lamp_refuses_a_question_standing_twice(tree):
+    (tree / "board" / "standing.md").write_text("## live\n- one?\n- two?\n- one?\n- three?\n")
     code, line = standing.check(tree, settings=tree / "no-settings.json")
-    assert code == 2 and "live holds 4" in line
+    assert code == 2 and "twice under live" in line
 
 
 def test_the_lamp_says_not_installed_before_anything_else_is_fine(tree):
@@ -168,14 +206,12 @@ def test_the_lamp_is_green_installed_with_a_question_standing(tree):
 # --- this tree ----------------------------------------------------------------
 
 def test_this_trees_questions_file_is_usable():
-    """The gate: `board/standing.md` parses, every firing heading is
-    within the cap, and the file is not a card — `test_board.py` leaves
-    it out by name, and this is the other half of that exclusion."""
+    """The gate: `board/standing.md` parses, no firing heading asks a
+    question twice, and the file is not a card — `test_board.py` leaves
+    it out by name, and this is the other half of that exclusion.  A
+    heading over the cap is not refused: it asks in turn."""
     sections = standing.load(ROOT)
     assert "proposed" in sections, "a session's candidates go under `## proposed`"
-    for heading, qs in sections.items():
-        if heading in standing.SHELVES.values():
-            assert len(qs) <= standing.CAP, f"`## {heading}` holds {len(qs)}; the rest are never asked"
     code, line = standing.check(ROOT)
     assert code != 2, line
 

@@ -36,10 +36,15 @@ nobody reads changes nothing.  Once per card per sitting; a question
 re-asked on every re-read of the same file is the noise that gets a
 hook muted.
 
-**And it is capped.**  `CAP` questions per fire, the first ones under
-the heading, because the backlinks hook's own lesson (`card:backlinks-ranges.md`)
+**And it is capped, and it rotates.**  `CAP` questions per fire,
+because the backlinks hook's own lesson (`card:backlinks-ranges.md`)
 is that twenty lines train the reader to skim past.  A heading holding
-more than the cap is a question nobody sees, and `--check` says so.
+more than the cap asks them in turn — the next three after the ones
+its last fire asked, counted from the log — so no question under a
+firing heading goes unseen.  *Henri, 2026-09-13, promoting all eleven
+candidates at once: "they are all good questions, promote all", and
+then his pick of rotation — over a larger cap, or three standing first
+— when the live shelf came to twelve.*
 
 **Silent on everything it is not about, and silent on failure** — a
 hook that raises interrupts a session over a file it was only reading,
@@ -128,13 +133,25 @@ def shelf_of(path: str, root: Path = ROOT) -> str | None:
     return SHELVES.get(str(rel.parent))
 
 
-def ask(path: str, root: Path = ROOT, sections: dict | None = None) -> list[str]:
-    """The questions for one card, capped, or none."""
+def ask(path: str, root: Path = ROOT, sections: dict | None = None,
+        turn: int | None = None) -> list[str]:
+    """The questions for one card, `CAP` of them in turn, or none.
+
+    `turn` is how many times the card's shelf has fired before — read
+    from the log when not given — so a shelf holding twelve asks the
+    first three, then the next three, and every question has been
+    asked once by the fourth fire."""
     shelf = shelf_of(path, root)
     if shelf is None:
         return []
     sections = sections if sections is not None else load(root)
-    return list(sections.get(shelf, []))[:CAP]
+    qs = list(sections.get(shelf, []))
+    if len(qs) <= CAP:
+        return qs
+    if turn is None:
+        turn = fires_on(shelf, root)
+    start = turn * CAP % len(qs)
+    return [qs[(start + i) % len(qs)] for i in range(CAP)]
 
 
 # --- the log, and once-per-sitting ------------------------------------------
@@ -165,6 +182,12 @@ def _rows(days: int | None = None) -> list[tuple[float, str, str, int]]:
             continue
         out.append((when, parts[1], parts[2], int(parts[3])))
     return out
+
+
+def fires_on(shelf: str, root: Path = ROOT) -> int:
+    """How many fires the log holds for cards on one shelf — the turn
+    the next fire on it takes."""
+    return sum(1 for _w, card, _s, _n in _rows() if shelf_of(card, root) == shelf)
 
 
 def already_asked(session: str) -> set[str]:
@@ -316,24 +339,27 @@ def installed(settings: Path | None = None) -> bool:
 
 def check(root: Path = ROOT, settings: Path | None = None) -> tuple[int, str]:
     """`(exit code, one line)`.  1: the hook is not installed.  2: the
-    questions file is missing, has no heading a shelf answers to, or a
-    heading holds more than the cap — a question nobody sees."""
+    questions file is missing, or a heading asks the same question
+    twice — which rotation would put in front of a reader twice in
+    one fire."""
     try:
         sections = load(root)
     except OSError:
         return 2, "standing: board/standing.md is missing"
     firing = {h: qs for h, qs in sections.items() if h in SHELVES.values()}
-    over = [f"{h} holds {len(qs)}" for h, qs in firing.items() if len(qs) > CAP]
-    if over:
-        return 2, f"standing: over the cap of {CAP} — " + "; ".join(over) + " — the rest are never asked"
+    twice = [h for h, qs in firing.items() if len(set(qs)) != len(qs)]
+    if twice:
+        return 2, "standing: a question stands twice under " + ", ".join(twice)
     live = sum(len(qs) for qs in firing.values())
     if not installed(settings):
         return 1, "standing: the hook is not installed — python tools/standing.py --install"
     if live == 0:
         return 0, "standing: installed; no question chosen yet, so it fires on nothing"
     rows = _rows(14)
+    turns = [f"{h} asks {CAP} of {len(qs)} in turn" for h, qs in firing.items() if len(qs) > CAP]
     return 0, (f"standing: installed; {live} question{'s' if live != 1 else ''} standing, "
-               f"{len(rows)} fire{'s' if len(rows) != 1 else ''} in 14 days")
+               f"{len(rows)} fire{'s' if len(rows) != 1 else ''} in 14 days"
+               + ("; " + ", ".join(turns) if turns else ""))
 
 
 def report(days: int = 14) -> str:

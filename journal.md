@@ -3216,3 +3216,12 @@ wanted.  The harvest the close owes went beside an existing proposed
 question — *what was the trigger written into it, and has it fired?* —
 which had been written for a shelved card and turned out to be owed by
 a live one.
+
+**And the eleven, the same sitting.**  *"they are all good questions,
+promote all"* — which put twelve on the live shelf against a cap of
+three, and a gate that refused a heading over the cap because the rest
+would never be asked.  Put to him as rotate, raise the cap, or three
+standing first; he chose rotation.  The next three at each fire,
+counted per shelf from the log, and the gate now refuses a question
+standing twice instead.  The rotation's two tests were broken on
+purpose once — `ask` put back to the first three — and went red.

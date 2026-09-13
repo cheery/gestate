@@ -12,9 +12,11 @@
 **How this file works.**  A heading names the shelf a card sits on —
 `live` is `board/`, `shelved` is `board/later/`, `done` and `refused`
 their directories — and every `- ` line under it is asked, in order,
-when a session opens a card on that shelf, up to three per card per
-sitting.  A line under `proposed` is never asked.  **Henri chooses what
-stands under a firing heading**; a session does not promote.
+when a session opens a card on that shelf — three per card per
+sitting, and a heading holding more asks the next three at its next
+fire, so every one comes round.  A line under `proposed` is never
+asked.  **Henri chooses what stands under a firing heading**; a session
+does not promote.
 
 **Where a question comes from, and where it may not.**  From outside
 the session's current context: written by Henri, or **harvested in
@@ -49,34 +51,6 @@ time nobody asked it.
 - What number would say this card is done, and what command produces it?
   *— `doc/memory/research-that-leaves-a-command.md`: a measurement
   carries a command and a recommendation carries nothing*
-
-## shelved
-
-- Is this waiting on an event, or on Henri?
-  *— `doc/memory/sediment-versus-debt.md`: sediment costs nothing and
-  debt compounds, and the directory looks the same either way*
-
-## done
-
-## refused
-
-- Is the work about to be proposed the work this card refused?
-  *— `board/README.md` §"The priority": the shelf is read the moment
-  somebody is about to propose work a card here covers, which C1 of
-  `card:online.md` failed to do*
-
-## proposed
-
-*Chosen above by Henri on 2026-09-06 from twelve a session wrote that
-morning, each turned around from a lesson the tree had paid for.  The
-seven below were not chosen and are not struck: they wait for the
-fire, per the guest's own note that this is fire material — draft it,
-let it sit, see whether it still looks right when not an hour
-downstream of the idea.  Anything harvested at a card's close goes
-here too, dated, with the card it came from.*
-
-**For a live card:**
-
 - What is the naive thing a person would do here, and has anyone tried it?
   *— `doc/memory/test-what-a-person-would-do.md`: a harness built from
   the implementation cannot find a missing affordance; F150*
@@ -127,8 +101,11 @@ here too, dated, with the card it came from.*
   moved the wrong way; a card whose `because` is a measurement owes
   this question before its first slice*
 
-**For a shelved card:**
+## shelved
 
+- Is this waiting on an event, or on Henri?
+  *— `doc/memory/sediment-versus-debt.md`: sediment costs nothing and
+  debt compounds, and the directory looks the same either way*
 - What was the trigger written into it, and has it fired?
   *— `board/README.md` §"The priority": a card comes back the same way
   it left, by him saying so — and a trigger nobody re-reads never fires*
@@ -139,8 +116,24 @@ here too, dated, with the card it came from.*
   the first (a month) had disagreed with it from the day both were
   written.*
 
-**For a done card:**
+## done
 
 - Does the test it names still exist, and does it still fail without the fix?
   *— `card:ungated-fixes.md`: a defect closed on a photograph can come
   back without anybody being told; `doc/memory/a-targeted-set-is-a-claim.md`*
+
+## refused
+
+- Is the work about to be proposed the work this card refused?
+  *— `board/README.md` §"The priority": the shelf is read the moment
+  somebody is about to propose work a card here covers, which C1 of
+  `card:online.md` failed to do*
+
+## proposed
+
+*Empty since 2026-09-13, when Henri promoted every question that
+stood here: "they are all good questions, promote all."  The first
+seven were written by a session on 2026-09-06 and not chosen that
+morning; the other four were harvested at cards' closes.  Anything
+harvested at a card's close goes here, dated, with the card it came
+from, and waits for him.*
