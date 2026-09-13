@@ -18,17 +18,17 @@ I Mkap
 I PushInt 200
 I PushGlobal __Num_Sig_Int_fromInteger__
 I Mkap
-I PushGlobal 55
+I PushGlobal 57
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 56
 I PushGlobal zipSig
 I Mkap
 I Mkap
 I Mkap
 I PushGlobal 54
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 52
 I PushGlobal mapSig
 I Mkap
 I Mkap
@@ -61,17 +61,17 @@ block
 I PushArg 2
 I PushArg 2
 I PushArg 2
-I PushGlobal 49
+I PushGlobal 51
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 50
 I PushGlobal zipSig
 I Mkap
 I Mkap
 I Mkap
 I PushGlobal 48
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 46
 I PushGlobal mapSig
 I Mkap
 I Mkap
@@ -84,7 +84,7 @@ I Push 0
 I Pack 96 1
 I Update 1
 I Push 1
-I PushGlobal 18
+I PushGlobal 20
 I Mkap
 I Update 0
 I Push 0
@@ -100,7 +100,7 @@ I PushArg 2
 I Mkap
 I Eval
 I PushArg 2
-I PushGlobal 19
+I PushGlobal 21
 I Mkap
 I Pack 96 1
 I Eval
@@ -129,7 +129,7 @@ block
 I Push 2
 I Push 1
 I Push 3
-I PushGlobal 47
+I PushGlobal 49
 I Mkap
 I Mkap
 I Mkap
@@ -160,7 +160,7 @@ I Push 0
 I Pack 96 1
 I Update 1
 I Push 1
-I PushGlobal 20
+I PushGlobal 22
 I Mkap
 I Update 0
 I Push 0
@@ -182,7 +182,7 @@ I Eval
 I PushArg 4
 I PushArg 4
 I PushArg 4
-I PushGlobal 21
+I PushGlobal 23
 I Mkap
 I Mkap
 I Mkap
@@ -275,7 +275,7 @@ I PushGlobal events
 I PushFloat 0
 I PushGlobal __Floating_Float_fromFloat__
 I Mkap
-I PushGlobal 56
+I PushGlobal 58
 I PushGlobal scan
 I Mkap
 I Mkap
@@ -441,7 +441,7 @@ I Unwind
 block
 I PushGlobal events
 I PushArg 1
-I PushGlobal 57
+I PushGlobal 59
 I Mkap
 I PushGlobal mapSig
 I Mkap
@@ -458,17 +458,17 @@ block
 I PushArg 2
 I PushArg 2
 I PushArg 2
-I PushGlobal 32
+I PushGlobal 34
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 33
 I PushGlobal zipSig
 I Mkap
 I Mkap
 I Mkap
 I PushGlobal 31
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 29
 I PushGlobal mapSig
 I Mkap
 I Mkap
@@ -479,7 +479,7 @@ block
 I Push 2
 I Push 1
 I Push 3
-I PushGlobal 30
+I PushGlobal 32
 I Mkap
 I Mkap
 I Mkap
@@ -522,7 +522,7 @@ block
 I Push 2
 I Push 1
 I Push 3
-I PushGlobal 53
+I PushGlobal 55
 I Mkap
 I Mkap
 I Mkap
@@ -565,22 +565,22 @@ global main 0 0
 global substrate 0 1
 global moveXY 3 2
 global mapSig 0 3
-global 18 3 4
-global 19 2 5
-global 46 1 8
-global 47 3 9
+global 20 3 4
+global 21 2 5
+global 48 1 8
+global 49 3 9
 global zipSig 0 10
-global 20 4 11
-global 21 5 15
-global 48 2 16
-global 49 2 17
+global 22 4 11
+global 23 5 15
+global 50 2 16
+global 51 2 17
 global floor 1 18
 global prim_floor_float 1 19
 global frames 0 20
 global scan 0 21
 global 10 4 22
 global 11 4 23
-global 56 2 24
+global 58 2 24
 global __Num_Float_+__ 2 25
 global prim_add_float 2 26
 global __Floating_Float_fromFloat__ 1 27
@@ -591,14 +591,14 @@ global 9 3 31
 global input 0 32
 global __Num_Sig_Int_fromInteger__ 1 33
 global constSig 1 34
-global 57 2 35
+global 59 2 35
 global rect 3 36
-global 29 1 39
-global 30 3 40
-global 31 2 41
-global 32 2 42
-global 52 1 45
-global 53 3 46
-global 54 2 47
-global 55 2 48
+global 31 1 39
+global 32 3 40
+global 33 2 41
+global 34 2 42
+global 54 1 45
+global 55 3 46
+global 56 2 47
+global 57 2 48
 entry main

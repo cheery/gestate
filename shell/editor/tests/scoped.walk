@@ -32,7 +32,7 @@ I Push 0
 I Pack 96 1
 I Update 1
 I Push 1
-I PushGlobal 18
+I PushGlobal 20
 I Mkap
 I Update 0
 I Push 0
@@ -48,7 +48,7 @@ I PushArg 2
 I Mkap
 I Eval
 I PushArg 2
-I PushGlobal 19
+I PushGlobal 21
 I Mkap
 I Pack 96 1
 I Eval
@@ -327,8 +327,8 @@ I Unwind
 global main 0 0
 global substrate 0 1
 global mapSig 0 2
-global 18 3 3
-global 19 2 4
+global 20 3 3
+global 21 2 4
 global face 1 5
 global dots 2 8
 global __Num_Int_+__ 2 9

@@ -3392,9 +3392,20 @@ sections, in order: §"Implementations that already match the card",
   instead of rebuilding (`tools/zset.py` measured it at 0.27 ms).
 - *Waiting on an event:* a declared act constraint, until a rule over
   facts appears that only an act can break.
-- *Not run:* the full suite since this morning's `test/report.md`; the
-  audio, GUI, drawn-score, grid and panel suites were run on every
-  change, and one full pass is owed.
+- ~~*Not run:* the full suite~~ — **run 2026-09-13 13:42 at `8e02edf`:
+  4407 passed, 35 skipped, 1 failed.**  The one was
+  `test_walk_fixtures.py`: `scanE` put two definitions into
+  `signal.ges`, every lifted global after them renumbered by two, and
+  `90a586b` regenerated the panel's two `.program` fixtures but not the
+  editor's three `.walk` ones.  `cargo test -p gestate-editor` was green
+  against the stale bytes — the renumbering changes no behaviour — so
+  the Python test was the only thing that could see it.  Regenerated the
+  next morning; 242 Rust and the two seam files' 6 green.
+- *His, a question:* neither fixture file is a gate, and the walk
+  fixtures have now gone stale twice in four days (2026-09-09, and
+  this), each found only by a full pass — the record `test_testimony`
+  had when it joined the gates.  Both files together cost about 8 s
+  against the gates' 21.
 
 **Nothing is uncommitted and nothing is half-built.**
 
