@@ -3071,6 +3071,66 @@ Kowalski's, recalled and unchecked: **LPS**, Logic Production Systems
 Event-Calculus-style change of state by events — the nearest thing in
 his line of work to what Eve's `commit` does.
 
+### LPS, read — 2026-09-13
+
+**Henri:** *"look into LPS, does it match what we have?  I recall that
+the answer would be "not so much", but go and look."*  Read: Kowalski,
+Sadri and Calejo, *How to do it with LPS* (RuleML+RR 2017, CEUR
+Vol-1875, the two-page overview), and **`lps.js`** at `bcafba0`
+(2019-05-12) — a JavaScript interpreter of LPS, not the authors' SWISH
+Prolog one, so where the two differ this reading follows the JS:
+`src/engine/Engine.js` (`performCycle`),
+`src/utility/updateStateWithFluentActors.js`,
+`src/utility/processRules.js`, and the examples `fireSimple`, `bank`,
+`bubbleSort`, `dining`, `studio`.  *The alignment is the session's.*
+
+**What an LPS program is.**  Fluents (`fluent(balance(P, A))`), actions
+and events, `initially(...)`; **causal laws** — `initiates(Act, F)`,
+`terminates(Act, F)`, and `updates(Act, Old, New)`; **reactive rules**,
+`antecedent -> consequent`, whose consequent is a goal that may span
+future cycles (`dine` picks up two forks, then later puts them down);
+**clauses**, `head <- body`, Prolog's; and **constraints**,
+`<- pickup(P, F), not available(F).`, which forbid actions.
+
+**How it runs.**  Discrete cycles on a wall clock, 100 ms by default.
+Each cycle **clones the whole state**, applies the last cycle's actions
+by querying every causal law against every fluent, re-resolves every
+rule's antecedent, advances the goal trees by SLD resolution, and picks
+the next actions by search under the constraints.  Where several ways
+satisfy a goal, *"LPS chooses one of the alternatives and commits to it
+arbitrarily."*  Drawing, in the studio example, is **actions** —
+`draw_circle(test, X, Y, 20, T2, T3)`, `move(circle, X, Y)` — and a
+click is `click(X, Y)`, a place.
+
+| | this card | LPS | match |
+|---|---|---|---|
+| the model | facts with declared keys, in a file | fluents, ground terms, in memory | **yes, loosely** — fluents are facts; no file, no key, no order |
+| change | assert, retract; `set` derived | `initiates`, `terminates`, and `updates(Act, Old, New)` | **yes** — `updates` is `set` named as one law, and the Event Calculus is visible |
+| refusal | a command refuses, in Python today, as a value in the one-file sketch | a constraint over facts and actions, declared | **a better answer than ours** |
+| a gesture over time | a chart: finite states, events step it | a goal spread over cycles, executed by search | **partly** — declarative, but by search, not a finite machine |
+| the picture | a query, recomputed by its changes | draw actions, performed | **no** |
+| a press | names the thing it pressed | `click(X, Y)` | **no** — hard thing 4 inside the program |
+| derivation | incremental, measured; Eve's built | everything recomputed each cycle, the state cloned | **no** — behind this card and far behind Eve |
+| time | samples, frames, events | 100 ms cycles | **no** |
+| determinism | a golden buffer is bit-exact; *"won't do anything unexpected silently"* | commits to an arbitrary alternative | **against it** |
+
+**So his recollection holds: not so much.**  LPS is a theory of *agents
+that act to make goals true*, and a GUI or an instrument here is not
+choosing its actions by search.  Its runtime is not incremental, its
+clock is not a sample or a frame, and it would pick among ways to
+satisfy a goal where this tree refuses to do anything unexpected.
+
+**Two things worth taking, all the same.**
+1. **Refusals as constraints.**  `<- pickup(P, F), not available(F).`
+   says what may not happen, over the facts, once — where a command
+   here checks its refusal in its own body.  In the facts-and-commands
+   shape, a constraint is the declared form of *press the one you mean
+   first*.
+2. **`updates(Act, Old, New)`** — the retract-and-assert pair named as
+   one causal law, which is §"The name, and what falls out"'s *setting
+   a field is retracting the old fact and asserting the new one*, with
+   a name the logic already had.
+
 ### Where the statecharts fit — asked 2026-09-13
 
 **Henri:** *"yes.  Lets do this.  Also, I would want to know how the
