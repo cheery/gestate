@@ -14,7 +14,7 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 89 rows — 29 harness, 40 henri, 14 session, 6 argument
+    testimony: 90 rows — 30 harness, 40 henri, 14 session, 6 argument
 
 *The line counts the table and nothing else, and a gate holds this
 page to it: a row added or re-kinded without the line cannot land.
@@ -24,7 +24,7 @@ a new memory is never refused for lacking one
 directory too and went stale behind four new memories; Henri,
 2026-09-13: "build both".*
 
-**Read it this way.**  Sixty-nine of the eighty-nine rows rest on
+**Read it this way.**  Seventy of the ninety rows rest on
 something a reader can check without trusting a session — a command, a test, a transcript, or
 his own dated words.  Fourteen rest on a session's word, and the
 fourteen are the list this page exists to produce: each is a candidate
@@ -70,6 +70,7 @@ sentence that was taken to be.
 | a-judge-built-from-the-arms | harness | the fifth sheet, `doc/trial/graphrag-themes.md` — the first trial's fourteen documents on q3 were eight hubs; that these faults account for two of six undecided sheets is the session's reading |
 | a-driven-wait-that-watches-itself | harness | exit 144 and the hour-long wait, 2026-08-26; `test/test_selfmatch.py` reproduces the class |
 | a-measurement-in-flight-outlives-the-sitting | henri | his words, 2026-09-03 — *the suite could have been run* |
+| a-shipped-document-gets-played | harness | `git show f561713:examples/gui/tic-tac-toe-facts.board` carries his mark, the file's stamp is 19:09 and the commit 19:10, 2026-09-13; his *"is it me?"* is quoted |
 | a-sessions-time-sense-is-not-realtime | henri | his words, 2026-08-27, quoted whole |
 | a-sitting-is-a-body-constraint | henri | his call, 2026-08-22 and 2026-08-28; the why is private and his |
 | a-targeted-set-is-a-claim | harness | 780 of 780 green with the fix mutated, and the named test red on the same mutation, 2026-09-01 |
