@@ -2970,6 +2970,20 @@ would keep signals where Eve's timer shows facts cannot go — audio,
 animation, the hand's preview per frame.  Where exactly the line runs
 is his.
 
+**Henri, the same evening:** *"I think what you propose is good.  And
+we should really see, measure and compare where the signals do better
+than something else."*  So the shape above is taken as the direction —
+events as records, the model changed by commits, the picture derived,
+the host applying diffs, signals kept — and where the line runs is
+to be **measured, not argued**.  The sheet is
+`doc/trial/signals.md`: four programs already in the tree, one for
+each use of time — a sound per sample, an animation per frame, an
+input folded into a model, a control read by a sound — each written
+again as messages against the same behaviour test, and compared on the
+cost of a step and on lines.  `tools/prereg.sh` passes on it.  **Its
+cases and its 10 % rule are his to confirm or strike before either arm
+is written.**
+
 **What a session would do next, his to take or strike:** the roll's
 picture rows keyed as the identity law says — they already carry `i` —
 and the change applied by the host at a commit instead of a rebuild,

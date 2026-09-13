@@ -1,0 +1,75 @@
+# signals.md — where a signal does better than a message, before either is rewritten
+
+*Written 2026-09-13 for `card:gui-is-difficult.md`, at Henri's "we
+should really see, measure and compare where the signals do better than
+something else", after he took the Elm-like shape with signals kept
+where they have proved themselves.  `tools/prereg.sh
+doc/trial/signals.md` must pass before a line of either arm is written,
+and he confirms or strikes the cases below first.*
+
+**The two forms.**  A **signal** is how the tree does it now: a value
+that is always there, `Sig a`, advanced every step, fed from a channel
+through `mkSig`.  A **message** is Elm's and Eve's: something that
+happened, `ExL a` — the language's own event, *a value, later* — folded
+into a state by an update, with nothing advancing between arrivals.
+Both are writable in the language as it stands: `scan` for the first,
+the one-line `scanE` of §"Would the whole thing need rethinking?" for
+the second.
+
+**question:** for each kind of thing a gestate program does over time,
+is it cheaper to run and shorter to write as a signal or as a message?
+
+**The cases — his to confirm or strike.**  Each is a program already in
+the tree, so the signal arm was written on other days for other reasons
+and is not built for this sheet:
+
+| | the case | the program | one step is |
+|---|---|---|---|
+| 1 | a sound, per sample | `examples/audio/envelope.ges` | a sample |
+| 2 | an animation, per frame | `examples/gui/bounce.ges` | a frame |
+| 3 | an input folded into a model | `examples/gui/tic-tac-toe.ges` | a press |
+| 4 | a control read by a sound | `examples/audio/knob.ges` | a turn of the knob |
+
+A fifth he may add: the roll's hand, whose preview moves per frame —
+held back because its signal half lives in Python, and a comparison
+there is a port first.
+
+**decision:** per case, two numbers for each arm, on the reference
+machine and on `crust` with one harness: **the cost of one step**, and
+**code lines** by the rule that counted the tic-tac-toe (non-blank,
+non-comment).  A case goes to **messages** when the message arm is
+shorter by at least 10 % and its step fits the budget — a frame is
+16.7 ms, a sample 22.7 µs.  It goes to **signals** when the signal arm
+is shorter, or when the message arm's step misses the budget.  Anything
+between is a **tie, and a tie keeps the signal**, because it is what
+stands.  The line gestate draws between the two is the cases' verdicts,
+and nothing else on this sheet.
+
+**control:** one behaviour, two forms.  Before either arm is counted,
+each case has a test of what the program *does* — written first where
+the tree has none, taken as it stands where it has — and both arms pass
+it unchanged, so the numbers compare two ways of doing one thing.  The
+signal arm is the program at the commit this sheet lands in.  **The
+message arm is written by a session, which is the bias:** a writer can
+make the new form heavier than it need be, as the first tic-tac-toe was
+25 % over.  So the message arm is shown to Henri before its numbers are
+taken, and any place he points at as heavier than he would write is
+rewritten first.
+
+**n:** 4
+
+**prediction, written before anything is built — the session's:**
+1. **signals**, by the budget: a message per sample is Eve's timer at
+   44,100 transactions a second, and its step will not fit 22.7 µs;
+2. **tie**: a frame tick folded is the same fold either way;
+3. **messages**, by lines: the tic-tac-toe's hand is a fold over
+   presses, and a press is an event;
+4. **tie**, and the interesting one: the turn is a message and the
+   sound reads it as a signal, so both arms may come out as the same
+   program — which would put the line exactly at the channel.
+
+**What would make this sheet wrong:** the cases chosen for their
+answer.  They were chosen for being the four uses of time the tree
+already has in a small program — sound, motion, input, control — and
+not for how they will come out; a case he adds for its likely answer
+the other way is the check on that.
