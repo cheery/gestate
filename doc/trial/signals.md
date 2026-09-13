@@ -197,3 +197,61 @@ is taken:**
 
 *Not yet taken: the cost of a step and the line counts, for all five.
 The arms go to him first, per the control.*
+
+## The numbers — 2026-09-13, taken and not yet acted on
+
+**Henri:** *"take the numbers for all five, but present them before
+acting on them."*  Taken without his reading of the arms first — his
+call, which sets aside the control's *shown to Henri before its numbers
+are taken*; recorded here so the numbers are read with that known.
+
+`python tools/signalcase.py` — agreement, code lines (the tic-tac-toe
+rule, library block left out), and a step's cost by difference, fastest
+of three, on the reference machine and, for sound, the native engine
+that plays.
+
+| case | agree, both arms | lines, signal → message | reference step, signal / message | native step, signal / message |
+|---|---|---|---|---|
+| 1 `blip` | 600/600 golden | 35 → 35 (0 %) | 781 / 780 µs a sample | 0.074 µs / **does not compile** |
+| 2 `bounce` | 7/7 lists, every frame | 48 → 48 (0 %) | 0.52 / 0.50 ms a frame | — |
+| 3 `tic-tac-toe` | 5/5 games, every picture | 84 → 83 (−1.2 %) | 15.6 / 15.7 ms a press | — |
+| 4 `knob` | 600/600 golden | 25 → 25 (0 %) | 1039 / 1121 µs a sample | 0.131 µs / **does not compile** |
+| 5 `twoknobs` | 800/800 golden | **55 → 33 (−40 %)** | 1043 / 740 µs a sample | 0.170 µs / **does not compile** |
+
+Budgets: a sample 22.7 µs, a frame 16.7 ms.  *Not taken:* `crust`,
+which steps a canvas only from a Rust host fed an exported program.
+
+**Why the message arms do not compile for the sound card**, in the
+extractor's own words: *"uses `wait` inside a step function"* (blip,
+knob) and *"passes a function to `__Foldable_List_foldl__`"*
+(twoknobs).  The engine plays a fixed graph built from the signal
+formers `scan`, `zip` and `mkSig`; `scanE` is not one, and a list of
+messages folded per sample has no layout in a state struct.  **That is
+this implementation's fragment, not the form** — `scanE` could become a
+former beside `scan` — and it is the difference between the two
+readings below.
+
+**What the sheet's rule says, read literally** — a case goes to messages
+when 10 % shorter *and* its step fits the budget; a tie keeps the
+signal:
+
+| case | the rule | the session's prediction |
+|---|---|---|
+| 1 | **signals** — the message arm cannot play | signals ✓, for a reason that was wrong |
+| 2 | **tie**, kept as signal | tie ✓ |
+| 3 | **tie**, kept as signal — 1.2 % is not 10 % | messages ✗ |
+| 4 | **signals** — the message arm cannot play | tie ✗ |
+| 5 | **signals** — 40 % shorter, but cannot play | messages: ✓ on lines, ✗ on the verdict |
+
+**And the reading the rule cannot make.**  On the one case where the
+two forms really differ — many channels into one sound — the message
+arm is **40 % shorter and 29 % cheaper a sample on the reference
+machine**, and loses only because the native fragment has no former for
+it.  On the four where they do not differ, the forms are one line apart
+and cost the same.  Against it, from §"Case 5's arm, written": three
+drafts to the signal arm's none, both wrong ones about *when a value is
+read* and silent, and the live-coding cost of one record — neither of
+which a line count or a step's cost can see.
+
+*Nothing is acted on.  What the numbers mean for where the line runs is
+his.*

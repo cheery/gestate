@@ -3059,6 +3059,17 @@ and a wrong statement compiles and plays.  `doc/trial/signals.md`
 file argues — one record migrates by shape — as the one the sheet's
 rule cannot see.
 
+**The numbers, all five — his *"take the numbers for all five, but
+present them before acting on them"*.**  `python tools/signalcase.py`;
+`doc/trial/signals.md` §"The numbers" has the table.  Four cases are
+one line apart and cost the same.  Case 5, many channels: the message
+arm is **40 % shorter** (55 → 33) and cheaper a sample on the reference
+machine (1043 → 740 µs) — and **none of the three sound arms compiles
+for the sound card**, because `scanE` is not a former of the engine's
+fragment.  Read literally the sheet's rule gives signals, signals and
+three ties; the reading it cannot make is that the one real difference
+favours messages on lines and loses on the fragment.  Not acted on.
+
 **What a session would do next, his to take or strike:** the roll's
 picture rows keyed as the identity law says — they already carry `i` —
 and the change applied by the host at a commit instead of a rebuild,
