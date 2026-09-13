@@ -1,6 +1,6 @@
 # standing-questions — the question a session is asked at the moment it opens a card
 
-    status   doing
+    status   done — 2026-09-13
     because  "You know massive amount of things, but mostly when I request
              them I get them.  their acces seem to be scoped by context a
              lot." — Henri, 2026-09-06, 05:58.  So a session cannot tell
@@ -89,6 +89,13 @@ answered.
    recommendation, suspected: (b), built after a month of fires, not
    before — a number nobody asked for is a number nobody checks.*
    Default: (a) until the log has thirty fires.
+   **Reached unnoticed, and answered, Henri, 2026-09-13.**  The log
+   stood at 32 fires over 14 sittings when `tools/flow.py` named this
+   card untouched for seven days, and the two triggers disagreed —
+   thirty fires, or a month (2026-10-06).  Put to him as close, build
+   (b) now, or shelve to the month; his answer: *"(a)"* — close it.
+   The judge stays (a), the log; (b) is a card of its own if the
+   number is ever wanted.
 3. **Does a question fire on `fixme.md`, or on a spec?** — not now: a
    card is the one place a session is about to decide something, and
    the cues page's own constraint is *at what moment* the cue lands.
@@ -115,3 +122,18 @@ answered.
    seven not chosen sit under `proposed` for the fire rather than
    being struck or promoted.  *Its meta-note stands as the standing
    caveat on this whole card: fire material, not keyboard material.*
+
+## Done — 2026-09-13
+
+**The mechanism landed on 2026-09-06 and has stood since.**  Five
+questions chosen by Henri, the hook installed on his side, 32 fires in
+the fourteen days after; `tools/standing.py --check` is the lamp and
+`test/test_standing.py` the gate.  The harvest at a card's close works:
+four cards closed and four questions came back to `board/standing.md`
+§"proposed", dated, each with what it cost.
+
+**What it does not finish:** promotion.  Eleven questions wait under
+`proposed` — seven from the first choosing, four harvested — and
+choosing among them is his, at the fire, not a card's.  The follow
+count, Q2 (b), was not built.  `journal.md` §"The standing questions
+closed on their own trigger" is the story.

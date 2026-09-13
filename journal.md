@@ -3189,3 +3189,30 @@ read as a file that counts itself as its own citer.  One defect of my
 own on the way — a docstring in `test/test_blind.py` said
 `fixme/F123.md`, which made F123 look gated to the proxy that
 `test_fixme.py` warns about in so many words — and the gate caught it.
+
+## The standing questions closed on their own trigger — 2026-09-13
+
+`tools/flow.py` named `card:standing-questions.md` at a commit: seven
+days untouched.  Henri: *"good question, why [card:standing-questions.md]
+is waiting?"* — the question the lamp exists to put, turned back to
+the session.
+
+**Read, it was waiting on nothing that had not already happened.**
+The hook had stood since 2026-09-06 with five questions he chose, and
+the card said `doing`, judged by its log.  Q2's default was the log
+*until thirty fires*; `standing --report` said 32 over fourteen
+sittings.  The recommendation written beside it said *after a month*,
+so the card carried two triggers that disagreed, and the first one
+passed without a reader.  What did wait was his: eleven questions
+under `proposed`, seven from the first choosing and four harvested at
+the closes of transport-modes, relations-at-frame-rate, ungated-fixes
+and audiovisual-gallery — the harvest working, the promotion not yet
+done once.
+
+Put to him as close, build the follow count now, or shelve to the
+month.  His answer: *"(a)"*.  Closed; promotion stays his at the fire,
+and the follow count is a card of its own if the number is ever
+wanted.  The harvest the close owes went beside an existing proposed
+question — *what was the trigger written into it, and has it fired?* —
+which had been written for a shelved card and turned out to be owed by
+a live one.

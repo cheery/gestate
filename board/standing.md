@@ -132,6 +132,12 @@ here too, dated, with the card it came from.*
 - What was the trigger written into it, and has it fired?
   *— `board/README.md` §"The priority": a card comes back the same way
   it left, by him saying so — and a trigger nobody re-reads never fires*
+  *— and owed by a live card too, harvested 2026-09-13 at the close of
+  `card:standing-questions.md`: its own default, judge by the log until
+  thirty fires, was passed at 32 with nobody looking, and the card sat
+  seven days until `tools/flow.py` named it.  A second trigger beside
+  the first (a month) had disagreed with it from the day both were
+  written.*
 
 **For a done card:**
 
