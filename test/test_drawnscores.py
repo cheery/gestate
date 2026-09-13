@@ -2137,6 +2137,72 @@ def test_the_page_is_the_files_own_picture_stacked():
     assert len(rails) == len(heads)
 
 
+def _moved_one_beat(text: str, nth: int = 5) -> str:
+    """`text` with its `nth` note written one beat later — a move that
+    stays in its section and lands on no other note of `arc.notes`."""
+    import re
+
+    lines = text.splitlines()
+    row = [k for k, line in enumerate(lines) if line.startswith("note ")][nth]
+    m = re.search(r"\bat (\d+)", lines[row])
+    lines[row] = lines[row][:m.start()] + f"at {int(m.group(1)) + 48}" + lines[row][m.end():]
+    return "\n".join(lines) + "\n"
+
+
+def test_a_commit_that_changes_no_program_keeps_the_page_and_draws_what_a_fresh_build_draws():
+    """**Slice (a) of `card:gui-is-difficult.md`**, step 1: a moved note
+    leaves the page's program byte-identical, so the page is kept — no
+    recompile, and no new `Substrate` for the window to re-walk — and
+    what it draws after the move is what a page built fresh from the
+    moved file draws, picture for picture.
+
+    The hand is left mid-drag before the commit on purpose: a fresh
+    build starts every preview at rest by construction, and a kept page
+    has to be told, which is `scorebox.REST`."""
+    from gestate.audio import has_substrate
+
+    here, bench = _opened_alone()
+    assert not has_substrate(bench.program(here.read_text())), \
+        "a stacked kind's wrapper authors a substrate, and `_load_substrate` no longer asks"
+    bench._load_substrate(bench.program(here.read_text()))
+    kept = (id(bench.substrate), {k: id(v) for k, v in bench.canvases.items()})
+    bench.substrate.write("__nb_slide_0__", 24.0)
+    bench.substrate.write("__nb_held_0__", 3.0)
+    bench.substrate.write("__nb_band_0__", [40.0, 40.0, 20.0, 20.0])
+    moved = _moved_one_beat(here.read_text())
+    bench._load_substrate(bench.program(moved))
+    assert (id(bench.substrate), {k: id(v) for k, v in bench.canvases.items()}) == kept, \
+        "the page was rebuilt for a move that changed no program"
+
+    fresh_here = here.parent / "fresh" / "arc.notes"
+    fresh_here.parent.mkdir()
+    fresh_here.write_text(moved)
+    from gestate.audioeditor import Workbench
+
+    fresh = Workbench(fresh_here, rate=22050, block=256)
+    fresh._load_substrate(fresh.program(moved))
+    assert sorted(bench.canvases) == sorted(fresh.canvases)
+    assert bench.note_rows == fresh.note_rows, "the rows the window is sent"
+    assert bench.substrate.picture() == fresh.substrate.picture(), \
+        "the kept page draws what a fresh build of the moved file draws"
+
+
+def test_after_a_commit_the_window_is_sent_the_rows_that_moved_and_no_others():
+    """The window's half of the same step: a walker already holding the
+    page is sent only the rolls whose rows a commit changed, and a
+    walker that was just rebuilt — sent nothing yet — is sent them all."""
+    from gestate.workbench import _moved_rows
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program(here.read_text()))
+    sent = list(bench.note_rows)
+    assert _moved_rows(sent, None) == sent
+    bench._load_substrate(bench.program(_moved_one_beat(here.read_text())))
+    moved = _moved_rows(bench.note_rows, sent)
+    assert [c for c, _f in moved] == ["__nb_rc_0__"], [c for c, _f in moved]
+    assert _moved_rows(bench.note_rows, bench.note_rows) == []
+
+
 def _clear_note(roll) -> int:
     """A note a hand can name without ambiguity — the stacked page puts
     five voices in one column, and a key sounding twice under a column
@@ -2174,7 +2240,12 @@ def _seated_on(bench, text: str):
 
     bench.previewing = {}
     bench.auditioned = []
-    bench.audition = lambda text: bench.auditioned.append(text)
+    # **`audition`'s own signature.**  The bench's coalesced worker calls
+    # it as `audition(text, quiet)` 0.4 s after a command asks soon; a
+    # stand-in taking one argument raised there, and the message that
+    # reported it re-read the disk into the bench's relations (`fixme.md`
+    # F230) — a test that passed only while its own steps beat the wait.
+    bench.audition = lambda text, quiet=False: bench.auditioned.append(text)
     seat = Session(bench=bench)
     seat.view = _View(text)
     return seat

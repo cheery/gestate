@@ -835,6 +835,15 @@ def _machine(presence, bench) -> None:
     presence.played(bench.played_since_kept())
 
 
+def _moved_rows(now: list, sent: list | None) -> list:
+    """The `(channel, reading)` pairs of `now` the window has not been
+    sent — all of them for a walker that has been sent none (`sent` is
+    `None` after a walk), and after a commit only the rolls whose rows
+    changed (`card:gui-is-difficult.md`, slice (a))."""
+    had = dict(sent or ())
+    return [(chan, flat) for chan, flat in now if had.get(chan) != flat]
+
+
 def run(path, rate: int = 44100, block: int = 512,
         midi: bool = False, seed: int | None = None) -> int:
     """Open the file, play it, and hand the window the keyboard."""
@@ -1078,12 +1087,17 @@ def run(path, rate: int = 44100, block: int = 512,
             # them is the walk's own (`card:notes-editor.md` slice 3).
             rows_now = getattr(bench, "note_rows", None) or []
             if rows_now and rows_now != rows_sent:
+                # **Only the channels that moved**, when the walker is
+                # the one that was sent the rest: a commit keeps the
+                # page (`Workbench._load_substrate`), and one moved note
+                # changes one roll's rows, not the page's.
+                moved = _moved_rows(rows_now, rows_sent)
                 editor.readings("\n".join(
                     "trace\t" + chan + "\t"
                     + "\t".join(f"{v:.5g}" for v in flat)
-                    for chan, flat in rows_now))
+                    for chan, flat in moved))
                 rows_sent = rows_now
-                _tap("rows", [(c, len(f)) for c, f in rows_now])
+                _tap("rows", [(c, len(f)) for c, f in moved])
 
             t2 = time.monotonic()
             # **The canvas, and only while it is what you are looking

@@ -1068,22 +1068,36 @@ class Substrate:
         program that declares no such channel is not written to and does
         not pay for the reading.
         """
-        cid = self.by_name.get(name)
-        if cid is None:
-            return False
-        if isinstance(value, list):
-            # A scope's trace: the points as the `List Float` the
-            # channel declared (`spec/scope.md`) — built with the
-            # program's own constructors, the way `_event_node` builds
-            # an event.
-            node = NCon(self.state.cons["Nil"].tag, ())
-            for v in reversed(value):
-                node = NCon(self.state.cons["Cons"].tag, (NNum(v), node))
-            react(self.reactive, [(cid, node)])
-        else:
-            react(self.reactive, [(cid, NNum(value))])
-        self.values[name] = value
-        return True
+        return bool(self.write_all([(name, value)]))
+
+    def write_all(self, pairs) -> int:
+        """`write`, for several channels in **one** instant — what `tick`
+        already does with the frame clock and `now`.  Each `write` is a
+        reactive step of its own, about 13 ms on a page of three rolls,
+        so a commit putting eight previews back to rest was a tenth of a
+        second of steps that could be one (`card:gui-is-difficult.md`,
+        slice (a)).  Answers how many of the names the program declared.
+        """
+        arrivals = []
+        for name, value in pairs:
+            cid = self.by_name.get(name)
+            if cid is None:
+                continue
+            if isinstance(value, list):
+                # A scope's trace: the points as the `List Float` the
+                # channel declared (`spec/scope.md`) — built with the
+                # program's own constructors, the way `_event_node`
+                # builds an event.
+                node = NCon(self.state.cons["Nil"].tag, ())
+                for v in reversed(value):
+                    node = NCon(self.state.cons["Cons"].tag, (NNum(v), node))
+                arrivals.append((cid, node))
+            else:
+                arrivals.append((cid, NNum(value)))
+            self.values[name] = value
+        if arrivals:
+            react(self.reactive, arrivals)
+        return len(arrivals)
 
     def touch(self, kind: str, x: int, y: int) -> tuple | None:
         """A press, a drag or a release, in canvas coordinates.

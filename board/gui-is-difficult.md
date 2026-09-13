@@ -3435,6 +3435,47 @@ differ in **1.05 positions** on average (2 rows as retract-and-assert).
 can renumber `i`; and the window — the whole list still crosses as a
 trace, and the only oracle for that half is a driven run.
 
+**The postcondition**, the session's sentence, uncorrected: *a note let
+go of on the roll is drawn in its new place within 60 ms, and the rest
+of the picture does not redraw to get there.*  **Henri, 2026-09-14:**
+*"yes, step 1 first, then the driven run"* — step 1 is the host only
+(no recompile over an identical text, the sections derived once, only
+what changed written), the window still sent the whole list; step 2,
+the change itself on the wire with an `i` that survives a re-sort, only
+if the driven run says the window is still over 60 ms.
+
+**Step 1, landed — 2026-09-14.**  The page's side of a moved note,
+headless, `arc.notes`, twelve moves: **480–814 ms → 51–67 ms.**
+- `Workbench._load_substrate` keeps the page when the program text and
+  entries are unchanged — no `Substrate.several`, and no new identity
+  for `workbench.py` to re-walk the window on.  A kept page is put back
+  to what a fresh build starts with: `scorebox.REST`, one table the
+  generated programs' literals are now written from (the page program
+  byte-identical to before, hashed).
+- Only readings that changed are written, in one instant —
+  `Substrate.write_all`; the eight rest writes were a reactive step each.
+- `notes.tone_of` takes the sections derived once.
+- A stacked kind is not asked `has_substrate`: the parse of a new text
+  each commit was a **fourth** third, hidden from the first profile by
+  `_authored`'s cache when the same move was timed twice.
+- The window is sent only the rows that moved (`workbench._moved_rows`).
+
+Held by `test_drawnscores.py::test_a_commit_that_changes_no_program_keeps_the_page_and_draws_what_a_fresh_build_draws`
+— a hand left mid-drag, a move, the kept page against a fresh build of
+the moved file — red with the rest writes taken out and red with the
+page never kept; and `…_the_window_is_sent_the_rows_that_moved_and_no_others`.
+Suites: drawn scores, grid, score box, substrate, relations 318; gui
+and editor 129; session 173.
+
+**It found `fixme.md` F230**: an error message re-reads the disk into
+the bench's relations.  The cold prelude parse moved from the page into
+`_load_score`, a test's steps outlasted `AUDITION_WAIT`, its stand-in
+`audition` took the wrong arguments, and the report of that replaced
+`bpm 96` with the saved file's none.  The stand-in is corrected; F230 is
+open.
+
+*Not measured yet:* the window.  That is the driven run.
+
 **Nothing is uncommitted and nothing is half-built.**
 
 ## What the next session picks up — written 2026-09-09, at his ask

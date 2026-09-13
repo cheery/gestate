@@ -1555,7 +1555,7 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
                 # would not line up with them.  `None` keeps the bank's
                 # hue, which is what a section declaring no mode gets.
                 tones.append({"tonic": TONIC, "outside": OUTSIDE}.get(
-                    tone_of(rels, one["section"], one["key"])))
+                    tone_of(rels, one["section"], one["key"], sections)))
         # **The scale is the file's, not the section's** — one pitch
         # axis for every roll of the page, and a program text that
         # holds still while notes move inside it.  The span is what the
@@ -1816,6 +1816,31 @@ def rows_reading(roll: Roll) -> list:
     return [float(v) for row in rows_of(roll) for v in row]
 
 
+#: **Where a hand's preview rests**: each preview channel's value before
+#: any hand has written it — the value its signal starts from in the
+#: generated program, and the one a kept page is put back to when a
+#: commit lands (`Workbench._load_substrate`).  One table, because a
+#: fresh build starts there by construction and a kept one has to be
+#: told, and two spellings of *nothing held* would drift.
+REST = (("held", -1.0), ("lift", 0.0), ("sel", -1.0), ("slide", 0.0),
+        ("grow", 0.0), ("endx", -10000.0), ("sels", []), ("band", []))
+
+
+def resting(box: int) -> dict:
+    """Every preview channel of box `box`, at rest."""
+    return {f"__nb_{k}_{box}__": (list(v) if isinstance(v, list) else v)
+            for k, v in REST}
+
+
+def _rest_literal(k: str) -> str:
+    """`REST[k]` as the program writes it — the language has no unary
+    minus, so a negative is a subtraction from zero."""
+    v = dict(REST)[k]
+    if isinstance(v, list):
+        return "Nil"
+    return f"(0.0 - {-v:.1f})" if v < 0 else f"{v:.1f}"
+
+
 def rows_channel(box: int) -> str:
     """The channel a live roll's notes arrive on."""
     return f"__nb_rc_{box}__"
@@ -1976,12 +2001,13 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool,
              if roll.bars else f"Shift {_n(rail_x)} {_n(rail_y)} ({ruler_pic})")
     body = (f"Shift {_n(bcx)} {_n(bcy)} (TouchY {pitch_c} (TouchX {rail_c} (Sized {body_w} "
             f"{reach_bottom - reach_top} (Gap 0 0))))")
-    sig = lambda c, zero: f"{c}_s : Sig Float\n{c}_s = {zero} ::: mkSig (wait {c})\n\n"
+    sig = lambda c, k: (f"{c}_s : Sig Float\n"
+                        f"{c}_s = {_rest_literal(k)} ::: mkSig (wait {c})\n\n")
     text = (chans + nohead + "\n"
-            + sig(held_c, "(0.0 - 1.0)") + sig(lift_c, "0.0") + sig(sel_c, "(0.0 - 1.0)")
-            + sig(slide_c, "0.0") + sig(grow_c, "0.0") + sig(endx_c, "(0.0 - 10000.0)")
-            + f"{sels_c}_s : Sig (List Float)\n{sels_c}_s = Nil ::: mkSig (wait {sels_c})\n\n"
-            + f"{band_c}_s : Sig (List Float)\n{band_c}_s = Nil ::: mkSig (wait {band_c})\n\n"
+            + sig(held_c, "held") + sig(lift_c, "lift") + sig(sel_c, "sel")
+            + sig(slide_c, "slide") + sig(grow_c, "grow") + sig(endx_c, "endx")
+            + f"{sels_c}_s : Sig (List Float)\n{sels_c}_s = {_rest_literal('sels')} ::: mkSig (wait {sels_c})\n\n"
+            + f"{band_c}_s : Sig (List Float)\n{band_c}_s = {_rest_literal('band')} ::: mkSig (wait {band_c})\n\n"
             + f"{harm_c}_s : Sig (List Float)\n{harm_c}_s = Nil ::: mkSig (wait {harm_c})\n\n"
             + (f"{rows_c}_s : Sig (List Float)\n{rows_c}_s = Nil ::: mkSig (wait {rows_c})\n\n"
                if live else
@@ -2244,17 +2270,17 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # A channel is read as a signal the way every canvas reads
             # one; nothing held is `-1`, which is no note's number.
             + f"{held_s} : Sig Float\n"
-            + f"{held_s} = (0.0 - 1.0) ::: mkSig (wait {held_c})\n\n"
+            + f"{held_s} = {_rest_literal('held')} ::: mkSig (wait {held_c})\n\n"
             + f"{lift_s} : Sig Float\n"
-            + f"{lift_s} = 0.0 ::: mkSig (wait {lift_c})\n\n"
+            + f"{lift_s} = {_rest_literal('lift')} ::: mkSig (wait {lift_c})\n\n"
             + f"{sel_s} : Sig Float\n"
-            + f"{sel_s} = (0.0 - 1.0) ::: mkSig (wait {sel_c})\n\n"
+            + f"{sel_s} = {_rest_literal('sel')} ::: mkSig (wait {sel_c})\n\n"
             + f"{slide_s} : Sig Float\n"
-            + f"{slide_s} = 0.0 ::: mkSig (wait {slide_c})\n\n"
+            + f"{slide_s} = {_rest_literal('slide')} ::: mkSig (wait {slide_c})\n\n"
             + f"{grow_s} : Sig Float\n"
-            + f"{grow_s} = 0.0 ::: mkSig (wait {grow_c})\n\n"
+            + f"{grow_s} = {_rest_literal('grow')} ::: mkSig (wait {grow_c})\n\n"
             + f"{endx_s} : Sig Float\n"
-            + f"{endx_s} = (0.0 - 10000.0) ::: mkSig (wait {endx_c})\n\n"
+            + f"{endx_s} = {_rest_literal('endx')} ::: mkSig (wait {endx_c})\n\n"
             # **The section's end, while a hand carries it**: a bright
             # line the body's height, or nothing.
             + f"{end_g} : Int -> Sub\n"
@@ -2262,9 +2288,9 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + f"    True -> Shift e {_n(top + body_h // 2)} (Rect 2 {body_h} (RGB 236 200 120))\n"
             + "    False -> Gap 0 0\n\n"
             + f"{sels_s} : Sig (List Float)\n"
-            + f"{sels_s} = Nil ::: mkSig (wait {sels_c})\n\n"
+            + f"{sels_s} = {_rest_literal('sels')} ::: mkSig (wait {sels_c})\n\n"
             + f"{band_s} : Sig (List Float)\n"
-            + f"{band_s} = Nil ::: mkSig (wait {band_c})\n\n"
+            + f"{band_s} = {_rest_literal('band')} ::: mkSig (wait {band_c})\n\n"
             # **Is this note one of the selected?**  The group crosses as
             # a list of note numbers, and each row asks it once.
             + f"{member_g} : Int -> List Float -> Bool\n"

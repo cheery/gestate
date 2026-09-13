@@ -669,7 +669,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 677 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
 | 932 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
 | 954 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1273 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 1287 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -830,9 +830,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1187 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
 | 1195 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
 | 1197 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1693 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1700 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1750 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 1699 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1706 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1756 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 

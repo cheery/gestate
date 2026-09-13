@@ -1409,9 +1409,14 @@ def harmony(rels: dict) -> list:
     return out
 
 
-def tone_of(rels: dict, section: str, key: int):
+def tone_of(rels: dict, section: str, key: int, sections=None):
     """`"tonic"`, `"outside"`, or `None` — where a key sits in the mode
     a section declares.
+
+    `sections` is `sections_of(rels)` when the caller already has it: a
+    roll asks once per note, and deriving the sections 291 times was a
+    third of what a moved note cost the page (`card:gui-is-difficult.md`,
+    slice (a)).
 
     The two facts a picture can draw about a note that notation
     software cannot, and for the reason `harmony` gives: the section
@@ -1419,7 +1424,8 @@ def tone_of(rels: dict, section: str, key: int):
     inferred.  A section that declares neither says `None` about every
     note, which is the silence `outside` keeps.
     """
-    one = {s["name"]: s for s in sections_of(rels)}.get(section)
+    one = {s["name"]: s for s in (sections if sections is not None
+                                  else sections_of(rels))}.get(section)
     if one is None or one["key"] is None or one["mode"] is None:
         return None
     step = (key - _PITCH_CLASS[one["key"]]) % 12

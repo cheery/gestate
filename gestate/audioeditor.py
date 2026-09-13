@@ -1480,7 +1480,13 @@ class Workbench:
         from .audio import has_substrate
         from .gui import Substrate
 
-        if not has_substrate(text):
+        # **A stacked kind's picture is its page**, and its program is
+        # generated, so it authors no `substrate` to find — asking parsed
+        # the whole wrapper on every commit, a new text each time and so
+        # past `_authored`'s cache: 0.3 s of a moved note
+        # (`card:gui-is-difficult.md`, slice (a)).  Held by
+        # `test_drawnscores.py`, which asks the parse on `arc.notes`.
+        if getattr(self.kind, "stacked", False) or not has_substrate(text):
             self.substrate = None
         else:
             try:
@@ -1583,7 +1589,36 @@ class Workbench:
                 # picture of the same file.  `Substrate.several` compiles
                 # once and gives a view per entry.
                 try:
-                    views = Substrate.several(program, self.rate, drawn)
+                    # **A commit that changed no program keeps the page.**
+                    # A live roll's text names no note, so a moved note
+                    # leaves it byte-identical, and compiling it again
+                    # was a third of what the move cost — and a new
+                    # `Substrate` is the identity `workbench.py` re-walks
+                    # the window on, so the whole picture redrew for
+                    # one row (`card:gui-is-difficult.md`, slice (a)).
+                    # Kept, the views are told what a fresh build starts
+                    # with by construction: every hand's preview at rest.
+                    page_key = (program, tuple(drawn), self.rate) if live else None
+                    kept = getattr(self, "_page", None)
+                    if page_key is not None and kept is not None and kept[0] == page_key:
+                        views, written = list(kept[1]), kept[2]
+                        rest = {}
+                        for view in views:
+                            if view.entry.startswith("__notes_"):
+                                rest.update(scorebox.resting(
+                                    int(view.entry[len("__notes_"):-2])))
+                        # Only a channel some hand moved off rest is
+                        # written, and all of them in one instant.
+                        moved = [(name, value) for name, value in rest.items()
+                                 if any(v.values.get(name, value) != value
+                                        for v in views)]
+                        views[0].write_all(moved)
+                        for view in views:
+                            view.values.update(moved)
+                        self.previewing = rest
+                    else:
+                        views, written = Substrate.several(program, self.rate, drawn), {}
+                        self._page = (page_key, list(views), written) if live else None
                     grid_view = None
                     if grid_entry is not None and drawn[-1] == grid_entry:
                         grid_view = views[-1]
@@ -1613,6 +1648,19 @@ class Workbench:
                     # trace whenever they change (`workbench.py`).
                     rows = []
                     drawn = [r for r in rolls if not isinstance(r, Exception)]
+
+                    # **Only what changed is written** into a kept page:
+                    # the views already hold the rest, and a list reading
+                    # is a whole list rebuilt and reacted to.  A fresh
+                    # page's `written` is empty, so it writes them all.
+                    changed = []
+
+                    def put(view, chan, flat):
+                        if written.get(chan) != flat:
+                            changed.append((view, chan, flat))
+                            written[chan] = flat
+                        rows.append((chan, flat))
+
                     # **The harmony band rides the same road as the
                     # rows**, and for the same reason: a bar's degrees
                     # change when a note moves, so written into the
@@ -1623,22 +1671,25 @@ class Workbench:
                     for view, roll in zip(views, drawn):
                         box = int(view.entry[len("__notes_"):-2])
                         chan = scorebox.band_channel(box)
-                        flat = scorebox.band_reading(roll)
-                        view.write(chan, flat)
-                        rows.append((chan, flat))
+                        put(view, chan, scorebox.band_reading(roll))
                     if live:
                         for view, roll in zip(views, drawn):
                             chan = scorebox.rows_channel(
                                 int(view.entry[len("__notes_"):-2]))
-                            flat = scorebox.rows_reading(roll)
-                            view.write(chan, flat)
-                            rows.append((chan, flat))
+                            put(view, chan, scorebox.rows_reading(roll))
                     if grid_view is not None:
                         chan = gridbox.GridRegion.rows_channel.fget(
                             next(iter(self.grid_regions.values())))
-                        flat = gridbox.grid_reading(rels)
-                        grid_view.write(chan, flat)
-                        rows.append((chan, flat))
+                        put(grid_view, chan, gridbox.grid_reading(rels))
+                    # **One instant for every reading that moved** — the
+                    # views share one machine, so a write through any of
+                    # them is a write to all; each view keeps its own
+                    # record of what was written through it.
+                    if changed:
+                        changed[0][0].write_all([(c, f) for _v, c, f in changed])
+                        for view, chan, flat in changed:
+                            view.values[chan] = flat
+                    if grid_view is not None:
                         grid_view.tick()
                     for view in views:
                         view.tick()
