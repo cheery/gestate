@@ -393,6 +393,19 @@ evidence and not instruments.  `spec/verification.md` is the design.
 
 ---
 
+### `tools/zset.py` — the picture by its changes
+
+    python tools/zset.py            # the stacked roll, the page, 600 synthetic rows
+    python tools/zset.py --box      # the stacked roll alone
+
+`card:gui-is-difficult.md` §"DBSP, read and measured", 2026-09-13.  One
+note moved: the whole picture after it, the picture of the two changed
+rows alone (DBSP's Theorem 3.3 — a linear query is its own incremental
+version), and the change applied to the picture the host held — and
+whether that equals the whole, with the items keyed by the note and
+without.  Warm, fastest of several: the first run pays the machine's
+warm-up and read as a change that grew with the roll.
+
 ### `tools/queryframe.py` — one frame of the roll as a query
 
     python tools/queryframe.py          # the page of arcnotes.ges

@@ -2811,6 +2811,79 @@ design is the part a session's summary strips of its payment
 proposed these systems is the worst reader to judge whether they fit
 (`doc/memory/the-evaluation-loop.md`).
 
+### DBSP, read and measured — 2026-09-13
+
+**Henri:** *"yes, start with DBSP"* — the session's half of the split
+above, the mechanics with a command left behind.
+
+**The paper checked.**  Budiu, McSherry, Ryzhyk, Tannen, *DBSP:
+Automatic Incremental View Maintenance for Rich Query Languages*,
+arXiv 2203.16684, read §§2–4 from the PDF.  What the section above
+recalled holds: a Z-set is a finite map from rows to integer weights;
+the incremental version of a query is `Q^Δ = D ∘ Q ∘ I` (Def. 3.1); a
+linear query is its own, `Q^Δ = Q` (Thm. 3.3), and filter, projection
+and map are linear; a join is bilinear, `Δ(a⋈b) = Δa⋈Δb + a⋈Δb + Δa⋈b`
+(Thm. 3.4), and needs its inputs kept; `distinct` is neither and needs
+the integrated state (Prop. 4.7).  *The VLDB 2023 venue the section
+gave is not in the arXiv text and stays unchecked.*
+
+**Measured — `python tools/zset.py`.**  One note of `arcnotes.ges`
+moved one step later: its row retracted, the moved row asserted.  The
+picture's `for` from `tools/queryframe.py`, on the reference machine,
+warm, the fastest of several runs:
+
+| rows | the whole picture after the move | the picture of the two changed rows | the change applied to the held picture |
+|---|---|---|---|
+| 88, the stacked roll | 24 ms | 0.27 ms | 0.002 ms |
+| 152, the page | 50 ms | 0.27 ms | 0.003 ms |
+| 600, synthetic | 241 ms | 0.26 ms | 0.018 ms |
+
+And the picture assembled from the changes **equals the picture
+computed whole, every time — when its items carry the note's key.**
+
+**Three findings.**
+
+1. **A move costs the picture what the move is, not what the roll
+   is.**  Theorem 3.3 on the language as it stands: the picture is a
+   `for` over the rows, linear, so the same function run on the two
+   changed rows is the change to the picture — 0.27 ms at every size,
+   where the whole grows with the roll.  Q1's kill condition 1 was a
+   whole picture against a frame; per change, it has nothing to kill.
+2. **Integration is the host's, and that is seam 1 already.**  The
+   language has no set difference — Datafun is monotone — so taking
+   out what a retraction drew cannot be written in `.ges`.  In DBSP
+   that is `I`, the integrated state, and here it is the host holding
+   the picture and applying the change: exactly *the host holds the
+   facts, the program reads a projection* of §"The whole notes GUI in
+   one `.ges` file".  Nothing new is needed for it.
+3. **The identity law is what makes the picture linear.**  Unkeyed —
+   the item `(x, y, w, hue)` as `tools/queryframe.py` draws it — two
+   notes can draw the same item, and a set counts it once.  On the page
+   4 notes do, and **moving note 19 took out a rectangle a second note
+   still draws**: *drawn whole but lost by the changes*.  That is the
+   paper's `distinct` caveat and Q1's kill condition 2, *identity in a
+   set*, met on his piece.  Keyed, it cannot happen.  So the two
+   answers are one: DBSP's alternative is weights and `distinct`'s
+   integrated state; the card's is that a picture row carries (voice,
+   tick, key), and then weights are ±1 and no `distinct` is needed.
+
+**What it does not say.**  *Crust is unmeasured* — the whole was 12
+and 22 ms there (`tools/queryframe.py`), and a change well under a
+millisecond is below a process start.  *The selection's join is
+unmeasured*: Theorem 3.4 needs the rows looked up by key when the
+selection changes, and the language has no index, so the change
+through a nested `for` would still visit every row — the lookup
+§"Q1" already said the query must take.  *One note moved per roll*,
+not every note in turn.  *The host's side is a Python set copy*; a
+window holding its display list would apply the change in place.
+
+**What a session would do next, his to take or strike:** the roll's
+picture rows keyed as the identity law says — they already carry `i` —
+and the change applied by the host at a commit instead of a rebuild,
+measured against the notes editor's 60 ms.  Held by
+`test/test_zset.py`, which pins the keyed agreement and the unkeyed
+loss on four rows.
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
