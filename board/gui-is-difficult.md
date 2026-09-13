@@ -2877,6 +2877,99 @@ through a nested `for` would still visit every row — the lookup
 not every note in turn.  *The host's side is a Python set copy*; a
 window holding its display list would apply the change in place.
 
+**His reading of the other two, and the direction — Henri, 2026-09-13:**
+*"Eve stopped because they found out they could not build a
+sustainable business around it.  And Elm dropped signals because they
+found it was easier to work with non-signal based UI.  I think that..
+We should read eve's source code.  And I think that we should do
+something similar to Elm, but with exception: I do find that signals
+are good for some things.. There's proof of that in our code."*
+
+So two things are settled and one is his to shape.  **Eve's ending was
+not its design**, which makes its source worth reading rather than its
+post-mortem; the session reads it, the way Kale's was read.  **The
+direction is Elm's** — the UI's model changed by messages rather than
+carried as signals — **with signals kept where they have proved
+themselves.**  Where that line runs is the design, and it is his; the
+tree's own evidence for the signal side, for him to draw it against:
+audio, a value per sample; animation and the canvas's `now`; and the
+hand's preview per frame, the half of Q1's two layers that stayed a
+signal while the notes became a query on change.  The other side, as
+measured: §"Would the whole thing need rethinking?" found the event
+flattened into a signal at `mkSig`, and the tic-tac-toe paid seven
+lines for it.
+
+### Eve's source, read — 2026-09-13
+
+`~/eve`, his checkout, at `f680d331` (2018-03-20, the last commit):
+the 0.4 runtime, about 15,000 lines of TypeScript.  Read for how a
+commit, an event record and a UI record meet — `watchers/watcher.ts`,
+`watchers/html.ts`, `watchers/dom.ts` and `watchers/system.ts` whole,
+and in `runtime/runtime.ts`, `runtime/dsl2.ts`, `runtime/indexes.ts`
+and `runtime/stdlib.ts` the parts named below.  *Not read:* the canvas
+watcher, the editor, the compiler, the parser and the join internals.
+
+**Six findings, each with where it is.**
+
+1. **The card's three forms are Eve's three kinds of block.**  `bind`
+   derives records that hold while its search holds and are taken back
+   when it stops — the query, the picture.  `commit` adds and removes
+   records that stay — assert and retract; a commit's count is set to
+   ±Infinity, so it is a setting, not a tally (`runtime.ts`,
+   `Transaction.prepareRound`).  `watch` hands diffs to the host
+   (`watcher.ts`, `Exporter`, `asDiffs`/`asObjects`).  What Eve has no
+   block for is the fourth form this card carries: a **gesture spread
+   over time**.  Mouse-down and mouse-up are two unrelated events, and
+   nothing holds a drag between them.
+2. **Everything is a Z-set, and `distinct` is DBSP's `H`.**  A change
+   is a triple with a count and a round (`runtime.ts`, the comment at
+   §"Changes": *"Count tells us how many of these triples we are adding
+   or, if the number is negative, removing"*).  `DistinctIndex`
+   (`indexes.ts`) keeps a count per key per round and emits a change
+   only when a key's count crosses zero — Proposition 4.7, built in
+   2016–18, with rounds for recursion.
+3. **Identity is content.**  A record made by `record(...)` gets its id
+   from `eve/internal/gen-id` over its creation attributes, keys
+   sorted, joined by `|` (`dsl2.ts`, `Insert`; `stdlib.ts`).  That is
+   reading B of Q7.  Its own comment names the collision: *"If a record
+   exists with a "1" and 1 value for the same attribute, they'll
+   collapse for gen-id"* — the same kind of loss as the unkeyed picture
+   above, one layer down.
+4. **A press is a record naming the thing and the places around it.**
+   The host asserts `html/event/click` with `target` the element's
+   record id and one `element` per ancestor (`html.ts`,
+   `_mouseEventHandler`) — slice 8's *thing inside a place*, the grab
+   both machines were taught.  Events are transient: a commit, *"Remove
+   html events."*, takes them out at the end of the transaction.
+5. **The host integrates, and layout is the browser's.**  The DOM
+   watcher keeps instances keyed by record id and applies adds and
+   removes to them (`dom.ts`, `setup`) — DBSP's `I`, and seam 1 of
+   §"The whole notes GUI in one `.ges` file".  Where things go is CSS;
+   order is a `sort` attribute and a linear insertion
+   (`dom.ts`, `insertChild`).  Eve did not meet hard thing 2.
+6. **Time is facts, one transaction a tick.**  A `system/timer` makes
+   the host, on every interval, retract ten attributes and assert ten
+   (`system.ts`) — year to millisecond, and the tick.  That works for a
+   clock at seconds.  It cannot carry a value per sample, and at frame
+   rate it is a whole fixpoint per frame.  **That is the side his
+   *signals are good for some things* keeps**, found in the one system
+   that tried to do without them.
+
+**What it changes on this card.**  Eve is the card's model as shipped
+code: facts, assert and retract, the picture derived and taken back by
+the engine, a press naming a key, and the host applying diffs.  And the
+three places it did not go are exactly what this card still has open:
+a gesture over time (the charts), time that is continuous (signals),
+and layout.  Its source is a working reference for the first half, and
+silent on the second.
+
+**The shape his Elm-like direction can take, stated and not decided.**
+Eve's split reads: events are records, the model changes by commits,
+the view is binds, the host integrates diffs.  Gestate's version of it
+would keep signals where Eve's timer shows facts cannot go — audio,
+animation, the hand's preview per frame.  Where exactly the line runs
+is his.
+
 **What a session would do next, his to take or strike:** the roll's
 picture rows keyed as the identity law says — they already carry `i` —
 and the change applied by the host at a commit instead of a rebuild,
