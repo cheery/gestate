@@ -565,7 +565,10 @@ has actually killed relational-UI attempts, not the modeling.*
 
 `card:testimony-inventory.md`, 2026-09-06.  `doc/testimony.md` gives
 each memory one of four kinds by what its claim rests on; the judgment
-is a session's, and the tool holds the table to the directory.
+is a session's, and the tool holds the table to the directory.  At
+every commit it prints after the gates — the table's count, and any
+memory with no row — and refuses nothing; the gate is only that the
+page quotes its own table's count (2026-09-13).
 
 ### `tools/bars.py` — what each bar sounds, in words
 

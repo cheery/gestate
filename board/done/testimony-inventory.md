@@ -78,6 +78,13 @@ each.
    from a session about its own claim, which is the loop again as a
    ratchet; a report at every commit that says *N unclassified* is
    enough for the keeper's evening.  Default: report.
+   **Built 2026-09-13, a week late, on Henri's "build both".**  The
+   report had never been wired to a commit, so four memories waited
+   three days unclassified behind a count only the full suite read.
+   Now `tools/pre-commit.sh` prints *N of M classified* and the names,
+   refusing nothing; and the page quotes the table's count alone, which
+   a gate holds — so the gate can never refuse a memory for lacking a
+   row, and the default stands.
 2. **What of the `session` rows should move?** — each one is a
    candidate for a measurement that would turn it into `harness`, or a
    sentence from Henri that would turn it into `henri`; the list is the
