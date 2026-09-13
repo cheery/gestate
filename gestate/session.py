@@ -2930,7 +2930,7 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, disallowed, parse, retune
         from .scorebox import RefusedError, note_of, pitch_atom
 
         places = getattr(self.bench, "note_regions", None) or {}
@@ -2948,8 +2948,9 @@ class Session:
             return ("resize: this note's length is not written as one number "
                     "in this file — a note from a `.notes` file can be resized")
         length = int(length)
-        if length < 1:
-            return "resize: a note is at least one tick long"
+        why = disallowed("note", "len", length)
+        if why is not None:
+            return f"resize: {why}"
         name, row = where
         path = Path(getattr(self.bench, "path", ".")).parent / name
         mine = self._is_document(name)
@@ -3087,11 +3088,12 @@ class Session:
         import re
         from pathlib import Path
 
-        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, disallowed, parse, retune
 
         bpm = int(bpm)
-        if not 1 <= bpm <= 999:
-            return "tempo: a tempo is between 1 and 999 beats a minute"
+        why = disallowed("bpm", "bpm", bpm)
+        if why is not None:
+            return f"tempo: {why}"
         name = Path(getattr(self.bench, "path", "") or "untitled.ges").name
         text = self.view.text()
         try:
@@ -3147,7 +3149,7 @@ class Session:
         """
         from pathlib import Path
 
-        from .notes import NotesError, at_line, bpm_of, named, notes_of, parse, retune
+        from .notes import NotesError, at_line, bpm_of, named, notes_of, disallowed, parse, retune
 
         places = getattr(self.bench, "note_regions", None) or {}
         found = places.get(region)
@@ -3160,8 +3162,9 @@ class Session:
             return (f"bars: this roll draws {len(roll.sections)} sections — "
                     "a section is resized on a roll of its own")
         was, now = int(was), int(now)
-        if now < 1:
-            return "bars: a section is at least one bar long"
+        why = disallowed("section", "bars", now)
+        if why is not None:
+            return f"bars: {why}"
         name = Path(getattr(self.bench, "path", "untitled.notes")).name
         if not self._is_document(name):
             return "bars: the section is resized in its own `.notes` file, opened alone"

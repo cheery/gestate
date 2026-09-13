@@ -3102,7 +3102,7 @@ def test_a_typed_resize_names_the_note_as_transpose_does():
     n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
     on, key = roll.events[n][0], roll.events[n][3]
     before = seat.view.text()
-    assert seat.run("resize", "__nb_pitch_0__", "-", on, key, 0).startswith("resize: a note is at least one tick")
+    assert seat.run("resize", "__nb_pitch_0__", "-", on, key, 0) == "resize: `len 0` is less than 1"
     assert seat.run("resize", "__nb_pitch_0__", "-", on, key + 1, 96).startswith("resize: nothing sounds")
     assert seat.run("resize", "__nb_pitch_0__", "-", on, key, 384).startswith("resize: nothing to do")
     assert seat.view.text() == before
@@ -3315,7 +3315,7 @@ def test_a_section_does_not_shrink_past_its_notes_and_grows_freely():
     said = seat.run("bars", "__nb_ruler_0__", 8, 7)
     assert said.startswith("bars: arc.notes:") and "bar 8 of section A has notes" in said, said
     assert seat.view.text() == before
-    assert seat.run("bars", "__nb_ruler_0__", 8, 0).startswith("bars: a section is at least one bar")
+    assert seat.run("bars", "__nb_ruler_0__", 8, 0) == "bars: `bars 0` is less than 1"
     assert seat.run("bars", "__nb_ruler_0__", 7, 9).startswith("bars: section A has 8 bars, not 7")
     assert seat.run("bars", "__nb_ruler_0__", 8, 8).startswith("bars: nothing to do")
     assert seat.run("bars", "__nb_rail_0__", 8, 9).startswith("bars: name the box's ruler")
@@ -3393,8 +3393,12 @@ def test_tempo_writes_the_notes_record_and_rewrites_it_and_the_bench_plays_at_it
     said = seat.run("tempo", 96)
     assert said == "tempo: arc.notes — bpm 132 → 96 on line 1", said
     assert seat.run("tempo", 96).startswith("tempo: nothing to do")
-    assert seat.run("tempo", 0).startswith("tempo: a tempo is between")
-    assert seat.run("tempo", 1000).startswith("tempo: a tempo is between")
+    assert seat.run("tempo", 0) == "tempo: `bpm 0` is less than 1"
+    # **The declaration's bound, not the command's** — Henri, 2026-09-13:
+    # the file says `AtLeast 1`, and `tempo` used to refuse 1000 that a
+    # typed `bpm 1000` said without complaint.
+    assert seat.run("tempo", 1000) == "tempo: arc.notes — bpm 96 → 1000 on line 1"
+    seat.run("tempo", 96)
     # the records road goes at the file's tempo
     program = seat.bench.program(seat.view.text())
     seat.bench._engine = seat.bench.kind.engine_program(seat.bench, seat.view.text())
@@ -4375,3 +4379,31 @@ def test_a_click_far_from_the_first_is_two_sweeps_and_not_a_note():
         click(roll.bars[2] if roll.bars else 768, high - 1)
         assert here.parent.joinpath("arc.notes").read_text() == was, \
             "two places is two sweeps"
+
+
+def test_a_commands_refusal_for_a_value_is_the_declarations_sentence():
+    """**Refusals as constraints** — Henri, 2026-09-13, after LPS: *"Take
+    refusals as constraints."*  A command that refuses a value refuses
+    it in the words `gestate/notes.ges`' domain gives, and at the
+    boundary the parser holds for the same value typed into the file —
+    the parser keeps its sentence in the author's terms, which
+    `card:relational-model.md` decided, and the two are held to one
+    bound rather than to one wording."""
+    from gestate.notes import NotesError, disallowed, parse
+
+    _here, seat, _view, roll = _page_seat()
+    n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
+    on, key = roll.events[n][0], roll.events[n][3]
+    said = seat.run("resize", "__nb_pitch_0__", "-", on, key, 0)
+    assert said == "resize: " + disallowed("note", "len", 0)
+    assert seat.run("tempo", 0) == "tempo: " + disallowed("bpm", "bpm", 0)
+
+    def typed(bpm):
+        try:
+            parse(f"bpm {bpm}\nsection A key D bars 1 beats 4 voices m\n", "typed.notes")
+        except NotesError:
+            return False
+        return True
+
+    for bpm in (0, 1, 1000):
+        assert typed(bpm) == (disallowed("bpm", "bpm", bpm) is None), bpm

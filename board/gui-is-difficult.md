@@ -3131,6 +3131,38 @@ satisfy a goal where this tree refuses to do anything unexpected.
    a field is retracting the old fact and asserting the new one*, with
    a name the logic already had.
 
+**Henri:** *"Take refusals as constraints.  I think they'd be wortwhile
+somewhere here."*  **Measured first.**  The document's *state*
+constraints were already declared — `card:relational-model.md` scar 2
+built a `refused` set over the relations, and `assert`, `retract` and
+`field` refuse in the parser's words.  What LPS adds is constraints on
+an **action**.  The note commands' sixty-odd refusals read as mostly
+addressing (*no score box region called …*, *nothing selected*), three
+that restated a declared domain, and a few that are genuinely about the
+act — a doubled line legal in the file and refused at a gesture, *a
+carry is one file's*, an act that changes nothing.  And one of the three
+**disagreed** with the file: `tempo` refused 1000 bpm, which a typed
+`bpm 1000` said without complaint.
+
+His two answers, 2026-09-13: **derive, then declare** — the domain
+refusals first, then a declared form for the ones only an act can
+break; and the tempo rule is **at least 1**.
+
+**Slice 1, landed.**  `notes.disallowed(kind, field, value)` asks
+`gestate/notes.ges` through `facts.Field.outside`; `resize`, `bars` and
+`tempo` refuse with its sentence (*`len 0` is less than 1*) and no
+longer keep their own, so `tempo 1000` writes.  The parser keeps its
+author's-terms sentence, as scar 2 decided, and
+`test_drawnscores.py::test_a_commands_refusal_for_a_value_is_the_declarations_sentence`
+holds command and parser to **one bound** — red when the declaration was
+given a 999 ceiling the parser did not have.  One cascade on the way: the
+bars test, still expecting the old words, failed mid-way and left the
+shared seat changed for the tempo test after it.
+
+**Slice 2 is a design, and his:** the form of a declared action
+constraint — where it lives beside the kinds, and what it is written
+over.
+
 ### Where the statecharts fit — asked 2026-09-13
 
 **Henri:** *"yes.  Lets do this.  Also, I would want to know how the

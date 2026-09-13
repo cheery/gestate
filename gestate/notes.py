@@ -609,6 +609,24 @@ def bar_ticks(section: dict) -> int:
     return section["beats"] * TICKS_PER_BEAT
 
 
+def disallowed(kind: str, field: str, value) -> str | None:
+    """Why `value` may not stand in `field` of a `kind` record — the
+    declaration's sentence, or `None`.
+
+    **A command's refusal for a value, taken from the one place the
+    rule is written** (`facts.Field.outside`, over `gestate/notes.ges`)
+    rather than restated in the command's body.  Henri, 2026-09-13,
+    taking LPS's constraints: *"Take refusals as constraints."*  Three
+    commands had kept their own copy — `resize`, `bars`, `tempo` — and
+    `tempo`'s disagreed with the file: it refused 1000 bpm, which a
+    typed `bpm 1000` said without complaint."""
+    from .facts import load
+
+    found = next((f for f in load("notes")[kind].fields if f.name == field),
+                 None)
+    return None if found is None else found.outside(value)
+
+
 def at_line(rels: dict, line: int) -> dict | None:
     """The note written on that line of the file, or `None`.
 
