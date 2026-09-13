@@ -3556,6 +3556,31 @@ number on any checkout, and the split that says where the time is; the
 decisions are his to make before the number is chased again.  *Waiting
 on him, and he has said it is a decision, not a queue position.*
 
+### Eve's GUI programs beside ours — 2026-09-13
+
+**Henri:** *"Can you look at ~/eve GUI programs and compare them with
+gestate GUI programs?"*, then downloaded `~/eve-starter`, whose
+`programs/` hold the `.eve` examples.  Compared excerpt by excerpt from
+the files: `tic-tac-toe.eve` (199 lines, 74 code in 10 blocks) against
+`examples/gui/tic-tac-toe.ges` (181 lines, 84 code) part by part;
+`flappy.eve` against `bounce.ges`; `ui.ts`'s autocomplete against
+`hand.ges`.  *The page was a local file and was not kept or published.*
+
+**His reading:** *"I think that our version is hacky and appears as if
+it's not meant for writing tic-tac-toe, eve is meant for that. I am
+surprised at the size not being too different.. and that eve is
+otherwise looking weird, unusual."*
+
+*The session's tally of our 84 lines, by eye, not a tool:* about 25 are
+the game; about 12 hand-written list indexing (`markAt`, `putAt`); the
+rest are seams between layers — `(0.0 - 1.0) ::: mkSig (wait pressing)`,
+a `Float` channel carrying an `Int` cell (`toFloat k` / `floor k`),
+binary `Row` nesting, `Label 90 14` sized by hand, `!` lifting, and
+`sound = 0.0` for the workbench.  Eve's strangeness is its model —
+records, `:=` / `+=`, order-free blocks — and is consistent; ours is the
+seams showing, and tic-tac-toe is a program on the facts-and-messages
+side of the day's direction written as a signal.  Not acted on.
+
 **Nothing is uncommitted and nothing is half-built.**
 
 ## What the next session picks up — written 2026-09-09, at his ask
