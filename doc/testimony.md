@@ -14,9 +14,9 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 86 of 86 memories classified — 26 harness, 40 henri, 14 session, 6 argument
+    testimony: 89 of 89 memories classified — 29 harness, 40 henri, 14 session, 6 argument
 
-**Read it this way.**  Sixty-six of eighty-six rest on something a reader
+**Read it this way.**  Sixty-nine of eighty-nine rest on something a reader
 can check without trusting a session — a command, a test, a transcript, or
 his own dated words.  Fourteen rest on a session's word, and the
 fourteen are the list this page exists to produce: each is a candidate
@@ -57,7 +57,9 @@ sentence that was taken to be.
 
 | memory | kind | what the load-bearing claim rests on |
 |---|---|---|
+| a-build-is-not-an-instrument-until-it-has-failed | harness | `cargo build -p gestate-editor` stays green with a type error appended to `window.rs`, 2026-09-11 — re-runnable in thirty seconds |
 | a-defect-is-a-caller-not-a-verdict | henri | his two corrections, quoted, 2026-09-05 — *the tally is not the problem, the guilt is* |
+| a-judge-built-from-the-arms | harness | the fifth sheet, `doc/trial/graphrag-themes.md` — the first trial's fourteen documents on q3 were eight hubs; that these faults account for two of six undecided sheets is the session's reading |
 | a-driven-wait-that-watches-itself | harness | exit 144 and the hour-long wait, 2026-08-26; `test/test_selfmatch.py` reproduces the class |
 | a-measurement-in-flight-outlives-the-sitting | henri | his words, 2026-09-03 — *the suite could have been run* |
 | a-sessions-time-sense-is-not-realtime | henri | his words, 2026-08-27, quoted whole |
@@ -99,6 +101,7 @@ sentence that was taken to be.
 | gestate-ungated-sweep | harness | 62 `gate:` lines, thirteen dated batches |
 | gestate-verify-workflow | harness | commands, each runnable |
 | gestate-work-laptop | henri | *"I'm also going to need it there"*; F148 is the harness half |
+| headless-claude-inherits-the-hooks | harness | 276 zero-token replies cached after 20:48, 2026-09-11; the repair and its comment are `tools/graphrag.py`, commit c62212e |
 | henri-kanban-commits | henri | his words, 2026-08-17 and 2026-09-02 |
 | henri-prior-tools | henri | shown by him, 2026-09-05, and his correction of 2026-09-06 |
 | henri-pushback-on-unsafe-asks | henri | his words, 2026-08-16 |
@@ -137,6 +140,7 @@ sentence that was taken to be.
 | the-keepers-evening | henri | *fold the rotation into the fire*, 2026-08-21; first held 2026-08-28 in the journal |
 | the-language-goal | henri | his notes, 2026-08-20, in Finnish |
 | the-third-explanation-is-a-mechanism | session | a session's classification of one day's explanations as all judgment; his dissatisfaction is quoted |
+| the-slow-part-was-never-the-test | henri | his words, 2026-09-11, quoted; the wall-clock table is the session's count of that day, not re-runnable |
 | the-tree-meets-people-on-pull | henri | his words, 2026-08-20 and 2026-08-21 |
 | the-tree-withers | henri | his words, 2026-08-24; the nineteen missing hooks are the harness half |
 | weights-context-suite | argument | claims about fine-tuning from outside; no model was tuned here |
