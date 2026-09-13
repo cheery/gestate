@@ -508,8 +508,22 @@ def jobs() -> list[tuple[str, int, int, str]]:
 
 
 def _prompt(rel: str, i: int, n: int, text: str) -> str:
-    where = f"Document `{rel}`" if n == 1 else f"Document `{rel}`, part {i + 1} of {n}"
+    #: **Never the chunk count.**  `part i of n` stood here until
+    #: 2026-09-13, and `n` is in every chunk's cache key: the commit that
+    #: added F226 and F227 grew `fixme.md` from 38 chunks to 39, left 34
+    #: of the texts byte for byte, and changed all 39 prompts — so every
+    #: growing document was extracted again whole.
+    where = f"Document `{rel}`" if n == 1 else f"Document `{rel}`, part {i + 1}"
     return f"{where}:\n\n{text}"
+
+
+def live_records(records: dict[str, dict], js: list[tuple[str, int, int, str]]) -> dict[str, dict]:
+    """The records whose chunk still exists.  A store is keyed
+    `file#chunk`, so a document that shrank or moved left its old chunks
+    in the graph for good — found 2026-09-13, when `fixme.md` was about
+    to go from 39 chunks to one."""
+    ids = {f"{rel}#{i}" for rel, i, _n, _text in js}
+    return {k: r for k, r in records.items() if k in ids}
 
 
 def seed_records(store_path: Path) -> dict[str, dict]:
@@ -558,14 +572,14 @@ def extract(arm: str, backend: str, workers: int, limit: int | None, dry_run: bo
         for k, v in sorted(by_top.items(), key=lambda kv: -kv[1]):
             print(f"  {k:10s} {v/1e6:.2f} M chars")
         return 0
-    if limit:
-        js = js[:limit]
     store_path = cache_dir() / f"extract-{arm}.json"
     #: The tool writes its own pid, because `$!` behind `nohup` on
     #: 2026-09-11 named the shell and the scheduled kill took that and
     #: not this.
     (cache_dir() / "extract.pid").write_text(f"pid {os.getpid()}\n", encoding="utf-8")
-    records = seed_records(store_path)
+    records = live_records(seed_records(store_path), js)     # before --limit, which would prune what it skips
+    if limit:
+        js = js[:limit]
     t_start = time.time()
     done_fresh, secs_fresh, in_tok, out_tok, spent = 0, 0.0, 0, 0, 0.0
     estimate_printed = False

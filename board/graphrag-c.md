@@ -715,6 +715,16 @@ and `PROMPT_VERSION` is bumped by hand for that reason: it is a $30
 decision, not a tidy-up.  A renamed file re-extracts once, because the
 path is in the prompt; the journal's monthly rotation is one such.
 
+*Corrected 2026-09-13: it was not incremental for any document longer
+than a chunk.*  The prompt said `part i of n`, so a document that grew
+by one chunk changed every prompt it had — measured on `a0a071f`, which
+added F226 and F227: 34 of `fixme.md`'s 39 chunk texts unchanged, 0 of
+its 39 prompts.  361 of the tree's 538 chunks sit in such documents.
+Henri's ask was to cut `fixme.md` into a directory; the count came out
+of the prompt as well, and a store record whose chunk no longer exists
+now leaves the store (`live_records`).  The one-time price is those 361
+chunks extracted again once.
+
 ~~**Communities are recomputed, never stored** — seconds, from the
 store.  **Summaries are regenerated per community when its member set
 changes**: each page under `doc/graph/` carries the commit, the model

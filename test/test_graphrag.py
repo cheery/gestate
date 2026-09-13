@@ -84,6 +84,25 @@ def test_a_store_from_another_prompt_is_set_aside_and_not_carried(tmp_path):
     assert graphrag.seed_records(tmp_path / "none.json") == {}
 
 
+def test_a_document_that_grows_a_chunk_keeps_the_prompts_it_had():
+    """2026-09-13: one commit grew `fixme.md` by a chunk and all 39
+    prompts changed, because each said `of n`.  A chunk whose text is the
+    same must ask the same question, or the cache is no cache."""
+    para = "word " * 400 + "\n\n"
+    short = para * 60
+    long = short + para * 30
+    a, b = graphrag.chunks(short), graphrag.chunks(long)
+    assert len(b) > len(a) > 1
+    assert [graphrag._prompt("f.md", i, len(a), c) for i, c in enumerate(a[:-1])] \
+        == [graphrag._prompt("f.md", i, len(b), c) for i, c in enumerate(b[:len(a) - 1])]
+
+
+def test_a_chunk_that_no_longer_exists_leaves_the_store():
+    """A store keyed `file#chunk` kept a shrunk document's old chunks forever."""
+    recs = {"a.md#0": {}, "a.md#1": {}, "gone.md#0": {}}
+    assert list(graphrag.live_records(recs, [("a.md", 0, 1, "t")])) == ["a.md#0"]
+
+
 def test_the_cache_does_not_know_the_backend():
     """2026-09-12, Henri: the first run on the api, the increments on the
     cli — so a reply is keyed without the backend and found by either."""
