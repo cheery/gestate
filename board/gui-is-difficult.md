@@ -3405,7 +3405,35 @@ sections, in order: §"Implementations that already match the card",
   fixtures have now gone stale twice in four days (2026-09-09, and
   this), each found only by a full pass — the record `test_testimony`
   had when it joined the gates.  Both files together cost about 8 s
-  against the gates' 21.
+  against the gates' 21.  **Henri, 2026-09-14: *"yes."*** Both joined
+  `tools/suite.py`'s `GATES`.
+
+**His three answers, 2026-09-14:**
+- the fixture gates — *"yes"*, above;
+- the next slice — **(a)**, the roll applying a note's change at a
+  commit instead of rebuilding, over (b) `sync` of several channels;
+- the signal/message line — *"I think this is aesthetics question and
+  I'd need more examples to resolve it."*  So it is waiting on an
+  **event**, more examples, and not on him; (b) waits with it.
+
+**Slice (a), measured before building — 2026-09-14.**  *Session's
+numbers, headless, `arc.notes` opened alone, warm; scratch scripts, not
+yet a tool.*  One note moved one step: the page is rebuilt whole, and
+`Workbench._load_substrate` costs **0.5–0.8 s**, in three parts of about
+a third each:
+- `Substrate.several` recompiles the picture program, **0.25 s warm —
+  over a text that is byte-identical after the move** (11,895
+  characters; the rows are a reading since `card:notes-editor.md` slice
+  3, so a move changes no program);
+- `notes_rolls`, 0.30 s — nearly all `notes.tone_of`, which derives
+  `sections_of` once per note, 291 times;
+- the rows and bands written into the reference views, 0.31 s.
+
+And the change itself is small: over 20 random one-beat moves the rows
+differ in **1.05 positions** on average (2 rows as retract-and-assert).
+*Not measured:* a gesture's canonical write re-sorting the file, which
+can renumber `i`; and the window — the whole list still crosses as a
+trace, and the only oracle for that half is a driven run.
 
 **Nothing is uncommitted and nothing is half-built.**
 

@@ -176,6 +176,18 @@ GATES = {
     #: outlived its file on 2026-09-11 — and none is made by adding one.
     "test/test_testimony.py::test_every_row_names_a_memory_that_exists_and_a_kind_that_is_one":
         "every row of doc/testimony.md names a memory that exists, once, with one of the four kinds",
+    #: **Joined 2026-09-14**, Henri's "yes": the copies of the payload the
+    #: Rust suites read, against the model that writes them.  The walk
+    #: fixtures went stale on 2026-09-09 and again with `scanE`
+    #: (`90a586b`), each found only by a full pass, and the second time
+    #: `cargo test` was green on the stale bytes — a renumbered global
+    #: changes no behaviour, so nothing on the Rust side can see it.  The
+    #: whole files, about 8 s, 6 of them the program serialization, which
+    #: is the fixture an edit to a library `.ges` moves.
+    "test/test_walk_fixtures.py":
+        "the window's .walk fixtures are today's Substrate payload",
+    "test/test_panel_fixtures.py":
+        "the plugin's program, tag, display and channel fixtures are today's export",
 }
 
 
