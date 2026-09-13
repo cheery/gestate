@@ -3854,6 +3854,36 @@ example it said it was waiting for.**  *Put to him, default: leave the
 program as it stands and record it as that example; trigger: the gex
 sheet or the notes GUI meeting the same three seams.*  Not built.
 
+**Decided, Henri, 2026-09-13:** *"Lets leave the program like it is.
+At least for now.  I don't know what would we do for the smell yet.
+But I'm thinking that compositionality would be the name of the game:
+I want to be able to compose programs from smaller pieces that work
+individually."*  So the program stands, the typed meaning is not
+taken, and the direction is his sentence.  *The session's reading of
+it against the tree, marked as its own.*  Each of the four forms
+already composes with an operator of its own — charts by `beside` with
+`Or` at the seam, pictures by `Row`, `Column`, `Over`, queries by union
+and comprehension, signals by `zip` and, awkwardly, `sync`, kinds as a
+list.  What does not compose is the unit they live in: **the file.**
+There are no imports, a `.ges` is one program, and a channel is a
+declaration whose identity is where it is written — so two pieces that
+work alone, each with a `pressing`, cannot be put together without a
+rename, and a second file cannot share the first's `Act` type at all,
+which §"Questions" Q2 settled on purpose when the second chart showed
+`Or` at the seam was enough for two charts.  The smell above and this
+direction are one question: the hand's seam lines exist because the
+piece that presses and the piece that decides cannot be written apart
+and composed; a typed meaning shrinks the seam inside a file, and
+compositionality asks it across files — which reaches
+`doc/memory/the-language-goal.md`, since modules are what a language
+optimised for reading has to say something about, and the tree
+deferred that on purpose.  *What to measure before designing:* compose
+two pieces that already work — this game and `test_gui.py`'s counter —
+into one file by hand, and count the renames and the seam lines; the
+number says whether the missing thing is a module system, a channel
+that is a value rather than a declaration, or a naming convention.  An
+afternoon, his to call.  Nothing built on it.
+
 **Held by** `test/test_documents.py` (9), `test_gui.py`'s example list,
 and 128 green across `test_gui`, `test_facts`, `test_notes_relations`
 and `test_reference`; drawn scores 200, and grid, audio editor and
