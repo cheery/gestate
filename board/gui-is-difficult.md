@@ -3361,6 +3361,43 @@ them — is the order they would be built in anyway.
 
 ---
 
+## Where it stands — 2026-09-13, evening, as he left
+
+**Read this first; the 2026-09-09 section below is older.**  The day's
+sections, in order: §"Implementations that already match the card",
+§"DBSP, read and measured", §"Eve's source, read", §"Eve, read closer",
+§"Where the statecharts fit", §"LPS, read".  The trial is
+`doc/trial/signals.md`.
+
+**Decided today, his:**
+- **The direction.** State stays in signals where losing it on an edit
+  is harmless (audio, animation); what a person made or a gesture
+  committed moves toward Eve's strengths — facts derived
+  incrementally, the host applying diffs, an edit that is a change.
+  The Event Calculus is the reference it is read against.
+- **`scanE` is a former** (one channel): `blip` and `knob` play natively
+  as messages at the signal arms' cost.
+- **Refusals as constraints**, both slices landed: commands take a
+  value's refusal from `notes.ges`, and every gesture is tried against
+  the document's rules before it is written (F229 fixed).
+
+**Open, and whose:**
+- *His:* where exactly the signal/message line runs, now that the
+  numbers are in (`doc/trial/signals.md` §"The numbers", §"`scanE` a
+  former") — four cases tie, `twoknobs` is 40 % shorter as messages and
+  still refused natively.
+- *A slice, not started:* `sync` of several channels as a `scanE` event,
+  with sum types laid out in the engine — what `twoknobs` needs.
+- *A slice, not started:* the roll applying a note's change at a commit
+  instead of rebuilding (`tools/zset.py` measured it at 0.27 ms).
+- *Waiting on an event:* a declared act constraint, until a rule over
+  facts appears that only an act can break.
+- *Not run:* the full suite since this morning's `test/report.md`; the
+  audio, GUI, drawn-score, grid and panel suites were run on every
+  change, and one full pass is owed.
+
+**Nothing is uncommitted and nothing is half-built.**
+
 ## What the next session picks up — written 2026-09-09, at his ask
 
 *"kirjoittaisitko ylös ohjeet seuraavalle sessiolle?"*  The list above

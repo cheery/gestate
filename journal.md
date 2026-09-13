@@ -3225,3 +3225,34 @@ standing first; he chose rotation.  The next three at each fire,
 counted per shelf from the log, and the gate now refuses a question
 standing twice instead.  The rotation's two tests were broken on
 purpose once — `ask` put back to the first three — and went red.
+
+## The evening the card read three systems and took two things from them — 2026-09-13
+
+Henri asked whether any GUI implementation matches what
+`card:gui-is-difficult.md` has not ruled out.  None of the close ones
+were toolkits: **DBSP** was checked against its paper and measured on
+his piece (`tools/zset.py` — a moved note costs the picture 0.27 ms at
+every size, exact only when the picture's rows carry the note's key);
+**Eve**'s source matched the card's first half — facts, derived
+pictures, a press naming a key, a host applying diffs — and never met
+the second, gestures over time and continuous time; **LPS** matched
+loosely, as he remembered, and gave one idea.
+
+His direction came out of it: signals keep what is fine to lose on an
+edit, and the rest moves toward Eve.  A trial measured where signals do
+better (`doc/trial/signals.md`) and found the two forms one line apart
+in this language, except for many channels into one sound, where
+messages were 40 % shorter and could not play natively.  So `scanE`
+became a former, and the message arms play at the signal arms' cost.
+
+The idea taken from LPS was refusals as constraints.  Measuring first
+found `tempo` refusing what the file allowed, and building the second
+slice found F229: a gesture could write a value the parser refuses into
+a clean file, and report success.
+
+Two slips of the session's own, both caught: a case picked for the
+trial by its file's name and not its content, corrected before an arm
+was written; and a commit message naming the build tool, which sent the
+commit through the fence without a git identity.
+
+The card says where it stands: `card:gui-is-difficult.md` §"Where it stands — 2026-09-13, evening, as he left".
