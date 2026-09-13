@@ -3882,7 +3882,10 @@ two pieces that already work — this game and `test_gui.py`'s counter —
 into one file by hand, and count the renames and the seam lines; the
 number says whether the missing thing is a module system, a channel
 that is a value rather than a declaration, or a naming convention.  An
-afternoon, his to call.  Nothing built on it.
+afternoon, his to call.  Nothing built on it.  **And the question
+under both is a card of its own since the same evening** —
+`card:strict-forms.md`, his: *"a separate issue that we should solve in
+a some neat way."*
 
 **Held by** `test/test_documents.py` (9), `test_gui.py`'s example list,
 and 128 green across `test_gui`, `test_facts`, `test_notes_relations`

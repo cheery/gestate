@@ -86,6 +86,12 @@ still the tiebreak between two workable cards, and it is still his.
    are gestate expressions, and `.notes` as the first grid; the textbox
    is the window's own line editor.  *Off the shelf 2026-09-12,
    unplaced.*
+9. **[strict-forms](strict-forms.md)** — the language refuses what
+   Python allows and the cost is paid in Python: three seams measured
+   on one slice, eight families of typed languages that attack the
+   shape, each priced against the language goal.  *Arrived unplaced,
+   2026-09-13, at his ask: "a separate issue that we should solve in a
+   some neat way."*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
