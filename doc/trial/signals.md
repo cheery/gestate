@@ -119,3 +119,41 @@ where Elm's shape is one update over one type of message.
 
 *Not yet taken: the cost of a step and the line counts.  The arms go to
 him first, per the control.*
+
+## Case 5, added before its arm — 2026-09-13
+
+**Henri:** *"add the many-channels case first."*
+
+| | the case | the program | one step is |
+|---|---|---|---|
+| 5 | many channels into one sound | `examples/audio/twoknobs.ges` | a sample, or a turn of either knob |
+
+**Why this program.**  Its sound is three channels — the sample clock,
+`pitchChan`, `cutoffChan` — met by two `mkSig`, three `zip` and two
+`scan`, and three records (`Knobs`, `Reading`, `Sample`) that exist, by
+its own comment on the one-knob version, to carry signals through a
+`zip`.  It has a committed golden buffer, rendered with every control
+channel fed every 64 samples, so a turn and a sample arrive together.
+
+**The message arm is Elm's shape:** one model, one message type, and
+one update — the three channels merged by `sync` into messages, the
+sound read off the model.  The same rule decides it, and the same
+control: the golden buffer, 600 of 600.
+
+**What counts as library, said before anything is counted.**  A line
+that names nothing of this program — `scanE`, and a helper that turns
+nested `Sync` values into a list of arrivals — is library, as `scan`,
+`zip` and `mkSig` are for the signal arm, and neither arm counts it.
+Every line that names this program's messages, model or knobs counts.
+
+**prediction, written before the arm — the session's:** **messages, by
+lines.**  The message arm drops `Knobs`, `Reading`, `Sample` and the
+four small functions that build and unpack them (`pairUp`, `readAt`,
+`withCutoff`, `cutoffOf`), because a model record holds all four values
+at once; it adds a message type and an update with one case per
+message.  The session expects the first to outweigh the second by more
+than 10 %.  *What would make the prediction wrong:* the update's cases
+for simultaneous arrivals — a turn landing on the same sample as the
+clock is `SyncBoth`, and the golden was rendered with exactly that
+happening every 64 samples, so the order the update applies them in
+must match the signal arm's or the buffer will differ.
