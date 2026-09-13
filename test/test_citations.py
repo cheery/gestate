@@ -146,9 +146,14 @@ def _named(path: Path) -> str:
 #: is the spelling that rots: a tree-wide edit every month, twenty-eight
 #: of them at the first count, each one a chance to point at the wrong
 #: month.
+#:
+#: **And `fixme.md` names the ledger** the same way, since its entries
+#: became one file each on 2026-09-13.
 def _corpus(where: Path) -> list[Path]:
     if where == ROOT / "journal.md":
         return [where, *sorted((ROOT / "journal").glob("*.md"))]
+    if where == ROOT / "fixme.md":
+        return [where, *sorted((ROOT / "fixme").glob("*.md"))]
     return [where]
 
 
@@ -238,6 +243,16 @@ def test_no_card_is_cited_as_a_path():
         + "\n  ".join(sorted(set(stray))))
 
 
+def _ledger_states() -> list:
+    """Every entry's `**[state]**`, `None` where it carries none — one
+    file an entry under `fixme/` since 2026-09-13."""
+    out = []
+    for path in sorted((ROOT / "fixme").glob("F*.md")):
+        head = re.match(r"# F\d+\.\s+\*\*\[([^\]]+)\]\*\*", path.read_text(encoding="utf-8"))
+        out.append(head.group(1) if head else None)
+    return out
+
+
 def test_the_register_says_how_many_it_holds() -> None:
     """`fixme.md`'s own header counts its entries, and it had rotted.
 
@@ -252,14 +267,13 @@ def test_the_register_says_how_many_it_holds() -> None:
     because every reader's eye and every count went past it.
     """
     text = (ROOT / "fixme.md").read_text(encoding="utf-8")
-    heads = re.findall(r"^### F(\d+)\.\s+\*\*\[([^\]]+)\]\*\*", text, re.M)
-    all_heads = re.findall(r"^### F\d+\.", text, re.M)
-    assert len(heads) == len(all_heads), (
+    heads = _ledger_states()
+    assert all(heads), (
         "an entry carries no **[state]** — the counts below cannot see it")
 
     said = re.search(r"Of (\d+) entries, \*\*(\d+) are resolved\*\*", text)
     assert said, "fixme.md no longer says how many entries it holds"
-    resolved = sum(1 for _n, state in heads if state in ("resolved", "fixed"))
+    resolved = sum(1 for state in heads if state in ("resolved", "fixed"))
     assert (int(said.group(1)), int(said.group(2))) == (len(heads), resolved), (
         f"fixme.md says {said.group(1)} entries and {said.group(2)} resolved; "
         f"it holds {len(heads)} and {resolved}")
@@ -394,8 +408,7 @@ def test_the_method_page_counts_what_the_tree_counts():
     import suite
 
     text = METHOD.read_text(encoding="utf-8")
-    fixme = (ROOT / "fixme.md").read_text(encoding="utf-8")
-    heads = re.findall(r"^### F\d+\.\s+\*\*\[([^\]]+)\]\*\*", fixme, re.M)
+    heads = _ledger_states()
     resolved = sum(1 for state in heads if state in ("resolved", "fixed"))
 
     checks = [

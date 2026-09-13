@@ -59,7 +59,6 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import gatecount                                             # noqa: E402
 
-FIXME = ROOT / "fixme.md"
 
 #: **The fifteen true on 2026-09-10, and this set may shrink and never
 #: grow.**  Twelve are from before `card:ungated-fixes.md` and were left
@@ -81,12 +80,8 @@ HOW = ("write the instrument and name the entry's F-number in it, or "
        "keeps the entry in this set.")
 
 
-def _text() -> str:
-    return FIXME.read_text(encoding="utf-8")
-
-
 def _unheld() -> set:
-    return set(gatecount.unheld_closures(_text(), gatecount.named_in_tests()))
+    return set(gatecount.unheld_closures(gatecount.entries(), gatecount.named_in_tests()))
 
 
 def test_no_new_closure_is_ungated():
@@ -123,7 +118,7 @@ def test_every_marker_is_one_the_gate_has_read():
     choosing that.  So the vocabulary is pinned: a word added to
     `fixme.md` and not to `gatecount.MARKERS` is a red test asking
     whether it means the defect is closed."""
-    seen = {gatecount.marker(body) for body in gatecount.entries(_text()).values()}
+    seen = {gatecount.marker(body) for body in gatecount.entries().values()}
     unknown = sorted(m for m in seen if m and m not in gatecount.MARKERS)
     assert not unknown, (
         f"fixme.md uses markers the gate has never read: {', '.join(unknown)}. "
@@ -134,8 +129,19 @@ def test_every_marker_is_one_the_gate_has_read():
 def test_an_entry_with_no_marker_at_all_is_refused():
     """Every entry says what it is.  A heading with no `**[…]**` is
     outside every reading above, and the file has none today."""
-    bare = sorted((f for f, body in gatecount.entries(_text()).items()
+    bare = sorted((f for f, body in gatecount.entries().items()
                    if gatecount.marker(body) is None), key=lambda f: int(f[1:]))
     assert not bare, (
         f"these entries carry no `**[…]**` marker: {', '.join(bare)}; "
         "the gate cannot tell whether they claim to be closed.")
+
+
+def test_every_entry_file_is_the_entry_its_name_says():
+    """**The ledger is one file an entry since 2026-09-13**, and a file
+    is found by its name while the gate reads its heading.  A copied
+    `F228.md` still opening `# F227.` would be read as neither — out of
+    every rule above — so a name and a heading that disagree are red."""
+    wrong = gatecount.misnamed()
+    assert not wrong, (
+        f"these files under fixme/ do not open with their own number: {', '.join(wrong)}. "
+        "An entry `fixme/F<n>.md` opens `# F<n>. **[marker]** title`.")

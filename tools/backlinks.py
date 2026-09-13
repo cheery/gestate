@@ -26,7 +26,7 @@ changes:
     file.md §"a passage"    resolved as test_citations resolves it
     card:<name>.md          a card, by id, on whatever shelf
     [[name]]                a memory body in doc/memory/
-    F123                    a defect in fixme.md
+    F123                    a defect, fixme/F123.md
     tools/asked.py          any file in the tree named by path, or by a
                             bare basename when only one file has it
 
@@ -112,7 +112,8 @@ SEC = re.compile(r"`?([\w./-]+\.md)`?\s*§\"([^\"]+)\"")
 CARD = re.compile(r"`?card:([\w-]+\.md)`?")
 WIKI = re.compile(r"\[\[([\w-]+)\]\]")
 FNUM = re.compile(r"(?<![\w.])F(\d{1,3})\b")
-DEFINES = re.compile(r"^###\s+F\d{1,3}\.")
+#: A ledger entry's own file — one per number since 2026-09-13.
+ENTRY = re.compile(r"fixme/(F\d{1,3})\.md")
 #: A file named by path, or by a bare basename.  The look-behind keeps
 #: `a.b.py` from yielding `b.py`, and a URL's host from yielding `.md`.
 MENTION = re.compile(
@@ -176,7 +177,7 @@ TIERS = (
     (0, "cards and memory", lambda r: (r.startswith("board/") and not r.startswith(SHELVED))
                                       or r.startswith("doc/memory/")),
     (3, "shelved cards",    lambda r: r.startswith(SHELVED)),
-    (4, "the ledger",       lambda r: r == "fixme.md"),
+    (4, "the ledger",       lambda r: r == "fixme.md" or r.startswith("fixme/")),
     (5, "history",          lambda r: r == "journal.md" or r.startswith("journal/")),
     (2, "code and tests",   lambda r: r.startswith(("test/", "gestate/", "tools/", "shell/", "examples/"))
                                       or r.endswith((".py", ".rs", ".c", ".h", ".sh", ".ges"))),
@@ -264,7 +265,7 @@ def keys_for(tree: Tree, target: str) -> tuple[str, list[str], set[str]]:
         own = {f"{shelf}/{t[5:]}" for shelf in SHELVES}
         return t, [t], own & tree.rel
     if re.fullmatch(r"F\d{1,3}", t):
-        return t, [t], set()
+        return t, [t], {f"fixme/{t}.md"} & tree.rel
     m = re.fullmatch(r"\[\[([\w-]+)\]\]", t)
     if m:
         t = m.group(1)
@@ -288,6 +289,9 @@ def keys_for(tree: Tree, target: str) -> tuple[str, list[str], set[str]]:
         keys.append(f"card:{parts[-1]}")
     if len(parts) == 3 and parts[:2] == ["doc", "memory"] and parts[2] != "README.md":
         keys.append(f"mem:{parts[2][:-3]}")
+    entry = ENTRY.fullmatch(rel)
+    if entry:
+        keys.append(entry.group(1))
     return rel, keys, {rel}
 
 
@@ -308,11 +312,7 @@ def scan(tree: Tree, rel: str, text: str) -> list[list]:
                 hits.append((r, True))
         hits += [(f"card:{c}", True) for c in CARD.findall(line)]
         hits += [(f"mem:{w}", True) for w in WIKI.findall(line)]
-        #: `fixme.md`'s own `### F25.` heading is the entry, not a citer
-        #: of it — the one line that defines a defect rather than leans
-        #: on it.
-        if not (rel == "fixme.md" and DEFINES.match(line)):
-            hits += [(f"F{f}", True) for f in FNUM.findall(line)]
+        hits += [(f"F{f}", True) for f in FNUM.findall(line)]
         for tok in MENTION.findall(line):
             r = tree.resolve(tok, rel)
             if r:

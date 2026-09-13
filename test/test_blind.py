@@ -151,6 +151,16 @@ def test_an_arm_that_produced_nothing_is_a_result_and_not_a_crash(tmp_path, monk
         "and the run says so"
 
 
+def test_an_arm_that_writes_one_file_an_entry_is_read_the_same(tmp_path):
+    """2026-09-13: the ledger became `fixme/F<n>.md`, one file an entry,
+    so an arm cloned after that writes its verdict there."""
+    d = tmp_path / "arm"
+    (d / "fixme").mkdir(parents=True)
+    (d / "fixme" / "F999.md").write_text(ENTRY.format("`test/test_carry.py` holds it.").replace("### F999", "# F999"))
+    kind, _said, cites = blind.verdict_of(blind.entries(d / "fixme.md")["F999"])
+    assert (kind, cites) == ("gated", ["test/test_carry.py"])
+
+
 def test_the_two_kinds_of_disagreement_are_not_the_same_work():
     """Henri, 2026-08-19: *"they're not in agreement and I need to check
     the Fix and consider whether the record holds."*  True half the

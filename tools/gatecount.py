@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FIXME = ROOT / "fixme.md"
+LEDGER = ROOT / "fixme"
 TESTS = ROOT / "test"
 
 #: The last entry that existed when `card:ungated-fixes.md` was written,
@@ -42,10 +42,38 @@ TESTS = ROOT / "test"
 BEFORE_THE_CARD = 161
 
 
-def entries(text: str) -> dict:
-    """`{F-number: its body}` — every entry the file holds."""
-    parts = re.split(r"^### (F\d+)", text, flags=re.M)
-    return dict(zip(parts[1::2], parts[2::2]))
+#: An entry's file and the heading that opens it.
+ENTRY_FILE = re.compile(r"F(\d+)\.md")
+HEAD = re.compile(r"# (F\d+)(?=\.)")
+
+
+def entries(ledger: Path = LEDGER) -> dict:
+    """`{F-number: its body}` — every entry the ledger holds, by number.
+
+    One file an entry since 2026-09-13, `fixme/F123.md`, opening with
+    `# F123. **[marker]** title`.  The body starts after the number, at
+    the `.`, exactly where it started when this split one file on its
+    `### F123` headings — so `marker` and `verdict` read it unchanged.
+    A file whose heading is not its own number is left out, and
+    `test/test_fixme.py` names it."""
+    out = {}
+    for path in sorted(ledger.glob("F*.md"), key=lambda p: int(p.stem[1:]) if p.stem[1:].isdigit() else -1):
+        name, text = ENTRY_FILE.fullmatch(path.name), path.read_text(encoding="utf-8")
+        head = HEAD.match(text)
+        if name and head and head.group(1) == f"F{name.group(1)}":
+            out[head.group(1)] = text[head.end():]
+    return out
+
+
+def misnamed(ledger: Path = LEDGER) -> list:
+    """The files under the ledger `entries` cannot read as the entry their
+    name says — a copied file whose heading kept the old number, say."""
+    out = []
+    for path in ledger.glob("F*.md"):
+        head = HEAD.match(path.read_text(encoding="utf-8"))
+        if not (ENTRY_FILE.fullmatch(path.name) and head and head.group(1) == path.stem):
+            out.append(path.name)
+    return sorted(out)
 
 
 #: **The gate's own baseline does not count as naming anything.**
@@ -108,11 +136,11 @@ def verdict(body: str) -> str | None:
     return said.group(1).strip() if said else None
 
 
-def bare(text: str, named: set) -> list:
+def bare(held: dict, named: set) -> list:
     """The entries **nothing would catch** — no test names them, and
     their verdict either is missing or is `none`.  Oldest first."""
     out = []
-    for f, body in entries(text).items():
+    for f, body in held.items():
         if f in named:
             continue
         said = verdict(body)
@@ -127,7 +155,7 @@ def marker(body: str) -> str | None:
     return said.group(1) if said else None
 
 
-def unheld_closures(text: str, named: set) -> list:
+def unheld_closures(held: dict, named: set) -> list:
     """**What the gate refuses**: entries whose marker claims the defect
     is closed and which nothing in the tree would catch coming back.
 
@@ -136,32 +164,31 @@ def unheld_closures(text: str, named: set) -> list:
     something in the tree going red first* — and `test/test_fixme.py`
     holds it against a baseline that may shrink and never grow.
     """
-    bare_now = set(bare(text, named))
-    return sorted((f for f, body in entries(text).items()
+    bare_now = set(bare(held, named))
+    return sorted((f for f, body in held.items()
                    if marker(body) in CLOSED and f in bare_now),
                   key=lambda f: int(f[1:]))
 
 
-def looked_at(text: str) -> list:
+def looked_at(held: dict) -> list:
     """The entries the sweep read and marked `none` — ungated, and known
     to be.  These are not a backlog; they are an answer."""
-    return sorted((f for f, body in entries(text).items()
+    return sorted((f for f, body in held.items()
                    if (verdict(body) or "") in EMPTY),
                   key=lambda f: int(f[1:]))
 
 
 def main(argv: list[str]) -> int:
-    text = FIXME.read_text(encoding="utf-8")
-    held = entries(text)
-    unnamed = bare(text, named_in_tests())
+    held = entries()
+    unnamed = bare(held, named_in_tests())
     since = [f for f in unnamed if int(f[1:]) > BEFORE_THE_CARD]
-    marked = looked_at(text)
+    marked = looked_at(held)
     print(f"{len(held)} entries — {len(unnamed)} that nothing would catch")
     print(f"  {len(unnamed) - len(since)} from before card:ungated-fixes.md, "
           f"{len(since)} since")
     print(f"  of them {len([f for f in unnamed if f in marked])} were read and "
           f"marked `none` by the sweep; the rest were never looked at")
-    closed = unheld_closures(text, named_in_tests())
+    closed = unheld_closures(held, named_in_tests())
     print(f"{len(closed)} of them **claim to be closed** — the gate's set, "
           f"held by test/test_fixme.py")
     if "--list" in argv:

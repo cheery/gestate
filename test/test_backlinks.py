@@ -44,14 +44,14 @@ def tree(tmp_path, monkeypatch):
     reads or writes the desk's."""
     monkeypatch.setenv("GESTATE_BACKLINKS_CACHE", str(tmp_path / "cache.json"))
     monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(tmp_path / "fires.log"))
-    for rel in ("board", "board/done", "doc/memory", "spec", "tools", "gestate", "journal"):
+    for rel in ("board", "board/done", "doc/memory", "spec", "tools", "gestate", "journal", "fixme"):
         (tmp_path / rel).mkdir(parents=True)
     (tmp_path / "board" / "thing.md").write_text("# thing\n")
     (tmp_path / "doc" / "memory" / "a-rule.md").write_text("# a rule\n")
     (tmp_path / "spec" / "types.md").write_text("# types\n\n## The spine\n")
     (tmp_path / "tools" / "clock.sh").write_text("# clock\n")
     (tmp_path / "gestate" / "host.c").write_text("/* host */\n")
-    (tmp_path / "fixme.md").write_text("### F7. **[fixed]** a thing\n\ntext\n")
+    (tmp_path / "fixme" / "F7.md").write_text("# F7. **[fixed]** a thing\n\ntext\n")
     return tmp_path
 
 
@@ -89,9 +89,18 @@ def test_a_defect_number(tree):
     assert ask(tree, "F7") == ("F7", [("tools/x.py", 1)])
 
 
-def test_the_ledgers_own_heading_is_the_entry_not_a_citer(tree):
-    (tree / "fixme.md").write_text("### F7. **[fixed]** a thing\n\nfound with F7's sibling F8\n")
-    assert ask(tree, "F7") == ("F7", [("fixme.md", 3)])
+def test_an_entry_naming_its_own_number_is_the_entry_not_a_citer(tree):
+    (tree / "fixme" / "F7.md").write_text("# F7. **[fixed]** a thing\n\nfound with F7's sibling F8\n")
+    (tree / "fixme" / "F8.md").write_text("# F8. **[fixed]** its sibling\n\nsee F7\n")
+    assert ask(tree, "F7") == ("F7", [("fixme/F8.md", 3)])
+    assert ask(tree, "F8") == ("F8", [("fixme/F7.md", 3)])
+
+
+def test_an_entry_read_as_a_file_answers_to_its_number(tree):
+    """2026-09-13: the ledger is one file an entry, so a session reading
+    `fixme/F7.md` wants what cites F7 — the number, not the path."""
+    (tree / "tools" / "x.py").write_text("# put back F7 and watch\n")
+    assert ask(tree, str(tree / "fixme" / "F7.md")) == ("fixme/F7.md", [("tools/x.py", 1)])
 
 
 def test_a_file_named_by_path_or_by_unique_basename(tree):
@@ -248,7 +257,7 @@ def test_the_rows_come_ranked_and_the_cut_falls_on_history(tree):
     the target wants what currently leans on it first and the past last,
     and within a tier a deliberate pointer before a passing mention."""
     (tree / "journal" / "2026-08.md").write_text("we read gestate/host.c today\n")
-    (tree / "fixme.md").write_text("### F7. **[fixed]**\n\nhost.c did it\n")
+    (tree / "fixme" / "F7.md").write_text("# F7. **[fixed]**\n\nhost.c did it\n")
     (tree / "test" ).mkdir()
     (tree / "test" / "test_host.py").write_text("# gestate/host.c\n")
     (tree / "spec" / "audio.md").write_text("`gestate/host.c` is the callback\n")
@@ -264,7 +273,7 @@ def test_the_rows_come_ranked_and_the_cut_falls_on_history(tree):
         "spec/audio.md",           # a standing document
         "test/test_host.py",       # code and tests
         DONE + "old.md",           # shelved
-        "fixme.md",                # the ledger
+        "fixme/F7.md",             # the ledger
         "journal/2026-08.md",      # history last
     ]
 

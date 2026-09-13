@@ -626,7 +626,8 @@ to start, and stop it when it is not needed.
 
 ## What does not go here
 
-- **Defects** go to `fixme.md` with an F-number.  A card may cite one; a
+- **Defects** go to `fixme/` with an F-number, one file each —
+  `fixme.md` says how.  A card may cite one; a
   card is work to do, an F-number is something that is wrong.
 - **The argument** — why a thing is worth doing, what was measured and
   rejected, what will deliberately not be built — stays in `roadmap.md`.

@@ -70,7 +70,8 @@ def resolve(tree: backlinks.Tree, key: str) -> str | None:
         rel = f"doc/memory/{key[4:]}.md"
         return rel if rel in tree.rel else None
     if key.startswith("F") and key[1:].isdigit():
-        return "fixme.md"
+        rel = f"fixme/{key}.md"                 # one file an entry since 2026-09-13
+        return rel if rel in tree.rel else "fixme.md"
     return key if key in tree.rel else None
 
 

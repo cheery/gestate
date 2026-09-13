@@ -56,8 +56,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SHEETS = ROOT / "test" / "blind"
 
-#: `### F169. **[fixed]** the wrist clock understated …`
-ENTRY = re.compile(r"^### F(\d+)\.\s*(.*)$", re.M)
+#: `### F169. **[fixed]** the wrist clock understated …` in one file, or
+#: `# F169. …` opening `fixme/F169.md` — one file an entry since 2026-09-13.
+ENTRY = re.compile(r"^(?:###|#) F(\d+)\.\s*(.*)$", re.M)
 #: The verdict line an arm adds, and its continuation to the first blank.
 GATE = re.compile(r"^gate:(.*?)(?=\n\s*\n|\Z)", re.M | re.S)
 #: Anything in backticks that looks like a path or a `path::name`.
@@ -88,13 +89,16 @@ def entries(fixme: Path) -> dict[str, str]:
     two arms' work along with it.  The entry then reads `missing` on the
     sheet, which is what happened.
     """
-    if not fixme.is_file():
-        return {}
-    text = fixme.read_text(encoding="utf-8")
-    found, marks = {}, list(ENTRY.finditer(text))
-    for i, m in enumerate(marks):
-        end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
-        found[f"F{m.group(1)}"] = text[m.start():end]
+    ledger = fixme.with_name("fixme")
+    texts = [p.read_text(encoding="utf-8") for p in sorted(ledger.glob("F*.md"))] if ledger.is_dir() else []
+    if fixme.is_file():
+        texts.append(fixme.read_text(encoding="utf-8"))
+    found = {}
+    for text in texts:
+        marks = list(ENTRY.finditer(text))
+        for i, m in enumerate(marks):
+            end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+            found[f"F{m.group(1)}"] = text[m.start():end]
     return found
 
 
@@ -467,7 +471,7 @@ def main(argv=None) -> int:
     # To the terminal, for the experimenter, and nowhere else.
     print(f"blind: {_rel(sheet)}")
     for a in named.values():
-        if not (a / "fixme.md").is_file():
+        if not entries(a / "fixme.md"):
             print(f"blind: WARNING — {a} wrote no fixme.md at all")
     tally = {st: sum(r["state"] == st for r in rows)
              for st in ("no verdicts", "contradiction", "different gate",

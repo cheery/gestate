@@ -417,7 +417,7 @@ def cost(model_key: str, usage: dict) -> float:
 
 # --- the documents, chunked --------------------------------------------------
 
-DOC_ROOTS = ("doc", "spec", "board", "journal")
+DOC_ROOTS = ("doc", "spec", "board", "journal", "fixme")     # fixme/: one entry a file since 2026-09-13
 CHUNK_CHARS = 12_000            # about three thousand tokens
 SKIP_DIRS = {"target", ".venv", "__pycache__", ".git", "node_modules", ".claude"}
 

@@ -200,9 +200,13 @@ def _rev_files(rev: str):
 
 
 def _document(path: str) -> str:
-    """Which document a file belongs to.  The journal is one."""
+    """Which document a file belongs to.  The journal is one, and so is
+    the defect ledger since its entries became one file each
+    (2026-09-13) — it was one document the day this was written."""
     if path == "journal.md" or path.startswith("journal/"):
         return "journal"
+    if path == "fixme.md" or path.startswith("fixme/"):
+        return "fixme.md"
     return path
 
 

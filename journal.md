@@ -3150,3 +3150,42 @@ witnessed.**
 He overslept, came back on a different model to close, and said it had
 been a great day.  Three commits, the tree clean, and the first sheet
 draws.
+
+## The ledger became a directory, and the count in a prompt was the real churn — 2026-09-13
+
+Henri: *"I think it'd be time to cut fixme and make it a directory.
+Every time fixme.md is getting content, it changes and
+tools/graphrag.py reprocesses the whole file through."*
+
+**Measured before cutting**, on `a0a071f`, the commit that added F226
+and F227: 34 of `fixme.md`'s 39 chunks came out byte for byte, and 0 of
+its 39 prompts did.  `_prompt` wrote `part i of n`, `n` went from 38 to
+39, and `n` is in every chunk's cache key — so the file's shape was
+half the cause and the prompt the other half, and the prompt did the
+same to `journal.md`, to every long card, to 361 of the tree's 538
+chunks.  Put to him as two fixes; he took both.  Reading the store for
+it turned up a third thing: records are keyed `file#chunk` and were
+never pruned, so a document that shrank kept its old chunks in the
+graph for good.
+
+**The cut is `fixme/F123.md`, one file an entry, and `fixme.md` is the
+front** — header, legend, count, open table, and which of the seven
+old sections each number was written in.  Every entry's text is kept
+line for line; only its heading went from `###` to `#`.  The 747
+citations saying `fixme.md` F123 were not touched, the same separation
+as the journal and its months.  Two things the old file hid: **F11 was
+written twice**, a diagnosis in §2 and its resolution in §7, so the
+count said 228 where 227 numbers stand; and a `gate:` verdict for F39
+sat under the `## 6.` heading, where the gate had been reading it as
+F39's all along.  It is in `F39.md` now.
+
+**Held to parity, not trusted**: every entry's marker and `gate:`
+verdict, and the gate's three sets — fifteen unheld closures, 43 bare,
+22 looked at — read the same from the directory as they did from the
+file, and `tools/dangling.py` gives the same verdicts at `HEAD` and
+after.  The two new rules were broken on purpose once each: a copied
+entry still opening with the old number goes red, and so does an entry
+read as a file that counts itself as its own citer.  One defect of my
+own on the way — a docstring in `test/test_blind.py` said
+`fixme/F123.md`, which made F123 look gated to the proxy that
+`test_fixme.py` warns about in so many words — and the gate caught it.
