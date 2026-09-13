@@ -3385,8 +3385,9 @@ sections, in order: §"Implementations that already match the card",
 - *His, two minutes with his hands on it:* the tic-tac-toe whose board
   is a file — §"Built — 2026-09-13: tic-tac-toe, its board a document",
   the five choices taken as defaults at his word, *"I want to see how
-  it looks like, and then propose changes if needed."*  The window is
-  not driven yet.
+  it looks like, and then propose changes if needed."*  Driven on
+  `Xvfb`, and pressed once by him before that; the changes are his to
+  propose.
 - *His:* where exactly the signal/message line runs, now that the
   numbers are in (`doc/trial/signals.md` §"The numbers", §"`scanE` a
   former") — four cases tie, `twoknobs` is 40 % shorter as messages and
@@ -3729,10 +3730,20 @@ cell is a line in the file, a line typed into the file is a mark on the
 board at the next frame, a second bench on the same directory resumes
 the game, a taken cell and a finished game are refused in the program's
 own words, and the foot pressed after a win retracts every mark.
-**The window is not driven yet** — a program with a document stays on
-the reference machine and the window draws its picture, which is a
-path the editor has, and the two minutes of his hands on it are the
-check this card's postcondition asks for.
+**And the window, driven** — `test/driven/20260913-191822-facts-tictactoe`,
+on `Xvfb :99`, a copy of both files, the real editor at `f561713`: nine
+tiles found by their ink, three presses by XTEST arriving on the wire
+as `touch press -60 -72`, `0 -12`, `-60 -72` — the right cells — the
+third answered *that cell is taken* in the status line, and a line
+typed into the file changing the photograph.  A program with a
+document stays on the reference machine and the window draws its
+picture, and that path holds.  **His hands were on it before the run
+was**: the repository's own `.board` carried `mark  cell 4  mark X`
+stamped 19:09, his press on the middle cell, and the commit at 19:10
+took it — *"oh.  is it me?  I tried it already."*  So the first fact a
+person asserted through this door is in git's history, the shipped
+board is clean again in the commit after, and the driven run's own
+first two observations read wrong for that reason and no other.
 
 **What the program is**, by the four forms, in code lines:
 
