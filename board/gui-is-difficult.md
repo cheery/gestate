@@ -2709,6 +2709,108 @@ So it tests seams 1–3 without seam 5 and without hard thing 2, which
 is the right order to find out whether *the GUI is what falls out*
 before the roll is rewritten on that belief.
 
+### Implementations that already match the card — asked 2026-09-13
+
+**Henri:** *"There are things on the card that really close away
+solutions as non-solutions, but is there GUI implementations worth
+looking into that match with the card?"*  *The session's answer, from
+its memory of these systems and not read or measured against this tree
+the day it was written — every claim about a system below is a
+recollection to be checked, and the kill conditions are the session's.*
+
+**What the card closes away**, so a match is not one of these wearing
+new words: the retained widget tree where the model lives in the
+picture (Qt, GTK, Morphic, Lively); a borrowed toolkit vocabulary;
+identity recovered by matching (React without keys, reading G); a UI
+generated from the model (Naked Objects); a chart for the whole window;
+modes; a lens that bends the model; the model held in gestate values a
+rebuild ends (his objection, 2026-09-09); a whole query per frame (Q1's
+kill condition 1).
+
+**What is left to match:** facts in a plain file, assert and retract,
+references declaring thing, place or set, the picture as a query on
+change, a press carrying the fact's key, charts per subsystem, a window
+that inspects itself.
+
+**The closest — not GUI toolkits, but databases and logic languages,
+which is where the card went.**
+
+1. **Eve** (Chris Granger et al., c. 2014–2018).  Everything is a
+   record in one database; a block *searches* records and *commits* —
+   adds or removes — them; a UI element is a record, and a click is a
+   record asserted.  *Facts, assert and retract, and the GUI falls out*
+   as a whole design, and aimed at logic languages, like the reason he
+   gave for the name.  It stopped, and why is the valuable part; the
+   session recalls it drew through HTML and CSS, so it never met layout
+   (hard thing 2), and that performance and adoption weighed — *to be
+   checked.*  *Kill condition:* no hand-written plain file; the database
+   was the truth.
+2. **Datomic and DataScript.**  A fact is a datom (entity, attribute,
+   value, transaction, added or retracted); assert and retract are the
+   only operations, and history is kept, so the log is the command log.
+   For Q7: entities have hidden ids, but an attribute may be declared
+   *unique identity* and a reference may name an entity by it — a
+   *lookup ref*, which is *a kind declares its key* in a system that
+   ships.  DataScript with Posh or re-posh re-runs a UI query when a
+   transaction touches it — the two layers.  *Kill condition:* the
+   hidden id is D or E underneath; the key is optional where the card's
+   file carries it.
+3. **DBSP and differential dataflow** — not GUI, and aimed at the gap
+   Q1 measured: *there is no retraction*, and seam 4, relations
+   incremental at frame rate.  Differential dataflow (McSherry et al.,
+   CIDR 2013): a collection is a multiset of (data, time, weight),
+   assert is +1 and retract −1.  DBSP (Budiu et al., VLDB 2023): over
+   those weighted sets, Z-sets, every query has a mechanically derived
+   incremental form — Q1's *"the derivative of the query is the damage
+   rectangle"* with a theory under it, small enough to sit beside
+   `spec/data.md`'s seminaive evaluation.
+4. **Elm, *A Farewell to FRP*** (Evan Czaplicki, 2016).  His question of
+   2026-09-08 — FRP great for audio and hitting limits for GUI — was
+   Elm's, and 0.17 took signals out for subscriptions and messages
+   folded by `update`, because programs rebuilt events from signals by
+   hand.  That is §"Would the whole thing need rethinking?"'s `mkSig`
+   finding.  Gestate cannot follow, audio needs the signals, so it is
+   read as what one language gave up, not as a template.
+
+**Partial, each for one idea.**
+
+- **Adobe's property models** (Adam and Eve, Sean Parent et al., c.
+  2008): a dialog's model declared with its constraints, the commands
+  and their enablement derived from it, and **layout a separate small
+  declarative language** — the only system the session knows that
+  keeps model and layout as two designs on purpose, which is where
+  §"The name, and what falls out" left layout.
+- **XState**, and **Bonsai** (Jane Street, OCaml): charts as data,
+  executed and drawn by an inspector (idea 7 for charts); components as
+  small state machines inside an incremental graph — `chart.ges` plus
+  *recomputed on change*.
+- **Hazelnut and livelits** (Omar et al., POPL 2017, PLDI 2021): every
+  edit an action with a formal semantics, so a command language can be
+  checked; livelits are GUIs living in program text with their state
+  written back — near `card:gex-sheet.md`'s fork (i), a cell holding
+  its own expression.
+- **Glamorous Toolkit** (feenk): idea 7 carried furthest, a custom view
+  and inspector beside every object — in a live Smalltalk image, which
+  the card refuses as the model's home, so read for the inspector only.
+
+**The session's order to read:** Eve — its source, its design notes,
+and why it stopped — because it is the only one that tried the whole
+shape; DBSP, then whether Z-sets fit `set`/`elems`, because it is the
+piece Q1 measured missing; Elm's post, short and aimed at his doubt.
+Each read the way Kale was, source first, what it changes written here.
+
+**Who reads — the session's proposal, his to answer, 2026-09-13.**
+Split by what the reading is for.  *The mechanics are the session's*,
+with a command left behind: DBSP's Z-set algebra tried as a few lines
+over `set`/`elems` and measured against `tools/retraction.py`; Eve's
+source read for how a commit, an event record and a UI record meet, as
+Kale's was.  *The judgment is his*: Eve's own account of why it ended
+and Elm's farewell are a few pages each, and what they say about
+design is the part a session's summary strips of its payment
+(`doc/memory/deriving-strips-the-payment.md`) — and the session that
+proposed these systems is the worst reader to judge whether they fit
+(`doc/memory/the-evaluation-loop.md`).
+
 ## What is next — 2026-09-08, evening; his to reorder
 
 Asked the same evening — *"What's the next on line for gui-is-difficult?
