@@ -3530,6 +3530,48 @@ def test_the_wrapper_plays_a_notes_file_at_its_own_tempo_and_an_including_ges_ke
         assert "bpm = 92" in source and "132" not in source, "the include brings notes only"
 
 
+def test_an_error_message_leaves_the_bench_holding_the_buffer_it_was_given():
+    """`fixme.md` F230: placing an error's lines went through `program()`
+    with no text — the file on disk — and `program` writes the bench's
+    relations and origins, so a message about an unsaved buffer put the
+    saved file's model in its place: `bpm 96` typed, a failure reported,
+    and the tempo read back as none.  The message is placed against the
+    program last made, which is what the build was compiling."""
+    here, bench = _opened_alone()
+    buffer = "bpm 96\n" + here.read_text()
+    bench.program(buffer)
+    rels, origins = bench.notes_relations, dict(bench.origins)
+    assert notes.bpm_of(rels) == 96
+    said = bench._first_line(ValueError("something went wrong"))
+    assert said == "something went wrong"
+    assert bench.notes_relations is rels and notes.bpm_of(bench.notes_relations) == 96, \
+        "the message replaced the buffer's relations with the saved file's"
+    assert bench.origins == origins
+
+    # **And the line is the buffer's.**  Three notes typed and not saved
+    # make the program three lines longer than the file's; a position on
+    # the first of them is the author's line against the buffer, and was
+    # *the generated entry* against the disk.
+    from gestate.audiospans import prelude_lines
+
+    on_disk = bench.program(here.read_text()).split("\n")
+    typed = here.read_text() + "".join(
+        f"note  section A  bar 1  at {t}  len 12  voice melody  key 100  vel mf\n"
+        for t in (12, 36, 60))
+    compiled = bench.program(typed)
+    assert len(compiled.split("\n")) == len(on_disk) + 3
+    line = prelude_lines(compiled) + len(on_disk)
+    placed = bench._first_line(ValueError(f"no such thing (at {line}:0)"))
+    assert "entry line" not in placed and "arc.notes:" in placed, placed
+
+    # Before any program is made, one is made for the placement and what
+    # it overwrote is put back.
+    _here, cold = _opened_alone()
+    cold.notes_relations, cold.origins = rels, origins
+    assert cold._first_line(ValueError("cold")) == "cold"
+    assert cold.notes_relations is rels and cold.origins is origins
+
+
 def test_tempo_writes_the_notes_record_and_rewrites_it_and_the_bench_plays_at_it():
     _here, seat, _view, _roll = _page_seat()
     before = seat.view.text()

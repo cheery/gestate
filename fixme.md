@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 230 entries, **182 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 230 entries, **183 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -117,7 +117,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F193 | resolved | `spec/syntax.md` did not list `do`, `internal` or `%`, which the tokenizer and the parser have |
 | F194 | open | `memoryindex.py` writes nothing and exits 0 behind the fence, where `$HOME` is a tmpfs — and its own gate skips there |
 | F189 | open | The leash reported itself off at session start against a file it had not touched, and it was on — not reproduced |
-| F230 | open | An error message about the buffer re-reads the disk into the bench's relations and origins |
+| F230 | resolved | An error message about the buffer re-reads the disk into the bench's relations and origins |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.

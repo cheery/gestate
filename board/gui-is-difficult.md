@@ -3471,8 +3471,8 @@ and editor 129; session 173.
 the bench's relations.  The cold prelude parse moved from the page into
 `_load_score`, a test's steps outlasted `AUDITION_WAIT`, its stand-in
 `audition` took the wrong arguments, and the report of that replaced
-`bpm 96` with the saved file's none.  The stand-in is corrected; F230 is
-open.
+`bpm 96` with the saved file's none.  The stand-in is corrected; F230 was
+resolved the same day — errors are placed against the program last made.
 
 *Not measured yet:* the window.  That is the driven run.
 

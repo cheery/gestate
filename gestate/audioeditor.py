@@ -3970,8 +3970,11 @@ class Workbench:
         authored = self.source() if text is None else text
         if self.kind is not None:
             out, self.origins = self.kind.program(self, authored)
-            return out
-        out, self.origins = expanded(authored, self.path.parent)
+        else:
+            out, self.origins = expanded(authored, self.path.parent)
+        #: The program last made — what a build compiles, and so what an
+        #: error it reports is placed against (`_source_text`, F230).
+        self._made = out
         return out
 
     @property
@@ -3986,8 +3989,29 @@ class Workbench:
         does not have.  Their own lines do not move — the `include` is
         blanked in place, not removed — so a complaint about a line they
         wrote still lands on it.
+
+        **The program last made, and never a new one** — `fixme.md` F230.
+        This was `self.program()`, which reads the *disk* and writes the
+        bench's `origins` and a kind's relations: a message about an
+        unsaved buffer read the saved file and left its model in place of
+        the buffer's.  The build makes its program before anything it
+        could complain about, so the last one made is the one compiled;
+        before any is made, one is made and what it overwrote is put back.
         """
-        return self.program()
+        made = getattr(self, "_made", None)
+        if made is not None:
+            return made
+        kept = {name: self.__dict__[name] for name in ("origins", "notes_relations")
+                if name in self.__dict__}
+        try:
+            return self.program()
+        finally:
+            self._made = None
+            for name in ("origins", "notes_relations"):
+                if name in kept:
+                    setattr(self, name, kept[name])
+                else:
+                    self.__dict__.pop(name, None)
 
     # -- what the performance owned up to -------------------------------
 
