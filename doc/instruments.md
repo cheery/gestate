@@ -406,6 +406,27 @@ whether that equals the whole, with the items keyed by the note and
 without.  Warm, fastest of several: the first run pays the machine's
 warm-up and read as a change that grew with the roll.
 
+### `tools/commitlag.py` — a note let go of, to the window
+
+    Xvfb :99 -screen 0 1600x1000x24 &
+    DISPLAY=:99 python tools/commitlag.py               # arc.notes, six drags
+    DISPLAY=:99 python tools/commitlag.py --tree <dir>  # the same drags against another checkout
+
+The page's commit latency as a person meets it: a copy of the file
+playing on the bench's own display, notes found by their ink in a
+photograph, carried by XTEST, and the release stamped on the monotonic
+clock the model's `GESTATE_WIRE` tap uses — so *release → rows sent* is
+one subtraction.  Says too whether the page was re-walked, which rows
+crossed, the build's phases (`GESTATE_BUILD_TIME`) and the window's
+frame cost.  A `driven.Run`: stamped, under `test/driven/`.
+
+**`--tree` is the before-and-after.**  A worktree at another commit
+with the same `libgestate_editor.so` copied in runs the same drags
+against its Python.  Built 2026-09-13 for `card:gui-is-difficult.md`
+slice (a); **its first run crashed the model** on a race the headless
+tests could not see, which is the reason the driven run comes before
+*built*.
+
 ### `tools/queryframe.py` — one frame of the roll as a query
 
     python tools/queryframe.py          # the page of arcnotes.ges

@@ -2187,6 +2187,52 @@ def test_a_commit_that_changes_no_program_keeps_the_page_and_draws_what_a_fresh_
         "the kept page draws what a fresh build of the moved file draws"
 
 
+def test_a_kept_page_rebuilt_off_the_main_thread_is_written_by_the_loop_and_not_by_the_builder():
+    """**The first driven run's crash**, 2026-09-13: a rebuild runs on the
+    build worker, and a kept page is being stepped by the window loop's
+    `observe` every frame — two threads stepping one reactive broke its
+    sweep order (`GmError`).  So the builder hands a kept page's writes
+    over and touches nothing; `observe` writes them, and then the page
+    draws what a fresh build of the moved file draws."""
+    import threading
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program(here.read_text()))
+    bench.substrate.write("__nb_slide_0__", 24.0)
+    moved = _moved_one_beat(here.read_text())
+    program = bench.program(moved)
+    was = dict(bench.substrate.values)
+    steps = []
+    from gestate import gui
+    real = gui.Substrate.write_all
+
+    def counted(self, pairs):
+        steps.append(threading.current_thread() is threading.main_thread())
+        return real(self, pairs)
+
+    gui.Substrate.write_all = counted
+    try:
+        worker = threading.Thread(target=bench._load_substrate, args=(program,))
+        worker.start()
+        worker.join()
+        assert steps == [], "the builder stepped a page the loop owns"
+        assert bench.substrate.values == was, "the builder wrote into a kept page"
+        told = dict(bench.observe())
+        assert steps and all(steps), "the loop, and only the loop, wrote the handed-over page"
+    finally:
+        gui.Substrate.write_all = real
+    assert told.get("__nb_slide_0__") == 0.0, "the window is told the slid note is back at rest"
+
+    fresh_here = here.parent / "fresh" / "arc.notes"
+    fresh_here.parent.mkdir()
+    fresh_here.write_text(moved)
+    from gestate.audioeditor import Workbench
+
+    fresh = Workbench(fresh_here, rate=22050, block=256)
+    fresh._load_substrate(fresh.program(moved))
+    assert bench.substrate.picture() == fresh.substrate.picture()
+
+
 def test_after_a_commit_the_window_is_sent_the_rows_that_moved_and_no_others():
     """The window's half of the same step: a walker already holding the
     page is sent only the rolls whose rows a commit changed, and a

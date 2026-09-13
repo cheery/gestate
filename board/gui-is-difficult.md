@@ -3476,6 +3476,41 @@ open.
 
 *Not measured yet:* the window.  That is the driven run.
 
+**The driven run — 2026-09-13, `tools/commitlag.py`.**  Built for it:
+`Xvfb :99`, a copy of `arc.notes` playing, the notes found by their ink
+in a photograph, six drags; the release stamped on the same monotonic
+clock as the model's wire tap.  Run against `069ce75` (before step 1,
+the same editor library by md5) and against this tree:
+
+| six drags | before step 1 | after |
+|---|---|---|
+| release → rows sent, the model's side | 1316–2348 ms | 1328–2373 ms |
+| the page re-walked after a commit | 5 of 6 drags, 2–3 walks each | 1 of 6 — the one whose program text changed |
+| rows sent | every channel of the page | the moved roll's, and its band when a degree changed |
+| the rebuild's `substrate` phase | 0.99 s | 0.03–0.05 s |
+| the whole `apply` build | 2.27 s | 1.09–1.32 s |
+| a window frame, paint + copy | 11.4 ms | 8.2 ms |
+
+**So step 1 did what it was for and the postcondition is still not
+met, for a reason step 2 cannot touch.**  The rows cross when the
+build ends, and the build loads the **score first** — 0.74–0.98 s,
+`card:notes-editor.md` slice 2's deliberate order, from when the
+picture was the expensive half and the sound should not wait for it.
+The picture is 50 ms now and waits a second behind the sound.
+
+**And the run's first attempt crashed the model — a defect of this
+step, repaired before anything was committed on it.**  A rebuild runs
+on the build worker, and a kept page is being stepped by the window
+loop every frame (the playhead); two threads stepping one reactive
+broke its sweep order, `GmError: a signal may only read signals
+allocated before it`.  The headless tests were single-threaded and
+could not see it.  Now a kept page's writes are handed to `observe`,
+which makes them on the loop's thread and tells the window the rest
+values once; held by
+`test_drawnscores.py::test_a_kept_page_rebuilt_off_the_main_thread_is_written_by_the_loop_and_not_by_the_builder`,
+red with the handover removed.  The crash is no F-number: it never
+reached a commit.
+
 **Nothing is uncommitted and nothing is half-built.**
 
 ## What the next session picks up — written 2026-09-09, at his ask

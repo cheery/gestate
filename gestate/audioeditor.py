@@ -37,6 +37,7 @@ knob, however many parameters a synth wants.
 from __future__ import annotations
 
 import os
+import queue
 import sys
 import threading
 import time
@@ -591,6 +592,22 @@ class _Press:
     velocity: int
 
 
+def _write_page(views: list, rest: list, readings: list) -> None:
+    """A page's rest values and readings, in **one** instant.
+
+    The views share one machine, so a write through any of them is a
+    write to all of them; each keeps its own record of what was written
+    (`Substrate.values`), and every one is told, so the next commit's
+    question — *did a hand move this off rest?* — reads true on each.
+    """
+    both = list(rest) + list(readings)
+    if not views or not both:
+        return
+    views[0].write_all(both)
+    for view in views[1:]:
+        view.values.update(both)
+
+
 def _timed(name: str):
     """Report this method as a phase of the rebuild (`buildtime`).
 
@@ -926,6 +943,9 @@ class Workbench:
         #: into one rebuild, at the cost of that moment before a single
         #: drop is heard.  Short enough to feel like an answer, long
         #: enough to cover the gap between two drags.
+        #: A kept page's writes, handed from the build worker to the
+        #: window loop (`_load_substrate`, `observe`).
+        self._page_writes = queue.SimpleQueue()
         self._auditions = Newest(
             "audition", lambda text, quiet=False: self.audition(text, quiet),
             lambda exc: self.say(f"not applied: {self._first_line(exc)}"),
@@ -1598,24 +1618,33 @@ class Workbench:
                     # one row (`card:gui-is-difficult.md`, slice (a)).
                     # Kept, the views are told what a fresh build starts
                     # with by construction: every hand's preview at rest.
+                    #
+                    # **And a kept page is the window loop's, not this
+                    # thread's.**  A rebuild runs on the build worker; a
+                    # fresh page is nobody else's until it is assigned,
+                    # but a kept one is being stepped by `observe` every
+                    # frame — the playhead, a hand's preview — and two
+                    # threads stepping one reactive broke its sweep
+                    # order on the first driven run (`GmError`, *a signal
+                    # may only read signals allocated before it*).  So
+                    # off the main thread its writes are handed over and
+                    # `observe` makes them, on its next frame.
                     page_key = (program, tuple(drawn), self.rate) if live else None
                     kept = getattr(self, "_page", None)
-                    if page_key is not None and kept is not None and kept[0] == page_key:
+                    rest_moved = []
+                    reuse = (page_key is not None and kept is not None
+                             and kept[0] == page_key)
+                    if reuse:
                         views, written = list(kept[1]), kept[2]
                         rest = {}
                         for view in views:
                             if view.entry.startswith("__notes_"):
                                 rest.update(scorebox.resting(
                                     int(view.entry[len("__notes_"):-2])))
-                        # Only a channel some hand moved off rest is
-                        # written, and all of them in one instant.
-                        moved = [(name, value) for name, value in rest.items()
-                                 if any(v.values.get(name, value) != value
-                                        for v in views)]
-                        views[0].write_all(moved)
-                        for view in views:
-                            view.values.update(moved)
-                        self.previewing = rest
+                        # Only a channel some hand moved off rest.
+                        rest_moved = [(name, value) for name, value in rest.items()
+                                      if any(v.values.get(name, value) != value
+                                             for v in views)]
                     else:
                         views, written = Substrate.several(program, self.rate, drawn), {}
                         self._page = (page_key, list(views), written) if live else None
@@ -1681,18 +1710,17 @@ class Workbench:
                         chan = gridbox.GridRegion.rows_channel.fget(
                             next(iter(self.grid_regions.values())))
                         put(grid_view, chan, gridbox.grid_reading(rels))
-                    # **One instant for every reading that moved** — the
-                    # views share one machine, so a write through any of
-                    # them is a write to all; each view keeps its own
-                    # record of what was written through it.
-                    if changed:
-                        changed[0][0].write_all([(c, f) for _v, c, f in changed])
-                        for view, chan, flat in changed:
-                            view.values[chan] = flat
-                    if grid_view is not None:
-                        grid_view.tick()
-                    for view in views:
-                        view.tick()
+                    readings = [(c, f) for _v, c, f in changed]
+                    every = views + [v for v in (grid_view,) if v is not None
+                                     and v not in views]
+                    if reuse and threading.current_thread() is not threading.main_thread():
+                        self._page_writes.put((every, rest_moved, readings))
+                    else:
+                        _write_page(every, rest_moved, readings)
+                        if grid_view is not None:
+                            grid_view.tick()
+                        for view in views:
+                            view.tick()
                     self.note_rows = rows
                 except Exception as exc:                # noqa: BLE001
                     self.say(f"no notes drawn: {self._first_line(exc)}")
@@ -1795,6 +1823,17 @@ class Workbench:
         # piece that is not playing still gets dragged, and a picture
         # that only answered a hand while the sound ran would be the
         # strangest rule in the editor.
+        # **What a kept page's rebuild handed over** (`_load_substrate`):
+        # written here, on the thread that steps the page, and the rest
+        # values told to the window once — its walker was not rebuilt,
+        # so nothing else would put a slid note back.
+        while True:
+            try:
+                views, rest, readings = self._page_writes.get_nowait()
+            except queue.Empty:
+                break
+            _write_page(views, rest, readings)
+            told.extend(rest)
         for name, value in (self.previewing or {}).items():
             if name in wanted:
                 put(name, value)
