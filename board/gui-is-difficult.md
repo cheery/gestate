@@ -3547,6 +3547,15 @@ command's parses, the build's front (`program` re-parses the file the
 command just wrote), and the loop's pass while a build holds the GIL.
 *Each is a slice of its own and none has been asked for.*
 
+**Stopped here — Henri, 2026-09-13:** *"My intuition proposes: do not
+chase this. There are aesthetic and architectural decisions to be
+made."*  So slice (a) stands at **278 ms**, the postcondition's 60 ms
+unmet on purpose, and the three costs above are not taken.  What it
+leaves is an instrument (`tools/commitlag.py`) that re-measures the
+number on any checkout, and the split that says where the time is; the
+decisions are his to make before the number is chased again.  *Waiting
+on him, and he has said it is a decision, not a queue position.*
+
 **Nothing is uncommitted and nothing is half-built.**
 
 ## What the next session picks up — written 2026-09-09, at his ask
