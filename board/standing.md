@@ -61,8 +61,7 @@ time nobody asked it.
   *— `board/README.md` §"What a card is": the board's most expensive
   lesson, a card that named `type Duration = Float` when the need was
   the argument names*
-- Which of the things this card is about can actually take the change,
-  and how many are there?
+- Which of the things this card is about can actually take the change, and how many are there?
   *— harvested at the close of `card:audiovisual-gallery.md`,
   2026-09-11.  That card said "the three refused pieces are the test
   set either way" and one `grep` disproved it: they are the one set

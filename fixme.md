@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 227 entries, **180 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 228 entries, **181 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -136,7 +136,7 @@ not a place, so it is kept here and not as a directory:
 - **4. Surface syntax** — `gestate/syntax/` vs `spec/syntax.md` — F23–F29, F44–F49
 - **5. Types and classes** — `gestate/unify.py`, `infer.py`, `elaborate.py` — F30–F39
 - **6. Pipeline and documentation drift** — F40–F43
-- **7. Found while building the front end (2026-08-03)** — F50–F227 and `fixme/D3-D4.md`
+- **7. Found while building the front end (2026-08-03)** — F50–F228 and `fixme/D3-D4.md`
 
 F11 was written twice, a diagnosis in §2 and its resolution in §7;
 `fixme/F11.md` keeps both.  Counted apart they made the header say 228

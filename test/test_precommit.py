@@ -6,6 +6,7 @@ and the mutation sweep (`tools/seedmutate.sh`) showed the hook could
 vanish unnoticed.  `journal.md` §"The hook that was not committed" is
 the incident that makes that worth a test.
 """
+import os
 import pathlib
 import subprocess
 
@@ -90,9 +91,12 @@ def test_the_hook_refuses_a_commit_when_a_gate_says_no(tmp_path):
     fails for the wrong reason also refuses — tend's first run did, on a
     copy that was not executable.
     """
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    #: `fixme.md` F228: run from the hook of a `git commit -a`, the scratch
+    #: commit would build its tree from the outer commit's `GIT_INDEX_FILE`.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True, env=env)
     git = lambda *a: subprocess.run(["git", "-C", str(tmp_path), *a],
-                                    capture_output=True, text=True)
+                                    capture_output=True, text=True, env=env)
     git("config", "user.email", "t@example")
     git("config", "user.name", "t")
     tools = tmp_path / "tools"
