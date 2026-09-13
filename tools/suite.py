@@ -176,7 +176,7 @@ GATES = {
     #: outlived its file on 2026-09-11 — and none is made by adding one.
     "test/test_testimony.py::test_every_row_names_a_memory_that_exists_and_a_kind_that_is_one":
         "every row of doc/testimony.md names a memory that exists, once, with one of the four kinds",
-    #: **Joined 2026-09-14**, Henri's "yes": the copies of the payload the
+    #: **Joined 2026-09-13**, Henri's "yes": the copies of the payload the
     #: Rust suites read, against the model that writes them.  The walk
     #: fixtures went stale on 2026-09-09 and again with `scanE`
     #: (`90a586b`), each found only by a full pass, and the second time

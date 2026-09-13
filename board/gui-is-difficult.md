@@ -3400,15 +3400,15 @@ sections, in order: §"Implementations that already match the card",
   editor's three `.walk` ones.  `cargo test -p gestate-editor` was green
   against the stale bytes — the renumbering changes no behaviour — so
   the Python test was the only thing that could see it.  Regenerated the
-  next morning; 242 Rust and the two seam files' 6 green.
+  same afternoon; 242 Rust and the two seam files' 6 green.
 - *His, a question:* neither fixture file is a gate, and the walk
   fixtures have now gone stale twice in four days (2026-09-09, and
   this), each found only by a full pass — the record `test_testimony`
   had when it joined the gates.  Both files together cost about 8 s
-  against the gates' 21.  **Henri, 2026-09-14: *"yes."*** Both joined
+  against the gates' 21.  **Henri, 2026-09-13: *"yes."*** Both joined
   `tools/suite.py`'s `GATES`.
 
-**His three answers, 2026-09-14:**
+**His three answers, 2026-09-13:**
 - the fixture gates — *"yes"*, above;
 - the next slice — **(a)**, the roll applying a note's change at a
   commit instead of rebuilding, over (b) `sync` of several channels;
@@ -3416,7 +3416,7 @@ sections, in order: §"Implementations that already match the card",
   I'd need more examples to resolve it."*  So it is waiting on an
   **event**, more examples, and not on him; (b) waits with it.
 
-**Slice (a), measured before building — 2026-09-14.**  *Session's
+**Slice (a), measured before building — 2026-09-13.**  *Session's
 numbers, headless, `arc.notes` opened alone, warm; scratch scripts, not
 yet a tool.*  One note moved one step: the page is rebuilt whole, and
 `Workbench._load_substrate` costs **0.5–0.8 s**, in three parts of about
@@ -3437,14 +3437,14 @@ trace, and the only oracle for that half is a driven run.
 
 **The postcondition**, the session's sentence, uncorrected: *a note let
 go of on the roll is drawn in its new place within 60 ms, and the rest
-of the picture does not redraw to get there.*  **Henri, 2026-09-14:**
+of the picture does not redraw to get there.*  **Henri, 2026-09-13:**
 *"yes, step 1 first, then the driven run"* — step 1 is the host only
 (no recompile over an identical text, the sections derived once, only
 what changed written), the window still sent the whole list; step 2,
 the change itself on the wire with an `i` that survives a re-sort, only
 if the driven run says the window is still over 60 ms.
 
-**Step 1, landed — 2026-09-14.**  The page's side of a moved note,
+**Step 1, landed — 2026-09-13.**  The page's side of a moved note,
 headless, `arc.notes`, twelve moves: **480–814 ms → 51–67 ms.**
 - `Workbench._load_substrate` keeps the page when the program text and
   entries are unchanged — no `Substrate.several`, and no new identity
