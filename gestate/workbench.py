@@ -1019,7 +1019,12 @@ def run(path, rate: int = 44100, block: int = 512,
                 # while a rebuild ran in an empty room, which is the
                 # exact lie `presence` exists not to tell.
                 presence.touched()
+                # **When a gesture arrived and when its command answered**
+                # — the two stamps `tools/commitlag.py` splits a commit's
+                # wait by: the window's half before, the model's after.
+                _tap("gesture", line[:80])
                 answer = act(session, line)
+                _tap("answered", (answer or "")[:80])
                 if answer:
                     session.said.append(answer)
 

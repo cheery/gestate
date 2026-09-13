@@ -171,6 +171,36 @@ def test_applying_an_edit_reaches_the_running_instrument(tmp_path):
 
 
 @needs_clang
+def test_a_moved_note_is_drawn_before_its_score_is_loaded(tmp_path):
+    """**The picture before the score** — Henri, 2026-09-13: *"yes.
+    picture first."*  The rows cross to the window when the page is
+    loaded, so a build that loaded the score first made a 50 ms picture
+    wait a second behind the schedule (`tools/commitlag.py`,
+    `card:gui-is-difficult.md` slice (a))."""
+    import re
+
+    bench = _bench(tmp_path, "arc.notes")
+    bench.start(seconds=30.0)
+    try:
+        assert _wait(lambda: any("playing" in m for m in bench.messages), 60.0), \
+            bench.messages
+        order = []
+        for name in ("_load_substrate", "_load_score"):
+            real = getattr(bench, name)
+            setattr(bench, name, lambda text, real=real, name=name:
+                    (order.append(name), real(text))[1])
+        bench.messages.clear()
+        text = bench.path.read_text()
+        m = re.search(r"\bat (\d+)", text)
+        bench.apply(text[:m.start()] + f"at {int(m.group(1)) + 48}" + text[m.end():],
+                    save=False)
+        _settle(bench, 60.0)
+        assert order == ["_load_substrate", "_load_score"], order
+    finally:
+        bench.stop()
+
+
+@needs_clang
 def test_a_broken_edit_is_reported_and_the_sound_goes_on(tmp_path):
     """A typo mid-phrase must not stop the instrument."""
     bench = _bench(tmp_path)

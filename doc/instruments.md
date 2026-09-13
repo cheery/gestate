@@ -416,7 +416,9 @@ The page's commit latency as a person meets it: a copy of the file
 playing on the bench's own display, notes found by their ink in a
 photograph, carried by XTEST, and the release stamped on the monotonic
 clock the model's `GESTATE_WIRE` tap uses — so *release → rows sent* is
-one subtraction.  Says too whether the page was re-walked, which rows
+one subtraction — and split, by the tap's `gesture` and `answered`
+stamps, into the window's half, the command's and the build's.  Says
+too whether the page was re-walked, which rows
 crossed, the build's phases (`GESTATE_BUILD_TIME`) and the window's
 frame cost.  A `driven.Run`: stamped, under `test/driven/`.
 

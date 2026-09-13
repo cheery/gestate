@@ -3511,6 +3511,42 @@ values once; held by
 red with the handover removed.  The crash is no F-number: it never
 reached a commit.
 
+**Picture first — Henri, 2026-09-13: *"yes. picture first."***
+`Workbench._built` loads the page before the score; held by
+`test_audioeditor.py::test_a_moved_note_is_drawn_before_its_score_is_loaded`,
+red with the old order.  Driven: release → rows **445–709 ms**.
+
+**And the loop itself, found by splitting that number.**  Two stamps
+joined the wire tap — a gesture's arrival and its command's answer —
+and `commitlag` reports the three halves.  The middle was not the
+build: the loop's passes were ~200 ms apart while the piece played,
+because `observe` wrote every reading through every view and a page's
+views are one machine — eight previews and the playhead, four views,
+a reactive step each: **121 ms a frame** headless.  Now a frame's
+readings are one instant per machine, **29 ms**; held by
+`test_drawnscores.py::test_a_frames_readings_step_a_pages_one_machine_once`,
+red with the old writes.  *Pre-existing, and it also meant a hand's
+preview was drawn five times a second while anything played.*
+
+| six drags, the window, `arc.notes` playing | release → rows |
+|---|---|
+| before step 1 | 1316–2348 ms |
+| step 1 | 1328–2373 ms |
+| picture first | 445–709 ms |
+| a frame's readings once a machine | **234–341 ms**, median 278 |
+
+Of the median: the release reaches the model in ~35 ms, the `move`
+command takes ~66 ms (the file parsed to refuse, canonicalised, parsed
+again), and ~206 ms pass from its answer to the rows — the build's
+first 100 ms sharing the GIL with the score that follows it, and a
+loop pass (now ~62 ms apart).  Suites 591 green.
+
+**So the postcondition is not met: 278 ms against 60.**  What is left is
+three costs of different owners, none of them an order to flip — the
+command's parses, the build's front (`program` re-parses the file the
+command just wrote), and the loop's pass while a build holds the GIL.
+*Each is a slice of its own and none has been asked for.*
+
 **Nothing is uncommitted and nothing is half-built.**
 
 ## What the next session picks up — written 2026-09-09, at his ask

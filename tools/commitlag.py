@@ -162,7 +162,7 @@ def main(argv=None) -> int:
             return 2
         run.observe("were notes drawn?", f"yes — {len(bars)} bars")
 
-        timed, refused, walked = [], 0, 0
+        timed, refused, walked, halves = [], 0, 0, []
         # Notes spread over the page, each carried once, left of the
         # page's right edge so the hand stays on the roll.
         picks = [b for b in bars if b[2] >= 16][:: max(1, len(bars) // (args.drags * 2))]
@@ -174,6 +174,10 @@ def main(argv=None) -> int:
             after = [e for e in wire(log)[before:] if e[0] >= released]
             rows = [e for e in after if e[1] == "rows"]
             walks = [e for e in after if e[1] == "walk"]
+            let_go = next((e for e in after if e[1] == "gesture"
+                           and e[2].startswith("released")), None)
+            answered = next((e for e in after if let_go and e[1] == "answered"
+                             and e[0] >= let_go[0]), None)
             walked += bool(walks)
             if not rows:
                 refused += 1
@@ -181,8 +185,17 @@ def main(argv=None) -> int:
                 continue
             ms = (rows[0][0] - released) * 1000
             timed.append(ms)
+            split = ""
+            if let_go and answered:
+                split = (f" — the release reached the model at "
+                         f"{(let_go[0] - released) * 1000:.0f} ms, its command "
+                         f"answered at {(answered[0] - released) * 1000:.0f} ms "
+                         f"({answered[2][:40]!r})")
+                halves.append(((let_go[0] - released) * 1000,
+                               (answered[0] - let_go[0]) * 1000,
+                               (rows[0][0] - answered[0]) * 1000))
             run.note(f"drag at {bar[:2]}: rows {ms:.0f} ms after the release "
-                     f"({rows[0][2]}); walks after it: {len(walks)}")
+                     f"({rows[0][2]}); walks after it: {len(walks)}{split}")
         run.shot(win, "after-the-drags")
 
         frames = [line for line in log.read_text(errors="replace").splitlines()
@@ -197,6 +210,12 @@ def main(argv=None) -> int:
             run.observe("release to rows, the model's side",
                         f"{len(timed)} commits — best {timed[0]:.0f} ms, median "
                         f"{timed[len(timed) // 2]:.0f} ms, worst {timed[-1]:.0f} ms")
+        if halves:
+            mid = lambda xs: sorted(xs)[len(xs) // 2]
+            run.observe("where the wait goes, medians",
+                        f"release → the model has it {mid([h[0] for h in halves]):.0f} ms; "
+                        f"its command {mid([h[1] for h in halves]):.0f} ms; "
+                        f"answered → rows sent {mid([h[2] for h in halves]):.0f} ms")
         run.observe("was the page re-walked after a commit?",
                     f"{walked} of {len(timed) + refused} drags")
         run.observe("drags that sent no rows", str(refused))

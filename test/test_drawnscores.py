@@ -2233,6 +2233,33 @@ def test_a_kept_page_rebuilt_off_the_main_thread_is_written_by_the_loop_and_not_
     assert bench.substrate.picture() == fresh.substrate.picture()
 
 
+def test_a_frames_readings_step_a_pages_one_machine_once():
+    """The window loop's `observe` on a page: the boxes are views of one
+    machine, and every reading written through every view stepped it
+    once a view — 121 ms a frame on `arc.notes` with a hand's eight
+    previews, so the loop answered five times a second and a commit's
+    rows waited for it (`card:gui-is-difficult.md` slice (a))."""
+    from gestate import gui, scorebox
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program(here.read_text()))
+    targets = [bench.substrate, *bench.canvases.values()]
+    assert len(targets) > 1 and len({id(v.reactive) for v in targets}) == 1
+    bench.previewing = dict(scorebox.resting(0), **{"__nb_sel_0__": 3.0})
+    steps = []
+    real = gui.react
+    gui.react = lambda reactive, arrivals: (steps.append(len(arrivals)),
+                                            real(reactive, arrivals))[1]
+    try:
+        told = dict(bench.observe())
+    finally:
+        gui.react = real
+    assert steps == [len(bench.previewing)], steps
+    assert told["__nb_sel_0__"] == 3.0
+    assert all(v.values.get("__nb_sel_0__") == 3.0 for v in targets), \
+        "every view keeps the record of what was written"
+
+
 def test_after_a_commit_the_window_is_sent_the_rows_that_moved_and_no_others():
     """The window's half of the same step: a walker already holding the
     page is sent only the rolls whose rows a commit changed, and a

@@ -1811,10 +1811,28 @@ class Workbench:
         for t in targets:
             wanted |= set(t.by_name)
 
+        # **Collected, and written once a machine in one instant.**  A
+        # page's boxes are views of *one* machine, and a write through
+        # each of them stepped it once per view — eight previews and the
+        # playhead through four views were 121 ms a frame on `arc.notes`,
+        # so the loop answered a hand five times a second and a commit's
+        # rows waited for it (`tools/commitlag.py`,
+        # `card:gui-is-difficult.md` slice (a)).  Separate machines — a
+        # `.ges` file's `canvas <expr>` boxes — are each written.
+        pairs = []
+
         def put(name, value):
-            for t in targets:
-                t.write(name, value)
+            pairs.append((name, value))
             told.append((name, value))
+
+        def flush():
+            if not pairs:
+                return
+            machines = {}
+            for t in targets:
+                machines.setdefault(id(t.reactive), []).append(t)
+            for views in machines.values():
+                _write_page(views, [], pairs)
 
         # **The one reading that is not the instrument's.**  A note
         # under a hand is a fact about the *session*, and it rides here
@@ -1838,6 +1856,7 @@ class Workbench:
             if name in wanted:
                 put(name, value)
         if self.transport is None:
+            flush()
             return told
 
         if "peak" in wanted:
@@ -1869,6 +1888,7 @@ class Workbench:
             for k, name in enumerate(self.PROBES):
                 if name in wanted:
                     put(name, ages[k] if k < len(ages) else 0)
+        flush()
         return told
 
     #: How many points a scope's trace crosses as: the window
@@ -3523,17 +3543,15 @@ class Workbench:
         from . import unchanged
 
         was = self._built_program
-        # **The score before the picture.**  The sound is what a person
-        # is waiting for and the schedule is installed the moment it is
-        # assigned; the picture's compile is seconds and was in front of
-        # it, so a moved note was heard after it was drawn.  Reordered
-        # 2026-09-06 (`card:notes-editor.md` slice 2); the roll under a
-        # hand already follows the hand before either lands.
-        if self.seed == self._built_seed \
-                and unchanged.kept(was, program, ("score", "bpm")):
-            self._skipped("score")
-        else:
-            self._load_score(program)
+        # **The picture before the score** — Henri, 2026-09-13: *"yes.
+        # picture first."*  It was the other way from 2026-09-06
+        # (`card:notes-editor.md` slice 2), when the picture's compile
+        # was seconds and a moved note was heard after it was drawn.  A
+        # moved note keeps the page now (`_load_substrate`) and the
+        # picture is tens of milliseconds, so the order made the rows
+        # wait a second behind the schedule: `tools/commitlag.py`,
+        # `card:gui-is-difficult.md` slice (a).
+        #
         # **The pictures read more than `substrate`.**  A score box is
         # a roll of whatever its `notes <expr>` ask names, and its
         # region map — which is what a drag rewrites through — is built
@@ -3545,6 +3563,11 @@ class Workbench:
             self._skipped("substrate")
         else:
             self._load_substrate(program)
+        if self.seed == self._built_seed \
+                and unchanged.kept(was, program, ("score", "bpm")):
+            self._skipped("score")
+        else:
+            self._load_score(program)
         self._place(engine)
         # **The strictest question, because its inputs cannot be bounded
         # honestly.**  A `FromMIDI` instance body reaches whatever it
