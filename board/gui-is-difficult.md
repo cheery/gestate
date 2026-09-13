@@ -2984,6 +2984,52 @@ cost of a step and on lines.  `tools/prereg.sh` passes on it.  **Its
 cases and its 10 % rule are his to confirm or strike before either arm
 is written.**
 
+### Eve, read closer, against what this card has — 2026-09-13
+
+**Henri:** *"Can we examine eve closer?  How much does it align with what
+we got here?"*  Read further in `~/eve`: `Program` in `runtime/dsl2.ts`
+(`bind`, `commit`, `watch`, `load`), `Transaction.exec` and
+`BlockChangeTransaction` in `runtime/runtime.ts`, the compiler watcher,
+the canvas and ui watchers, and the editor's blocks by name.  *Still
+unread:* the tracer, the parser, the join and aggregate internals, and
+the editor's bodies.  *The alignment column is the session's reading.*
+
+| | this card | Eve | alignment |
+|---|---|---|---|
+| **the model** | facts: kinds, named fields, a declared key, an agreed order, a plain file with its declaration beside it | EAV triples in an in-memory index; a record is open — any attributes, no schema — and there is no file | **the same idea**; this card adds the file, the schema and the key |
+| **identity** | the kind declares its key, literal fields only; a reference says thing, place or set | a record's id is its creation attributes joined (`gen-id`), a host event's a uuid; no reference kinds | **reading B in both**; Eve's is implicit and its own comment names the collision |
+| **what a command edits** | assert and retract, as commands a transcript replays | `commit` blocks add and remove, triggered by event records; no named verbs, no transcript | **the algebra aligns, the command layer does not** — Eve's verbs are rules, and nothing a person types names one |
+| **the picture** | a query recomputed on change; by its changes in `tools/zset.py`, with the host applying them | `bind` blocks, incremental from the ground up — counts and rounds through `not`, `choose`, aggregates and recursion | **Eve is ahead**: it built what `tools/zset.py` measured for one linear query |
+| **a press** | an element carries a meaning — the thing, inside a place (`onPress`, slice 8) | HTML: `target` and one `element` per ancestor; **canvas: no events at all** | **aligned where Eve used the DOM**; on its own drawing a press names nothing |
+| **the host** | seam 1: the host holds the facts and applies diffs — measured, not built | watchers export diffs to the DOM and the canvas, with a second `distinct` at export and dirty paths | **Eve is ahead**: built and running |
+| **a gesture over time** | charts — `chart.ges`, `hand.ges` | none: its editor has clicks and no drag; UI state is a tag committed on a record | **this card is ahead** |
+| **continuous time** | signals, audio native, and `scanE` as a former since today | a timer retracts and asserts ten facts a tick | **this card is ahead** |
+| **layout** | `gui.ges`' algebra — `Row`, `Column`, `Sized`, `Over` — walked in two machines | the ui watcher's `row`, `column`, `spacer` turned into flexbox; canvas paths at absolute coordinates | **the same vocabulary**; Eve handed the solving to the browser |
+| **editing a running program** | stage 5 migrates state by origin and type, so a record whose shape changes resets (`twoknobs.ges`' argument) | the program is facts: the compiler is Eve blocks over the parsed source, and an edit removes a block by running a **negative** change through it and adds one by a positive change over the facts already there — committed state lives in the index and survives | **Eve answered the case-5 cost** — see below |
+
+**Four aligned, three where Eve is ahead, three where this card is.**
+Eve is this card's first half built — facts, derived pictures, a press
+naming a key, a host applying diffs — and it never met the second half:
+gestures over time, continuous time, and drawing of its own.
+
+**The one finding that changes something here.**  Case 5 of
+`doc/trial/signals.md` recorded a cost the sheet could not see: one
+`Model` record resets when a field is added, because live coding here
+migrates by shape.  Eve does not have that cost, and the reason is
+checkable in its source: a record is **attributes, not positions** — a
+new attribute is one more triple, and nothing that was already asserted
+changes type.  The tree already has the same property in one place:
+`.notes` fields are *named* (`note section A bar 1 at 0 …`), and
+`.desk` is *"forgiving on purpose"*.  So the twoknobs argument is
+against **positional** records, not against a model — which is a
+question for where a message form's model lives, and it is his.
+
+**And two mechanisms worth knowing are there**, for whenever this card
+reaches them: events as transient facts, removed by a commit at the end
+of the transaction they arrived in (`html.ts`, *"Remove html events."*);
+and a block added or removed as a change of its own, so that an edit
+retracts exactly what the old rule derived.
+
 ### Where the statecharts fit — asked 2026-09-13
 
 **Henri:** *"yes.  Lets do this.  Also, I would want to know how the
@@ -3069,6 +3115,14 @@ for the sound card**, because `scanE` is not a former of the engine's
 fragment.  Read literally the sheet's rule gives signals, signals and
 three ties; the reading it cannot make is that the one real difference
 favours messages on lines and loses on the fragment.  Not acted on.
+
+**`scanE` a former — his *"I think that primitive looks like it earns
+its place"*, one channel first.**  A `fold` node in the check, the
+extractor, the reference engine and the native emitter; `blip`'s and
+`knob`'s message arms play natively, bit-identical, at the signal arms'
+cost (0.078 against 0.074 µs a sample, 0.138 against 0.136), so cases 1
+and 4 are ties now.  `twoknobs` waits on `sync` and sum layouts, a slice
+of its own.  `doc/trial/signals.md` §"`scanE` a former".
 
 **What a session would do next, his to take or strike:** the roll's
 picture rows keyed as the identity law says — they already carry `i` —
