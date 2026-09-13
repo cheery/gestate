@@ -124,6 +124,46 @@ being the mechanism under seam 3; gradual typing last, because it
 answers the complaint and pays with the goal.  Each read the way Kale,
 Eve and DBSP were: source first, what it changes written here.
 
+## Where the session tips — 2026-09-13, night, at his ask
+
+**Henri:** *"Based on today's issues and difficulties, where would you
+currently tip towards?  …  But what could we do without losing the
+things we bought with strictness?"*  *The session's lean, marked as its
+own; nothing here is decided.*
+
+**Staging, not an escape hatch.**  Keep the checked language as it is
+and make the stage *before* it a language thing instead of a Python
+thing.  The three seams have one shape: Python computing something
+from values the language already holds — a row type from a `Kind`, a
+channel from a signature, a program from a file — and pasting the
+result in as text, outside the checker.  Zig's comptime and F#'s type
+providers are the disciplined form of that stage: the code that runs
+before the program is ordinary code over ordinary values, and what it
+produces is an ordinary program with every guarantee intact.  Nothing
+dynamic reaches the golden buffer, the fixpoint or the two machines,
+because those only ever see stage two.  **The rule, in one line: a
+program may be computed but never patched.**
+
+*Why this over the others.*  Gradual typing buys Python's power by
+giving up model-checking at the boundary — the property he named
+first.  Unison and Flix are whole languages, against plain files and
+against reading.  Row polymorphism and typed effects keep the
+guarantees and would be taken later; neither removes a seam met today.
+Staging removes seam 1 outright, and it is where `scorebox.py`'s two
+thousand generated lines would go if they went anywhere.
+
+*What it does not touch.*  Seam 2, a meaning being a float, is a
+substrate word and a wire decision, not a family.  Seam 3, composition
+across files, is modules — the largest change to a language optimised
+for reading — so: measured by hand first, designed last.
+
+*What kills the lean.*  If the code that generates the score box
+cannot be written readably in the language itself, staging has only
+moved the Python into a worse language.  Zig's own answer is that
+comptime code is the same language with the same reading; the claim to
+test is that, on the smallest generator in the tree — the grid's,
+`gridbox.py` — before any larger one.
+
 ## Questions
 
 Each shaped with a default and a trigger — `doc/memory/decisions-arrive-shaped.md`.
