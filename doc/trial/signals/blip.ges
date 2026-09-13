@@ -98,10 +98,3 @@ raw = map voiceOut (scanE stepVoice (Voice 0.0 0) (wait clock))
 #: gentle — nearer 1.0 lets more through, nearer 0.0 muffles it.
 sound : Sig Float
 sound = gain 0.6 (lowpass 0.25 raw)
-
-# ── Not counted: the library line a message arm stands on ────────────────
-#: `scanE` — a fold over an event, `card:gui-is-difficult.md` §"Would the
-#: whole thing need rethinking?".  It would live in `signal.ges` beside
-#: `scan`, which the signal arm does not count either.
-scanE : (b -> a -> b) -> b -> ExL a -> Sig b
-scanE = gfix q => (f z e => z ::: (delay (q2 x => q2 f (f z x) e) <*> q <@> e))

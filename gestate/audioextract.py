@@ -159,6 +159,9 @@ class _Extract:
         #: Clock name → its source node.  One node per clock, however many
         #: times the program writes `mkSig (wait c)`.
         self.sources: dict = {}
+        #: The sources a `scanE` made, which nothing has given a `:::` value
+        #: yet — a later `v ::: mkSig (wait c)` on the same clock supplies it.
+        self.bare: set = set()
 
     def run(self) -> Graph:
         self.graph.out = self._signal(EGlobal(self.entry), {}, "", "")
@@ -293,8 +296,8 @@ class _Extract:
         # its buffer is `length` samples of state, and dropping it because
         # nothing reads it *this* recompile loses all of it.
         stack += [n.id for n in self.graph.nodes
-                  if n.kind in ("source", "scan", "line", "tap", "loop",
-                                "slide", "scope", "spectro")]
+                  if n.kind in ("source", "scan", "fold", "line", "tap",
+                                "loop", "slide", "scope", "spectro")]
         while stack:
             i = stack.pop()
             if i in keep:
@@ -403,7 +406,46 @@ class _Extract:
         chan = _strip(_strip(tail.arg).chan)
         clock = str(chan.name) if isinstance(chan, EGlobal) else path
         if clock in self.sources:
-            return self.sources[clock]          # one node per clock
+            node = self.sources[clock]          # one node per clock
+            if node in self.bare:
+                # A `scanE` got here first and started the slot at zero;
+                # this is the clock's own value at t = 0.
+                self.bare.discard(node)
+                self.graph.nodes[node].init = self._constant(e.value, env, path)
+            return node
+        init = self._constant(e.value, env, path)
+        return self._clock(clock, init, self._value_type(init), path)
+
+    def _event(self, e, env: dict, path: str, elem: str) -> int:
+        """`wait c` — the channel a `scanE` folds over, as its source node.
+
+        The same node `v ::: mkSig (wait c)` makes, so a knob a fold reads
+        is still a knob to the host: one control slot, one `Site`, one
+        schedule key.  A fold never reads the source at t = 0, so a clock
+        nothing else names starts at the type's zero.
+        """
+        ev = _strip(e)
+        if not isinstance(ev, EWait):
+            #: complaint  machine — the graph check refuses an event that is not `wait` on a channel before extraction
+            raise ExtractError(f"{path}: an event that is not `wait` on a "
+                               f"channel reached extraction, which the "
+                               f"check should have refused")
+        chan = _strip(ev.chan)
+        clock = str(chan.name) if isinstance(chan, EGlobal) else path
+        if clock in self.sources:
+            return self.sources[clock]
+        if elem not in ("Int", "Float"):
+            #: complaint  author, unplaced — fixme.md F156: a channel a `scanE` folds over at audio rate carries something that is not a number, named by its definition path and not its line
+            raise ExtractError(
+                f"{path}: `{clock}` carries `{elem or 'an unknown type'}`, "
+                f"and a channel folded at audio rate carries a number — one "
+                f"slot, as a knob's does")
+        node = self._clock(clock, 0 if elem == "Int" else 0.0, elem, path)
+        self.bare.add(node)
+        return node
+
+    def _clock(self, clock: str, init, type_: str, path: str) -> int:
+        """The source node for one clock — made once, whoever asks first."""
         rate = "audio" if clock == AUDIO_CLOCK else "control"
         if rate == "audio" and any(n.clock == "audio" for n in self.graph.nodes
                                    if n.kind == "source"):
@@ -411,8 +453,6 @@ class _Extract:
                 f"this graph has two audio-rate clocks, and the engine has "
                 f"one: `{AUDIO_CLOCK}` advances every sample")
 
-        init = self._constant(e.value, env, path)
-        type_ = self._value_type(init)
         if rate == "control" and self.graph.words(type_) != 1:
             # A control value is one 8-byte slot of the control buffer, so a
             # channel carrying a constructor with fields has nowhere to go.
@@ -490,6 +530,15 @@ class _Extract:
             # A `scan`'s element type *is* the type of its state, and its
             # initial value is that state — so this one needs nothing
             # threaded to it.
+            type_ = self._value_type(init)
+        elif kind == "fold":
+            # `scanE f z (wait c)` — a `scan`'s state and step, over the
+            # channel's source rather than a signal.  The node steps only on
+            # the instants that source arrives; the engines read the
+            # source's clock to know which those are.
+            step_e, init_e, ev_e = args
+            inputs = [self._event(ev_e, env, path, of(1))]
+            init = self._constant(init_e, env, path)
             type_ = self._value_type(init)
         elif kind == "tap":
             # `tap n pos s` — no step at all: the read is interpolation and

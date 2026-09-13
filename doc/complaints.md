@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**502 complaints**, in 48 files.
+**504 complaints**, in 48 files.
 
 | | |
 |---|---|
-| `author` | 281 |
+| `author` | 282 |
 | `command` | 43 |
 | `world` | 27 |
-| `machine` | 151 |
+| `machine` | 152 |
 | say where | 184 |
 | say `nowhere`, on purpose | 52 |
-| `unplaced`, with a defect that owns it | 59 |
+| `unplaced`, with a defect that owns it | 60 |
 
 ## A place that could exist, and does not
 
@@ -39,20 +39,21 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | where | error | owed to |
 |---|---|---|
 | `audioengine.py:126` | `EngineError` | fixme.md F159: dividing by zero is a program's own doing, and a graph node has an origin but no span |
-| `audioengine.py:504` | `EngineError` | fixme.md F159: the value overflowed at run time, and a graph node has an origin but no span |
+| `audioengine.py:516` | `EngineError` | fixme.md F159: the value overflowed at run time, and a graph node has an origin but no span |
 | `audioextract.py:131` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:359` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:377` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:381` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:410` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:427` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:534` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:547` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:567` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:362` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:380` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:384` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:439` | `ExtractError` | fixme.md F156: a channel a `scanE` folds over at audio rate carries something that is not a number, named by its definition path and not its line |
+| `audioextract.py:452` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:467` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audioextract.py:583` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:640` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:645` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:974` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:596` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:616` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:632` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:689` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:694` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:1023` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audiollvm.py:432` | `LLVMError` | fixme.md F157: a definition used at two types inside one fragment is the author's, and the name is carried where the line is not |
 | `audioscore.py:491` | `ScoreError` | fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on |
 | `audioscore.py:1133` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
@@ -224,8 +225,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 95 | `EngineError` | `machine` | — | 'not IR: {e!r}' |
 | 114 | `EngineError` | `machine` | — | 'no primitive `{op}`' |
 | 126 | `EngineError` | `author` | *unplaced — fixme.md F159: dividing by zero is a program's own doing, and a graph node has an origin but no span* | '{name}: division by zero' |
-| 453 | `EngineError` | `machine` | — | 'unknown node kind {node.kind!r}' |
-| 504 | `EngineError` | `author` | *unplaced — fixme.md F159: the value overflowed at run time, and a graph node has an origin but no span* | 'integer overflow at instant {t}: node {node.id} ({node.kind}) holds {v!r}, which the compiled … |
+| 465 | `EngineError` | `machine` | — | 'unknown node kind {node.kind!r}' |
+| 516 | `EngineError` | `author` | *unplaced — fixme.md F159: the value overflowed at run time, and a graph node has an origin but no span* | 'integer overflow at instant {t}: node {node.id} ({node.kind}) holds {v!r}, which the compiled … |
 
 ### `audioextract.py`
 
@@ -234,33 +235,35 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
 | 131 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | 'this program cannot be compiled for the sound card: the engine plays a fixed graph, so everyth… |
-| 359 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: `{e.name}` is not a signal here' |
-| 377 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: a recursive `let` reached extraction at signal level' |
-| 381 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: not a signal expression: {e!r}' |
-| 400 | `ExtractError` | `machine` | — | '{path}: a signal built by hand reached extraction, which the check should have refused' |
-| 410 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | 'this graph has two audio-rate clocks, and the engine has one: `{AUDIO_CLOCK}` advances every s… |
-| 427 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | 'the control channel `{clock}` carries `{type_}`, which is not a scalar: a control value is one… |
-| 444 | `ExtractError` | `machine` | — | '{path}: a bare `mkSig` is not a node' |
-| 534 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | """{path}: a scope's label has to be a piece of text it can be asked for by — `scope "post" s`"… |
-| 547 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: `{kind} "{label}"` is already watching another signal (via {twice.origin}) — a scope i… |
-| 567 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: a `slide` of {length} has no room to move — its position is clamped to 1 .. n-1, so th… |
-| 583 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: the element type of this `{name}` could not be determined. It is nested directly insid… |
-| 640 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | "{where}: a delay line's length has to be a whole number of samples known before the program ru… |
-| 645 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: a delay line of {value} samples reaches back to nothing; `feedback 1` is the shortest… |
-| 697 | `ExtractError` | `machine` | — | '{path}: `{name}` has no definition' |
-| 813 | `ExtractError` | `machine` | — | 'no layout for {name}' |
-| 833 | `ExtractError` | `machine` | — | '`{name}` is not a data type gestate knows' |
-| 846 | `ExtractError` | `machine` | — | '{origin}: its step function takes {len(e.params)} argument(s), and this node calls it with {wa… |
-| 858 | `ExtractError` | `machine` | — | '{origin}: a step function that is not a definition or a lambda reached extraction' |
-| 868 | `ExtractError` | `machine` | — | '`{name}` has no definition' |
-| 891 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is not in scope' |
-| 894 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is a signal, used as a value' |
-| 932 | `ExtractError` | `machine` | — | '{where}: a recursive `let` reached extraction' |
-| 951 | `ExtractError` | `machine` | — | '{where}: cannot apply {head!r}' |
-| 954 | `ExtractError` | `machine` | — | '{where}: no IR for {type(e).__name__}' |
-| 965 | `ExtractError` | `machine` | — | '{where}: `{name}` has no definition' |
-| 974 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: `{name}` takes {arity} argument(s) and is applied to {len(ir_args)} — a partial appli… |
-| 996 | `ExtractError` | `author` | carried from `exc` | '{where}: this should be a constant and is not: {exc}' |
+| 362 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: `{e.name}` is not a signal here' |
+| 380 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: a recursive `let` reached extraction at signal level' |
+| 384 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: not a signal expression: {e!r}' |
+| 403 | `ExtractError` | `machine` | — | '{path}: a signal built by hand reached extraction, which the check should have refused' |
+| 430 | `ExtractError` | `machine` | — | '{path}: an event that is not `wait` on a channel reached extraction, which the check should ha… |
+| 439 | `ExtractError` | `author` | *unplaced — fixme.md F156: a channel a `scanE` folds over at audio rate carries something that is not a number, named by its definition path and not its line* | "{path}: `{clock}` carries `{elem or 'an unknown type'}`, and a channel folded at audio rate ca… |
+| 452 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | 'this graph has two audio-rate clocks, and the engine has one: `{AUDIO_CLOCK}` advances every s… |
+| 467 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | 'the control channel `{clock}` carries `{type_}`, which is not a scalar: a control value is one… |
+| 484 | `ExtractError` | `machine` | — | '{path}: a bare `mkSig` is not a node' |
+| 583 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | """{path}: a scope's label has to be a piece of text it can be asked for by — `scope "post" s`"… |
+| 596 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: `{kind} "{label}"` is already watching another signal (via {twice.origin}) — a scope i… |
+| 616 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: a `slide` of {length} has no room to move — its position is clamped to 1 .. n-1, so th… |
+| 632 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{path}: the element type of this `{name}` could not be determined. It is nested directly insid… |
+| 689 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | "{where}: a delay line's length has to be a whole number of samples known before the program ru… |
+| 694 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: a delay line of {value} samples reaches back to nothing; `feedback 1` is the shortest… |
+| 746 | `ExtractError` | `machine` | — | '{path}: `{name}` has no definition' |
+| 862 | `ExtractError` | `machine` | — | 'no layout for {name}' |
+| 882 | `ExtractError` | `machine` | — | '`{name}` is not a data type gestate knows' |
+| 895 | `ExtractError` | `machine` | — | '{origin}: its step function takes {len(e.params)} argument(s), and this node calls it with {wa… |
+| 907 | `ExtractError` | `machine` | — | '{origin}: a step function that is not a definition or a lambda reached extraction' |
+| 917 | `ExtractError` | `machine` | — | '`{name}` has no definition' |
+| 940 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is not in scope' |
+| 943 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is a signal, used as a value' |
+| 981 | `ExtractError` | `machine` | — | '{where}: a recursive `let` reached extraction' |
+| 1000 | `ExtractError` | `machine` | — | '{where}: cannot apply {head!r}' |
+| 1003 | `ExtractError` | `machine` | — | '{where}: no IR for {type(e).__name__}' |
+| 1014 | `ExtractError` | `machine` | — | '{where}: `{name}` has no definition' |
+| 1023 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: `{name}` takes {arity} argument(s) and is applied to {len(ir_args)} — a partial appli… |
+| 1045 | `ExtractError` | `author` | carried from `exc` | '{where}: this should be a constant and is not: {exc}' |
 
 ### `audiohost.py`
 

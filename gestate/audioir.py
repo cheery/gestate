@@ -138,7 +138,7 @@ class Node:
     about: change the waveform, keep the phase.
     """
     id: int
-    kind: str                     # source | map | scan | zip | line | tap | loop
+    kind: str                     # source | map | scan | fold | zip | line | tap | loop
     inputs: tuple = ()
     step: str | None = None       # a name in `Graph.funcs`
     init: object = None           # `scan`'s z, and a source's value at t=0

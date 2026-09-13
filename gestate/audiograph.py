@@ -44,6 +44,10 @@ FORMERS = {
     "mkSig": "source",
     "mapSig": "map",
     "scan": "scan",
+    #: A `scan` over an event rather than a signal — `signal.ges`' `scanE`.
+    #: Steps on the instants its channel arrives and holds between them:
+    #: every sample over the clock, once a block over a knob.
+    "scanE": "fold",
     "zipSig": "zip",
     # `map` at `Sig`, as `elaborate.resolve_static_methods` leaves it.
     # `signal.ges` writes `instance Functor Sig where map f s = mapSig f s`
@@ -95,6 +99,9 @@ SHAPES = {
     "source": ("value",),
     "map": ("step", "signal"),
     "scan": ("step", "value", "signal"),
+    # `scanE f z (wait c)` — a `scan`'s arguments, with the event last
+    # where the signal was.
+    "fold": ("step", "value", "event"),
     "zip": ("step", "signal", "signal"),
     # `feedback n f s` — the length first, because it is the thing that has
     # to be constant and reads better said first.
@@ -464,6 +471,8 @@ class _Check:
                 self._signal(arg)
             elif kind == "value":
                 self._scalar(arg)
+            elif kind == "event":
+                self._event(name, arg)
             elif kind == "label":
                 # An assembly-time fact, like `voices`' name: read when
                 # the graph is built and never present in it, so the
@@ -473,6 +482,28 @@ class _Check:
                 pass
             else:
                 self._step(name, arg)
+
+    def _event(self, name: str, e) -> None:
+        """`wait c` on a channel the program declares — the one event form.
+
+        The graph is fixed before it runs, so an event it folds over has to
+        be a clock it can name: `wait` on a declared channel, which is the
+        same thing a source's `mkSig (wait c)` holds.  A `sync` of several
+        is not here yet: its value is a sum whose constructors carry
+        different fields, and a state struct lays out one
+        (`doc/trial/signals.md`, case 5).
+        """
+        e = _strip(e)
+        if isinstance(e, EWait):
+            chan = _strip(e.chan)
+            if isinstance(chan, EGlobal):
+                self._need(str(chan.name), "scalar")
+                return
+        #: complaint  author — `scanE` at audio rate folds over `wait` on a declared channel, and this event is some other expression
+        self._error(self.here,
+                    f"folds `{name}` over {_describe(e)}.  At audio rate an "
+                    f"event is `wait` on a channel the program declares — "
+                    f"the graph has to know its clock before it runs")
 
     def _call(self, name: str, args: list) -> None:
         """A user definition that yields a signal — `gain 0.6 (lowpass …)`."""

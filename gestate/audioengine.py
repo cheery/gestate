@@ -373,6 +373,18 @@ def render_block(graph: Graph, state: State, n: int, control=None) -> list:
                 cur[i] = (node.init if t == 0
                           else call(graph, node.step,
                                     [prev[i], cur[node.inputs[0]]]))
+            elif node.kind == "fold":
+                # **A `scan` that steps only when its channel arrives** —
+                # `scanE`.  Its input is the channel's source, and the
+                # source's clock says when that is: every instant for the
+                # clock, the first sample of a block for a knob.  Between
+                # arrivals it holds, which is the whole difference.
+                src = graph.nodes[node.inputs[0]]
+                arrived = src.clock == "audio" or k == 0
+                cur[i] = (node.init if t == 0
+                          else call(graph, node.step,
+                                    [prev[i], cur[src.id]]) if arrived
+                          else prev[i])
             elif node.kind == "zip":
                 cur[i] = call(graph, node.step,
                               [cur[node.inputs[0]], cur[node.inputs[1]]])

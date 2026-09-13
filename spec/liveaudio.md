@@ -194,6 +194,7 @@ A signal is **audio-rate** if it is built only from:
     S ::= v ::: mkSig (wait c)          -- a source, for a clock c
         | map f S                       -- one node each
         | scan f z S
+        | scanE f z (wait c)            -- a fold over an event, for a clock c
         | zipSig f S S
         | g A…                          -- a definition whose body is an S
         | x                             -- a signal-typed parameter
@@ -202,7 +203,16 @@ A signal is **audio-rate** if it is built only from:
 `elaborate.resolve_static_methods` leaves it in; `mapSig`, which
 `signal.ges` keeps internal and the desugaring of `!` writes directly, is
 the same rule under the other name. `gain`, `addSig` and `lowpass` are the
-fourth case and need no rule of their own. Nothing else is admitted — in particular a bare `:::`, which is how a
+fourth case and need no rule of their own.
+
+`scanE` is `scan` over an **event** rather than a signal, and its node,
+`fold`, steps only on the instants its clock arrives — every sample for
+`clock`, the first sample of a block for any other channel — and holds
+its state between. Its event is `wait` on a declared channel and nothing
+else; a `sync` of several is not admitted yet, because its value is a
+sum whose constructors carry different fields and a state struct lays
+out one. *Added 2026-09-13 — Henri: "make scanE a former so the message
+arms compile"; `doc/trial/signals.md` is why.* Nothing else is admitted — in particular a bare `:::`, which is how a
 signal is built by hand, and which is precisely the freedom that would make
 the graph unknowable before it runs.
 

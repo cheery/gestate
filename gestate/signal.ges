@@ -39,6 +39,20 @@ instance Functor Sig where
 scan : (b -> a -> b) -> b -> Sig a -> Sig b
 scan = gfix q => (f z s => z ::: (delay (q2 => q2 f (f z (head s))) <*> q <@> tail s))
 
+#: **State over events.**  `scanE f z e` holds `z` now and `f z x` at the
+#: instant `e` arrives with `x` — and does nothing at the instants between,
+#: which is what `scan` over `mkSig` cannot say: once an event is a signal,
+#: *it just arrived* is no longer askable.  A game's board over presses, a
+#: knob's value over turns, a phase over the clock's own ticks.
+#:
+#: A signal former at audio rate (`audiograph.FORMERS`, the `fold` node)
+#: when `e` is `wait` on a channel: over the clock it steps every sample,
+#: over a knob at the start of the block the turn arrives in.  Henri,
+#: 2026-09-13, `doc/trial/signals.md`: *"I think that primitive looks like
+#: it earns its place."*
+scanE : (b -> a -> b) -> b -> ExL a -> Sig b
+scanE = gfix q => (f z e => z ::: (delay (q2 x => q2 f (f z x) e) <*> q <@> e))
+
 #: **Two signals meet.**  `zip f s t` is `f` of the two, instant by
 #: instant — the node a synth reaches for whenever one signal has to see
 #: another, and the shape `Num (Sig Float)`'s `+` is written in terms of.

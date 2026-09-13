@@ -255,3 +255,32 @@ which a line count or a step's cost can see.
 
 *Nothing is acted on.  What the numbers mean for where the line runs is
 his.*
+
+## `scanE` a former — 2026-09-13
+
+**Henri:** *"make scanE a former so the message arms compile.  I think
+that primitive looks like it earns its place."*  Scope, his pick of
+three: **one channel first** — `scanE f z (wait c)`; `sync` of several,
+and the sum types it needs laid out, as a slice of its own.
+
+`scanE` is in `signal.ges`, public, and a `fold` node in every machine
+that plays a graph — the check (`audiograph.py`), the extractor, the
+reference engine and the native emitter.  It steps on the instants its
+channel arrives and holds between: every sample over `clock`, the first
+sample of a block over a knob.  The arms' local definitions are gone.
+
+**Re-taken for the two it reaches** — `python tools/signalcase.py blip knob`:
+
+| case | lines | reference, signal / message | native, signal / message |
+|---|---|---|---|
+| 1 `blip` | 35 → 35 | 777 / 877 µs a sample | 0.074 / **0.078** µs a sample |
+| 4 `knob` | 25 → 25 | 1139 / 1090 µs a sample | 0.136 / **0.138** µs a sample |
+
+Both message arms now play natively, bit-identical to their goldens, and
+cost what the signal arms cost.  Read by the sheet's rule, **cases 1 and
+4 move from signals to ties** — which keep the signal.  Case 5 is still
+refused, for its list fold and its `sync`.  *Not acted on.*
+
+**Held by** `test/test_audiollvm.py` §"`scanE`": a fold counting a knob's
+turns and the clock's ticks, oracle against engine and against native,
+which went red in both when the fold was made to step on every sample.

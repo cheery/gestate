@@ -80,12 +80,6 @@ sound : Sig Float
 sound = gain 0.8 (map heard model)
 
 # ── Not counted: the library lines a message arm stands on ───────────────
-#: `scanE` — a fold over an event, `card:gui-is-difficult.md` §"Would the
-#: whole thing need rethinking?".  It would live in `signal.ges` beside
-#: `scan`, which the signal arm does not count either.
-scanE : (b -> a -> b) -> b -> ExL a -> Sig b
-scanE = gfix q => (f z e => z ::: (delay (q2 x => q2 f (f z x) e) <*> q <@> e))
-
 #: Three channels' simultaneous arrivals as a list, first channel first —
 #: names nothing of this program, so it is library by the sheet's rule.
 merge3 : (a -> m) -> (b -> m) -> (c -> m) -> Sync a (Sync b c) -> List m

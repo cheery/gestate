@@ -30,7 +30,7 @@
 <text class="subtitle" x="12.00" y="26.50">The audio backend, both halves: what the language describes is compiled to machine code, and what the score says arrives as control values on the same graph. The vocabularies below are read from the compiler's own tables — the formers, the</text>
 <text class="subtitle" x="12.00" y="30.50">primitives, the IR's kinds, and the C host's exports.</text>
 <text class="foot" x="12.00" y="287.00"><tspan class="mono">test_atlas.py</tspan> fails when the sheet is not what the source renders, and when Python names a <tspan class="mono">host.c</tspan> function that is not there. Redraw with <tspan class="mono">python -m gestate.atlas</tspan>.</text>
-<text class="stamp" x="408.00" y="287.00">gestate fcf5bce · 2026-09-12+</text>
+<text class="stamp" x="408.00" y="287.00">gestate be6137b · 2026-09-13+</text>
 <rect class="lane" x="12.00" y="37.00" width="94.50" height="81.70" rx="2.4" style="fill:#f6f2ea"/>
 <text class="lanetitle" x="16.00" y="44.40">What you write</text>
 <text class="note" x="16.00" y="49.20"><tspan class="mono">sound : Sig Float</tspan>, built from these and nothing else.</text>
@@ -45,11 +45,12 @@
 <rect class="chip" x="27.50" y="74.70" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="34.08" y="77.90">mapSig</text>
 <rect class="chip" x="42.25" y="74.70" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="48.02" y="77.90">mkSig</text>
 <rect class="chip" x="55.38" y="74.70" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="60.33" y="77.90">scan</text>
-<rect class="chip" x="66.88" y="74.70" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="72.65" y="77.90">scope</text>
-<rect class="chip" x="80.01" y="74.70" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="85.77" y="77.90">slide</text>
-<rect class="chip" x="16.00" y="80.30" width="14.78" height="4.6" rx="1.2"/><text class="chiptext" x="23.39" y="83.50">spectro</text>
-<rect class="chip" x="32.38" y="80.30" width="8.28" height="4.6" rx="1.2"/><text class="chiptext" x="36.52" y="83.50">tap</text>
-<rect class="chip" x="42.25" y="80.30" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="48.83" y="83.50">zipSig</text>
+<rect class="chip" x="66.88" y="74.70" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="72.65" y="77.90">scanE</text>
+<rect class="chip" x="80.01" y="74.70" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="85.77" y="77.90">scope</text>
+<rect class="chip" x="16.00" y="80.30" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="21.76" y="83.50">slide</text>
+<rect class="chip" x="29.13" y="80.30" width="14.78" height="4.6" rx="1.2"/><text class="chiptext" x="36.52" y="83.50">spectro</text>
+<rect class="chip" x="45.50" y="80.30" width="8.28" height="4.6" rx="1.2"/><text class="chiptext" x="49.64" y="83.50">tap</text>
+<rect class="chip" x="55.38" y="80.30" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="61.96" y="83.50">zipSig</text>
 <rect class="lane" x="112.50" y="37.00" width="94.50" height="81.70" rx="2.4" style="fill:#eef3f7"/>
 <text class="lanetitle" x="116.50" y="44.40">The fragment leaves the interpreter</text>
 <text class="note" x="116.50" y="49.20"><tspan class="mono">audioextract</tspan> walks what <tspan class="mono">sound</tspan> reaches and refuses what</text>

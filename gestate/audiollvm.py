@@ -495,7 +495,7 @@ def emit(graph: Graph, wants=RENDERERS) -> str:
         if not node.step:
             continue
         inputs = [graph.node(i).type_ for i in node.inputs]
-        if node.kind in ("scan", "line", "slide"):
+        if node.kind in ("scan", "fold", "line", "slide"):
             e.function(node.step, [node.type_, inputs[0]])
         elif node.kind == "loop":
             # Both ends of the ring, then the input: `b -> b -> a -> b`.
@@ -752,6 +752,26 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
             init, _t = e.constant(node.init)
             out = e.fresh("sv")
             e.emit(f"{out} = select i1 %first, {ty} {init}, {ty} {stepped}")
+            values[node.id] = out
+        elif node.kind == "fold":
+            # `scanE`: a `scan` whose step is taken only on the instants its
+            # channel arrives — every sample over the clock, and at
+            # `%blockstart` over a knob, where the source takes the host's
+            # value.  Between arrivals the held state stands.
+            src = graph.node(node.inputs[0])
+            stepped = e.fresh("fd")
+            arg_t = e.t.of(src.type_)
+            e.emit(f"{stepped} = call fastcc {ty} @{_fn(node.step)}"
+                   f"({ty} {held}, {arg_t} {values[src.id]})")
+            if src.clock == "audio":
+                kept = stepped
+            else:
+                kept = e.fresh("fk")
+                e.emit(f"{kept} = select i1 %blockstart, {ty} {stepped}, "
+                       f"{ty} {held}")
+            init, _t = e.constant(node.init)
+            out = e.fresh("fv")
+            e.emit(f"{out} = select i1 %first, {ty} {init}, {ty} {kept}")
             values[node.id] = out
         elif node.kind == "line":
             stepped = e.fresh("ln")

@@ -627,3 +627,64 @@ def test_a_loop_that_was_not_emitted_is_not_bound():
         lib = load(build(graph, Path(where), wants=("render_block_f32",)))
         assert hasattr(lib, "render_block_f32")
         assert not hasattr(lib, "render_block")
+
+
+# ── `scanE` — a fold over an event, `doc/trial/signals.md` ──────────────────
+#
+# Henri, 2026-09-13: *"make scanE a former so the message arms compile.  I
+# think that primitive looks like it earns its place."*  What makes it a
+# former and not a `scan` is that it steps **only when its channel
+# arrives**, and a step that merely takes the newest value cannot show
+# that — so these count arrivals.
+
+#: A fold that counts a knob's turns, and one that counts the clock's.
+COUNTING = """
+turned : Chan Int
+turned = chan
+
+turns : Sig Int
+turns = scanE (n v => n + 1) 0 (wait turned)
+
+ticked : Sig Int
+ticked = scanE (n v => n + 1) 0 (wait clock)
+
+both : Sig Float
+both = zip (a b => toFloat a * 1000.0 + toFloat b) turns ticked
+
+sound : Sig Float
+sound = both
+"""
+
+
+def test_a_fold_steps_when_its_channel_arrives_and_holds_between():
+    """Over a knob, once a block; over the clock, every sample — and the
+    oracle, the reference engine and the extracted graph agree on it."""
+    samples, every = 300, 64
+    oracle = render(COUNTING, seconds=samples / 1000, rate=1000,
+                    control_every=every)
+    graph = extract(COUNTING, rate=1000)
+    assert any(n.kind == "fold" for n in graph.nodes)
+    engine = run(graph, samples, block=every)
+    assert engine == oracle
+    turns = [int(v // 1000) for v in oracle]
+    ticks = [int(v % 1000) for v in oracle]
+    assert ticks == list(range(samples)), "the clock's fold steps every sample"
+    assert turns[every - 1] == turns[0] and turns[every] == turns[0] + 1, \
+        "a knob's fold holds across the block and steps where the next begins"
+    assert turns[-1] == (samples - 1) // every
+
+
+@needs_clang
+def test_a_fold_plays_natively_as_the_oracle_does():
+    samples, every = 300, 64
+    oracle = render(COUNTING, seconds=samples / 1000, rate=1000,
+                    control_every=every)
+    with tempfile.TemporaryDirectory() as d:
+        assert run_native(extract(COUNTING, rate=1000), d, samples,
+                          block=every) == oracle
+
+
+def test_a_fold_over_anything_but_wait_on_a_channel_is_refused():
+    source = COUNTING.replace("(wait turned)", "(sync (wait turned) (wait clock))")
+    with pytest.raises(Exception, match="folds `scanE` over"):
+        extract(source, rate=1000)

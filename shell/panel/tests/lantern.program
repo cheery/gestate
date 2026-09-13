@@ -44,7 +44,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 39
+I PushGlobal 41
 I PushGlobal zipSig
 I Mkap
 I Mkap
@@ -58,7 +58,7 @@ I Push 0
 I Pack 96 1
 I Update 1
 I Push 1
-I PushGlobal 20
+I PushGlobal 22
 I Mkap
 I Update 0
 I Push 0
@@ -80,7 +80,7 @@ I Eval
 I PushArg 4
 I PushArg 4
 I PushArg 4
-I PushGlobal 21
+I PushGlobal 23
 I Mkap
 I Mkap
 I Mkap
@@ -181,7 +181,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 40
+I PushGlobal 42
 I PushGlobal zipSig
 I Mkap
 I Mkap
@@ -199,7 +199,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 51
+I PushGlobal 53
 I Mkap
 I PushGlobal __Functor_Sig_map__
 I Mkap
@@ -222,7 +222,7 @@ I Push 0
 I Pack 96 1
 I Update 1
 I Push 1
-I PushGlobal 18
+I PushGlobal 20
 I Mkap
 I Update 0
 I Push 0
@@ -238,7 +238,7 @@ I PushArg 2
 I Mkap
 I Eval
 I PushArg 2
-I PushGlobal 19
+I PushGlobal 21
 I Mkap
 I Pack 96 1
 I Eval
@@ -547,7 +547,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 34
+I PushGlobal 36
 I PushGlobal zipSig
 I Mkap
 I Mkap
@@ -572,7 +572,7 @@ I Unwind
 block
 I PushGlobal events
 I PushArg 1
-I PushGlobal 158
+I PushGlobal 160
 I Mkap
 I PushGlobal mapSig
 I Mkap
@@ -607,18 +607,18 @@ block
 I PushArg 3
 I PushArg 2
 I PushArg 2
-I PushGlobal 37
+I PushGlobal 39
 I PushGlobal zipSig
 I Mkap
 I Mkap
 I Mkap
-I PushGlobal 36
+I PushGlobal 38
 I PushGlobal zipSig
 I Mkap
 I Mkap
 I Mkap
 I PushArg 3
-I PushGlobal 35
+I PushGlobal 37
 I Mkap
 I PushGlobal mapSig
 I Mkap
@@ -693,17 +693,17 @@ block
 I PushArg 2
 I PushArg 2
 I PushArg 2
-I PushGlobal 28
+I PushGlobal 30
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 29
 I PushGlobal zipSig
 I Mkap
 I Mkap
 I Mkap
 I PushGlobal 27
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 25
 I PushGlobal mapSig
 I Mkap
 I Mkap
@@ -714,7 +714,7 @@ block
 I Push 2
 I Push 1
 I Push 3
-I PushGlobal 26
+I PushGlobal 28
 I Mkap
 I Mkap
 I Mkap
@@ -1100,18 +1100,18 @@ global main 0 0
 global substrate 0 1
 global row 2 2
 global zipSig 0 3
-global 20 4 4
-global 21 5 8
-global 39 2 9
+global 22 4 4
+global 23 5 8
+global 41 2 9
 global warmFader 0 10
 global column 2 11
-global 40 2 12
+global 42 2 12
 global onTouchY 2 13
 global __Functor_Sig_map__ 2 14
 global mapSig 0 15
-global 18 3 16
-global 19 2 17
-global 51 2 18
+global 20 3 16
+global 21 2 17
+global 53 2 18
 global warmthChan 0 19
 global warmPic 1 20
 global faderOf 4 21
@@ -1131,23 +1131,23 @@ global 8 2 34
 global 9 3 35
 global caption 1 36
 global gap 2 37
-global 34 2 38
+global 36 2 38
 global __Num_Sig_Int_fromInteger__ 1 39
 global constSig 1 40
-global 158 2 41
+global 160 2 41
 global events 0 42
 global input 0 43
 global label 4 44
-global 35 2 47
+global 37 2 47
 global labelAt 4 48
-global 36 2 49
-global 37 2 50
+global 38 2 49
+global 39 2 50
 global dim 0 51
 global colour 3 52
-global 25 1 55
-global 26 3 56
-global 27 2 57
-global 28 2 58
+global 27 1 55
+global 28 3 56
+global 29 2 57
+global 30 2 58
 global glowFader 0 59
 global glowChan 0 60
 global glowPic 1 61

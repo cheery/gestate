@@ -182,10 +182,3 @@ substrate = column (map boardPic board)
 
 sound : Sig Float
 sound = 0.0
-
-# ── Not counted: the library line a message arm stands on ────────────────
-#: `scanE` — a fold over an event, `card:gui-is-difficult.md` §"Would the
-#: whole thing need rethinking?".  It would live in `signal.ges` beside
-#: `scan`, which the signal arm does not count either.
-scanE : (b -> a -> b) -> b -> ExL a -> Sig b
-scanE = gfix q => (f z e => z ::: (delay (q2 x => q2 f (f z x) e) <*> q <@> e))
