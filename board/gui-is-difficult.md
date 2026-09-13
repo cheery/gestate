@@ -2984,6 +2984,69 @@ cost of a step and on lines.  `tools/prereg.sh` passes on it.  **Its
 cases and its 10 % rule are his to confirm or strike before either arm
 is written.**
 
+### Where the statecharts fit — asked 2026-09-13
+
+**Henri:** *"yes.  Lets do this.  Also, I would want to know how the
+executable statecharts (Harel) fits into this all."*  *The session's
+reading, against `gestate/chart.ges` as it stands.*
+
+**A chart is the message form with a shape.**  `chart.ges`'s step is
+`s -> e -> Step s a`: a state and an event give the next state and a
+list of actions.  That is Elm's `update : Msg -> Model -> (Model, Cmd)`
+with three things Elm's flat function does not have — the states are a
+finite type, so reachability and the unhandled pairs can be enumerated
+(`test/test_transport_model.py` did); hierarchy is a nested constructor;
+and `beside` is Harel's orthogonal regions, each side unable to read
+the other by its type.  Its actions are `Command`s, which is Elm's
+`Cmd` and Eve's commit.
+
+**So the model now has four forms, and a chart is the second:**
+
+| form | what it holds | how it changes | where it is today |
+|---|---|---|---|
+| **facts** | what persists — the document | assert and retract | `notes.ges`, the `.notes` file |
+| **charts** | what is transient and discrete over time — a drag, the transport | an event steps it; its actions are commands | `chart.ges`, run by `charts.py` from the host |
+| **queries** | what is derived and drawn | recomputed on a change, or by its changes | the roll's two layers; `tools/zset.py` |
+| **signals** | what is continuous — a sample, a frame, the hand's preview | advanced every step | `signal.ges`, audio |
+
+**Why the second form is needed, by the two systems read today.**  Eve
+had facts, queries and host diffs and **no chart**: a mouse-down and a
+mouse-up are two unrelated records, and nothing holds the drag between
+them (§"Eve's source, read", finding 1).  Elm's `update` is one flat
+function over every message, and a gesture there is a record of flags
+in the model — which is why statechart libraries (XState) grew beside
+frameworks of that shape.  A gesture spread over time is hard thing 3
+of this card, and the chart is the form built for exactly it.
+
+**How it meets the other three.**  A chart's actions are commands, and
+for the document a command is assert or retract — so **charts write
+facts**.  A chart's own state is not a fact: it is transient, and
+§"Two more from Henri" already ruled that no transport state survives a
+close.  A chart reads a query when a step needs one — which note is
+under the press — and **a chart is stepped by messages, not by
+signals**: it does nothing between events.  A signal reads a chart's
+state where something continuous depends on it — the hand's preview
+drawn per frame while the chart says *dragging*.
+
+**And the seam that is open.**  A chart runs today from Python, and
+`chart.ges` has no `run` a program can call, so a `.ges` program gets
+none of it — the tic-tac-toe hand-rolled its fold.  With a fold over an
+event, running a chart in the language is one line —
+`scanE (advance chart) (initial chart) (wait c)`, less the actions.
+**Where a chart's actions go when it runs inside a program** is the
+question — to the host, as commands, which is seam 2 of §"The whole
+notes GUI in one `.ges` file".  Not built, and not a session's to
+decide.
+
+**The signals trial, arms written — 2026-09-13.**  `doc/trial/signals.md`
+§"Before any number": case 1 corrected to `blip.ges` before an arm was
+written; the four message arms in `doc/trial/signals/` each differ from
+the tree's program by one line and give the same output — both audio
+arms equal their golden buffers, bounce every frame, tic-tac-toe every
+picture.  And writing them found that in this language a channel-fed
+signal *is* a fold over arrivals, so the sheet may decide four ties.
+**The arms wait for his look before the cost and the lines are taken.**
+
 **What a session would do next, his to take or strike:** the roll's
 picture rows keyed as the identity law says — they already carry `i` —
 and the change applied by the host at a commit instead of a rebuild,

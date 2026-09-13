@@ -25,7 +25,7 @@ and is not built for this sheet:
 
 | | the case | the program | one step is |
 |---|---|---|---|
-| 1 | a sound, per sample | `examples/audio/envelope.ges` | a sample |
+| 1 | a sound, per sample | `examples/audio/blip.ges` | a sample |
 | 2 | an animation, per frame | `examples/gui/bounce.ges` | a frame |
 | 3 | an input folded into a model | `examples/gui/tic-tac-toe.ges` | a press |
 | 4 | a control read by a sound | `examples/audio/knob.ges` | a turn of the knob |
@@ -73,3 +73,49 @@ answer.  They were chosen for being the four uses of time the tree
 already has in a small program — sound, motion, input, control — and
 not for how they will come out; a case he adds for its likely answer
 the other way is the check on that.
+
+## Before any number — 2026-09-13
+
+**Henri:** *"yes.  Lets do this."*
+
+**Case 1 corrected before an arm was written.**  The sheet named
+`envelope.ges`, chosen by its name and not read: its sound is a MIDI
+voice bank of library calls, and what the file itself writes is a
+picture of probes.  `blip.ges` is the program whose per-sample fold is
+written in the file — `scan stepVoice (Voice 0.0 0) ticks` — and it has
+a committed golden buffer.  The case is the same, *a sound per sample*;
+the program was the wrong one for it.
+
+**The arms, written — `doc/trial/signals/`.**  Each is the tree's
+program with its fold over a signal replaced by a fold over the event,
+and `scanE` appended as a library line neither arm counts:
+
+| case | the one line that changed |
+|---|---|
+| `blip.ges` | `scan stepVoice (Voice 0.0 0) ticks` → `scanE stepVoice (Voice 0.0 0) (wait clock)` |
+| `knob.ges` | `40 ::: mkSig (wait knobChan)` → `scanE (k turned => turned) 40 (wait knobChan)` |
+| `bounce.ges` | `scan stepBall start events` → `scanE stepBall start (wait input)` |
+| `tic-tac-toe.ges` | `scan (…) start ((0.0 - 1.0) ::: mkSig (wait pressing))` → `scanE (…) start (wait pressing)` |
+
+**The control holds.**  Both audio arms equal their golden buffers,
+600 of 600 samples each, rendered as the golden tests render them.
+`bounce.ges` gives every frame equal on the seven event lists
+`test/test_gui.py` uses.  `tic-tac-toe.ges` gives every picture equal on
+five games, the tests' presses and drags among them.
+
+**And what writing them found, which the sheet did not foresee.**  In
+this language a signal fed by a channel *is* a fold over arrivals — the
+audio clock itself is `ticks = 0 ::: mkSig (wait clock)`, a channel
+written once a sample — so the two forms are one line apart in every
+case, and `mkSig` is the whole of the difference.  Prediction 1's
+reason was wrong before its number: a message per sample is not Eve's
+timer, it is the same arrivals the signal already has.  In Elm 0.16 a
+signal was a runtime of its own; here it is not, which makes the Elm
+contrast smaller than the sheet assumed.  **So the sheet may decide
+four ties, and that would be a finding and not a failure** — but the
+difference Elm actually removed may lie somewhere these cases do not
+reach: in *how many* folds a program has over *how many* channels,
+where Elm's shape is one update over one type of message.
+
+*Not yet taken: the cost of a step and the line counts.  The arms go to
+him first, per the control.*
