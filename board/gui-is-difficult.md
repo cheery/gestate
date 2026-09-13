@@ -3829,6 +3829,31 @@ so after the first mark the comment stands **below** it, and a comment
 above a record travels with that record when it is retracted — the
 format's rule, kept, and worth his eye.
 
+**His reading of the program — Henri, 2026-09-13:** *"I think that
+the 'play', 'clear', 'act' are bit smelly along the channel handling.
+But this is already pretty good."*  *The session's naming of the
+smell, marked as its own.*  The verbs are pure functions from the
+facts and an argument to acts, and stay.  The smell is `act`: a
+dispatcher over `Sync` — two hand channels merged with a clock
+combinator, a `SyncBoth` arm for a case one hand cannot make, a
+sentinel `SyncLeft (-1)` because a signal must hold a value before any
+press, and `floor` turning a float back into a cell — four lines of
+seam for one fact, that **a meaning is a float** and the element
+cannot say which message it carries.  A typed meaning, `Meaning (Chan
+Msg) Msg Sub`, would have a cell carry `Play 4` and the foot `Clear`,
+on one channel, and `act` becomes `update : Set (Int, Text) -> Msg ->
+List Act` — Elm's update with the model outside the program, which is
+the direction he drew.  *Kill:* the wire carries an `f32` per element
+and both machines walk the word; a document program stays home
+already, but a substrate word is wired in both or not at all.  What
+would still remain is `acts` as a held signal read by its tick flag —
+the honest form is an arrival, which wants a former the language does
+not have, sampling a signal at an arrival; that is the many-channels
+decision of `doc/trial/signals.md`, and **this program is the second
+example it said it was waiting for.**  *Put to him, default: leave the
+program as it stands and record it as that example; trigger: the gex
+sheet or the notes GUI meeting the same three seams.*  Not built.
+
 **Held by** `test/test_documents.py` (9), `test_gui.py`'s example list,
 and 128 green across `test_gui`, `test_facts`, `test_notes_relations`
 and `test_reference`; drawn scores 200, and grid, audio editor and
