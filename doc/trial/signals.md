@@ -56,7 +56,7 @@ make the new form heavier than it need be, as the first tic-tac-toe was
 taken, and any place he points at as heavier than he would write is
 rewritten first.
 
-**n:** 4
+**n:** 5
 
 **prediction, written before anything is built — the session's:**
 1. **signals**, by the budget: a message per sample is Eve's timer at
@@ -157,3 +157,43 @@ for simultaneous arrivals — a turn landing on the same sample as the
 clock is `SyncBoth`, and the golden was rendered with exactly that
 happening every 64 samples, so the order the update applies them in
 must match the signal arm's or the buffer will differ.
+
+### Case 5's arm, written — 2026-09-13
+
+`doc/trial/signals/twoknobs.ges`: a `Model` of the phase, the filter's
+memory and the two knobs; `Msg := Tick Int | Pitch Int | Cutoff Int`;
+one `update`; the three channels merged by `sync`, and `merge3`/`merge2`
+as the uncounted library that turns nested `Sync` into a list.
+**It equals the golden buffer, 800 of 800.**
+
+**It took three drafts, and the golden caught both wrong ones** — which
+is the part of this case the line count will not show:
+
+1. the filter read the phase *before* the sample's step: **1 of 800**;
+2. a turn landing on a sample was applied *after* it: **64 of 800**,
+   broken at the first turn;
+3. the knobs first and the clock last, in the `sync`: **800 of 800**.
+
+Both mistakes were about **when a value is read**.  The signal arm never
+says either thing — it falls out of which signal reads which through
+the `zip`s.  The message arm has to *state* the order of simultaneous
+arrivals and which value each step sees, and a wrong statement compiles
+and plays: exactly the kind of silent step
+`card:gui-is-difficult.md` §"His reading of the working program" named.
+The prediction's own *what would make it wrong* was this, and it came
+true twice before it was right.
+
+**And two costs the sheet's rule cannot see, recorded before any number
+is taken:**
+
+- **The drafts.**  Three against the signal arm's none, found only
+  because a golden buffer existed.  A program without one would have
+  shipped draft 2.
+- **Live coding.**  The tree's file argues for several channels over one
+  record because state migrates by shape: a third knob added to `Model`
+  changes its type, and the knobs already turned snap back.  Not
+  measured here; measurable, by adding a parameter to a running program
+  in each arm and reading whether the other two keep their values.
+
+*Not yet taken: the cost of a step and the line counts, for all five.
+The arms go to him first, per the control.*

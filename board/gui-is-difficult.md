@@ -3047,6 +3047,18 @@ picture.  And writing them found that in this language a channel-fed
 signal *is* a fold over arrivals, so the sheet may decide four ties.
 **The arms wait for his look before the cost and the lines are taken.**
 
+**Case 5, many channels — his ask, the same evening:** *"add the
+many-channels case first."*  `twoknobs.ges` in Elm's shape — one
+`Model`, one `Msg`, one `update`, three channels merged by `sync` —
+equals its golden buffer 800 of 800, on the third draft.  The two
+wrong drafts were both about **when a value is read**: the filter
+reading the phase before its step, and a turn applied after the sample
+it landed on.  The signal arm never states either; the message arm must,
+and a wrong statement compiles and plays.  `doc/trial/signals.md`
+§"Case 5's arm, written" has it, and the live-coding cost the tree's own
+file argues — one record migrates by shape — as the one the sheet's
+rule cannot see.
+
 **What a session would do next, his to take or strike:** the roll's
 picture rows keyed as the identity law says — they already carry `i` —
 and the change applied by the host at a commit instead of a rebuild,

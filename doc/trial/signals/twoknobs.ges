@@ -1,0 +1,101 @@
+# doc/trial/signals/twoknobs.ges — the message arm of `examples/audio/twoknobs.ges`,
+# for `doc/trial/signals.md` case 5.  Elm's shape: one model, one message
+# type, one update, the three channels merged into messages and the sound
+# read off the model.  The comments that describe unchanged code are the
+# tree program's; the rest are this arm's.
+#
+#   python -m gestate.audioperform doc/trial/signals/twoknobs.ges -o twoknobs.wav
+#
+# **What the tree's file argues against this arm, kept here on purpose.**
+# `examples/audio/twoknobs.ges` says several parameters are several
+# channels, "not several fields of one record", because live coding
+# migrates state by shape: a third parameter added to one record changes
+# its type, and the two knobs already turned snap back.  This arm is that
+# record.  The sheet's rule — lines and a step's cost — cannot see it.
+
+# ── The parameters ───────────────────────────────────────────────────────
+
+pitchChan : Chan Int
+pitchChan = chan
+
+cutoffChan : Chan Int
+cutoffChan = chan
+
+#: Clamped at the boundary, and not as a nicety — the tree program's
+#: reason: the offline renderer drives every control channel with the
+#: sample index, and unclamped the filter diverges.
+clampKnob : Int -> Int
+clampKnob v = case v < 0 of
+    True -> 0
+    False -> case v > 100 of
+        True -> 100
+        False -> v
+
+#: 110 Hz at the bottom of the knob, 510 at the top.
+hzOf : Int -> Float
+hzOf k = 110.0 + 4.0 * toFloat k
+
+# ── The model, the messages, the update ──────────────────────────────────
+
+#: The phase, the filter's memory, and the two knobs — everything the
+#: sound depends on, in one value.
+Model := Model Float Float Int Int
+
+start : Model
+start = Model 0.0 0.0 40 70
+
+Msg := Tick Int | Pitch Int | Cutoff Int
+
+#: **A sample advances the voice with the knobs as they stand; a turn sets
+#: a knob.**  And the filter hears the phase *after* this sample's step,
+#: which is what the signal arm's `zip voiceAt turning driven` reads.
+#: Both were wrong in a first draft and the golden buffer said so: the old
+#: phase matched 1 sample of 800, and the order below 64.
+update : Model -> Msg -> Model
+update m msg = case m of
+    Model p y pk ck -> case msg of
+        Tick n -> voiced (wrap (p + hzOf pk / sampleRate)) y pk ck
+        Pitch v -> Model p y (clampKnob v) ck
+        Cutoff v -> Model p y pk (clampKnob v)
+
+voiced : Float -> Float -> Int -> Int -> Model
+voiced p y pk ck = Model p (y + (0.02 + 0.0098 * toFloat ck) * (sawOf p * 0.5 - y)) pk ck
+
+#: **The order of simultaneous arrivals is decided here, and nowhere else.**
+#: A turn that lands on a sample is heard by that sample — the signal
+#: arm's `zip`s read the knob of the same instant — so the knobs come
+#: first and the clock last.  The signal arm never states this; it falls
+#: out of which signal reads which.
+arrivals : ExL (Sync Int (Sync Int Int))
+arrivals = sync (wait pitchChan) (sync (wait cutoffChan) (wait clock))
+
+model : Sig Model
+model = scanE (m s => foldl update m (merge3 Pitch Cutoff Tick s)) start arrivals
+
+heard : Model -> Float
+heard m = case m of
+    Model p y pk ck -> y
+
+sound : Sig Float
+sound = gain 0.8 (map heard model)
+
+# ── Not counted: the library lines a message arm stands on ───────────────
+#: `scanE` — a fold over an event, `card:gui-is-difficult.md` §"Would the
+#: whole thing need rethinking?".  It would live in `signal.ges` beside
+#: `scan`, which the signal arm does not count either.
+scanE : (b -> a -> b) -> b -> ExL a -> Sig b
+scanE = gfix q => (f z e => z ::: (delay (q2 x => q2 f (f z x) e) <*> q <@> e))
+
+#: Three channels' simultaneous arrivals as a list, first channel first —
+#: names nothing of this program, so it is library by the sheet's rule.
+merge3 : (a -> m) -> (b -> m) -> (c -> m) -> Sync a (Sync b c) -> List m
+merge3 fa fb fc s = case s of
+    SyncLeft a -> fa a :: Nil
+    SyncRight r -> merge2 fb fc r
+    SyncBoth a r -> fa a :: merge2 fb fc r
+
+merge2 : (b -> m) -> (c -> m) -> Sync b c -> List m
+merge2 fb fc s = case s of
+    SyncLeft b -> fb b :: Nil
+    SyncRight c -> fc c :: Nil
+    SyncBoth b c -> fb b :: fc c :: Nil
