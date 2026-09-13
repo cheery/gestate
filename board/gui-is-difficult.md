@@ -3382,6 +3382,9 @@ sections, in order: §"Implementations that already match the card",
   the document's rules before it is written (F229 fixed).
 
 **Open, and whose:**
+- *His, five design choices with defaults:* the tic-tac-toe-on-facts
+  slice, §"The mashup, asked" — his four answers are in, the set-in-a-
+  signal probe passed, and nothing is built past them.
 - *His:* where exactly the signal/message line runs, now that the
   numbers are in (`doc/trial/signals.md` §"The numbers", §"`scanE` a
   former") — four cases tie, `twoknobs` is 40 % shorter as messages and
@@ -3582,6 +3585,132 @@ seams showing, and tic-tac-toe is a program on the facts-and-messages
 side of the day's direction written as a signal.  Not acted on.
 
 **Nothing is uncommitted and nothing is half-built.**
+
+### The mashup, asked — 2026-09-13
+
+**Henri, opening the next sitting:** *"I am working on the
+card:gui-is-difficult.md and I'd need design help.  We have an
+excellent functional programming environment here.  I want to keep it
+that way, but I'm also in favor of logic programming and relational
+model.  I'd want to bring gestate toward some kind of a mashup, a mix
+or a layered design."*
+
+*The session's reading, offered as three readings each with what kills
+it, and marked as its own.*  The four-form table of §"Where the
+statecharts fit" is already the layered design, and each tradition
+owns one layer of it: the **relational** model is the facts
+(`facts.ges`, `notes.ges`, the file); **logic** programming is the
+queries, and its language is Datafun, which the tree has — a
+comprehension is a rule, a fixpoint over a finite key is recursion that
+must converge, and the monotone discipline is what keeps it checkable
+(`doc/memory/the-language-goal.md`); the **functional** language is
+everything else, types for the few, charts, signals, the picture.  So
+the recommendation was **no second rule language**: mide's `:/:` head
+and Eve's `commit` are a command answering a list of acts, and
+`chart.ges` already has that shape in `Go s [acts]`.
+
+| reading | what kills it |
+|---|---|
+| **1. Datafun is the logic layer** (recommended) | `fix` needs a finite key and a note's key holds `Int` and `Text`, so recursive rules over notes are refused while select, project and join are not; a signal carrying a set was an open question in `spec/data.md` §II.2; negation only over a discrete set |
+| 2. a rule language above the functional one, mide or Eve shaped | a second language a person must know; hole 7 of `staves.ui`, aggregation under recursion; and *take the property, not the rule language* (`doc/memory/mide-staves-ui.md`) |
+| 3. everything relational, time included (Dedalus, Eve's timer) | killed already — a fact cannot carry a sample, §"Eve's source, read" finding 6 |
+
+**The stack read as doors**, and every door but one is a word already
+— `set`/`elems` between list and relation, `Meaning`/`onPress` from
+picture to event, `scanE` from event to state; `document`, sketched in
+§"The whole notes GUI in one `.ges` file", unbuilt.  **The one missing
+door is the last: a program handing the host its acts.**  Seam 1, seam
+2, a chart's actions inside a program, the one-file notes GUI and
+tic-tac-toe on facts all end there.
+
+**Four questions, shaped, and his answers the same sitting:**
+
+- **Q-a, the document as a value** — does a program read its document
+  as a signal of a set, ticking at a commit?  *Default:* yes, read
+  discretely under `head`, §II.2 checked first.  **Henri:** *"Q-a
+  sounds like interesting idea."*  **Measured the same hour, before
+  the metatheory:** a program holding `Sig (Set (Int, Mark))`, fed a
+  flat `List Float` on a channel the way `grid.ges`' rows arrive,
+  running `for ((c, m) in b, m == X) {c}` over it into a `Label`,
+  compiles on `gui.py`'s reference machine and the picture changes
+  when the channel is written — `set` inside a lifted function, an
+  ADT with `deriving Eq` as a set element, a comprehension over
+  `head` of a signal all pass.  So the non-`fix` fragment works
+  today; what §II.2 asks about Rizzo's causality proofs is not
+  answered by this and stays marked.
+- **Q-b, the command door** — the program exports named verbs the
+  host calls with the facts, or emits a stream of acts?  *Default:*
+  named verbs, refused by state as today.  **Henri:** *"I guess it
+  could be named verbs.. It also reminds me of algebraic effects
+  btw."*  *Session's note on the association:* it is exact — `Act :=
+  Assert … | Retract … | Refuse …` is an effect signature, the
+  program performs operations it cannot itself carry out, and the host
+  is the handler that writes the file; a chart's `Go s [acts]` is the
+  same shape one layer down.  The two readings meet there: a verb is a
+  pure function from the facts and its arguments to acts, the palette
+  calls it by name, and a gesture inside the program calls the same
+  function — so *named verbs* and *a stream of acts* are one door seen
+  from its two ends.
+- **Q-c, the rule fragment** — Datafun as it stands, recursion over
+  finite keys only, negation discrete?  The default offered was yes,
+  and he took it.  **Henri:** *"datafun seems sensible choice since we
+  have it already."*
+- **Q-d, the example he said he needs** — tic-tac-toe on facts: the
+  board a relation, a press an event carrying its cell, `play`
+  answering acts, the picture a comprehension.  **Henri:** *"yes!
+  This.  I think tic-tac-toe could really go through relational model,
+  and I'd want to exhibit the facts being stored into and loaded from
+  file, so that its state is a document."*
+
+**So Q-d is the slice**, and it is the experiment
+`doc/notes/notes-on-the-model.md` proposed on 2026-09-09 — *the
+model, only the model, in facts, for the roll and tic-tac-toe* — with
+its second half finally taken, and one thing more than the page asked:
+the file.  Its design choices are put to him below before anything is
+built (`doc/memory/the-slow-part-was-never-the-test.md`).
+
+**Postcondition, the session's sentence, uncorrected:** *a game of
+tic-tac-toe is played by pressing cells; its board is a plain file of
+facts a person can read and edit by hand, so a mark typed into the
+file appears on the board and a press on the board appears in the
+file; and closing and reopening the window resumes the game from that
+file.*
+
+**The design choices, each with a default — his to take or strike:**
+
+1. **Where the kinds live.**  `facts.beside` compiles the document's
+   sibling `.ges` with `facts.ges` alone in front of it (`charts.Terms`),
+   so a GUI program that says `kinds` **cannot** be its own document's
+   declaration today: it wants `gui.ges` and would not load, and a
+   declaration that will not load is refused by name.  *Default:*
+   `facts.ges` joins the GUI prelude chain and the host reads `kinds`
+   off the compiled program itself, so the one-file shape of §"The
+   whole notes GUI in one `.ges` file" holds — one program, its kinds,
+   its document beside it by name.  *Alternative:* three files, the
+   kinds in a `.ges` of the document's name and the GUI program a
+   third, which is the pairing rule kept exactly and the seam he
+   called hacky moved into the directory listing.
+2. **The document's name.**  `<program>.<ext>` beside `<program>.ges`,
+   the extension saying what is inside as `.notes` and `.desk` do.
+   *Default:* his to name; the session has no claim on it.
+3. **The door in.**  *Default:* a word, `document : Sig (Set a)`, typed
+   from the kinds — not the grid's `Chan (List Float)` the probe used,
+   because a number channel carrying a cell is the seam his reading of
+   2026-09-13 named as hacky, and a `Word` field cannot cross as a
+   float at all.  Built as the probe's shape underneath, so the
+   host's side is the grid's road already paid for.
+4. **The door out.**  *Default:* `acts : Sig (List Act)`, a third
+   entry beside `substrate` and `sound`, read by the host after every
+   step; a non-empty list is applied to the file through the same
+   road `assert` and `retract` take — written canonical, read back,
+   refused in the parser's words — and the document signal ticks.
+   The effect-handler shape of Q-b, with `Refuse` a value in the list.
+5. **What a mark is.**  *Default:* `mark cell 4 mark X`, keyed by the
+   cell; an empty cell is **no row**, so `Empty` leaves the type and
+   the turn is a count over the relation — absence is silent, scar
+   §"Already paid" of `card:relational-model.md`.
+
+*Nothing built; the probe is a scratch script and was not kept.*
 
 ## What the next session picks up — written 2026-09-09, at his ask
 
