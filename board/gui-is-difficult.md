@@ -3057,6 +3057,20 @@ time step, where a fact persists only if a rule carries it to the next
 step and an event is a fact that nothing carries.  Which one he meant
 is his; the answer goes here.
 
+**Henri:** *"I didn't mean any in particular, but Event Calculus seems
+nearest.  I remember reading about fluents.  Also I was at some point
+studying Robert Kowalski's work."*  So the Event Calculus is the
+reference this direction is read against.  *The session's mapping,
+unmeasured:* a fluent is a fact in the document; an event is a command
+in the transcript; *initiates* and *terminates* are assert and retract;
+inertia is the file keeping what nothing retracted; *holds at t* is the
+transcript replayed to t; and planning, the calculus's abduction, would
+be asking which commands reach a stated document.  And one more of
+Kowalski's, recalled and unchecked: **LPS**, Logic Production Systems
+(Kowalski and Sadri), which joins logic programs, reactive rules and
+Event-Calculus-style change of state by events — the nearest thing in
+his line of work to what Eve's `commit` does.
+
 ### Where the statecharts fit — asked 2026-09-13
 
 **Henri:** *"yes.  Lets do this.  Also, I would want to know how the
