@@ -3030,6 +3030,33 @@ of the transaction they arrived in (`html.ts`, *"Remove html events."*);
 and a block added or removed as a change of its own, so that an edit
 retracts exactly what the old rule derived.
 
+**His direction, the same evening — Henri, 2026-09-13:** *"I've been
+thinking of the "resets the whole record" -thing.  It's a problem (or
+feature) with all stateful signal code.  I'd propose, Leave the state
+where it's ok to drop (animation&audio mainly) and make movements
+towards Eve's approaches where Eve is ahead of gestate."*
+
+So the line is drawn by **what losing the state costs**, not by form:
+where a reset on an edit is harmless — a phase, a filter's memory, a
+ball's position — state stays in signals and migrates by shape as it
+does; where it is not — what a person made, what a gesture committed —
+it moves toward Eve's three strengths: facts derived incrementally, the
+host applying diffs, and an edit that is itself a change.
+
+And his question under it: *"That "events as transient facts", doesn't
+it move it toward different sort of logic programming?  I've forgotten
+the name but it was related to logic programs that deal with time, and
+planning."*  *The session's candidates, from memory and unchecked
+against their papers:* the **Event Calculus** (Kowalski and Sergot,
+1986) — events *initiate* and *terminate* fluents, a fluent holds until
+terminated, and planning is finding the events that make a goal hold;
+the **Situation Calculus** (McCarthy) — a state is the sequence of
+actions that reached it, and planning is searching those; and
+**Dedalus** (Alvaro, Hellerstein and others, 2010) — Datalog with a
+time step, where a fact persists only if a rule carries it to the next
+step and an event is a fact that nothing carries.  Which one he meant
+is his; the answer goes here.
+
 ### Where the statecharts fit — asked 2026-09-13
 
 **Henri:** *"yes.  Lets do this.  Also, I would want to know how the
