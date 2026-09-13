@@ -3313,7 +3313,9 @@ def test_a_section_does_not_shrink_past_its_notes_and_grows_freely():
     _here, seat, view, roll = _page_seat()
     before = seat.view.text()
     said = seat.run("bars", "__nb_ruler_0__", 8, 7)
-    assert said.startswith("bars: arc.notes:") and "bar 8 of section A has notes" in said, said
+    # The file's own rule, tried before the write — not a copy of it in
+    # the command (refusals as constraints, 2026-09-13).
+    assert said == "bars: arc.notes:93: `bar 8` — section `A` has 7 bars", said
     assert seat.view.text() == before
     assert seat.run("bars", "__nb_ruler_0__", 8, 0) == "bars: `bars 0` is less than 1"
     assert seat.run("bars", "__nb_ruler_0__", 7, 9).startswith("bars: section A has 8 bars, not 7")
@@ -4407,3 +4409,19 @@ def test_a_commands_refusal_for_a_value_is_the_declarations_sentence():
 
     for bpm in (0, 1, 1000):
         assert typed(bpm) == (disallowed("bpm", "bpm", bpm) is None), bpm
+
+
+def test_a_gesture_that_would_put_a_mistake_into_a_clean_file_writes_nothing():
+    """**Try, then refuse by state** — Henri, 2026-09-13, choosing LPS's
+    reading without a new form: an act is refused when the document's
+    own rules refuse the state it would leave.  `transpose` checks no
+    bound of its own, and a key above 127 is outside `note`'s declared
+    domain; until the write seam tried the result, `canonical` handed the
+    refused text back and the gesture wrote it."""
+    _here, seat, _view, roll = _page_seat()
+    n = max(range(len(roll.events)), key=lambda i: roll.events[i][3])
+    on, key = roll.events[n][0], roll.events[n][3]
+    before = seat.view.text()
+    said = seat.run("transpose", "__nb_pitch_0__", "-", on, key, 128)
+    assert said == "transpose: arc.notes:95: `key 128` is not a MIDI key number (0-127)", said
+    assert seat.view.text() == before, "a refused act writes nothing"

@@ -3183,14 +3183,9 @@ class Session:
                         f"not {was} — the file has moved under the picture")
             if now == was:
                 return "bars: nothing to do — that is its length"
-            full = sorted({n["bar"] for n in notes_of(parsed)
-                           if n["section"] == section_name and n["bar"] > now})
-            if full:
-                #: complaint  author — the section's line, and the bar the
-                #: drag would cut that still has notes in it
-                raise NotesError(
-                    f"{place}: bar {full[0]} of section {section_name} has notes — "
-                    "a section does not shrink past its notes by dragging")
+            # A section does not shrink past its notes — not written here:
+            # the file's own rule refuses a note past its section's bars,
+            # and `_write_included` tries the result against it.
             out, said = retune(text, section["line"], "bars", was, now)
             self._write_included(Path(getattr(self.bench, "path", ".")), out, True)
         except (OSError, NotesError) as exc:
@@ -5492,15 +5487,42 @@ class Session:
         order** (`notes.canonical`; Henri, 2026-09-08: the note sorts to
         the order agreed for the file).  One seam, so every gesture's
         write is a canonical one and the buffer's lines say where the
-        notes sound, not where they were typed."""
-        from .notes import canonical
+        notes sound, not where they were typed.
 
-        out = canonical(out, Path(path).name)
+        **And the act is tried before it is written** — refusals as
+        constraints, Henri, 2026-09-13, after LPS: *"Take refusals as
+        constraints."*  The result is read back by the document's own
+        parser, which holds the declared domains and the integrity rules
+        over the relations; a gesture whose result it refuses is refused
+        in its words and writes nothing.  Until this, `canonical` handed a
+        refused text back unchanged and the gesture wrote it, so a
+        gesture could put a mistake into a clean file silently.  A file
+        that was *already* refused before the gesture still takes it, as
+        `canonical` always meant: a mistake elsewhere does not lock the
+        file.  And the selection a gesture staged with `_follow` is kept
+        only when the write lands."""
+        from .notes import NotesError, parse, write
+
+        name = Path(path).name
+        staged, self._staged = getattr(self, "_staged", None), None
+        try:
+            out = write(parse(out, name))
+        except NotesError:
+            before = (self.view.text() if mine
+                      else Path(path).read_text() if Path(path).exists() else "")
+            try:
+                parse(before, name)
+            except NotesError:
+                pass                       # refused already: the gesture lands as it did
+            else:
+                raise
         if mine:
             if not self.view.replace(out):
                 raise OSError("nowhere to put it")
         else:
             path.write_text(out)
+        if staged is not None:
+            self.pending[staged[0]] = staged[1]
 
     def _follow(self, found, notes) -> None:
         """Hold the selection by key across the rebuild a commit causes.
@@ -5516,7 +5538,9 @@ class Session:
         # The roll itself, not its `id`: a rebuilt roll can land at the
         # freed address, and did, which made a settled selection look
         # unsettled.  Holding the object keeps the address taken.
-        self.pending[found.box] = (found.roll, keys)
+        #: Staged, not yet pending: `_write_included` makes it pending
+        #: when the write lands, and a refused write drops it.
+        self._staged = (found.box, (found.roll, keys))
 
     def _sound(self, found, note: int, key: int) -> None:
         """**Sound the note under the hand, in its own voice.**

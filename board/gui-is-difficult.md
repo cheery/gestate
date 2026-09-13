@@ -3159,9 +3159,31 @@ given a 999 ceiling the parser did not have.  One cascade on the way: the
 bars test, still expecting the old words, failed mid-way and left the
 shared seat changed for the tempo test after it.
 
-**Slice 2 is a design, and his:** the form of a declared action
-constraint — where it lives beside the kinds, and what it is written
-over.
+**Slice 2 was a design, and his.**  Measured before asking: the one
+command refusal about facts left — `bars` not shrinking past its notes —
+restated a state rule `refused` already held, and the act-only refusals
+(a doubled line at a gesture, a carry within one file, an act that
+changes nothing) are about addressing, files and no-ops, not facts.  His
+pick, 2026-09-13: **try, then refuse by state** — LPS's reading with no
+new form; a declared act constraint waits for a rule over facts that
+only an act can break.
+
+**Slice 2, landed.**  `Session._write_included`, the seam every
+gesture's write goes through, parses the result before writing, and a
+gesture whose result the document's own rules refuse is refused in the
+parser's words — when the file was accepted before it; a file already
+refused still takes a gesture, as `canonical` meant.  `bars`' copy of
+the shrink rule is gone: the refusal is now *"arc.notes:93: `bar 8` —
+section `A` has 7 bars"*.  And a selection staged by `_follow` becomes
+pending only when the write lands.
+
+**It found a defect — `fixme.md` F229.**  `canonical` handed a refused
+text back unchanged and the gesture wrote it, so a gesture could put a
+mistake into a clean file and report success: `transpose` to key 128
+answered *"key 80 → 128 on line 95"* and wrote it.  Witnessed by taking
+the new check out again; `card:relational-model.md` scar 5 was half
+paid — every write ended in the parser, and the parser's refusal was
+then ignored.
 
 ### Where the statecharts fit — asked 2026-09-13
 
