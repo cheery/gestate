@@ -1,0 +1,213 @@
+# Tic-tac-toe, its board a document — the same game, through the
+# relational model.
+#
+#   python -m gestate.workbench examples/gui/tic-tac-toe-facts.ges
+#
+# Press a cell to put your mark in it; X goes first.  Press the foot,
+# once the game is over, to clear the board.
+#
+# **The board is `tic-tac-toe-facts.board`, beside this file** — a plain
+# file of facts, one mark a line, `mark  cell 4  mark X`.  Open it in
+# any editor and the game is there; add a line by hand and the board
+# shows it; close the window and open it again and the game goes on
+# from the file.  Henri, 2026-09-13, `card:gui-is-difficult.md` §"The
+# mashup, asked": *"I'd want to exhibit the facts being stored into and
+# loaded from file, so that its state is a document."*
+#
+# **So this program stores nothing.**  `tic-tac-toe.ges` beside it
+# folds a board out of presses and keeps it in a signal; here the board
+# is *read* from the file (`document`), the rules are queries over it,
+# a press asks the host to assert a fact (`acts`), and the host writes
+# the file and feeds the rows back.  Four forms, one file: facts,
+# queries, a hand, and the picture.
+
+include "tic-tac-toe-facts.board"
+
+# ── The document: what the file may say ─────────────────────────────────
+
+marks : List Text
+marks = "X" :: "O" :: Nil
+
+#: `mark  cell 4  mark X` — keyed by the cell, so a cell holds one
+#: mark; an empty cell is **no row**, and the turn is a count.
+markKind : Kind
+markKind = Kind "mark" Named
+    (Field "cell" (Range 0 8) Must :: Field "mark" (OneOf marks) Must :: Nil)
+    ("cell" :: Nil)
+    (By "cell" :: Nil)
+
+kinds : List Kind
+kinds = markKind :: Nil
+
+#: **The board, as the file says it** — every mark, a cell and a word.
+#: The host writes this at every change of the document; the row is
+#: the kind's key and then its required fields, a number an `Int` and
+#: a word a `Text`.
+board : Sig (Set (Int, Text))
+board = document "mark"
+
+# ── The rules, as queries ────────────────────────────────────────────────
+
+#: What is in cell `k` — the mark, or nothing.
+markAt : Set (Int, Text) -> Int -> List Text
+markAt b k = elems (for ((c, m) in b, c == k) {m})
+
+#: How many cells hold `m`.
+count : Set (Int, Text) -> Text -> Int
+count b m = length (elems (for ((c, n) in b, n == m) {c}))
+
+#: **Whose turn it is, read off the board and never carried.**  X goes
+#: first, so it is X's turn whenever the two counts are level.
+turn : Set (Int, Text) -> Text
+turn b = case count b "X" == count b "O" of
+    True -> "X"
+    False -> "O"
+
+#: The eight ways to win — three rows, three columns, two diagonals.
+ways : Set (Int, Int, Int)
+ways = {(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)}
+
+#: The marks that own a line of three — the board joined with itself,
+#: three times, along a way.
+winners : Set (Int, Text) -> Set Text
+winners b = for ((p, q, r) in ways, (c1, m1) in b, (c2, m2) in b, (c3, m3) in b,
+                 c1 == p, c2 == q, c3 == r, m1 == m2, m2 == m3) {m1}
+
+winner : Set (Int, Text) -> List Text
+winner b = elems (winners b)
+
+full : Set (Int, Text) -> Bool
+full b = length (elems b) == 9
+
+over : Set (Int, Text) -> Bool
+over b = case winner b of
+    m :: rest -> True
+    Nil -> full b
+
+# ── The verbs ────────────────────────────────────────────────────────────
+
+#: A fact of the document, as this program says one: the kind's word
+#: capitalised, its fields in the declared order.
+Fact := Mark Int Text
+
+#: **What the program asks of the host** — assert this, retract that,
+#: or refuse with a sentence.  The program performs and the host
+#: handles, by writing the file; a refusal is a value here and a
+#: sentence in the status line there.
+Act := Assert Fact | Retract Fact | Refuse Text
+
+#: The move: a mark in an empty cell of a game still going.
+play : Set (Int, Text) -> Int -> List Act
+play b k = case over b of
+    True -> Refuse "the game is over; press the foot to clear the board" :: Nil
+    False -> case markAt b k of
+        m :: rest -> Refuse "that cell is taken" :: Nil
+        Nil -> Assert (Mark k (turn b)) :: Nil
+
+#: Clearing the board: retract every mark it has.
+clear : Set (Int, Text) -> List Act
+clear b = map retractOne (elems b)
+
+retractOne : (Int, Text) -> Act
+retractOne (c, m) = Retract (Mark c m)
+
+# ── The hand ─────────────────────────────────────────────────────────────
+
+#: The channel every cell writes, and the one the foot writes.
+pressing : Chan Float
+pressing = chan
+
+clearing : Chan Float
+clearing = chan
+
+#: Whichever came last — a cell, or the foot.  `sync` is how two
+#: channels become one arrival; the value before any is no cell.
+hand : Sig (Sync Float Float)
+hand = SyncLeft (0.0 - 1.0) ::: mkSig (sync (wait pressing) (wait clearing))
+
+#: A cell pressed is a move; the foot pressed is a clearing, whether or
+#: not a cell landed in the same instant.
+act : Set (Int, Text) -> Sync Float Float -> List Act
+act b s = case s of
+    SyncLeft k -> play b (floor k)
+    SyncRight f -> clear b
+    SyncBoth k f -> clear b
+
+#: **The door out.**  Read by the host after a hand's write, and only
+#: when the write reached it; never between.
+acts : Sig (List Act)
+acts = zip act board hand
+
+# ── The picture ──────────────────────────────────────────────────────────
+
+cellSide : Int
+cellSide = 60
+
+tileInk : Colour
+tileInk = RGB 38 42 52
+
+xInk : Colour
+xInk = RGB 122 200 235
+
+oInk : Colour
+oInk = RGB 235 178 110
+
+footInk : Colour
+footInk = RGB 120 124 134
+
+inkOf : Text -> Colour
+inkOf m = case m == "X" of
+    True -> xInk
+    False -> oInk
+
+#: One cell: a tile, the mark on it, and **which cell it is** —
+#: `gui.ges`' `onPress`, so a press names the cell and the game is a
+#: query over what it named.
+cellPic : Int -> List Text -> Sub
+cellPic k ms = Meaning pressing (toFloat k)
+    (Sized cellSide cellSide
+        (Over (Rect (cellSide - 4) (cellSide - 4) tileInk) (markPic ms)))
+
+markPic : List Text -> Sub
+markPic ms = case ms of
+    Nil -> Gap 0 0
+    m :: rest -> Label 26 26 m (inkOf m)
+
+rowPic : Set (Int, Text) -> Int -> Sub
+rowPic b r = Row (tile b (r * 3))
+                 (Row (tile b (r * 3 + 1)) (tile b (r * 3 + 2)))
+
+tile : Set (Int, Text) -> Int -> Sub
+tile b k = cellPic k (markAt b k)
+
+boardPic : Set (Int, Text) -> Sub
+boardPic b = Column (rowPic b 0) (Column (rowPic b 1) (rowPic b 2))
+
+#: What the foot says — who is to move, or who won — and it is what
+#: you press to clear the board.
+saying : Set (Int, Text) -> Sub
+saying b = case winner b of
+    m :: rest -> wins m
+    Nil -> case full b of
+        True -> Label 90 14 "A DRAW" footInk
+        False -> toPlay (turn b)
+
+wins : Text -> Sub
+wins m = case m == "X" of
+    True -> Label 90 14 "X WINS" xInk
+    False -> Label 90 14 "O WINS" oInk
+
+toPlay : Text -> Sub
+toPlay m = case m == "X" of
+    True -> Label 90 14 "X TO PLAY" xInk
+    False -> Label 90 14 "O TO PLAY" oInk
+
+foot : Set (Int, Text) -> Sub
+foot b = Meaning clearing 0.0 (saying b)
+
+substrate : Sig Sub
+substrate = column (map boardPic board)
+                   (sized (!190) (!24) (map foot board))
+
+sound : Sig Float
+sound = 0.0

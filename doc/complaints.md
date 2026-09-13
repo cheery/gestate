@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**503 complaints**, in 48 files.
+**516 complaints**, in 49 files.
 
 | | |
 |---|---|
-| `author` | 281 |
-| `command` | 43 |
+| `author` | 284 |
+| `command` | 51 |
 | `world` | 27 |
-| `machine` | 152 |
-| say where | 183 |
-| say `nowhere`, on purpose | 52 |
+| `machine` | 154 |
+| say where | 191 |
+| say `nowhere`, on purpose | 55 |
 | `unplaced`, with a defect that owns it | 60 |
 
 ## A place that could exist, and does not
@@ -80,8 +80,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:650` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:653` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:707` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:710` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1155` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
@@ -100,13 +100,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | where | error | why |
 |---|---|---|
-| `audio.py:545` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:629` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:635` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:641` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:651` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:857` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:877` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:563` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:647` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:653` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:659` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:669` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:875` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:895` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audioalloc.py:103` | `AllocError` | a bank with no voices is a count in a declaration; the declaration places it before this is reached |
 | `audioalloc.py:172` | `AllocError` | the piece's notes and the bank's payload disagree, which is about two declarations and not one line |
 | `audiodynamic.py:80` | `ScoreError` | the piece names a bank that was given no allocator, which is about two declarations and not one line |
@@ -118,10 +118,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:525` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
 | `audioscore.py:591` | `ScoreError` | a note names a bank the piece does not declare |
 | `audioscore.py:1381` | `ScoreError` | the piece names a bank that was given no allocator |
-| `charts.py:56` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:79` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:62` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `charts.py:85` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:97` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:91` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:103` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
@@ -136,14 +136,17 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:194` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:230` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:240` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:400` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:406` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:476` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:413` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:419` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:489` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:534` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:592` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:598` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:634` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:932` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:954` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:998` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:1020` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -161,20 +164,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 482 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
-| 545 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
-| 629 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
-| 635 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
-| 641 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
-| 651 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
-| 681 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
-| 721 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
-| 726 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
-| 735 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
-| 835 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
-| 857 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
-| 869 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
-| 877 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
+| 500 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
+| 563 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
+| 647 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
+| 653 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
+| 659 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
+| 669 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
+| 699 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
+| 739 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
+| 744 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
+| 753 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
+| 853 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
+| 875 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
+| 887 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
+| 895 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
 
 ### `audioalloc.py`
 
@@ -426,10 +429,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 56 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{name}`' |
-| 79 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
-| 85 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
-| 97 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
+| 62 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{name}`' |
+| 85 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
+| 91 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
+| 103 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
 
 ### `coherence.py`
 
@@ -536,6 +539,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 960 | `DesugarError` | `author` | `at()` | 'Unsupported expression form: {type(val).__name__}{at(val)}' |
 | 1004 | `DesugarError` | `machine` | — | 'internal: a projection reached codegen unresolved; inference should have rejected it' |
 
+### `documents.py`
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 154 | `NotesError` | `command` | carried from the complaints it collects | '{name}: `{kind} ' + ' '.join((str(k) for k in key)) + '` refers to a record this file does not… |
+| 175 | `NotesError` | `command` | handed in | '{place} is empty' |
+| 179 | `NotesError` | `command` | handed in | '{place} must be one record' |
+| 187 | `NotesError` | `command` | handed in | '{place}: `{what}` is already written, on line {_l}' + (' — a doubled line is one fact said twi… |
+| 210 | `NotesError` | `command` | handed in | '{place} is empty' |
+| 216 | `NotesError` | `command` | handed in | '{place}: `{word}` is not a record; a line is ' + ', '.join((f'`{k} …`' for k in document.names… |
+| 231 | `NotesError` | `command` | handed in | '{place}: no `{word}` here says that' |
+| 238 | `NotesError` | `command` | handed in | '{place}: retracting it would leave the file unreadable — {why}' |
+
 ### `editor.py`
 
 *the editor's window, and the toolchain that builds it*
@@ -598,9 +614,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 194 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a kind' |
 | 230 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders along `{other} {ofield}` and nothing was given to look it up in' |
 | 240 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders among `{other}` and nothing was given to find it in' |
-| 400 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
-| 406 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
-| 476 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
+| 413 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
+| 419 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
+| 489 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
+| 534 | `FactsError` | `author` | *nowhere, on purpose* | '''`{name} = document "{kind}"` needs `{name} : Sig (Set …)` declared above it — the set's elem… |
+| 592 | `FactsError` | `author` | *nowhere, on purpose* | "`{head}` names no kind of {document.path.name}; a fact's constructor is a kind's word capitali… |
+| 598 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` carries {len(args)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}`… |
 
 ### `gmachine.py`
 
@@ -664,12 +683,14 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 528 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
 | 540 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
 | 634 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 650 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 653 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 677 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 932 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 954 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1287 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 661 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
+| 680 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
+| 707 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 710 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 734 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 998 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 1020 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1378 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -830,9 +851,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1187 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
 | 1195 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
 | 1197 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1699 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1706 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1756 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 1701 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1717 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1773 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 

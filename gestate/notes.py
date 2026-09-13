@@ -1682,10 +1682,12 @@ def expanded(source: str, base: Path | None = None,
     the `))` that closes it were written by nobody, and answering for
     them would be inventing a provenance.
     """
+    from .facts import with_documents
+
     found = [(_line_of(source, m.start()), m.group(2))
              for m in _INCLUDE.finditer(source)]
     if not found:
-        return source, {}
+        return with_documents(source), {}
     root = Path(base) if base is not None else Path.cwd()
     blanked = _INCLUDE.sub(lambda m: m.group(1), source)
     read: list = []
@@ -1700,6 +1702,15 @@ def expanded(source: str, base: Path | None = None,
                 f'{place}: include "{one}" — no such file beside {root}')
         else:
             text, at = path.read_text(), path
+        #: **A document that is not a `.notes` brings no score.**  It is
+        #: the program's own document — read by the kinds the program
+        #: declares, fed to it through `document "<kind>"` by the host
+        #: (`facts.with_documents`, `Workbench._feed_documents`) — so
+        #: the line is blanked and nothing is appended.  Not parsed
+        #: here either: its declaration is this very program, and
+        #: reading it would expand this program to read it.
+        if path.suffix != ".notes":
+            continue
         rels = parse(text, name=one, where=at)
         for section in sections_of(rels):
             if section["name"] in known:
@@ -1721,7 +1732,13 @@ def expanded(source: str, base: Path | None = None,
         lines += text.splitlines()
         for generated, wrote in origin.items():
             where[at + generated - 1] = (one, wrote)
-    return "\n".join(lines) + "\n", where
+    return with_documents("\n".join(lines) + "\n"), where
+
+
+def documents(source: str) -> list[str]:
+    """The paths a program includes that are its own documents — every
+    `include` that is not a `.notes`, in the order written."""
+    return [one for one in includes(source) if not one.endswith(".notes")]
 
 
 def _line_of(source: str, offset: int) -> int:

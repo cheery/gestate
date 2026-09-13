@@ -326,9 +326,7 @@ def relations(kind: Kind, records) -> dict:
     headed by the key and then `value`, or `rank` and `value`.
     """
     key = kind.key
-    base_cols = list(key) + [f.name for f in kind.fields
-                             if f.need == "Must" and f.value != "Names"
-                             and f.name not in key]
+    base_cols = base_columns(kind)
     base: set = set()
     split: dict[str, set] = {}
     for raw in records:
@@ -393,7 +391,22 @@ class Document:
 
     def __init__(self, path: Path):
         self.path = Path(path)
-        self.terms = Terms(self.path, LIBRARY)
+        #: **A GUI program may declare its own document's kinds** —
+        #: `card:gui-is-difficult.md` §"The mashup, asked", choice 1.
+        #: Such a file wants the canvas's vocabulary, so it is compiled
+        #: as the canvas compiles it, with `facts.ges` after that chain
+        #: (`audio.preludes`), and the kinds are read off the result.
+        #: A bare declaration is compiled with this library alone.
+        text = self.path.read_text(encoding="utf-8")
+        source = None
+        from .audio import has_substrate
+        from .notes import expand
+
+        opened = expand(text, self.path.parent)
+        if has_substrate(opened):
+            from .gui import assembled
+            source = assembled(opened)
+        self.terms = Terms(self.path, LIBRARY, source)
         try:
             declared = self.terms.declared("kinds")
         except ChartError as why:
@@ -476,3 +489,117 @@ def beside(path) -> Document:
         raise FactsError(
             f"{beside_it.name} declares the kinds of {Path(path).name} and "
             f"will not load: {why}") from None
+
+
+# ── The `document` word ────────────────────────────────────────────────────
+#
+# `card:gui-is-difficult.md` §"The mashup, asked", 2026-09-13 — choice 3,
+# the door in.  A program reads a relation of its document as a signal
+# of a set:
+#
+#     board : Sig (Set (Int, Text))
+#     board = document "mark"
+#
+# **The type is the program's to say**, and it is the row of the kind:
+# the key fields and then every required scalar field, in the declared
+# order, a `Number` an `Int` and a `Word` a `Text` — `relations`' base
+# relation, exactly.  The host checks the file against the kinds it
+# declares, feeds the rows at every change of the document, and the
+# program stores nothing (`Workbench._feed_documents`).
+#
+# Underneath it is the grid's road: a channel carrying the rows, the
+# rows made a set.  A person never writes that channel, and a number
+# channel carrying a cell was the seam Henri called hacky.
+
+_DOCUMENT = re.compile(r'^(\w+)[ \t]*=[ \t]*document[ \t]+"(\w+)"[ \t]*$', re.M)
+
+
+def channel_of(kind: str) -> str:
+    """The channel a kind's rows arrive on — the host's name, never a
+    person's."""
+    return f"__doc_{kind}__"
+
+
+def documents(source: str) -> list:
+    """`(name, kind, the set's element type)` per `name = document
+    "kind"` a program writes.  Refused when the declaration is missing,
+    because the element type is what the channel is declared with."""
+    out = []
+    for m in _DOCUMENT.finditer(source):
+        name, kind = m.group(1), m.group(2)
+        sig = re.search(
+            rf"^{re.escape(name)}[ \t]*:[ \t]*Sig[ \t]*\([ \t]*Set[ \t]+(.+)\)[ \t]*$",
+            source, re.M)
+        if sig is None:
+            raise FactsError(
+                f'`{name} = document "{kind}"` needs `{name} : Sig (Set …)` '
+                "declared above it — the set's element is the row: the key, "
+                "then each required field, a number an `Int` and a word a "
+                "`Text`")
+        out.append((name, kind, sig.group(1).strip()))
+    return out
+
+
+def with_documents(source: str) -> str:
+    """`source` with each `document "kind"` read from its channel, and
+    the channel declared after the program — the same line count above,
+    so a complaint still lands on the line the author wrote."""
+    found = documents(source)
+    if not found:
+        return source
+
+    def rewrite(m):
+        return (f"{m.group(1)} = map (rows => set rows) "
+                f"(Nil ::: mkSig (wait {channel_of(m.group(2))}))")
+
+    out = _DOCUMENT.sub(rewrite, source)
+    tail = []
+    for _name, kind, elem in found:
+        chan = channel_of(kind)
+        typed = elem if elem.startswith("(") else f"({elem})"
+        tail.append(f"\n{chan} : Chan (List {typed})\n{chan} = chan\n")
+    return out + "".join(tail)
+
+
+def base_columns(kind: Kind) -> list:
+    """The columns of a kind's base relation — the key, then every
+    required scalar field not in it — which is also the row a program
+    reads and the fields a `Fact` constructor carries."""
+    return list(kind.key) + [f.name for f in kind.fields
+                             if f.need == "Must" and f.value != "Names"
+                             and f.name not in kind.key]
+
+
+def rows_of(document: Document, rels: dict, kind: str) -> list:
+    """The rows a program's `document "kind"` receives: the base
+    relation's, each a tuple in heading order, sorted so a feed is the
+    same list for the same file."""
+    document[kind]
+    return sorted(rels[kind].rows)
+
+
+def fact_of(document: Document, term) -> tuple:
+    """`(kind, {column: value})` of a `Fact` a program's act carries.
+
+    A fact is **the kind's word capitalised, its base columns in
+    order** — `Mark 4 "X"` for `mark  cell 4  mark X`.  A `Text` arrives
+    as the code points the machine holds it as and is read back by the
+    field's own type."""
+    head, *args = term
+    name = head[:1].lower() + head[1:]
+    kind = document.kind(name)
+    if kind is None:
+        raise FactsError(
+            f"`{head}` names no kind of {document.path.name}; a fact's "
+            "constructor is a kind's word capitalised — "
+            + ", ".join(f"`{k.name[:1].upper()}{k.name[1:]}`" for k in document.kinds))
+    cols = base_columns(kind)
+    if len(args) != len(cols):
+        raise FactsError(
+            f"`{head}` carries {len(args)} values and `{kind.name}` has "
+            f"{len(cols)} — " + ", ".join(f"`{c}`" for c in cols))
+    values = {}
+    for col, value in zip(cols, args):
+        field = kind.field(col)
+        values[col] = _text(value) if field is None or field.value != "Number" else int(value)
+    return kind, values

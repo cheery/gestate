@@ -175,7 +175,9 @@ def _dots(scene):
 
 def test_every_gui_example_is_exercised_here():
     assert {p.name for p in GUI_DIR.glob("*.ges")} == {
-        "bounce.ges", "chain.ges", "patchbay.ges", "tic-tac-toe.ges"}
+        "bounce.ges", "chain.ges", "patchbay.ges", "tic-tac-toe.ges",
+        # `test_documents.py` drives this one: its board is a file.
+        "tic-tac-toe-facts.ges"}
 
 
 # ── `patchbay.ges` — a Datafun query behind a picture ───────────────────────

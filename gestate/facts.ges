@@ -23,6 +23,20 @@
 # what the parser and the writer are to be held to.  The first use of it
 # is a parity test against `gestate/notes.py`, which has carried these
 # facts by hand since the format existed.
+#
+# **And a program reads its document through one word** — 2026-09-13,
+# `card:gui-is-difficult.md` §"The mashup, asked":
+#
+#     board : Sig (Set (Int, Text))
+#     board = document "mark"
+#
+# the rows of one kind of the file the program `include`s, as a signal
+# of a set the host writes at every change of the file: the key fields
+# and then each required field, in the declared order, a `Number` an
+# `Int` and a `Word` a `Text`.  What the program asks done to the file
+# is `acts : Sig (List Act)`, an `Assert`, `Retract` or `Refuse` at a
+# time, a fact being the kind's word capitalised over the same fields —
+# `examples/gui/tic-tac-toe-facts.ges` is the first program written so.
 
 #: `command.ges` declares this too, and for the same reason: it is not
 #: in the core prelude and a file that wants strings has to say so.

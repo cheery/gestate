@@ -1511,6 +1511,9 @@ class Workbench:
         else:
             try:
                 self.substrate = Substrate(text, self.rate)
+                # **Its document, fed** — the rows a `document "kind"`
+                # reads, from the file the program includes.
+                self._feed_documents()
                 # **Both inside the guard.**  `_load_substrate` runs from
                 # `start` *before* there is a transport, so a reading
                 # switched on out here raised on `None` — and the `except`
@@ -1984,7 +1987,115 @@ class Workbench:
         """
         if self.substrate is None:
             return None
-        return self.substrate.touch(kind, x, y)
+        meant = self.substrate.touch(kind, x, y)
+        if meant is not None:
+            self._perform()
+        return meant
+
+    # -- a program's document, and what it asks done to it -------------------
+    #
+    # `card:gui-is-difficult.md` §"The mashup, asked", 2026-09-13.  A
+    # program that includes a document that is not a `.notes` reads its
+    # relations through `document "<kind>"` (`facts.with_documents`) and
+    # answers `acts : Sig (List Act)` — assert this fact, retract that
+    # one, refuse with a sentence.  The host is the handler: it writes
+    # the file through the document's own reader, and feeds the rows
+    # back.  The program stores nothing; the file is the state.
+
+    def _feed_documents(self) -> None:
+        """Write every `document "kind"` its rows, from the file the
+        program includes — at a build, and again whenever the file
+        changed (`_refresh_documents`)."""
+        from .documents import stamp
+        from .facts import FactsError, beside, channel_of, documents as declared, rows_of
+        from .notes import NotesError, documents, relations_of
+
+        sub = self.substrate
+        self.documents = []
+        self._document_stamps = {}
+        if sub is None:
+            return
+        try:
+            authored = self.source()
+            names = documents(authored)
+            wanted = declared(authored)
+        except Exception:                                   # noqa: BLE001
+            return
+        if not names or not wanted:
+            return
+        for one in names:
+            path = self.path.parent / one
+            try:
+                rels = relations_of(path.read_text(), one, where=path)
+                doc = beside(path)
+                pairs = [(channel_of(kind), rows_of(doc, rels, kind))
+                         for _name, kind, _elem in wanted]
+            except (OSError, NotesError, FactsError) as exc:
+                self.say(f"{one}: {self._first_line(exc)}")
+                continue
+            sub.write_all(pairs)
+            #: The rows' own step moves `acts` — a stale press against a
+            #: new board — and nobody asked for that; a hand's write is
+            #: what the host performs, so this one is read and dropped.
+            sub.acts()
+            self.documents.append(path)
+            self._document_stamps[path] = stamp(path)
+
+    def _refresh_documents(self) -> None:
+        """A document edited by hand, or by anything else, reaches the
+        board on the next frame — one `stat` a frame, `Session._outside`'s
+        own instinct — so what the file says is what the picture shows."""
+        from .documents import stamp
+
+        stamps = getattr(self, "_document_stamps", None) or {}
+        if any(stamp(path) != was for path, was in stamps.items()):
+            self._feed_documents()
+
+    def _perform(self) -> None:
+        """Do what the program asked in the step a hand just made —
+        `Substrate.acts`: assert and retract through the document's own
+        reader, say a refusal, and feed the rows back."""
+        from .documents import asserted, key_line, record_line, retracted
+        from .facts import FactsError, beside, fact_of
+        from .notes import NotesError
+
+        sub = self.substrate
+        if sub is None:
+            return
+        acts = sub.acts()
+        if not acts:
+            return
+        paths = getattr(self, "documents", None) or []
+        if not paths:
+            self.say("acts: this program includes no document to write")
+            return
+        path = paths[0]
+        changed = False
+        for act in acts:
+            head = act[0] if isinstance(act, tuple) else act
+            if head == "Refuse":
+                self.say("".join(chr(c) for c in act[1]))
+                continue
+            if head not in ("Assert", "Retract"):
+                self.say(f"acts: `{head}` is not an act the host knows")
+                continue
+            try:
+                doc = beside(path)
+                kind, values = fact_of(doc, act[1])
+                text = path.read_text()
+                if head == "Assert":
+                    out, said = asserted(text, record_line(kind, values),
+                                         path.name, where=path)
+                else:
+                    out, said = retracted(text, key_line(kind, values),
+                                          path.name, where=path)
+                path.write_text(out)
+                changed = True
+                self.say(f"{path.name} — {said}")
+            except (OSError, NotesError, FactsError) as exc:
+                self.say(f"{head.lower()}: {self._first_line(exc)}")
+        if changed:
+            self._feed_documents()
 
     def ask(self, x: int, y: int) -> list:
         """What a press at this point of the canvas would mean, asked and
@@ -2008,6 +2119,7 @@ class Workbench:
         """
         if self.substrate is not None:
             self.substrate.write(name, value)
+            self._perform()
         for sub in getattr(self, "canvases", {}).values():
             sub.write(name, value)
 
@@ -2020,6 +2132,7 @@ class Workbench:
         sound is running.
         """
         if self.substrate is not None:
+            self._refresh_documents()
             self.substrate.tick()
 
     def picture(self) -> list:

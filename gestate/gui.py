@@ -638,6 +638,63 @@ def _entry_signal(state):
     return sig
 
 
+def _value_node(state, value):
+    """A Python value as the heap node a channel of its type carries: a
+    number, a text as its code points, a list, a tuple — the inverse of
+    `_term`, and `charts.Terms.node`'s rule for the same shapes."""
+    from .gmachine import tuple_tag
+
+    if isinstance(value, bool):
+        return NCon(state.cons["True" if value else "False"].tag, ())
+    if isinstance(value, (int, float)):
+        return NNum(value)
+    if isinstance(value, str):
+        value = [ord(c) for c in value]
+    if isinstance(value, list):
+        node = NCon(state.cons["Nil"].tag, ())
+        for v in reversed(value):
+            node = NCon(state.cons["Cons"].tag, (_value_node(state, v), node))
+        return node
+    if isinstance(value, tuple):
+        return NCon(tuple_tag(len(value)),
+                    tuple(_value_node(state, v) for v in value))
+    raise GuiError(f"a channel cannot carry {type(value).__name__}: {value!r}")
+
+
+def _term(node, state):
+    """A heap node as a Python term, forced as far as it goes — a
+    number, a list, `(constructor, args…)`, a bare tuple.  What
+    `Substrate.acts` answers with; `charts.Terms.read` is the same
+    reading for a chart."""
+    from .gmachine import _force
+
+    names = {v.tag: k for k, v in state.cons.items()}
+
+    def read(node):
+        node = _force(node, state)
+        while isinstance(node, NInd) and node.target is not None:
+            node = node.target
+        if isinstance(node, NNum):
+            return node.n
+        if not isinstance(node, NCon):
+            raise GuiError(f"a program answered a {type(node).__name__}, not a value")
+        head = names.get(node.tag)
+        if head == "Nil":
+            return []
+        if head == "Cons":
+            out, at = [], node
+            while isinstance(at, NCon) and names.get(at.tag) == "Cons":
+                out.append(read(at.args[0]))
+                at = _force(at.args[1], state)
+                while isinstance(at, NInd) and at.target is not None:
+                    at = at.target
+            return out
+        args = tuple(read(a) for a in node.args)
+        return (head, *args) if head is not None else args
+
+    return read(node)
+
+
 def _event_node(state, event) -> NCon:
     """A Python `("Move", x, y)` as the `Event` constructor it names."""
     name, *args = event
@@ -847,6 +904,7 @@ class Substrate:
         self.signal = self._signal_of(entry)
         self.values = {}
         self._held = None
+        self._acts = first._acts
 
     def _build(self, source: str, rate: int = 0,
                entry: str = "substrate") -> None:
@@ -905,6 +963,14 @@ class Substrate:
         #: side reads: `audioeditor.Workbench.control` asks by name.
         self.values: dict[str, int] = {}
         self._held: dict | None = None
+        #: **What the program asks the host to do** — `acts : Sig (List
+        #: Act)`, the door out (`card:gui-is-difficult.md` §"The mashup,
+        #: asked", choice 4).  Forced here, after the run, the way a
+        #: second view's entry is, so it reacts as one built during it.
+        from .audio import _authored
+
+        self._acts = (self._signal_of("acts")
+                      if "acts" in _authored(source)[1] else None)
 
     def _signal_of(self, name: str):
         """The `NSig` cell a named picture evaluated to.
@@ -960,6 +1026,28 @@ class Substrate:
         """The shapes to draw, right now."""
         return _flatten(self.signal.value, self.state)
 
+    def acts(self) -> list | None:
+        """What the program asked of the host **in the step just taken**,
+        as terms — `("Assert", ("Mark", 4, [88]))` — or `None` when the
+        program declares no `acts` or they did not change this step.
+
+        **Ticked, not held.**  `acts` is a signal and a signal holds its
+        last value; read after every write it would perform the last
+        press again on every fader's motion.  A signal cell records
+        whether it moved in the current step (`gmachine.NSig.ticked`),
+        and that is the event the effect handler waits on — the host
+        reads acts after a hand's write and after nothing else, and only
+        when the cell says the write reached it.
+        """
+        sig = self._acts
+        if sig is None or not sig.ticked:
+            return None
+        #: **Consumed.**  A step that reaches nothing on this cell leaves
+        #: the flag as the last step set it, so a hand's motion that
+        #: wrote no channel would read the press before it again.
+        sig.ticked = False
+        return _term(sig.value, self.state)
+
     def _crossing(self):
         """The payload's static half — what `export.substrate_of`
         gathers for a plugin, gathered for the editor's window.
@@ -974,6 +1062,14 @@ class Substrate:
         from .crust import CrustError, serialize
         from .export import _SUB_CONS
 
+        # **A program with a document stays home.**  Its rows cross on a
+        # channel of tuples and texts, and the wire carries a number or
+        # a trace of numbers (`spec/scope.md`); a walking window would
+        # be asked to force a channel it could not be sent.  So the
+        # reference machine draws it, as it draws every canvas that
+        # steps outside crust's core.
+        if any(name.startswith("__doc_") for name in self.by_name):
+            return None
         # **`main` for the view that was compiled, its own name for a
         # view sharing that machine.**  `serialize` crosses only what
         # the entry reaches, which is what keeps a page of boxes N
@@ -1083,17 +1179,12 @@ class Substrate:
             cid = self.by_name.get(name)
             if cid is None:
                 continue
-            if isinstance(value, list):
-                # A scope's trace: the points as the `List Float` the
-                # channel declared (`spec/scope.md`) — built with the
-                # program's own constructors, the way `_event_node`
-                # builds an event.
-                node = NCon(self.state.cons["Nil"].tag, ())
-                for v in reversed(value):
-                    node = NCon(self.state.cons["Cons"].tag, (NNum(v), node))
-                arrivals.append((cid, node))
-            else:
-                arrivals.append((cid, NNum(value)))
+            # A number, or a scope's trace as the `List Float` the
+            # channel declared (`spec/scope.md`) — and since 2026-09-13
+            # a document's rows, `List (Int, Text)` and the like
+            # (`facts.with_documents`): built with the program's own
+            # constructors, the way `_event_node` builds an event.
+            arrivals.append((cid, _value_node(self.state, value)))
             self.values[name] = value
         if arrivals:
             react(self.reactive, arrivals)

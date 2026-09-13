@@ -39,11 +39,17 @@ class Terms:
     exactly this.  What is chart-specific is `Chart` below.
     """
 
-    def __init__(self, path: Path, library: Path):
+    def __init__(self, path: Path, library: Path, source: str | None = None):
         self.path, self.library = Path(path), Path(library)
-        source = (self.library.read_text(encoding="utf-8") + "\n"
-                  + self.path.read_text(encoding="utf-8")
-                  + "\nmain : Int\nmain = 0\n")
+        if source is None:
+            #: The library in front of the file and a `main` after it —
+            #: a chart's or a declaration's whole program.
+            source = (self.library.read_text(encoding="utf-8") + "\n"
+                      + self.path.read_text(encoding="utf-8")
+                      + "\nmain : Int\nmain = 0\n")
+        #: Or a program somebody else assembled — a GUI program that
+        #: declares its own document's kinds is compiled with the
+        #: canvas's vocabulary, not this library alone (`facts.Document`).
         self.state = compile_program(source)
         self._tag = {k: v.tag for k, v in self.state.cons.items()}
         self._name = {v.tag: k for k, v in self.state.cons.items()}

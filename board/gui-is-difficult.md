@@ -3382,9 +3382,11 @@ sections, in order: §"Implementations that already match the card",
   the document's rules before it is written (F229 fixed).
 
 **Open, and whose:**
-- *His, five design choices with defaults:* the tic-tac-toe-on-facts
-  slice, §"The mashup, asked" — his four answers are in, the set-in-a-
-  signal probe passed, and nothing is built past them.
+- *His, two minutes with his hands on it:* the tic-tac-toe whose board
+  is a file — §"Built — 2026-09-13: tic-tac-toe, its board a document",
+  the five choices taken as defaults at his word, *"I want to see how
+  it looks like, and then propose changes if needed."*  The window is
+  not driven yet.
 - *His:* where exactly the signal/message line runs, now that the
   numbers are in (`doc/trial/signals.md` §"The numbers", §"`scanE` a
   former") — four cases tie, `twoknobs` is 40 % shorter as messages and
@@ -3711,6 +3713,116 @@ file.*
    §"Already paid" of `card:relational-model.md`.
 
 *Nothing built; the probe is a scratch script and was not kept.*
+
+**Henri, the same sitting:** *"these seem sensible choices.  I want to
+see how it looks like, and then propose changes if needed."*  So the
+defaults stand, the extension is `.board` (the session's pick, his to
+rename), and the slice is built below for him to look at.
+
+### Built — 2026-09-13: tic-tac-toe, its board a document
+
+`examples/gui/tic-tac-toe-facts.ges` beside `tic-tac-toe.ges`, which
+stays as it was so the two can be read side by side, and
+`tic-tac-toe-facts.board` beside it.  The postcondition holds on a
+headless bench (`test/test_documents.py`, nine tests): a press on a
+cell is a line in the file, a line typed into the file is a mark on the
+board at the next frame, a second bench on the same directory resumes
+the game, a taken cell and a finished game are refused in the program's
+own words, and the foot pressed after a win retracts every mark.
+**The window is not driven yet** — a program with a document stays on
+the reference machine and the window draws its picture, which is a
+path the editor has, and the two minutes of his hands on it are the
+check this card's postcondition asks for.
+
+**What the program is**, by the four forms, in code lines:
+
+| | `tic-tac-toe.ges` | `tic-tac-toe-facts.ges` |
+|---|---|---|
+| the document: one kind, its key, its domains | — | 11 |
+| the rules, as queries over the relation | 37, over a list | 21 |
+| the verbs: `Fact`, `Act`, `play`, `clear` | — | 12 |
+| the hand | 5 | 13, two channels through `sync` |
+| the picture | 42 | 50 |
+| **whole** | **84** | **108** |
+
+Longer by the two things it has that the other does not — the
+declaration and the verbs — and the list indexing the old model needed
+(`markAt`, `putAt`, twelve lines) is two comprehensions.  Whether it
+*reads* better is his to say; that is what the file is for.
+
+**The five choices, as built:**
+
+1. **The kinds live in the program.**  `audio.preludes` puts
+   `facts.ges` after a program's chain when the program declares
+   `kinds` — only then, so no other program's globals move and no
+   fixture went stale — and `facts.Document` compiles such a program
+   as the canvas does (`gui.assembled`) to read the kinds off it,
+   cached by the file's mtime.  *Cost:* a second compile of the program
+   per edit of it, 0.3–0.5 s, beside the bench's own; reading the
+   kinds off the bench's compiled state instead is the obvious next cut
+   and is not taken.
+2. **`.board`**, and `include "tic-tac-toe-facts.board"` names it —
+   his (2) of 2026-09-09, *a program says which document it plays*, one
+   word doing one job.  An `include` of anything but a `.notes` is
+   blanked and appended nothing; the file is read by the kinds the
+   program declares (`notes.expanded`, `notes.documents`).
+3. **The door in: `board = document "mark"`** under `board : Sig (Set
+   (Int, Text))`.  Textual, at the same door `include` goes through
+   (`facts.with_documents`): the line becomes `map (rows => set rows)
+   (Nil ::: mkSig (wait __doc_mark__))` in place, and the channel is
+   declared after the program with the element type the signature
+   says — so a complaint still lands on the author's line.  The host
+   feeds the base relation's rows as tuples (`Substrate.write_all`
+   builds a tuple, a text, a list — `_value_node`), at a build and
+   whenever the file's stamp moves, one `stat` a frame.  A program with
+   such a channel does not cross to the walking window (`_crossing`):
+   the wire carries numbers and traces of numbers, and rows of text do
+   not fit it.
+4. **The door out: `acts : Sig (List Act)`.**  Read by the host after
+   a hand's write and only then, and **only when the cell ticked in
+   that step** (`Substrate.acts`, `NSig.ticked`, consumed on read) — a
+   signal holds its last value, and read after every motion it
+   performed the last press again; that was the first defect the smoke
+   run found.  An `Assert (Mark 4 "X")` becomes `mark  cell 4  mark X`
+   through the kind's base columns (`facts.fact_of`), and goes through
+   `documents.asserted`, which reads the result back by the
+   declaration — domains, references — before it is written; a
+   `Refuse` is said.  The program performs, the host handles; the
+   effect signature is `Act`, and `Fact` is *the kind's word
+   capitalised over its base columns*.
+5. **A mark is `mark  cell 4  mark X`**, keyed by the cell; an empty
+   cell is no row, `turn` is a count, `winners` is the board joined
+   with itself three times along `ways` — a query, no fixpoint.
+
+**The second writer, held to the first.**  `gestate/documents.py`
+writes any document by its declaration — kinds in declared order, a
+kind's records by `facts.sort_key` with the `Among` and `Along`
+lookups read off the file, fields in declared order, prose kept — and
+asserts and retracts through it.  Held to `notes.write` on `arc.notes`
+**line for line, blank lines aside** (298 of 298): the one thing the
+`.notes` writer knows that no declaration says is the blank line
+between bars.  The derivation found one defect on the way, in the
+reader it stands on: `notes.records` typed a `Names` field and
+**dropped the typing**, handing the token on — invisible to every
+reader so far because each split the token again for itself.  The
+writer joins what it is handed.
+
+**What it does not cover, said plainly.**  `notes.py`'s own writer and
+edits are untouched; the `.notes` road and this one are two writers
+held equal by a test, and retiring one is a slice nobody has asked for.
+A `Fact` carries a kind's base columns only, so a kind with a `May`
+field cannot be asserted from a program yet.  One document per program
+is what the feed assumes.  And the F200 rule shows in the exhibit: the
+`.board` ships with a comment and no record, which is *closing* prose,
+so after the first mark the comment stands **below** it, and a comment
+above a record travels with that record when it is retracted — the
+format's rule, kept, and worth his eye.
+
+**Held by** `test/test_documents.py` (9), `test_gui.py`'s example list,
+and 128 green across `test_gui`, `test_facts`, `test_notes_relations`
+and `test_reference`; drawn scores 200, and grid, audio editor and
+substrate 147; the gates 800.  The atlas gained the module's lane and
+the complaints page its eight verdicts, all `command`.
 
 ## What the next session picks up — written 2026-09-09, at his ask
 

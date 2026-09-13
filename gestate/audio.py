@@ -294,15 +294,28 @@ def preludes(source: str) -> str:
       program has always been compiled with.
     """
     sounds, draws = has_sound(source), has_substrate(source)
+    # **And `facts.ges` after them, for a program that declares its own
+    # document's kinds** — `card:gui-is-difficult.md` §"The mashup,
+    # asked", choice 1: one file, its kinds, its document beside it.
+    # Only such a program pays for it, and only such a program's
+    # globals are renumbered by it, so no fixture of any other moves.
+    facts = "\n" + _FACTS if has_kinds(source) else ""
     if sounds and draws:
-        return _AUDIO_GUI
+        return _AUDIO_GUI + facts
     if draws and has_grid(source):
-        return _GUI_GRID
+        return _GUI_GRID + facts
     if draws and has_roll(source):
-        return _GUI_ROLL
+        return _GUI_ROLL + facts
     if draws:
-        return _GUI_ONLY
-    return _AUDIO
+        return _GUI_ONLY + facts
+    return _AUDIO + facts
+
+
+def has_kinds(source: str) -> bool:
+    """Does this program declare a document's kinds?  `kinds : List Kind`
+    is what a declaration says (`gestate/facts.ges`), and a program that
+    says it is compiled with that vocabulary after its own."""
+    return "kinds" in _authored(source)[1]
 
 
 def has_grid(source: str) -> bool:
@@ -344,6 +357,11 @@ _GUI_ROLL = (_GUI_ONLY + "\n"
 #: both pictures in one program (`card:gex-sheet.md`).
 _GUI_GRID = (_GUI_ROLL + "\n"
              + library_text("grid.ges"))
+
+#: The document vocabulary — `Kind`, `Field`, `By` — after whichever
+#: chain a program is compiled with, when the program declares `kinds`.
+#: Last, so that nothing a program without one compiles against moves.
+_FACTS = library_text("facts.ges")
 
 #: 22,050 is a compromise: high enough that a sawtooth is recognisably
 #: itself, low enough that a second of sound is a few seconds of work.
