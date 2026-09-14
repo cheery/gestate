@@ -113,6 +113,32 @@ def test_the_row_type_is_computed_from_the_kind_and_written_nowhere_by_hand():
     assert "__doc_mark__" in view.by_name, "the channel is the compiler's, not the text's"
 
 
+def test_a_built_programs_kinds_are_read_off_stage_one_and_not_compiled_again():
+    """The cut after seam 1: a substrate that read a `document` evaluated
+    `kinds` in stage one, and the declaration beside the board takes
+    them from the analysis — the same kinds, no second compile."""
+    import time
+
+    from gestate.facts import Document, beside
+    from gestate.gui import Substrate
+
+    game, board = _copy()
+    Substrate(notes.read(game), 22050)
+    t = time.time()
+    doc = beside(board)
+    took = time.time() - t
+    assert doc.from_stage, "the kinds came from stage one"
+    assert doc.names == ("mark",) and doc["mark"].key == ("cell",)
+    assert doc["mark"].field("mark").domain == ("OneOf", ("X", "O"))
+    assert took < 0.1, f"{took:.2f}s is a compile, not a read"
+    # And the compiled road gives the same kinds — the two readings agree.
+    from gestate import pipeline
+    pipeline.forget_analyses()
+    again = Document(game)
+    assert not again.from_stage
+    assert again.kinds == doc.kinds
+
+
 def test_a_kind_edited_in_the_program_changes_what_the_checker_accepts():
     """The other half of the postcondition: *a kind edited in the program
     changes what the checker accepts on the next compile, with no Python

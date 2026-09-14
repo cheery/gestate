@@ -199,10 +199,12 @@ def might_stage(source: str) -> bool:
     return SPLICE in source or DOCUMENT in source
 
 
-def staged(items: list, source: str, cut: int | None) -> list:
-    """`items` — the author's parsed, unresolved items — with every splice
+def staged(items: list, source: str, cut: int | None) -> tuple:
+    """`(items, values)` — the author's resolved items with every splice
     replaced by the type it computes, every `document "kind"` replaced by
-    the read of its channel, and that channel declared after them.
+    the read of its channel, and that channel declared after them; and
+    the stage-one values a host may want without compiling again,
+    `{"kinds": term}` when the program declares its kinds.
 
     `source` is the whole assembled text the items were parsed from, at
     their own positions; `cut` is its seam, when an assembler registered
@@ -210,7 +212,7 @@ def staged(items: list, source: str, cut: int | None) -> list:
     """
     sited = [(item, _sites(item)) for item in items]
     if not any(s for _i, s in sited):
-        return items
+        return items, {}
     from .syntax import note_seam
 
     # ── Stage two: the sited items, and everything that mentions them ──
@@ -284,6 +286,11 @@ def staged(items: list, source: str, cut: int | None) -> list:
                         f"({_slice(source, e.span)})\n")
     if any(kind == "document" for _s, kind, _i in all_sites):
         tail.append("__stage_names__ : List Text\n__stage_names__ = map kindName kinds\n")
+    if has_kinds:
+        # **The kinds themselves, read while the machine is warm** — what
+        # `facts.Document` used to compile the whole program a second
+        # time for, and now takes from the analysis (`pipeline.staged_value`).
+        tail.append("__stage_kinds__ : List Kind\n__stage_kinds__ = kinds\n")
     text = "\n".join(lines).rstrip("\n") + "\n\n" + "".join(tail) + "\nmain : Int\nmain = 0\n"
     if cut is not None:
         note_seam(text, cut)
@@ -297,6 +304,9 @@ def staged(items: list, source: str, cut: int | None) -> list:
     from .pipeline import _compile
 
     state = _compile(text)
+    values = {}
+    if has_kinds:
+        values["kinds"] = _read(state, "__stage_kinds__")
     kind_names = None
     if "__stage_names__" in state.globals:
         kind_names = [_text(t) for t in _read(state, "__stage_names__")]
@@ -329,7 +339,7 @@ def staged(items: list, source: str, cut: int | None) -> list:
                                    VApp(VConId("List", span), row, span), span), span))
         out.append(VSCDecl(chan, None,
                            [VSCEqn(chan, [], VWord("chan", span), [], span)], span))
-    return out
+    return out, values
 
 
 def channel_of(kind: str) -> str:

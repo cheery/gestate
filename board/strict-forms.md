@@ -529,11 +529,30 @@ compiles the program a second time to read `kinds` where stage one now
 has the value in hand.  The wire is untouched: a document program
 stays on the reference machine as before.
 
+### The next cut — 2026-09-14: the host reads `kinds` off stage one
+
+**Henri:** *"to the next cut."*  Stage one already evaluates `kinds`
+to type a `document`; it now reads the list itself while the machine
+is warm and the analysis remembers it (`Analysis.stage`,
+`pipeline.staged_value`).  `facts.Document` asks the cache first: a
+program the substrate has built hands over its kinds as a dictionary
+read, and a bare declaration or a program nobody has built compiles as
+before — the two readings held equal by
+`test_documents.py::test_a_built_programs_kinds_are_read_off_stage_one_and_not_compiled_again`.
+
+| `facts.beside` after the substrate is built | before | after |
+|---|---|---|
+| | 0.22 s, a second compile of the whole program | **8 ms**, a dictionary read |
+
+What it does not touch: `charts.Terms` and the bare-declaration road
+are as they were, and a `Document` built *before* its program still
+pays the compile once — the analysis it leaves behind is then the
+substrate's front end, so the total is one front end either way.
+
 ## What a session does now
 
-Seam 1 is closed and the kill test's number is fourteen.  Next, on
-his word: the grid's tables into the prelude chain (`facts.ges` before
-`grid.ges`, or a file after it) so the generator stops writing them;
-`facts.Document` reading `kinds` off stage one instead of a second
-compile; and E, the fourteen lines, which waits on a design for a
-channel that is a value — his.
+Seam 1 is closed, its second compile is gone, and the kill test's
+number is fourteen.  Next, on his word: the grid's tables into the
+prelude chain (`facts.ges` before `grid.ges`, or a file after it) so
+the generator stops writing them; and E, the fourteen lines, which
+waits on a design for a channel that is a value — his.

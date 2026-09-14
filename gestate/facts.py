@@ -406,6 +406,19 @@ class Document:
         if has_substrate(opened):
             from .gui import assembled
             source = assembled(opened)
+        #: **From stage one when the program has been built** — a
+        #: substrate that reads a `document` evaluated its `kinds` on the
+        #: way (`gestate/stage.py`), and the analysis remembers them, so
+        #: this is a dictionary read where it was a second compile
+        #: (`card:strict-forms.md` §"The next cut").  A bare declaration,
+        #: or a program nobody has built yet, compiles as before.
+        from .pipeline import staged_value
+
+        found = staged_value(source, "kinds") if source is not None else None
+        self.from_stage = found is not None
+        if found is not None:
+            self.kinds = tuple(_kind(k) for k in found)
+            return
         self.terms = Terms(self.path, LIBRARY, source)
         try:
             declared = self.terms.declared("kinds")

@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading as _threading
 from collections import OrderedDict
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .syntax import parse
 from .syntax.ast import VModule
@@ -200,13 +200,13 @@ def _check_annotations(expr: Expr, kind_env: dict) -> None:
 _merge_prelude = prelude_merge
 
 
-def _staged(items: list, source: str, cut) -> list:
+def _staged(items: list, source: str, cut) -> tuple:
     """`stage.staged`, behind its substring test — a program with no `$`
-    and no `document` pays nothing here."""
+    and no `document` pays nothing here.  `(items, values)`."""
     from .stage import might_stage, staged
 
     if not might_stage(source):
-        return items
+        return items, {}
     return staged(items, source, cut)
 
 
@@ -364,6 +364,24 @@ class Analysis:
     #: is otherwise a whole second front end.  Empty when `typecheck` is
     #: off, for the same reason `types` is.
     constraints: list = ()
+    #: What stage one evaluated and a host may read without compiling
+    #: again — `{"kinds": term}` for a program that declares its kinds
+    #: and has a splice or a `document` (`gestate/stage.py`).  Empty for
+    #: every other program.
+    stage: dict = field(default_factory=dict)
+
+
+def staged_value(source: str, name: str, *, typecheck: bool = True,
+                 prelude: bool = True):
+    """A stage-one value of an analysis **already in the cache**, or
+    `None` — a miss is a caller being told to take its own path, the
+    same contract as `analysed`.  `facts.Document` asks here first: a
+    program the substrate has built has its kinds in hand, and reading
+    them is free where it used to be a second compile."""
+    got = _recall((source, typecheck, prelude))
+    if got is None:
+        return None
+    return got.stage.get(name)
 
 
 #: How many recent analyses to keep, and why keeping any is right.
@@ -674,7 +692,7 @@ def _analyse_staged(source: str):
     # **Stage one, once the operators are resolved and before anything
     # is classified** — a splice or a `document` is replaced by the type
     # it computes (`gestate/stage.py`).
-    rest_items = _staged(rest_items, source, cut)
+    rest_items, stage_values = _staged(rest_items, source, cut)
     module = VModule(list(sf.items) + rest_items)
     program = classify(module)
     exhaust_errors = check_program(program)
@@ -704,7 +722,7 @@ def _analyse_staged(source: str):
     scs, method_scs = resolve_static_methods(scs)
     scs = expand_envelopes(scs, program.cons)
     return Analysis(scs, program, results, method_scs, main_type,
-                    per_sc_constraints)
+                    per_sc_constraints, stage=stage_values)
 
 
 def _discharge(scs, program, results, per_sc_constraints, per_sc_givens):
@@ -786,7 +804,7 @@ def _analyse(source: str, *, typecheck: bool = True,
     # **Stage one** — the author's items, resolved, through
     # `gestate/stage.py`; the prelude's are never sited and their spans
     # are not this text's.
-    staged_items = _staged(module.items[head:], source, None)
+    staged_items, stage_values = _staged(module.items[head:], source, None)
     if staged_items is not module.items[head:]:
         module = VModule(list(module.items[:head]) + list(staged_items),
                          comments=module.comments)
@@ -849,7 +867,7 @@ def _analyse(source: str, *, typecheck: bool = True,
     # rewrite that declines to fire always has.
     scs = expand_envelopes(scs, program.cons)
     return Analysis(scs, program, results, method_scs, main_type,
-                    per_sc_constraints)
+                    per_sc_constraints, stage=stage_values)
 
 
 def _compile(source: str, *, typecheck: bool = True,
