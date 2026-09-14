@@ -359,12 +359,101 @@ a file with no program beside it is the case the kinds prelude was
 chosen for, and because a schema read off data is a guess about the
 data.  *Trigger:* the first document two programs declare differently.
 
+### His answers — 2026-09-14, the same sitting
+
+**Henri:** *"Q5: I don't know, which one is better?  Q6: default Q7:
+on demand.  Q8: program's kinds now, in some cases the file itself.
+Do the kill test."*
+
+So **Q6** is the default — nothing until the kill test's count;
+**Q7** is on demand, a needs walk and a cycle refusal, no marker in
+the file; **Q8** is the program's `kinds`, with his qualification
+kept: *in some cases the file itself* — the case is not named yet, and
+the first document two programs declare differently is still the
+trigger that would name it.
+
+**Q5, answered with a recommendation, the session's:** the wide one,
+kept minimal.  *Why.*  The narrow reifier makes the compiler know a
+library's constructor by name — `Kind` is `facts.ges`', and a compiler
+that reads `Kind "mark" Named …` has a library baked into it, which is
+the coupling `charts.Terms` was written to avoid (*not
+chart-specific*).  The wide one adds one ADT to the prelude, `Type`,
+mirroring the compiler's own `TCon`, `TApp`, `TFun`, `TInt` and the
+tuple — five constructors — and one reifier from that value to a
+`types.Type`; then `rowType : Kind -> Type` is written **in
+`facts.ges`, in the language, where a reader can see what a row is**,
+and the compiler knows nothing about kinds at all.  That is the
+reading goal served and the coupling refused, for perhaps forty more
+lines than the narrow one.  *Kept minimal:* no `@typeInfo`, no
+reflection from a type back to a value, until a caller wants it —
+Zig's other half is not asked for by any seam.  *What would change
+the recommendation:* if the `Type` ADT had to mirror classes and
+constraints to say the row of a kind — it does not; a row is a tuple
+of `Int` and `Text`.
+
+### The kill test, run — 2026-09-14
+
+**The language can say the tables.**  The grid's four generated
+tables, its widths and its heads, written once in `.ges` over the
+`Kind` value — `gridShow words (kindFields noteKind)`, `gridWidths`,
+`gridHeads`, a `case` over `Value` where the Python had a `case` over
+a Python domain — and the generated program's picture on the whole of
+`arc.notes` reproduced **item for item, 5,257 of 5,257**.
+`test/test_gridsheet.py::test_the_grids_tables_written_once_over_the_kind_draw_the_generated_picture`
+holds it; the port text is in the test.
+
+| | generated today | tables as `.ges` over the kind |
+|---|---|---|
+| written per file | **71** lines | **16** lines — fourteen of channels, picture and entry, two of the file's words as a list |
+| written once | 0 | 63 lines of `.ges` |
+| compile, reference machine | 0.60 s | 1.22 s — the declaration and the sixty-three lines sit in the program half, uncached; in the stack they would cost once |
+| first picture, 5,257 items | 6.0 s | 7.2 s — a list walk where a `case` table was; the window walks in Rust and is not measured |
+
+**So the lean survives its kill, and the finding is sharper than the
+lean.**  Nothing in this test needed a stage.  What the generator was
+doing three quarters of the time was writing *values* as *code*
+because the program could not hold the values — and it can, and could
+have since `facts.ges` made a kind a value on 2026-09-09.  What is
+left, the fourteen lines, is one shape: `__ng_cell_0__ : Chan Float`,
+`__ng_cell_0__ = chan`, for each of four channels, then a picture
+lifted over two of them.  Q6's default stands and its count is in:
+**fourteen**, all of them channel identity.  The two things the
+finding changes: the census tool has a second column now, and the
+port's home is a chain decision — `grid.ges` stands before
+`facts.ges`, so `Field` is not in scope there; either `facts.ges`
+moves forward in the chain or the grid-over-kind functions are a file
+after it.  *Not decided, not built; the test carries the text.*
+
+**And his question, mid-run — Henri, 2026-09-14:** *"Some kind of
+staging has been missing for a long time now.  This language has lot
+of examples where one would perhaps have needed staging.  Or am I
+right?"*  *Answered from the tree, the session's.*  Right about the
+missing thing, and the tree can count it: **ten Python files write
+`.ges` text** with a signature in an f-string — `scorebox.py` 59
+times, `audiovoices.py` 15, `gridbox.py` 12, `export.py` 5,
+`reactive.py`, `gui.py`, `session.py`, `notes.py`, `facts.py`,
+`audio.py` once or twice each (`grep -c 'f"[^"]* : \(Chan\|Sig\|Int\|List\|Float\|String\)' gestate/*.py`).
+Each is a place a program was computed outside the checker.  But the
+kill test says the demand splits three ways, and only one of them is
+staging: **values written as code** — the grid's tables, the roll's
+`rollNum` case table to sixty-four, the score box's rows as a
+1,111-character tuple literal, `voices` banks expanded per program —
+wanted a value the program could hold, and mostly can now; **channel
+identity** — every `__x_k__ = chan` — wants a channel that is a value,
+seam 3; and **a value that is a type** — `document`, the `on <points>`
+literal that must stand at its call site (`doc/memory/gestate-language-pitfalls.md`),
+`Voice` generated per program — is the staging demand proper, and it
+is the smallest of the three by line count and the only one no other
+mechanism answers.  So: yes, and the examples were mostly asking for
+something cheaper than staging, which is why the stage is worth
+building small.
+
 ## What a session does now
 
-Run the kill test — the grid's tables into `.ges` over the `Kind`,
-`tools/generated.py` before and after — and bring the number.  Then,
-on his answer to Q5, the seam-1 slice A + B + C + D on
-`tic-tac-toe-facts.ges`, held by `test_documents.py`'s nine and a
-parity test against `with_documents`' text.  E waits on Q6, and Q6
-waits on the number.  Henri: *"we should solve in a some neat way"* —
-the neat part is his, and what the tree can offer him is the count.
+The kill test is run and its number is fourteen.  Next, on his word:
+the seam-1 slice — A, B wide-and-minimal per the Q5 recommendation if
+he takes it, C and D — on `tic-tac-toe-facts.ges`, held by
+`test_documents.py`'s nine and a parity test against `with_documents`'
+text; and, separately and smaller, the port's home in the prelude
+chain so the grid stops generating its tables.  E waits on the
+fourteen becoming a design for a channel that is a value, which is his.

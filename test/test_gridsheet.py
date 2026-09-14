@@ -376,3 +376,175 @@ def test_grid_typed_as_a_command_builds_the_grid_in_the_window_view():
     while bench._redraws.busy and time.time() < until:
         time.sleep(0.05)
     assert bench.substrate.entry == "substrate" and not bench.grid_regions
+
+
+# ── The kill test: the tables as functions of the declaration ────────────
+
+#: `card:strict-forms.md` §"The kill test, restated with a number" —
+#: the grid's four generated tables (the file's words, `show`, two
+#: domain tables) and its widths and heads, written **once, in the
+#: language, over the `Kind` value**, instead of generated per file as
+#: `case` expressions.  Held to the generated program's picture below.
+#: Where this text lives if it ships — `grid.ges` stands before
+#: `facts.ges` in the chain today, so `Field` is not in scope there —
+#: is a chain decision the card records; here it is the program's.
+GRID_OVER_KIND = '''
+gridNth : List String -> Int -> String
+gridNth xs i = case xs of
+    Nil -> "-"
+    x :: rest -> case i == 0 of
+        True -> x
+        False -> gridNth rest (i - 1)
+
+gridWord : List String -> Int -> String
+gridWord ws c = case c < 0 of
+    True -> "-"
+    False -> gridNth ws c
+
+gridComma : String -> String -> String
+gridComma a b = case b of
+    Nil -> a
+    c :: rest -> a ++ "," ++ b
+
+gridEachOn : List String -> Int -> String
+gridEachOn ns bits = case ns of
+    Nil -> Nil
+    n :: rest -> case bits % 2 == 1 of
+        True -> gridComma n (gridEachOn rest (bits / 2))
+        False -> gridEachOn rest (bits / 2)
+
+gridEach : List String -> Int -> String
+gridEach ns bits = case bits < 0 of
+    True -> "-"
+    False -> case gridEachOn ns bits of
+        Nil -> "-"
+        s -> s
+
+gridField : List String -> Field -> Int -> String
+gridField words f v = case f of
+    Field n val need -> case val of
+        Word -> gridWord words v
+        Number -> gridNum v
+        Names -> gridNum v
+        Range lo hi -> gridNum v
+        AtLeast lo -> gridNum v
+        OneOf ns -> gridWord ns v
+        Each ns -> gridEach ns v
+
+gridShow : List String -> List Field -> Int -> Int -> String
+gridShow words fs col v = case fs of
+    Nil -> gridNum v
+    f :: rest -> case col == 0 of
+        True -> gridField words f v
+        False -> gridShow words rest (col - 1) v
+
+gridLongest : List String -> Int
+gridLongest ns = case ns of
+    Nil -> 0
+    n :: rest -> max (length n) (gridLongest rest)
+
+gridChars : Field -> Int
+gridChars f = case f of
+    Field n val need -> case val of
+        Word -> 8
+        Number -> 4
+        Names -> 12
+        Range lo hi -> 4
+        AtLeast lo -> 4
+        OneOf ns -> gridLongest ns
+        Each ns -> sum (map length ns) + length ns - 1
+
+gridWidth : Field -> Int
+gridWidth f = case f of
+    Field n val need -> (4 * max (gridChars f) (length n) - 1) * 2 + 8
+
+gridWidths : List Field -> List Int
+gridWidths fs = map gridWidth fs
+
+gridHeads : List Field -> List String
+gridHeads fs = map fieldName fs
+'''
+
+
+def _ported_program(words: list) -> str:
+    """What would still be written per file once the tables are
+    functions: the box's channels, its words as a list, one picture and
+    one entry.  Sixteen non-blank lines against the generator's 71."""
+    ws = " :: ".join(gridbox._ges_string(w) for w in words) + " :: Nil"
+    return f'''__ng_cell_0__ : Chan Float
+__ng_cell_0__ = chan
+__ng_sel_0__ : Chan Float
+__ng_sel_0__ = chan
+__ng_sel_0___s : Sig Float
+__ng_sel_0___s = (0.0 - 1.0) ::: mkSig (wait __ng_sel_0__)
+__ng_rows_0__ : Chan (List Float)
+__ng_rows_0__ = chan
+__ng_rows_0___s : Sig (List Float)
+__ng_rows_0___s = Nil ::: mkSig (wait __ng_rows_0__)
+
+__ng_words_0__ : List String
+__ng_words_0__ = {ws}
+
+__ng_pic_0__ : List Float -> Float -> Sub
+__ng_pic_0__ rows sel = gridPage __ng_cell_0__ (gridShow __ng_words_0__ (kindFields noteKind)) (gridWidths (kindFields noteKind)) (gridHeads (kindFields noteKind)) (length (kindFields noteKind)) rows (floor sel)
+
+__grid_0__ : Sig Sub
+__grid_0__ = !__ng_pic_0__ __ng_rows_0___s __ng_sel_0___s
+'''
+
+
+def _nonblank(text: str) -> int:
+    return sum(1 for l in text.splitlines()
+               if l.strip() and not l.lstrip().startswith("#"))
+
+
+def test_the_grids_tables_written_once_over_the_kind_draw_the_generated_picture():
+    """The kill test of `card:strict-forms.md`, run 2026-09-14 at
+    Henri's word — *"Do the kill test."*  The generated grid program's
+    71 lines are 53 of tables that are functions of the declaration;
+    written as such, over `noteKind` from `notes.ges`, the per-file
+    text is **16 lines** and the picture is **item for item** the
+    generated one's — so the language can say the tables, and what a
+    stage would still write is the fourteen channel-and-entry lines
+    plus the file's words as a list.
+
+    *Measured on the whole of `arc.notes`, 5,257 items: compile 0.60 s
+    → 1.22 s (the declaration and the sixty-three lines are in the
+    program half here, not in a cached stack), first picture 6.0 s →
+    7.2 s on the reference machine — a list walk where a `case` table
+    was.  The test draws the first forty rows to stay cheap.*
+    """
+    from gestate.gui import Substrate
+
+    rels = _rels()
+    kind = _kind()
+    records = notes.notes_of(rels)
+    words = gridbox.words_of(rels, kind, records)
+    cols = len(kind.fields)
+    reading = gridbox.grid_reading(rels)[:40 * cols]
+
+    generated, _c = gridbox.grid_program(rels)
+    ported_tail = _ported_program(words)
+    ported = ((ROOT / "gestate" / "notes.ges").read_text()
+              + "\n" + GRID_OVER_KIND + "\n" + ported_tail)
+    assert _nonblank(generated) == 71, _nonblank(generated)
+    assert _nonblank(ported_tail) == 16, _nonblank(ported_tail)
+
+    def picture(text):
+        view = Substrate(text + "\nsubstrate : Sig Sub\nsubstrate = __grid_0__\n",
+                         22050, entry="__grid_0__")
+        assert view.write("__ng_rows_0__", reading)
+        view.tick()
+        return view.picture()
+
+    one, two = picture(generated), picture(ported)
+    assert len(one) == len(two) > 40 * cols
+    assert one == two
+    # And the tables are exercised, not skipped: a word, a level, a set
+    # of manners and an absent field all appear as text in the picture.
+    said = {i[3] for i in two if i[0] == "text"}      # the chrome font is upper case
+    shown = records[:40]
+    assert {str(r["voice"]).upper() for r in shown} <= said
+    assert {str(r["vel"]).upper() for r in shown} <= said
+    assert {",".join(r["manner"]).upper() for r in shown if r.get("manner")} <= said
+    assert any(r.get("spell") is None for r in shown) and "-" in said
