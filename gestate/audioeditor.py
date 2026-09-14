@@ -1997,10 +1997,12 @@ class Workbench:
     # `card:gui-is-difficult.md` §"The mashup, asked", 2026-09-13.  A
     # program that includes a document that is not a `.notes` reads its
     # relations through `document "<kind>"` (`gestate/stage.py`) and
-    # answers `acts : Sig (List Act)` — assert this fact, retract that
-    # one, refuse with a sentence.  The host is the handler: it writes
-    # the file through the document's own reader, and feeds the rows
-    # back.  The program stores nothing; the file is the state.
+    # asks for acts — assert this fact, retract that one, refuse with a
+    # sentence — carried by the element pressed (`gui.ges`' `Does`,
+    # `card:strict-forms.md` Q9) or, the older form, on a signal named
+    # `acts`.  The host is the handler: it writes the file through the
+    # document's own reader, and feeds the rows back.  The program
+    # stores nothing; the file is the state.
 
     def _feed_documents(self) -> None:
         """Write every `document "kind"` its rows, from the file the
@@ -2081,7 +2083,7 @@ class Workbench:
                 continue
             try:
                 doc = beside(path)
-                kind, values = fact_of(doc, act[1])
+                kind, values = fact_of(doc, act[1], act[2])
                 text = path.read_text()
                 if head == "Assert":
                     out, said = asserted(text, record_line(kind, values),

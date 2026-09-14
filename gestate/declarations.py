@@ -172,6 +172,21 @@ class Program:
 # Classification
 # ---------------------------------------------------------------------------
 
+def reserved_tags() -> frozenset:
+    """The constructor tags `gmachine` pins — `fresh_tag` steps over
+    them.  A function, because `gmachine` imports this module."""
+    from .gmachine import (
+        TAG_NOTHING, TAG_JUST, TAG_SYNC_L, TAG_SYNC_R, TAG_SYNC_BOTH,
+        TAG_WAIT, TAG_WATCH, TAG_SYNC, TAG_NEVER, TAG_TAIL, TAG_EXISTS5,
+        TAG_DELAY,
+    )
+    return frozenset({
+        TAG_NOTHING, TAG_JUST, TAG_SYNC_L, TAG_SYNC_R, TAG_SYNC_BOTH,
+        TAG_WAIT, TAG_WATCH, TAG_SYNC, TAG_NEVER, TAG_TAIL, TAG_EXISTS5,
+        TAG_DELAY,
+    })
+
+
 def classify(module: VModule) -> Program:
 
     # 4, not 0: tags 0–3 are `Nil`/`Cons`/`False`/`True`, pinned in
@@ -179,6 +194,8 @@ def classify(module: VModule) -> Program:
     # ADT block below.
     _next_tag = 4
     _next_param = -1
+    _reserved = reserved_tags()
+    from .gmachine import TAG_TUPLE_BASE
 
     fixities: list[VFixity] = []
     kind_decls: list[VKind] = []
@@ -201,7 +218,21 @@ def classify(module: VModule) -> Program:
         return TVar(vid)
 
     def fresh_tag() -> int:
+        #: **Never a reserved one.**  `gmachine` pins `Maybe`, `Sync` and
+        #: the FRP nodes at 80–96 and tuples from 200, and this counted
+        #: straight through them: the seventy-seventh declared
+        #: constructor of a chain was `Nothing`'s 80 (`fixme.md` F232,
+        #: 2026-09-14, the day `gui.ges` grew five).  Every numbering
+        #: skips the same tags, so the staged front end's two
+        #: numberings still agree on every one they share.
         nonlocal _next_tag
+        while _next_tag in _reserved:
+            _next_tag += 1
+        if _next_tag >= TAG_TUPLE_BASE:
+            #: complaint  author, nowhere — the program and its libraries declare more constructors than the machine has tags for
+            raise DeclError(
+                f"too many constructors: the machine has {TAG_TUPLE_BASE} "
+                "tags and tuples take the rest")
         t = _next_tag
         _next_tag += 1
         return t

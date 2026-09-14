@@ -274,7 +274,12 @@ _SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
              # a `String` is `List Char`, so the walk needs the two tags
              # any list needs.  That is the whole cost of text crossing
              # — no new node kind and no new instruction.
-             "Cons", "Nil")
+             "Cons", "Nil",
+             # `Does`, 2026-09-14 (`card:strict-forms.md` Q9) — after
+             # the list's two, because *on the end* means the end of
+             # the table and not of `Sub`: every raw index a shell
+             # already reads stays where it was.
+             "Does")
 
 
 def substrate_of(source: str, rate: int, graph, knobs: frozenset):

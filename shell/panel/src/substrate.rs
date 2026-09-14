@@ -48,6 +48,10 @@ pub struct SubTags {
     /// on purpose**: a tag is a position, and appending keeps every
     /// tag before it where the hosts already had it.
     pub meaning: i64,
+    /// `Does` — an element that says what pressing it *does*.  After
+    /// `cons` and `nil` in the table (`export._SUB_CONS`): *on the
+    /// end* is the end of the table, so every index before it stays.
+    pub does: i64,
     /// `Cons` and `Nil` — **not `Sub` constructors**, and they are here
     /// because a `Label` carries a `String` and a `String` is
     /// `List Char`.  That is the whole cost of text crossing: no new
@@ -237,6 +241,8 @@ pub fn extent(m: &mut Machine, t: &SubTags, node: usize) -> R<(i32, i32)> {
         // The child's, like every other attachment: saying what a thing
         // *is* does not change how much room it takes.
         extent(m, t, args[2])
+    } else if tag == t.does {
+        extent(m, t, args[1])
     } else {
         err(format!("unknown substrate tag {tag}"))
     }
@@ -335,6 +341,14 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
         let value = float_at(m, args[1])?;
         walk(m, t, args[2], cx, cy, d)?;
         d.means(chan, value, (x0, y0, x0 + w, y0 + h));
+    } else if tag == t.does {
+        // **What pressing it does** — `gui.ges`' `onDo`.  The acts are
+        // a value on the node, read by whichever host performs them;
+        // this walk records where the element is and which node.
+        let (w, h) = extent(m, t, node)?;
+        let (x0, y0) = (cx - half(w), cy - half(h));
+        walk(m, t, args[1], cx, cy, d)?;
+        d.does(args[0], (x0, y0, x0 + w, y0 + h));
     } else {
         return err(format!("unknown substrate tag {tag}"));
     }
@@ -374,7 +388,7 @@ mod tests {
     const T: SubTags = SubTags {
         rect: 10, circle: 11, gap: 12, over: 13, row: 14, column: 15,
         shift: 16, sized: 17, pad: 18, touch_x: 19, touch_y: 20,
-        label: 21, meaning: 22, cons: 1, nil: 0,
+        label: 21, meaning: 22, cons: 1, nil: 0, does: 23,
     };
 
     fn machine() -> Machine {
@@ -568,6 +582,31 @@ mod tests {
             assert_eq!(hit.fraction(regions[k].0, 15), k as f64);
             assert_eq!(hit.fraction(regions[k].2 - 1, 29), k as f64);
         }
+    }
+
+    #[test]
+    fn a_does_carries_its_acts_and_hears_no_drag() {
+        // **An element that says what pressing it does** — `gui.ges`'
+        // `onDo` (`card:strict-forms.md` Q9).  The acts are a value on
+        // the node; this walk records the region and the node, writes
+        // no channel, and answers no fraction.
+        let mut m = machine();
+        let body = rect(&mut m, 28, 28);
+        let (w, h) = (int(&mut m, 30), int(&mut m, 30));
+        let boxed = con(&mut m, T.sized, vec![w, h, body]);
+        let acts = con(&mut m, T.nil, vec![]);
+        let cell = con(&mut m, T.does, vec![acts, boxed]);
+
+        let d = view(&mut m, &T, cell, 30, 30).unwrap();
+        assert_eq!(d.hits.len(), 1);
+        let hit = d.hits[0];
+        assert_eq!(hit.kind, Kind::Does);
+        assert_eq!(hit.region, (0, 0, 30, 30),
+                   "the region is the declared box, like a meaning's");
+        assert_eq!(hit.does, acts, "the node the host reads the acts off");
+        assert_eq!(hit.fraction(15, 15), 0.0, "and no fraction to report");
+        assert_eq!(extent(&mut m, &T, cell).unwrap(), (30, 30),
+                   "saying what a thing does takes no room");
     }
 
     #[test]

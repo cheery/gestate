@@ -143,7 +143,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 13 2
+I Pack 18 2
 I Update 2
 I Pop 2
 I Unwind
@@ -192,7 +192,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 14 2
+I Pack 19 2
 I Update 2
 I Pop 2
 I Unwind
@@ -266,7 +266,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 19 2
+I Pack 24 2
 I Update 2
 I Pop 2
 I Unwind
@@ -302,7 +302,7 @@ I PushInt 200
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
 I PushGlobal night
-I Pack 9 3
+I Pack 14 3
 I PushInt 0
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
@@ -336,10 +336,10 @@ I Mkap
 I PushArg 5
 I PushArg 7
 I PushArg 9
-I Pack 8 3
-I Pack 9 3
-I Pack 15 3
-I Pack 12 2
+I Pack 13 3
+I Pack 14 3
+I Pack 20 3
+I Pack 17 2
 I PushInt 0
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
@@ -365,9 +365,9 @@ I PushInt 6
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
 I PushGlobal bone
-I Pack 9 3
-I Pack 15 3
-I Pack 12 2
+I Pack 14 3
+I Pack 20 3
+I Pack 17 2
 I Update 4
 I Pop 4
 I Unwind
@@ -381,7 +381,7 @@ I Mkap
 I PushInt 244
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Update 0
 I Pop 0
 I Unwind
@@ -455,7 +455,7 @@ I Mkap
 I PushInt 43
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Update 0
 I Pop 0
 I Unwind
@@ -558,7 +558,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 16 2
 I Update 2
 I Pop 2
 I Unwind
@@ -586,7 +586,7 @@ I Update 2
 I Pop 2
 I Unwind
 block
-I Pack 22 0
+I Pack 28 0
 I Eval
 I PushGlobal input
 I Eval
@@ -640,12 +640,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 6 45
+I CaseJump 1 11 45
 I Slide 2
 block
 I PushArg 1
 I Eval
-I CaseJump 1 6 46
+I CaseJump 1 11 46
 I Update 2
 I Pop 2
 I Unwind
@@ -654,21 +654,21 @@ I PushArg 1
 I PushArg 3
 I PushArg 2
 I PushArg 6
-I Pack 20 4
+I Pack 25 4
 I Update 4
 I Pop 4
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
@@ -722,12 +722,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 6 53
+I CaseJump 1 11 53
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 6 54
+I CaseJump 1 11 54
 I Update 1
 I Pop 1
 I Unwind
@@ -735,21 +735,21 @@ block
 I PushArg 0
 I PushArg 2
 I PushArg 4
-I Pack 8 3
+I Pack 13 3
 I Update 3
 I Pop 3
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
@@ -856,7 +856,7 @@ I Mkap
 I PushGlobal ladderOf
 I Mkap
 I Mkap
-I Pack 16 3
+I Pack 21 3
 I Update 1
 I Pop 1
 I Unwind
@@ -881,7 +881,7 @@ I Mkap
 I PushInt 5
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 11 2
+I Pack 16 2
 I PushArg 3
 I PushInt 1
 I PushGlobal __Num_Int_fromInteger__
@@ -893,8 +893,8 @@ I Mkap
 I PushGlobal ladderOf
 I Mkap
 I Mkap
-I Pack 14 2
-I Pack 14 2
+I Pack 19 2
+I Pack 19 2
 I Slide 0
 block
 I PushInt 0
@@ -935,7 +935,7 @@ I Mkap
 I PushArg 2
 I PushGlobal litOf
 I Mkap
-I Pack 9 3
+I Pack 14 3
 I Slide 0
 block
 I PushInt 30
@@ -945,7 +945,7 @@ I PushInt 18
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
 I PushGlobal night
-I Pack 9 3
+I Pack 14 3
 I Slide 0
 block
 I PushArg 0
@@ -976,7 +976,7 @@ I Mkap
 I PushInt 78
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Slide 0
 block
 I PushInt 226
@@ -988,7 +988,7 @@ I Mkap
 I PushInt 74
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Slide 0
 block
 I PushInt 92
@@ -1000,7 +1000,7 @@ I Mkap
 I PushInt 132
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Slide 0
 block
 I PushInt 3

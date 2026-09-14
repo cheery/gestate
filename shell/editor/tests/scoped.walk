@@ -1,6 +1,6 @@
 entry	main
-tags	9 10 11 12 13 14 15 16 17 18 19 20 21 1 0
-tick	22
+tags	14 15 16 17 18 19 20 21 22 23 24 25 26 1 0 27
+tick	28
 chan	post
 program
 crust 1
@@ -81,7 +81,7 @@ I PushInt 140
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
 I PushGlobal night
-I Pack 9 3
+I Pack 14 3
 I PushArg 1
 I PushInt 0
 I PushGlobal __Num_Int_fromInteger__
@@ -89,7 +89,7 @@ I Mkap
 I PushGlobal dots
 I Mkap
 I Mkap
-I Pack 12 2
+I Pack 17 2
 I Update 1
 I Pop 1
 I Unwind
@@ -100,7 +100,7 @@ I Mkap
 I PushInt 0
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 11 2
+I Pack 16 2
 I Slide 0
 block
 I PushInt 192
@@ -132,8 +132,8 @@ I PushInt 3
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
 I PushGlobal lit
-I Pack 9 3
-I Pack 15 3
+I Pack 14 3
+I Pack 20 3
 I Push 1
 I PushInt 1
 I PushGlobal __Num_Int_fromInteger__
@@ -145,7 +145,7 @@ I Mkap
 I PushGlobal dots
 I Mkap
 I Mkap
-I Pack 12 2
+I Pack 17 2
 I Slide 2
 block
 I PushArg 1
@@ -187,7 +187,7 @@ I Mkap
 I PushInt 235
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Update 0
 I Pop 0
 I Unwind
@@ -274,7 +274,7 @@ I Mkap
 I PushInt 43
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
+I Pack 13 3
 I Update 0
 I Pop 0
 I Unwind

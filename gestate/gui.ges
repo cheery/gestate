@@ -10,6 +10,34 @@
 # arrives on one channel, and whatever the substrate holds at that instant
 # is what gets drawn.
 
+# ── What a press does ────────────────────────────────────────────────────
+#
+# **The command language a picture carries** — `card:strict-forms.md`
+# Q9, Henri, 2026-09-14: *"the solution to this problem might indeed be
+# 'Act'."*  An element may say what pressing it **does**, as a value
+# the host performs: assert this fact, retract that one, or refuse with
+# a sentence.  The model is the document — facts, with assert and
+# retract as the verbs (`card:gui-is-difficult.md`) — and it stays
+# outside the program, so the program has no message type of its own
+# to carry back through a channel and the picture is the dispatcher.
+#
+# A fact is **a kind's word over its columns' values**, each one token
+# (`facts.ges`): the row `document` feeds, going the other way.
+# `facts.ges`' `asserting` and `retracting` build one from a kind and
+# its typed row, so a program never spells an `Atom` by hand.
+#
+# **Closed on purpose.**  `Sub` is declared here, before any program,
+# so what it carries cannot be the program's own type; an existential
+# would be honest and would be the language's first form inference
+# cannot give a type to.  A closed `Act` costs nothing there, and what
+# it cannot say — a press that changes the *program's* state with a
+# message that is not a number — is Q9's trigger, and `Meaning` below
+# still carries a `Float` for that.
+#
+# `Act` and `Atom` are the prelude's (`prelude.ges` §"What a program
+# asks done"), because `facts.ges` builds one and compiles without this
+# file in front of it.
+
 # ── What can be drawn ────────────────────────────────────────────────────
 
 Colour := RGB Int Int Int
@@ -46,6 +74,7 @@ Sub := Rect Int Int Colour
      | TouchY (Chan Float) Sub
      | Label Int Int String Colour
      | Meaning (Chan Float) Float Sub
+     | Does (List Act) Sub
 
 # ── What can arrive ──────────────────────────────────────────────────────
 #
@@ -317,6 +346,17 @@ onTouchY c s = map (p => TouchY c p) s
 onPress : Chan Float -> Sig Float -> Sig Sub -> Sig Sub
 onPress c v s = !(meaning c) v s
 
+#: **Say what pressing this element *does*.**  The acts are a value
+#: the host performs on the press — assert, retract, refuse — and
+#: nothing is written to any channel: the picture is the dispatcher,
+#: and a program with a document needs no hand channel, no merge of
+#: two, and no value to hold before the first press.  Built from the
+#: current model, so the acts a cell carries are the ones right for
+#: the board it was drawn over.  Hears no drag and no release, for
+#: `onPress`'s reason: a press on a thing **is** the commit.
+onDo : Sig (List Act) -> Sig Sub -> Sig Sub
+onDo a s = !does a s
+
 # ── Numbers beside a substrate ───────────────────────────────────────────
 
 #: What a bare number means beside a substrate: the same number, always —
@@ -348,3 +388,8 @@ labelAt s w h c = Label w h s c
 #: building a `Sub` by hand.
 meaning : Chan Float -> Float -> Sub -> Sub
 meaning c v s = Meaning c v s
+
+#: `Does`, for `onDo` to lift.  A program building a `Sub` by hand
+#: writes the constructor.
+does : List Act -> Sub -> Sub
+does a s = Does a s

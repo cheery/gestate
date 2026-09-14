@@ -92,8 +92,9 @@ still the tiebreak between two workable cards, and it is still his.
    shape, each priced against the language goal.  *Arrived unplaced,
    2026-09-13, at his ask: "a separate issue that we should solve in a
    some neat way."  Decided 2026-09-14: staging; seam 1 closed the
-   same day, the grid's tables moved; seam 2 shaped as Q9 on the
-   card, an `Act` the picture carries, his to decide.*
+   same day, the grid's tables moved; seam 2 closed the same evening
+   by `Act` — the picture carries the command and the host performs
+   it.  E and composition remain, his.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

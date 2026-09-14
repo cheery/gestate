@@ -17,9 +17,12 @@
 # **So this program stores nothing.**  `tic-tac-toe.ges` beside it
 # folds a board out of presses and keeps it in a signal; here the board
 # is *read* from the file (`document`), the rules are queries over it,
-# a press asks the host to assert a fact (`acts`), and the host writes
-# the file and feeds the rows back.  Four forms, one file: facts,
-# queries, a hand, and the picture.
+# each cell carries the act a press on it asks for (`Does`), and the
+# host performs it — writes the file and feeds the rows back.  Three
+# forms, one file: facts, queries, and the picture; the hand is the
+# host's, and no channel of this program's (`card:strict-forms.md` Q9,
+# 2026-09-14 — before that a hand channel, a merge of two, and a
+# sentinel stood here).
 
 include "tic-tac-toe-facts.board"
 
@@ -91,16 +94,13 @@ over b = case winner b of
     Nil -> full b
 
 # ── The verbs ────────────────────────────────────────────────────────────
-
-#: A fact of the document, as this program says one: the kind's word
-#: capitalised, its fields in the declared order.
-Fact := Mark Int Text
-
-#: **What the program asks of the host** — assert this, retract that,
-#: or refuse with a sentence.  The program performs and the host
-#: handles, by writing the file; a refusal is a value here and a
-#: sentence in the status line there.
-Act := Assert Fact | Retract Fact | Refuse Text
+#
+# **What the program asks of the host** — `gui.ges`' `Act`: assert
+# this fact, retract that, or refuse with a sentence.  The element that
+# does it carries the acts (`Does`), the host performs them on the
+# press by writing the file, and a refusal is a value here and a
+# sentence in the status line there.  There is no hand channel: the
+# picture is the dispatcher (`card:strict-forms.md` Q9).
 
 #: The move: a mark in an empty cell of a game still going.
 play : Board -> Int -> List Act
@@ -108,41 +108,14 @@ play b k = case over b of
     True -> Refuse "the game is over; press the foot to clear the board" :: Nil
     False -> case markAt b k of
         m :: rest -> Refuse "that cell is taken" :: Nil
-        Nil -> Assert (Mark k (turn b)) :: Nil
+        Nil -> asserting markKind (k, turn b) :: Nil
 
 #: Clearing the board: retract every mark it has.
 clear : Board -> List Act
 clear b = map retractOne (elems b)
 
 retractOne : Placing -> Act
-retractOne (c, m) = Retract (Mark c m)
-
-# ── The hand ─────────────────────────────────────────────────────────────
-
-#: The channel every cell writes, and the one the foot writes.
-pressing : Chan Float
-pressing = chan
-
-clearing : Chan Float
-clearing = chan
-
-#: Whichever came last — a cell, or the foot.  `sync` is how two
-#: channels become one arrival; the value before any is no cell.
-hand : Sig (Sync Float Float)
-hand = SyncLeft (0.0 - 1.0) ::: mkSig (sync (wait pressing) (wait clearing))
-
-#: A cell pressed is a move; the foot pressed is a clearing, whether or
-#: not a cell landed in the same instant.
-act : Board -> Sync Float Float -> List Act
-act b s = case s of
-    SyncLeft k -> play b (floor k)
-    SyncRight f -> clear b
-    SyncBoth k f -> clear b
-
-#: **The door out.**  Read by the host after a hand's write, and only
-#: when the write reached it; never between.
-acts : Sig (List Act)
-acts = zip act board hand
+retractOne p = retracting markKind p
 
 # ── The picture ──────────────────────────────────────────────────────────
 
@@ -166,11 +139,11 @@ inkOf m = case m == "X" of
     True -> xInk
     False -> oInk
 
-#: One cell: a tile, the mark on it, and **which cell it is** —
-#: `gui.ges`' `onPress`, so a press names the cell and the game is a
-#: query over what it named.
-cellPic : Int -> List Text -> Sub
-cellPic k ms = Meaning pressing (toFloat k)
+#: One cell: a tile, the mark on it, and **what pressing it does** —
+#: `gui.ges`' `Does`, so the cell carries the move it would make on the
+#: board it was drawn over, and the game is a query over the board.
+cellPic : List Act -> List Text -> Sub
+cellPic acts ms = Does acts
     (Sized cellSide cellSide
         (Over (Rect (cellSide - 4) (cellSide - 4) tileInk) (markPic ms)))
 
@@ -184,7 +157,7 @@ rowPic b r = Row (tile b (r * 3))
                  (Row (tile b (r * 3 + 1)) (tile b (r * 3 + 2)))
 
 tile : Board -> Int -> Sub
-tile b k = cellPic k (markAt b k)
+tile b k = cellPic (play b k) (markAt b k)
 
 boardPic : Board -> Sub
 boardPic b = Column (rowPic b 0) (Column (rowPic b 1) (rowPic b 2))
@@ -209,7 +182,7 @@ toPlay m = case m == "X" of
     False -> Label 90 14 "O TO PLAY" oInk
 
 foot : Board -> Sub
-foot b = Meaning clearing 0.0 (saying b)
+foot b = Does (clear b) (saying b)
 
 substrate : Sig Sub
 substrate = column (map boardPic board)

@@ -678,11 +678,76 @@ program's own state with a message that is not a `Float` — a chart's
 transition, a mode, a selection — which (a) cannot carry and (b) can.
 Not built; his word first.
 
+### Built — 2026-09-14: `Act`, and the picture is the dispatcher
+
+**Henri:** *"Well.. I'm pretty sure I want the 'Act' there.  You can go
+ahead and implement it."*  Q9's default, built the same sitting.
+
+- **The command language, in the prelude.**  `Atom := IntAtom Int |
+  TextAtom String` and `Act := Assert String (List Atom) | Retract
+  String (List Atom) | Refuse String` — `prelude.ges` §"What a program
+  asks done".  Not in `gui.ges` after all, and not in `facts.ges`:
+  each names it and each compiles without the other (a bare `kinds`
+  declaration compiles `facts.ges` alone, and the first run said
+  *Unknown type constructor: Act*), and the prelude is the one file
+  both stand on.  The reason `gui.ges` gives for keeping constructors
+  out of the prelude — renumbering `Nil`/`Cons` — has been void since
+  those four were pinned.
+- **The typed door, in `facts.ges`.**  `class Atoms r` with instances
+  for `Int`, `Text` and tuples to five, and `asserting`, `retracting :
+  (Atoms r) => Kind -> r -> Act`.  A program writes the kind and its
+  row — `asserting markKind (k, turn b)` — and the atoms are derived;
+  the row is held to the kind by the one line `type Placing =
+  $(kindRow markKind)`, which is stage one's, and the host still
+  refuses an atom of the wrong shape for its column by name.  Named
+  `asserting`/`retracting` because `command.ges` already has
+  `assert`/`retract` over texts.
+- **`Does (List Act) Sub`**, appended to `Sub`, with `onDo` beside
+  `onPress` and `does` beside `meaning`; `Meaning` stays for a value
+  *into* the program.  In `export._SUB_CONS` it goes after `Cons` and
+  `Nil` — *on the end* is the end of the table — so every raw index a
+  shell reads is where it was, and the table is sixteen.
+- **Three hosts.**  The reference walk records the node and reads the
+  acts off it on the press and on nothing else (`gui._walk`,
+  `Substrate.touch_all`, `acts`, `ask`); the probe says them as a
+  person reads them, `does 0,0–60,60 — assert mark 0 O`.  The panel
+  walks the tag to the same region and node (`Kind::Does`, `Hit.does`),
+  writes no channel and answers no fraction — it has no document to
+  perform on, and a document program stays on the reference machine
+  as before; the web shell carries it as hit kind 5; the editor's
+  walker and the plugin count sixteen.  All six panel and editor
+  fixtures regenerated, because the prelude's five moved every tag.
+- **The game.**  `Fact`, `Act`, `pressing`, `clearing`, `hand`, `act`
+  and `acts` are gone from `tic-tac-toe-facts.ges`; a cell is `Does
+  (play b k) …` and the foot `Does (clear b) …`.  No channel of its
+  own at all: `by_name` is `__doc_mark__` alone.  What he called
+  smelly — the `sync`, the `SyncBoth` arm, `floor`, the `-1`
+  sentinel, and `acts` as a held signal read by its tick flag — is
+  gone with the channel that needed it, both halves.
+- **Found on the way, `fixme.md` F232.**  Five constructors more in
+  the chain put `facts.ges`' `TyTuple` on tag 81, which is `Just`'s:
+  `declarations.fresh_tag` counted straight through the reserved
+  80–96.  It steps over them now, refuses at the tuple base, and
+  `pipeline._STACK_SCHEMA` is 4 because a cached front bakes the
+  numbering in.  Held by `test/test_declarations.py`, three tests.
+
+**Held by** `test_documents.py` (fourteen; the press test now asserts
+the act shape, the ask, the drag, the refusal a taken cell carries and
+the foot's retractions; a probe test and an `onDo` test are new),
+`test_declarations.py`, the panel's `a_does_carries_its_acts_and_hears_no_drag`,
+and the fixture gates on both shells.  `doc/ref/` regenerated.
+
+**What this does not do.**  The panel and the page draw a `Does` and
+perform nothing on it — the performing host is the reference machine,
+which is where every document program runs.  A press that must change
+the *program's* state with a message that is not a `Float` still has
+only `Meaning`; that is Q9's trigger and nothing has pulled it.
+
 ## What a session does now
 
-Seam 1 is closed, its second compile is gone, and the grid's tables
-are the library's.  What remains on this card is E — the fourteen
-lines, every one of them `__x__ = chan` — which waits on a design for
-a channel that is a value, his; seam 2, with Q9 shaped above and its
-default an `Act` the picture carries, his; and the card's larger
+Seam 1 is closed, its second compile is gone, the grid's tables are
+the library's, and seam 2 is closed by `Act` — the picture carries the
+command and the host performs it.  What remains on this card is E —
+the fourteen lines, every one of them `__x__ = chan` — which waits on
+a design for a channel that is a value, his; and the card's larger
 question, how a program is composed from pieces, is his too.

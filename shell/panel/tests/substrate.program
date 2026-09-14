@@ -131,7 +131,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 13 2
+I Pack 18 2
 I Update 2
 I Pop 2
 I Unwind
@@ -232,7 +232,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 19 2
+I Pack 24 2
 I Update 2
 I Pop 2
 I Unwind
@@ -255,7 +255,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 12 2
+I Pack 17 2
 I Update 2
 I Pop 2
 I Unwind
@@ -292,12 +292,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 6 21
+I CaseJump 1 11 21
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 6 22
+I CaseJump 1 11 22
 I Update 1
 I Pop 1
 I Unwind
@@ -305,21 +305,21 @@ block
 I PushArg 0
 I PushArg 2
 I PushArg 4
-I Pack 9 3
+I Pack 14 3
 I Update 3
 I Pop 3
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
@@ -347,7 +347,7 @@ I Update 2
 I Pop 2
 I Unwind
 block
-I Pack 22 0
+I Pack 28 0
 I Eval
 I PushGlobal input
 I Eval
@@ -455,12 +455,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 6 37
+I CaseJump 1 11 37
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 6 38
+I CaseJump 1 11 38
 I Update 1
 I Pop 1
 I Unwind
@@ -468,21 +468,21 @@ block
 I PushArg 0
 I PushArg 2
 I PushArg 4
-I Pack 8 3
+I Pack 13 3
 I Update 3
 I Pop 3
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 6 2
+I Pack 11 2
 I Update 2
 I Pop 2
 I Unwind
@@ -524,9 +524,9 @@ I Mkap
 I PushInt 200
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
-I Pack 9 3
-I Pack 15 3
+I Pack 13 3
+I Pack 14 3
+I Pack 20 3
 I Update 1
 I Pop 1
 I Unwind
@@ -654,7 +654,7 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 16 2
 I Update 2
 I Pop 2
 I Unwind
@@ -686,9 +686,9 @@ I Mkap
 I PushInt 90
 I PushGlobal __Num_Int_fromInteger__
 I Mkap
-I Pack 8 3
-I Pack 9 3
-I Pack 16 3
+I Pack 13 3
+I Pack 14 3
+I Pack 21 3
 I Update 1
 I Pop 1
 I Unwind

@@ -406,6 +406,8 @@ def _extent(node, state) -> tuple[int, int]:
         # The child's, like every other attachment: saying what a thing
         # *is* does not change how much room it takes.
         return _extent(args[2], state)
+    if tag == cons["Does"].tag:
+        return _extent(args[1], state)
     raise GuiError(f"unknown substrate tag {tag}")
 
 
@@ -522,6 +524,21 @@ def _walk(node, state, cx: int, cy: int, out: list, hits: list) -> None:
             "axis": None,
             "means": _float(args[1], state),
             "chan": _chan_id(args[0], state),
+            "region": (x0, y0, x0 + w, y0 + h),
+        })
+        return
+    if tag == cons["Does"].tag:
+        # **What pressing it does** — `gui.ges`' `onDo`.  No channel:
+        # the acts are a value the host performs, read off this node on
+        # the press and not before, so the ones performed are the ones
+        # the picture holds at that instant (`card:strict-forms.md` Q9).
+        w, h = _extent(node, state)
+        x0, y0 = cx - w // 2, cy - h // 2
+        _walk(args[1], state, cx, cy, out, hits)
+        hits.append({
+            "axis": None,
+            "does": args[0],
+            "chan": None,
             "region": (x0, y0, x0 + w, y0 + h),
         })
         return
@@ -904,6 +921,7 @@ class Substrate:
         self.signal = self._signal_of(entry)
         self.values = {}
         self._held = None
+        self._pressed = []
         self._acts = first._acts
 
     def _build(self, source: str, rate: int = 0,
@@ -971,6 +989,9 @@ class Substrate:
 
         self._acts = (self._signal_of("acts")
                       if "acts" in _authored(source)[1] else None)
+        #: The acts a press on a `Does` read off the picture, until the
+        #: host reads them (`acts`).
+        self._pressed = []
 
     def _signal_of(self, name: str):
         """The `NSig` cell a named picture evaluated to.
@@ -1028,8 +1049,9 @@ class Substrate:
 
     def acts(self) -> list | None:
         """What the program asked of the host **in the step just taken**,
-        as terms — `("Assert", ("Mark", 4, [88]))` — or `None` when the
-        program declares no `acts` or they did not change this step.
+        as terms — `("Assert", [109, 97, 114, 107], [("IntAtom", 4),
+        ("TextAtom", [88])])`, the kind's word and its atoms — or `None`
+        when nothing was pressed and no `acts` signal moved this step.
 
         **Ticked, not held.**  `acts` is a signal and a signal holds its
         last value; read after every write it would perform the last
@@ -1039,14 +1061,21 @@ class Substrate:
         reads acts after a hand's write and after nothing else, and only
         when the cell says the write reached it.
         """
+        #: **A press on a `Does` first** — the acts the element carried,
+        #: read off the picture by `touch_all` and held here until the
+        #: host asks, once (`card:strict-forms.md` Q9).  A program
+        #: written that way declares no `acts` at all.
+        out = list(self._pressed)
+        self._pressed = []
         sig = self._acts
-        if sig is None or not sig.ticked:
-            return None
-        #: **Consumed.**  A step that reaches nothing on this cell leaves
-        #: the flag as the last step set it, so a hand's motion that
-        #: wrote no channel would read the press before it again.
-        sig.ticked = False
-        return _term(sig.value, self.state)
+        if sig is not None and sig.ticked:
+            #: **Consumed.**  A step that reaches nothing on this cell
+            #: leaves the flag as the last step set it, so a hand's
+            #: motion that wrote no channel would read the press before
+            #: it again.
+            sig.ticked = False
+            out.extend(_term(sig.value, self.state))
+        return out or None
 
     def _crossing(self):
         """The payload's static half — what `export.substrate_of`
@@ -1235,9 +1264,18 @@ class Substrate:
         if kind == "release":
             self._held = None
             return [("released", self._named(t["chan"])) for t in targets
-                    if self._named(t["chan"])]
+                    if t["chan"] is not None and self._named(t["chan"])]
         out = []
         for target in targets:
+            if "does" in target:
+                # **A thing that does** writes no channel: its acts are
+                # read off the node the walk recorded, on the press and
+                # on nothing else, and `acts` hands them to the host.
+                if kind == "press":
+                    acts = _term(target["does"], self.state)
+                    self._pressed.extend(acts)
+                    out.append(("does", acts))
+                continue
             value = _gesture_value(target, kind, x, y)
             if value is None:
                 continue
@@ -1265,6 +1303,9 @@ class Substrate:
         hits = _attachments(self.signal.value, self.state)
         out = []
         for target in _grabbed(hits, x, y):
+            if "does" in target:
+                out.append(("does", _term(target["does"], self.state)))
+                continue
             name = self._named(target["chan"])
             value = _gesture_value(target, "press", x, y)
             if name is not None and value is not None:
@@ -1299,7 +1340,7 @@ def _gesture_value(target: dict, kind: str, x: int, y: int):
 
     A release writes nothing: a fader stays where it was let go.
     """
-    if kind == "release":
+    if kind == "release" or "does" in target:
         return None
     #: **A thing answers what it is, on the press and on nothing else.**
     #: A meaning does not change while the hand moves over it, and a

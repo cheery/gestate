@@ -425,6 +425,24 @@ instance (Show a, Show b) => Show (a, b) where
     show p = case p of
         (a, b) -> append "(" (append (show a) (append ", " (append (show b) ")")))
 
+# ── What a program asks done ─────────────────────────────────────────────
+#
+# **The command language** — `card:strict-forms.md` Q9, Henri,
+# 2026-09-14: *"the solution to this problem might indeed be 'Act'."*
+# A program does not write its document; it says what it wants done —
+# assert this fact, retract that one, or refuse with a sentence — as a
+# value, and the host performs it.  A fact is a kind's word over its
+# columns' values, each one token (`facts.ges`, where `asserting` and
+# `retracting` build one from a kind and its typed row).  In the
+# prelude, and not in `gui.ges` or `facts.ges`, because both of them
+# name it and each compiles without the other: the picture carries one
+# (`gui.ges`' `Does`), the document vocabulary builds one.  Nothing
+# here performs anything, which is the point — `Act` is data, and the
+# machine that does something with it is outside the program.
+Atom := IntAtom Int | TextAtom String
+
+Act := Assert String (List Atom) | Retract String (List Atom) | Refuse String
+
 # ── Ordering, put to work ────────────────────────────────────────────────
 #
 # **Here rather than in a library, because a program that is not a synth

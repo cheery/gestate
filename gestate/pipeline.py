@@ -513,7 +513,8 @@ def forget_analyses() -> None:
 #: with another schema in its name is simply not found, and rebuilt.
 #: 2: constraint sites are stamps on the nodes rather than `id()`s.
 #: 3: `Nil`/`Cons`/`False`/`True` are pinned tags, baked into cached SCs.
-_STACK_SCHEMA = 3
+#: 4: declared constructors step over the reserved tags 80–96 (F232).
+_STACK_SCHEMA = 4
 
 
 @dataclass

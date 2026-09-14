@@ -562,28 +562,37 @@ def rows_of(document: Document, rels: dict, kind: str) -> list:
     return sorted(rels[kind].rows)
 
 
-def fact_of(document: Document, term) -> tuple:
-    """`(kind, {column: value})` of a `Fact` a program's act carries.
+def fact_of(document: Document, kind_text, atoms) -> tuple:
+    """`(kind, {column: value})` of the fact an `Act` carries.
 
-    A fact is **the kind's word capitalised, its base columns in
-    order** — `Mark 4 "X"` for `mark  cell 4  mark X`.  A `Text` arrives
-    as the code points the machine holds it as and is read back by the
-    field's own type."""
-    head, *args = term
-    name = head[:1].lower() + head[1:]
+    A fact is **the kind's word and its base columns' values as atoms,
+    in column order** — `Assert "mark" [IntAtom 4, TextAtom "X"]` for
+    `mark  cell 4  mark X`, which `facts.ges`' `asserting markKind (4,
+    "X")` builds.  A `Text` arrives as the code points the machine
+    holds it as; an atom of the wrong shape for its column is refused
+    by name."""
+    name = _text(kind_text)
     kind = document.kind(name)
     if kind is None:
         raise FactsError(
-            f"`{head}` names no kind of {document.path.name}; a fact's "
-            "constructor is a kind's word capitalised — "
-            + ", ".join(f"`{k.name[:1].upper()}{k.name[1:]}`" for k in document.kinds))
+            f"`{name}` names no kind of {document.path.name}; a fact's "
+            "word is a kind's — "
+            + ", ".join(f"`{k.name}`" for k in document.kinds))
     cols = base_columns(kind)
-    if len(args) != len(cols):
+    if len(atoms) != len(cols):
         raise FactsError(
-            f"`{head}` carries {len(args)} values and `{kind.name}` has "
+            f"`{name}` carries {len(atoms)} values and `{kind.name}` has "
             f"{len(cols)} — " + ", ".join(f"`{c}`" for c in cols))
     values = {}
-    for col, value in zip(cols, args):
+    for col, atom in zip(cols, atoms):
+        head, value = atom
         field = kind.field(col)
-        values[col] = _text(value) if field is None or field.value != "Number" else int(value)
+        number = field is not None and field.value == "Number"
+        if number and head != "IntAtom":
+            raise FactsError(
+                f"`{col}` of `{kind.name}` is a number and the fact carries a word")
+        if not number and head != "TextAtom":
+            raise FactsError(
+                f"`{col}` of `{kind.name}` is a word and the fact carries a number")
+        values[col] = int(value) if number else _text(value)
     return kind, values

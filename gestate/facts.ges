@@ -38,10 +38,12 @@
 # the row is written by hand and a kind edited here changes what the
 # checker accepts.  The same row is a type wherever a program wants
 # one: `type Row = $(kindRow markKind)`.  What the program asks done to
-# the file is `acts : Sig (List Act)`, an `Assert`, `Retract` or
-# `Refuse` at a time, a fact being the kind's word capitalised over the
-# same fields — `examples/gui/tic-tac-toe-facts.ges` is the first
-# program written so.
+# the file is an `Act` — `gui.ges`' command language: `Assert`,
+# `Retract` or `Refuse`, a fact being the kind's word over its columns'
+# values as atoms — carried by the element that does it (`Does`) and
+# performed by the host on the press; `asserting` and `retracting`
+# below build one from the kind and its typed row.
+# `examples/gui/tic-tac-toe-facts.ges` is the first program written so.
 
 #: `command.ges` declares this too, and for the same reason: it is not
 #: in the core prelude and a file that wants strings has to say so.
@@ -246,3 +248,49 @@ kindRow k = case map (columnType k) (kindColumns k) of
 #: compiler says so on the author's line.
 documentRow : List Kind -> Text -> List Type
 documentRow ks name = map kindRow (kindOf ks name)
+
+# ── A fact, from a kind and its row ──────────────────────────────────────
+#
+# **The typed door out** — `card:strict-forms.md` Q9, 2026-09-14.  An
+# `Act` carries a kind's word and a list of atoms, so that `gui.ges`
+# can declare it before any program; what a program *writes* is the
+# kind and its row, the same tuple `document` feeds and `kindRow`
+# types, and the atoms are derived here.  `Atoms` is the class of a
+# row: a number, a word, or a tuple of them.  A program holds the row
+# to the kind by naming it once — `type Placing = $(kindRow markKind)`
+# — and `asserting markKind (k, m)` then reads as the fact it is.
+
+class Atoms r where
+    atoms : r -> List Atom
+
+instance Atoms Int where
+    atoms n = IntAtom n :: Nil
+
+instance Atoms (List Char) where
+    atoms s = TextAtom s :: Nil
+
+instance (Atoms a, Atoms b) => Atoms (a, b) where
+    atoms p = case p of
+        (a, b) -> atoms a ++ atoms b
+
+instance (Atoms a, Atoms b, Atoms c) => Atoms (a, b, c) where
+    atoms p = case p of
+        (a, b, c) -> atoms a ++ atoms b ++ atoms c
+
+instance (Atoms a, Atoms b, Atoms c, Atoms d) => Atoms (a, b, c, d) where
+    atoms p = case p of
+        (a, b, c, d) -> atoms a ++ atoms b ++ atoms c ++ atoms d
+
+instance (Atoms a, Atoms b, Atoms c, Atoms d, Atoms e) => Atoms (a, b, c, d, e) where
+    atoms p = case p of
+        (a, b, c, d, e) -> atoms a ++ atoms b ++ atoms c ++ atoms d ++ atoms e
+
+#: Assert this row of this kind — `mark  cell 4  mark X` from
+#: `asserting markKind (4, "X")`.
+asserting : (Atoms r) => Kind -> r -> Act
+asserting k r = Assert (kindName k) (atoms r)
+
+#: Retract the row with this key — the host matches the key columns and
+#: the rest of the row is what the file says.
+retracting : (Atoms r) => Kind -> r -> Act
+retracting k r = Retract (kindName k) (atoms r)

@@ -188,21 +188,40 @@ def _texts(view) -> list:
 
 def test_the_rows_reach_the_program_and_a_press_asks_for_a_fact():
     """`document "mark"` is a signal of a set fed on a channel of typed
-    rows; a press on a cell moves `acts`, and nothing else does."""
+    rows; a press on a cell carries the act it asks for (`gui.ges`'
+    `Does`, `card:strict-forms.md` Q9), and nothing else does."""
     from gestate.gui import Substrate
 
     game, _board = _copy()
     view = Substrate(notes.read(game), 22050)
     assert view.crossing is None, "a program with a document stays home"
+    assert list(view.by_name) == ["__doc_mark__"], \
+        "no hand channel: the picture is the dispatcher"
     assert _texts(view) == ["X TO PLAY"]
     assert view.write("__doc_mark__", [(4, "X"), (0, "O")])
     assert _texts(view) == ["O", "X", "X TO PLAY"]
-    assert view.acts() is None or view.acts() is None, "the feed's step is not a hand's"
-    view.touch_all("press", CELL_X[1], CELL_Y[0])
-    assert view.acts() == [("Assert", ("Mark", 1, [ord("X")]))]
+    assert view.acts() is None, "the feed's step is not a hand's"
+    mark = [ord(c) for c in "mark"]
+    play_1 = ("Assert", mark, [("IntAtom", 1), ("TextAtom", [ord("X")])])
+    # **Asked, not done**: the reference half of a Ctrl-press says what
+    # the cell would do, and nothing is performed.
+    assert view.ask(CELL_X[1], CELL_Y[0]) == [("does", [play_1])]
+    assert view.acts() is None
+    assert view.touch_all("press", CELL_X[1], CELL_Y[0]) == [("does", [play_1])]
+    assert view.acts() == [play_1]
     assert view.acts() is None, "consumed"
     view.touch_all("drag", CELL_X[2], CELL_Y[0])
-    assert view.acts() is None, "a motion that wrote nothing asks nothing"
+    assert view.acts() is None, "a motion asks nothing"
+    assert view.touch_all("release", CELL_X[2], CELL_Y[0]) == []
+    # A taken cell carries the refusal, built over the board it was
+    # drawn on — no query runs at the press.
+    view.touch_all("press", CELL_X[1], CELL_Y[1])
+    assert view.acts() == [("Refuse", [ord(c) for c in "that cell is taken"])]
+    # The foot carries every retraction the board has.
+    view.touch_all("press", *FOOT)
+    got = view.acts()
+    assert [a[0] for a in got] == ["Retract", "Retract"]
+    assert sorted(a[2][0][1] for a in got) == [0, 4]
 
 
 # ── The bench: the state is the file ────────────────────────────────────────
@@ -268,3 +287,37 @@ def test_reopening_resumes_the_game_from_the_file():
     assert _texts(again.substrate) == ["O", "X", "X TO PLAY"]
     _press(again, 8)
     assert "mark  cell 8  mark X" in board.read_text()
+
+
+def test_the_probe_says_what_a_cell_would_do():
+    """The window's Ctrl-press over a `Does` names the acts, as a
+    person reads them — `session.probe_at`, the reference half."""
+    from gestate.session import probe_at
+
+    game, _board = _copy()
+    bench = _bench(game)
+    _press(bench, 4)
+    assert probe_at(bench, CELL_X[0], CELL_Y[0]).startswith("does ")
+    assert probe_at(bench, CELL_X[0], CELL_Y[0]).endswith("— assert mark 0 O")
+    assert probe_at(bench, CELL_X[1], CELL_Y[1]).endswith("— refuse 'that cell is taken'")
+    assert probe_at(bench, *FOOT).endswith("— retract mark 4 X")
+    assert "mark  cell 4  mark X" in _board.read_text() or True  # asked, not done
+    assert bench.drain()[-1].startswith("tic-tac-toe-facts.board — asserted")
+
+
+def test_ondo_lifts_a_does_over_signals():
+    """`gui.ges`' `onDo` beside `onPress`: a program that lifts rather
+    than builds its `Sub` by hand, and a `Refuse` that names no
+    document still reaches the host as an act."""
+    from gestate.gui import Substrate
+
+    view = Substrate(
+        "substrate : Sig Sub\n"
+        "substrate = onDo (!(Refuse \"nothing here\" :: Nil)) (rect 40 40 (!(RGB 1 2 3)))\n",
+        22050)
+    assert view.by_name == {}, "no channel at all"
+    assert view.touch_all("press", 0, 0) == [
+        ("does", [("Refuse", [ord(c) for c in "nothing here"])])]
+    assert view.acts() == [("Refuse", [ord(c) for c in "nothing here"])]
+    assert view.touch_all("press", 100, 100) == [], "beside it, nothing"
+

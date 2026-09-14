@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**522 complaints**, in 50 files.
+**525 complaints**, in 50 files.
 
 | | |
 |---|---|
-| `author` | 289 |
+| `author` | 292 |
 | `command` | 51 |
 | `world` | 27 |
 | `machine` | 155 |
 | say where | 197 |
-| say `nowhere`, on purpose | 54 |
+| say `nowhere`, on purpose | 57 |
 | `unplaced`, with a defect that owns it | 60 |
 
 ## A place that could exist, and does not
@@ -71,7 +71,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `elaborate.py:224` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
 | `elaborate.py:256` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
 | `elaborate.py:264` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
-| `export.py:746` | `ExportError` | fixme.md F156: a control channel the author declared, named by the channel and not by the line |
+| `export.py:751` | `ExportError` | fixme.md F156: a control channel the author declared, named by the channel and not by the line |
 | `gmachine.py:1248` | `GmError` | fixme.md F159: a signal read out of turn is the program's mistake, and the instruction that reads it carries no span the way `Hole` does |
 | `gmachine.py:1346` | `GmError` | fixme.md F159: a match that covers nothing is the program's mistake; exhaustiveness catches most of them and this is what catches the rest |
 | `gmachine.py:1371` | `GmError` | fixme.md F159: dividing by zero is a program's own doing and the instruction carries no span |
@@ -80,11 +80,11 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:707` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:710` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:724` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:727` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `pipeline.py:1197` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
+| `pipeline.py:1198` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -123,11 +123,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `charts.py:91` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `charts.py:103` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
+| `declarations.py:233` | `DeclError` | the program and its libraries declare more constructors than the machine has tags for |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `desugar.py:180` | `DesugarError` | which libraries the program was assembled with, which is a fact about the assembly and not about a line of it |
 | `desugar.py:379` | `DesugarError` | an implicit nothing supplies is an absence, and an absence is not written anywhere |
-| `export.py:756` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
+| `export.py:761` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
 | `facts.py:147` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:157` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:167` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
@@ -139,21 +140,23 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:426` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:432` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:502` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:576` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:582` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:577` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:583` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:592` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:595` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:634` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:998` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:1020` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:651` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:1019` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:1041` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
 | `online.py:122` | `OnlineError` | the score itself reads what a hand holds, and this page bakes its score; card:hands-in-the-tab.md is the seam that would fix it |
 | `pipeline.py:313` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:985` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:1055` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:1067` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:986` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1056` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1068` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
 ## Every complaint
 
@@ -481,32 +484,33 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 237 | `DeclError` | `author` | `at()` | "Duplicate type signature for '{item.name}'{at(item)}" |
-| 245 | `DeclError` | `author` | `at()` | "Duplicate `implicit` declaration for '{item.name}'{at(item)}" |
-| 254 | `DeclError` | `author` | `at()` | '`implicit {item.name}` may not carry a class context{at(item)}' |
-| 268 | `DeclError` | `author` | `at()` | "Multiple declarations of '{item.name}' — its equations must be adjacent{at(item)}" |
-| 291 | `DeclError` | `author` | `at()` | "'{item.name}' is a built-in data type of the FRP interface and cannot be redeclared{at(item)}" |
-| 318 | `DeclError` | `author` | `at()` | '{e}{at(item)}' |
-| 360 | `DeclError` | `author` | `at()` | "Superclass '{pred.class_name}' of class '{item.name}' must constrain the class's own type para… |
-| 380 | `DeclError` | `author` | `at()` | 'Multi-parameter instance not supported yet: {item.name}{at(item)}' |
-| 763 | `DeclError` | `author` | `at()` | 'Unexpected infix operator in type: {val.op}{at(val)}' |
-| 766 | `DeclError` | `author` | `at()` | 'A class context (`(C a) => ...`) is only supported on a top-level signature, not here{at(val)}' |
-| 777 | `DeclError` | `author` | `at()` | 'Set type with multiple items: use {{A}} for the type of sets of A{at(val)}' |
-| 790 | `DeclError` | `author` | `at()` | 'A list type is written `[a]` — one element type, no tail{at(val)}' |
-| 799 | `DeclError` | `author` | `at()` | 'A one-component tuple type is just its component{at(val)}' |
-| 805 | `DeclError` | `author` | `at()` | 'Unsupported type expression: {type(val).__name__}{at(val)}' |
-| 987 | `DeclError` | `author` | `at()` | 'Malformed constraint in signature: {pat}{at(pat)}' |
-| 990 | `DeclError` | `author` | `at()` | "Constraint '{pat.name}' must have exactly one type argument (multi-parameter classes are not s… |
-| 1010 | `DeclError` | `author` | `at()` | 'Unsupported type in constraint: {pat}{at(pat)}' |
-| 1018 | `DeclError` | `author` | `at()` | 'Malformed constraint: {val}{at(val)}' |
-| 1020 | `DeclError` | `author` | `at()` | "Constraint '{head.value}' must have exactly one type argument (multi-parameter classes are not… |
-| 1054 | `DeclError` | `author` | `at()` | 'Duplicate type alias: {item.name}{at(item)}' |
-| 1056 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a data type of the same name{at(item)}" |
-| 1061 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a constructor of the same name{at(item)}" |
-| 1066 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a built-in type{at(item)}" |
-| 1071 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' has duplicate type parameters{at(item)}" |
-| 1097 | `DeclError` | `author` | `at()` | 'Recursive type alias: {cycle}{at(decls[name])}' |
-| 1174 | `DeclError` | `author` | `at()` | "Type alias '{info.name}' expects {arity} argument(s) but got {len(args)}; type aliases must be… |
+| 233 | `DeclError` | `author` | *nowhere, on purpose* | 'too many constructors: the machine has {TAG_TUPLE_BASE} tags and tuples take the rest' |
+| 268 | `DeclError` | `author` | `at()` | "Duplicate type signature for '{item.name}'{at(item)}" |
+| 276 | `DeclError` | `author` | `at()` | "Duplicate `implicit` declaration for '{item.name}'{at(item)}" |
+| 285 | `DeclError` | `author` | `at()` | '`implicit {item.name}` may not carry a class context{at(item)}' |
+| 299 | `DeclError` | `author` | `at()` | "Multiple declarations of '{item.name}' — its equations must be adjacent{at(item)}" |
+| 322 | `DeclError` | `author` | `at()` | "'{item.name}' is a built-in data type of the FRP interface and cannot be redeclared{at(item)}" |
+| 349 | `DeclError` | `author` | `at()` | '{e}{at(item)}' |
+| 391 | `DeclError` | `author` | `at()` | "Superclass '{pred.class_name}' of class '{item.name}' must constrain the class's own type para… |
+| 411 | `DeclError` | `author` | `at()` | 'Multi-parameter instance not supported yet: {item.name}{at(item)}' |
+| 794 | `DeclError` | `author` | `at()` | 'Unexpected infix operator in type: {val.op}{at(val)}' |
+| 797 | `DeclError` | `author` | `at()` | 'A class context (`(C a) => ...`) is only supported on a top-level signature, not here{at(val)}' |
+| 808 | `DeclError` | `author` | `at()` | 'Set type with multiple items: use {{A}} for the type of sets of A{at(val)}' |
+| 821 | `DeclError` | `author` | `at()` | 'A list type is written `[a]` — one element type, no tail{at(val)}' |
+| 830 | `DeclError` | `author` | `at()` | 'A one-component tuple type is just its component{at(val)}' |
+| 836 | `DeclError` | `author` | `at()` | 'Unsupported type expression: {type(val).__name__}{at(val)}' |
+| 1018 | `DeclError` | `author` | `at()` | 'Malformed constraint in signature: {pat}{at(pat)}' |
+| 1021 | `DeclError` | `author` | `at()` | "Constraint '{pat.name}' must have exactly one type argument (multi-parameter classes are not s… |
+| 1041 | `DeclError` | `author` | `at()` | 'Unsupported type in constraint: {pat}{at(pat)}' |
+| 1049 | `DeclError` | `author` | `at()` | 'Malformed constraint: {val}{at(val)}' |
+| 1051 | `DeclError` | `author` | `at()` | "Constraint '{head.value}' must have exactly one type argument (multi-parameter classes are not… |
+| 1085 | `DeclError` | `author` | `at()` | 'Duplicate type alias: {item.name}{at(item)}' |
+| 1087 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a data type of the same name{at(item)}" |
+| 1092 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a constructor of the same name{at(item)}" |
+| 1097 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a built-in type{at(item)}" |
+| 1102 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' has duplicate type parameters{at(item)}" |
+| 1128 | `DeclError` | `author` | `at()` | 'Recursive type alias: {cycle}{at(decls[name])}' |
+| 1205 | `DeclError` | `author` | `at()` | "Type alias '{info.name}' expects {arity} argument(s) but got {len(args)}; type aliases must be… |
 
 ### `deriving.py`
 
@@ -594,11 +598,11 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 730 | `ExportError` | `world` | — | 'no clang to build the graph with' |
-| 732 | `ExportError` | `world` | — | 'no cargo to build the shell with — the CLAP shell is Rust (`shell/clap/`)' |
-| 746 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
-| 756 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
-| 801 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
+| 735 | `ExportError` | `world` | — | 'no clang to build the graph with' |
+| 737 | `ExportError` | `world` | — | 'no cargo to build the shell with — the CLAP shell is Rust (`shell/clap/`)' |
+| 751 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
+| 761 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
+| 806 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
 
 ### `facts.py`
 
@@ -617,8 +621,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 426 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
 | 432 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
 | 502 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
-| 576 | `FactsError` | `author` | *nowhere, on purpose* | "`{head}` names no kind of {document.path.name}; a fact's constructor is a kind's word capitali… |
-| 582 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` carries {len(args)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}`… |
+| 577 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
+| 583 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
+| 592 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
+| 595 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
 
 ### `gmachine.py`
 
@@ -677,19 +683,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 300 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
 | 308 | `GuiError` | `machine` | — | 'expected an RGB colour' |
 | 362 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 409 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 437 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 528 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 540 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 634 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 661 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
-| 680 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
-| 707 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 710 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 734 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 998 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 1020 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1385 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 411 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 439 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 545 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 557 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
+| 651 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 678 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
+| 697 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
+| 724 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 727 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 751 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 1019 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 1041 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1426 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -878,19 +884,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
 | 313 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
-| 623 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 653 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 656 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 700 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 713 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 716 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 818 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 842 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 848 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 985 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
-| 1055 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
-| 1067 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
-| 1197 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
+| 624 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 654 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 657 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 701 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 714 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 717 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 819 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 843 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 849 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 986 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
+| 1056 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
+| 1068 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
+| 1198 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
 
 ### `reactive.py`
 

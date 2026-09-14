@@ -7121,6 +7121,11 @@ def probe_at(bench, x: int, y: int) -> str:
     got = _grabbed(hits, x, y)
     if not got:
         return f"probe: nothing at {x},{y} — {len(hits)} attachment(s) elsewhere"
+    # **A thing that does** answers with its acts, and has no channel
+    # to be named by (`gui.ges`' `Does`).
+    from .gui import _term
+    doing = [h for h in got if "does" in h]
+    got = [h for h in got if "does" not in h]
     # The rail speaks first (`hand.ges`): its tick is what the pitch
     # half's words need, whichever order the hit table has them in.
     named = [(view._named(h["chan"]) or f"#{h['chan']}", h,
@@ -7132,11 +7137,25 @@ def probe_at(bench, x: int, y: int) -> str:
         if found is not None and getattr(found, "on_rail", False):
             describe_touch(bench, name, value, ticks)
     out = []
+    for hit in doing:
+        x0, y0, x1, y1 = hit["region"]
+        out.append(f"does {x0},{y0}–{x1},{y1} — "
+                   + ", ".join(_say_act(a) for a in _term(hit["does"], view.state)))
     for name, hit, value in named:
         x0, y0, x1, y1 = hit["region"]
         out.append(f"{name} ({hit['axis']}) {x0},{y0}–{x1},{y1} — "
                    + describe_touch(bench, name, value, ticks))
     return "; ".join(out)
+
+
+def _say_act(act) -> str:
+    """An act as a person would read it — `assert mark 4 X`."""
+    head = act[0] if isinstance(act, tuple) else act
+    text = lambda cps: "".join(chr(c) for c in cps)  # noqa: E731
+    if head == "Refuse":
+        return f"refuse {text(act[1])!r}"
+    atoms = " ".join(str(v) if h == "IntAtom" else text(v) for h, v in act[2])
+    return f"{head.lower()} {text(act[1])} {atoms}"
 
 
 def describe_touch(bench, name: str, value: float, ticks: dict | None = None) -> str:

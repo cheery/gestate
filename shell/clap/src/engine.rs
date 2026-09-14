@@ -172,7 +172,7 @@ pub struct Substrate {
     /// the literal — so a constructor appended there and not counted
     /// here is a generated `descriptor.rs` that does not compile
     /// (`fixme.md` F216, the day `Meaning` was appended).
-    pub tags: [i64; 15],
+    pub tags: [i64; 16],
     /// Every `name : Chan …` the file declares, **in the order
     /// written**.
     ///

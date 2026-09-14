@@ -48,6 +48,7 @@
 //!   then `hits` records, each eight words:
 //!       kind axis extra x0 y0 x1 y1 means
 //!   where kind is 0 fader, 1 toggle, 2 button, 3 channel, 4 meaning,
+//!   5 does (an element carrying acts, `gui.ges`' `Does`; no channel),
 //!   and `extra` is the parameter, the button's action, or the channel
 //!   id.  `means` is the number a **meaning** writes when it is pressed
 //!   — an element that says what it *is* rather than where it was
@@ -164,7 +165,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
         park_opening("web: open without a program");
         return std::ptr::null_mut();
     }
-    let t = std::slice::from_raw_parts(tags, 15);
+    let t = std::slice::from_raw_parts(tags, 16);
     let program = CanvasProgram {
         text: text_at(text, text_len),
         entry: {
@@ -175,7 +176,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
             rect: t[0], circle: t[1], gap: t[2], over: t[3],
             row: t[4], column: t[5], shift: t[6], sized: t[7],
             pad: t[8], touch_x: t[9], touch_y: t[10], label: t[11],
-            meaning: t[12], cons: t[13], nil: t[14],
+            meaning: t[12], cons: t[13], nil: t[14], does: t[15],
         },
         chans: text_at(chans, chans_len)
             .split('\0')
@@ -368,6 +369,9 @@ pub unsafe extern "C" fn web_display(w: *mut Web) -> *const i32 {
             Kind::Button(code) => (2, 0, code as i32),
             Kind::Chan(a, chan) => (3, axis_of(a), chan as i32),
             Kind::Means(chan) => (4, 0, chan as i32),
+            // A thing that does: the page draws it and a press on it
+            // is the reference machine's to perform — no channel.
+            Kind::Does => (5, 0, 0),
         };
         let (x0, y0, x1, y1) = hit.region;
         let means = (hit.means as f32).to_bits() as i32;
