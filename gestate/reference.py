@@ -128,9 +128,10 @@ PRIMITIVES = (
          "`TyCon`, `TyApp`, `TyFun`, `TyInt`, `TyTuple`.  The compiler runs "
          "the definitions `e` needs, with the preludes, before the program "
          "is checked, and what the checker then sees is an ordinary type: "
-         "`type Placing = $(kindRow markKind)`.  Written as an argument of "
-         "its own — `Set ($(e))` — since `$` between two things reads as an "
-         "operator.  A definition the splice needs may not itself be typed "
+         "`type Placing = $(kindRow markKind)`.  Between two things, "
+         "`T $(e)` is `T` applied to the type: `$` is `infixl 9`, the "
+         "tightest infix operator, and no program may redeclare it.  "
+         "A definition the splice needs may not itself be typed "
          "by it; that is refused with both names "
          "(`card:strict-forms.md`, `gestate/stage.py`)."),
         ("document", "<a kind's word> -> Sig (Set <its row>)",

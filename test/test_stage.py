@@ -45,16 +45,25 @@ main = (first (3, "x"), size {(1, "a"), (2, "b")})
     assert _run(program) == (3, 2)
 
 
-def test_a_splice_between_two_things_is_refused_with_the_spelling_that_works():
+def test_a_splice_between_two_things_applies_the_left_to_the_type():
+    """Henri, 2026-09-14: *give `$` a fixity.*  `$` is `infixl 9`, the
+    tightest infix operator, so `Set $(e) -> Int` is `(Set $(e)) -> Int`
+    and a program may not redeclare it."""
+    from gestate.syntax.descend import FixityError
+
     program = """
-size : Set $(TyCon "Int") -> Int
-size s = 0
+pair : Type
+pair = TyTuple (TyCon "Int" :: TyCon "Int" :: Nil)
+
+size : Set $(pair) -> Int
+size s = length (elems s)
+
 main : Int
-main = 0
+main = size {(1, 2), (3, 4), (1, 2)}
 """
-    line = FACTS.count("\n") + 1                  # the program's second line, 0-based
-    with pytest.raises(StageError, match=rf"a splice is written as an argument of its own.*\(at {line}:"):
-        pipeline.compile(FACTS + program)
+    assert _run(program) == 2
+    with pytest.raises(FixityError, match="`\\$` has a fixed fixity"):
+        pipeline.compile(FACTS + "\ninfixr 2 $\nmain : Int\nmain = 0\n")
 
 
 def test_a_splice_that_is_not_a_type_is_refused():

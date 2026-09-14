@@ -148,14 +148,10 @@ def _respan(node, span: Span):
 # ── The sites ───────────────────────────────────────────────────────────────
 
 def _is_splice(v) -> bool:
-    return isinstance(v, VPrefix) and v.op == SPLICE
-
-
-def _is_infix_splice(v) -> bool:
-    """`Set $(e) -> Int` — the expression grammar reads `$` between two
-    things as an operator binding looser than `->`, so the splice would
-    swallow the arrow.  Refused, with the spelling that works."""
-    return isinstance(v, VInfix) and v.op == SPLICE
+    """`$(e)` at the head of a phrase, or `T $(e)` — the second is `T`
+    applied to the type, since `$` binds tightest of the infix operators
+    (`descend.DEFAULT_INFIX`)."""
+    return isinstance(v, (VPrefix, VInfix)) and v.op == SPLICE
 
 
 def _is_document(v) -> bool:
@@ -169,18 +165,13 @@ def _sites(item) -> list:
     for n in _walk(item):
         if _is_splice(n):
             out.append((n, "splice"))
-        elif _is_infix_splice(n):
-            raise StageError(
-                "a splice is written as an argument of its own — `Set ($(e))`, "
-                "not `Set $(e)` — because `$` between two things is read as an "
-                f"operator (at {n.left.span.start.line}:{n.left.span.start.col})")
         elif _is_document(n):
             out.append((n, "document"))
     return out
 
 
 def _expr_of(site) -> Val:
-    return site.arg
+    return site.right if isinstance(site, VInfix) else site.arg
 
 
 def _at(node) -> str:
@@ -188,7 +179,7 @@ def _at(node) -> str:
     — 0-based, in the assembled text, for `audiospans.in_source` to move
     back into the author's file.  A prefix's own span starts at the
     phrase, so a splice reports where its expression is."""
-    at = node.arg if isinstance(node, VPrefix) else node
+    at = _expr_of(node) if isinstance(node, (VPrefix, VInfix)) else node
     return f" (at {at.span.start.line}:{at.span.start.col})"
 
 
@@ -328,7 +319,10 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
             replacements[id(site)] = _respan(_document_read(chan), site.span)
             channels.setdefault(chan, (row, site.span))
         else:
-            replacements[id(site)] = _type_val(got, site.arg.span)
+            ty = _type_val(got, _expr_of(site).span)
+            if isinstance(site, VInfix):
+                ty = VApp(site.left, ty, site.span)       # `Set $(e)` is `Set` applied
+            replacements[id(site)] = ty
 
     def swap(v):
         return replacements.get(id(v))

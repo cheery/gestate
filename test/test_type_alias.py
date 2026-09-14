@@ -117,6 +117,14 @@ def test_alias_clashing_with_a_data_type_rejected():
         _classify("Foo := Bar\ntype Foo = Int\n")
 
 
+def test_alias_clashing_with_a_constructor_rejected():
+    """`fixme.md` F231: accepted, and failing later as *Unknown global* at
+    a use of the constructor — refused at the alias now, like its two
+    neighbours."""
+    with pytest.raises(DeclError, match="clashes with a constructor"):
+        _classify("Sub := Row Sub Sub | Gap\ntype Row = Int\n")
+
+
 def test_alias_clashing_with_a_builtin_rejected():
     with pytest.raises(DeclError, match="clashes with a built-in type"):
         _classify("type Int = Bool\n")

@@ -500,12 +500,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1010 | `DeclError` | `author` | `at()` | 'Unsupported type in constraint: {pat}{at(pat)}' |
 | 1018 | `DeclError` | `author` | `at()` | 'Malformed constraint: {val}{at(val)}' |
 | 1020 | `DeclError` | `author` | `at()` | "Constraint '{head.value}' must have exactly one type argument (multi-parameter classes are not… |
-| 1047 | `DeclError` | `author` | `at()` | 'Duplicate type alias: {item.name}{at(item)}' |
-| 1049 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a data type of the same name{at(item)}" |
-| 1054 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a built-in type{at(item)}" |
-| 1059 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' has duplicate type parameters{at(item)}" |
-| 1085 | `DeclError` | `author` | `at()` | 'Recursive type alias: {cycle}{at(decls[name])}' |
-| 1162 | `DeclError` | `author` | `at()` | "Type alias '{info.name}' expects {arity} argument(s) but got {len(args)}; type aliases must be… |
+| 1054 | `DeclError` | `author` | `at()` | 'Duplicate type alias: {item.name}{at(item)}' |
+| 1056 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a data type of the same name{at(item)}" |
+| 1061 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a constructor of the same name{at(item)}" |
+| 1066 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' clashes with a built-in type{at(item)}" |
+| 1071 | `DeclError` | `author` | `at()` | "Type alias '{item.name}' has duplicate type parameters{at(item)}" |
+| 1097 | `DeclError` | `author` | `at()` | 'Recursive type alias: {cycle}{at(decls[name])}' |
+| 1174 | `DeclError` | `author` | `at()` | "Type alias '{info.name}' expects {arity} argument(s) but got {len(args)}; type aliases must be… |
 
 ### `deriving.py`
 
@@ -978,13 +979,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 173 | `StageError` | `author` | written out | 'a splice is written as an argument of its own — `Set ($(e))`, not `Set $(e)` — because `$` bet… |
-| 244 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `kinds : List Kind` declared in this program — the row it … |
-| 267 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
-| 321 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `kinds` has ' + ', '.join((f'`{k}`' … |
-| 395 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
-| 422 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 437 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 235 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `kinds : List Kind` declared in this program — the row it … |
+| 258 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
+| 312 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `kinds` has ' + ', '.join((f'`{k}`' … |
+| 389 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
+| 416 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 431 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

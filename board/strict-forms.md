@@ -583,6 +583,17 @@ declare its own `kinds`; the day a grid is drawn over a document that
 is not a `.notes`, that is the line to revisit.  Not on the reference
 roster, since it is a declaration and not a library.
 
+### Two more, at his word — 2026-09-14
+
+**Henri:** *"fix F231 and give $ a fixity."*  `$` is `infixl 9` in
+`descend.DEFAULT_INFIX`, the tightest infix operator and, like `->`
+and `!`, one a program may not redeclare: `Set $(e) -> Int` is `(Set
+$(e)) -> Int`, and both spellings of a splice are the same type.  The
+refusal of the infix form is gone with its reason.  And an alias may
+no longer wear a constructor's name: `_collect_aliases` refuses `type
+Row = …` beside `Row Sub Sub` at the alias, in the shape of its two
+neighbours — `fixme.md` F231, resolved.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, and the grid's tables

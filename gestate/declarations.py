@@ -1039,6 +1039,13 @@ def _collect_aliases(module: VModule) -> dict[str, VTypeAlias]:
     decls: dict[str, VTypeAlias] = {}
     adt_names = {item.name for item in module.items
                  if isinstance(item, VTypeDecl)}
+    # **And the constructors' names**, which the tokenizer keeps in the
+    # one namespace with types (`prelude._type_names`): `type Row = …`
+    # beside `gui.ges`' `Row Sub Sub` used to be accepted and to fail two
+    # hundred lines later as *Unknown global 'Row'* at a use of the
+    # constructor (`fixme.md` F231).
+    ctor_names = {c.name for item in module.items
+                  if isinstance(item, VTypeDecl) for c in item.constructors}
 
     for item in module.items:
         if not isinstance(item, VTypeAlias):
@@ -1048,6 +1055,11 @@ def _collect_aliases(module: VModule) -> dict[str, VTypeAlias]:
         if item.name in adt_names:
             raise DeclError(
                 f"Type alias '{item.name}' clashes with a data type of "
+                f"the same name{at(item)}"
+            )
+        if item.name in ctor_names:
+            raise DeclError(
+                f"Type alias '{item.name}' clashes with a constructor of "
                 f"the same name{at(item)}"
             )
         if item.name in BUILTIN_TYPE_NAMES:

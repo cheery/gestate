@@ -185,7 +185,7 @@ resolved by fixity.
 | `infixl 8`   | `*`, `/`, `%` | numeric — `%` is remainder        |
 | `infixr 9`   | `^`       | power                                 |
 | `infixr 9`   | `@`       | function composition (the prelude's `(@)`) |
-| `infixr 0`   | `$`       | apply (lowest)                        |
+| `infixl 9`   | `$`       | the splice, `$(e)`: a type computed from a value (`gestate/stage.py`); fixed, like `->` — was `infixr 0` apply until 2026-09-14, which nothing wrote |
 | `infixl 1`   | `>>=`, `>>`| monadic bind (where applicable)      |
 | `infixl 6`   | `|*`, `|/`| music duration multiply/divide — tighter than `++` |
 | `prefix 6`   | `\|<`     | music offset, one beat earlier        |

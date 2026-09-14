@@ -29,6 +29,12 @@ class FixityError(Exception):
 # ── Default fixities (from spec/syntax.md) ───────────────────────────────────
 
 DEFAULT_INFIX: dict[str, tuple[str, int]] = {
+    #: The splice, `$(e)` — a type computed from a value
+    #: (`gestate/stage.py`).  Tightest of the infix operators so that
+    #: `Set $(e) -> Int` is `(Set $(e)) -> Int`, the argument applied and
+    #: then the arrow; at the head of a phrase it is a prefix and the
+    #: parser already reads it so.  Henri, 2026-09-14: *give `$` a fixity.*
+    "$":    ("L", 9),
     "->":   ("R", 1),
     "~>":   ("R", 1),   # monotone function arrow (type space only)
     "::":   ("R", 5),
@@ -59,7 +65,9 @@ DEFAULT_INFIX: dict[str, tuple[str, int]] = {
     # tighter than every other infix, so `f @ g` groups before whatever
     # is done with it.
     "@":    ("R", 9),
-    "$":    ("R", 0),
+    # `$` was here at `infixr 0`, Haskell's loose application, which no
+    # `.ges` in the tree ever wrote and the prelude never defined; the
+    # splice's entry at the top of this table is the one that holds.
     ">>=":  ("L", 1),
     ">>":   ("L", 1),
     "|*":   ("L", 6),
@@ -120,7 +128,7 @@ RIGHT_PREC: dict[str, int] = {
 #: grammar: the *parser* binds it to the next atom (`parse._marks_head`)
 #: and `desugar` matches it by name, so a declared fixity could only
 #: contradict the two of them.
-_UNOVERRIDABLE = frozenset({"->", "~>", "!"})
+_UNOVERRIDABLE = frozenset({"->", "~>", "!", "$"})
 
 # ── Fixity table ─────────────────────────────────────────────────────────────
 
@@ -140,6 +148,8 @@ def _build_fixity_table(module: VModule) -> dict[str, tuple[str, int]]:
             if item.op in _UNOVERRIDABLE:
                 what = ("the signal lift, parsed in the grammar"
                         if item.op == "!" else
+                        "the splice, a compiler form (`gestate/stage.py`)"
+                        if item.op == "$" else
                         "type syntax, not an expression operator")
                 raise FixityError(
                     f"`{item.op}` has a fixed fixity and cannot be given "
