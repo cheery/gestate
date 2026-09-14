@@ -29,3 +29,10 @@ has appeared in a minute, look at the process before waiting further;
 and never call `compile` inside `_deep_stack` — force values there,
 compile outside.  The retraction tool's `_tables` is the shape to copy:
 compile once at the top, deep-stack only the forcing.
+
+**And when the nested compile is the design**, 2026-09-14: stage one
+(`gestate/stage.py`) has to compile part of the program from inside
+`_analyse`, which already holds `pipeline._FRONT_END` on the deep stack.
+`pipeline.compile` waits on that lock forever; `pipeline._compile` is the
+door for a caller already inside — the same cache, no lock — and the
+first run of the stage hung for two minutes before this line was read.
