@@ -380,7 +380,7 @@ mod tests {
     use super::*;
 
     const SOME: &str = "entry\tmain\n\
-        tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
+        tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16\n\
         chan\tdragged\t0.75\n\
         chan\tuntouched\n\
         program\n\
@@ -414,14 +414,14 @@ mod tests {
         // other without a sentinel.
         let two = "box\tsubstrate\n\
             entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16\n\
             chan\tdragged\t0.75\n\
             program\t2\n\
             crust 1\n\
             I PushInt 3\n\
             box\t__canvas_0__\n\
             entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16\n\
             program\t1\n\
             crust 1";
         let walks = Walk::read_all(two);
@@ -451,7 +451,7 @@ mod tests {
             crust 1\n\
             box\t__canvas_0__\n\
             entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16\n\
             program\t1\n\
             crust 1";
         let walks = Walk::read_all(mixed);
@@ -463,12 +463,12 @@ mod tests {
     fn half_a_canvas_refuses_whole() {
         // Walking with a truncated tag table would draw the artwork
         // wrong rather than not at all.
-        let short = SOME.replace("tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15",
+        let short = SOME.replace("tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16",
                                  "tags\t1 2 3");
         assert_eq!(Walk::read(&short), None);
         // And no program is nothing to walk, whatever the header says.
         let headless = "entry\tmain\n\
-            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\nprogram\n";
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16\nprogram\n";
         assert_eq!(Walk::read(headless), None);
     }
 
