@@ -195,9 +195,176 @@ tooling (a module convention with no language change)?  *Default:*
 unanswered until Q1; the three seams land in three different places
 and that is the finding.  *Trigger:* Q1.
 
+## Decided — 2026-09-14: staging; and what the tree needs for it
+
+**Henri, opening the sitting:** *"I've decided.  Lets start looking at
+what we need in order to implement multiple stages/comptime/type
+providers."*  So the lean of §"Where the session tips" is his
+decision, and this section is the looking: what the tree already has
+that a stage is made of, what the four sources say now that they have
+been read rather than recalled, what the two generators actually
+contain when counted, and the list of what is missing — each item
+with the part that carries it today.  *Nothing is built; the
+questions at the end are shaped for him.*
+
+### Located — what a stage is already made of here
+
+1. **A build-time evaluator, in the host.**  `charts.Terms` compiles a
+   library, one file and a `main`, `declared` fetches a global,
+   `read` forces a heap node into a Python term through the G-machine.
+   `facts.Document` reads a program's `kinds` through it — a **second
+   compile of the whole GUI program**, 0.3–0.5 s per edit, to obtain
+   one value the first compile also had.  That is stage one, run by
+   the host after the compiler instead of by the compiler during.
+2. **A program computed as syntax, never as text.**  `deriving.py`
+   builds `VSCEqn` trees for `deriving Eq | Ord | Show` from a type
+   declaration and appends them to the module — a declaration splice,
+   hard-coded to three classes.  The one in-tree instance of *computed
+   but never patched*.
+3. **Types as values, for one domain.**  `facts.ges`' `Kind`, `Field`,
+   `Value` describe a relation's row; `facts._kind` reads them back
+   and `facts.base_columns` is the row function — key, then required
+   scalars — in Python.  The type it implies, `(Int, Text)` for
+   `mark`, is written by hand in the program and checked by the host.
+4. **A value already inside the type grammar.**  `TInt` — `Cyclic 12`
+   — with kind `Int` beside `Type` (`spec/types.md` §5,
+   `kindcheck.py`).  The grammar has admitted one kind of value once.
+5. **The front end split at a declaration boundary.**  `_analyse_staged`
+   and `StackFront`: the library stack parsed, desugared and inferred
+   once, a program's items appended, inferred against the stack's
+   exported schemes with the `Fresh` counter carried over.  *Staged*
+   there means a cache seam, not a language stage — but it is exactly
+   the door a stage's *output* would come in through, if it is
+   declarations.
+6. **A needs graph over definitions** — `desugar._implicit_needs`.
+   Inference itself is one group: `infer_program` walks every SC
+   together, no dependency ordering, so a stage's cut has nothing to
+   reuse there and would be a walk of its own.
+7. **The compiler runs on the desk.**  `online.py` and `webshell.py`
+   ship compiled programs; nothing in the tab compiles.  Stage one runs
+   where the compiler runs, and the two machines and the golden buffer
+   see stage two only — which is the property the lean was chosen
+   for.
+
+### The four sources, read — 2026-09-14
+
+*Each read at its own page this sitting; the table in §"The families"
+was from memory and this replaces its first row.*
+
+| | what it is | what it guarantees | what it cannot do | for this tree |
+|---|---|---|---|---|
+| **Zig `comptime`** (language reference) | `comptime` parameters and blocks run during semantic analysis; **`type` is a first-class value**; a function may return `type`; `@typeInfo` reflects a type into a value and `@Type` reifies one back; *comptime code is the same language as runtime code* | what comes out is an ordinary checked program; errors point at the source line | run anything that needs runtime memory | the only one of the four that does **both** things the seams want — a value becoming a type, and a program computed from a value — in one mechanism and one language |
+| **F# type providers** (Microsoft Learn) | a compiler component that produces *provided types* from an **external schema** named by a static parameter — a file, a URL, a connection string; erased or generative; runs inside the compiler at design time | the program is checked against the schema as it is now | nothing runs in the program's own language; a provider is written in F# against a compiler API | **`document "mark"` is a type provider written as a regex** — the schema is the kinds, the provided type is the row, and `facts.with_documents` is the provider |
+| **BER MetaOCaml** (Kiselyov) | `'a code`, brackets `.< >.` and escapes `.~`, `Runcode.run`; generators of generators; cross-stage persistence | *if the generator finishes, the generated code is well-typed and well-scoped* — errors in the generator, never in its output; the output can be printed and read | **cannot compute a type from a value**; purely generative, no reflection on code | the shape for the generators, and explicitly not for seam 1 |
+| **Typed Template Haskell** (GHC user's guide) | typed quotes `[|| ||]` and splices `$$( )`, `Code`; `reify` reads a declaration; declaration splices at top level **break the file into declaration groups**, later ones seeing earlier ones | typed splices are checked; untyped ones accept unbound names | **the stage restriction**: a splice may only run code *imported from another module* | with no modules here the restriction has to be *declaration groups within one file* (TH) or *on demand with a cycle refusal* (Zig) — one of the questions below |
+
+**One line from the reading:** Zig computes types from values and code
+from values in the same language; MetaOCaml computes code and refuses
+types; F# computes types from a schema and no code.  Seam 1 is the
+Zig/F# half.  The generators are the MetaOCaml/TH half.  Whether this
+tree needs the second half at all is what the census below is for.
+
+### Measured — what the two generators actually write
+
+`python tools/generated.py grid examples/audio/arc.notes` and `… roll
+examples/audio/marked.ges`, written this sitting so the number can be
+taken again after a table moves into the language.
+
+| | non-blank lines | of which **data as `case`** | of which per-box **channels and entry** | of which derivable from the `Kind` value |
+|---|---|---|---|---|
+| grid box over `arc.notes` | 71, in 11 definitions | **53** — the word table 19, `show` 12, two domain tables 11 + 11 | 14 — four channels with their held signals, a picture, an entry | 57 — the 53 tables and `widths`, `heads` |
+| score box over `marked.ges` | 126, in 42 definitions; longest line **1,111 chars** | the rows listing, one tuple literal per note, and ~20 per-roll constants (`lit`, `dim`, `member`, `shift` …) | 24 — twelve channels | not measured by kind; the rows are `roll.ges`' concern |
+
+**So three quarters of the smaller generator is not a program.**  It
+is a word list and two domain lists written out as `case` tables,
+because a `List Text` could not cross to a program until `document`
+did it this week — and `widths` and `heads` are functions of the
+`Kind` the program can already hold as a value.  What is *irreducibly*
+generated is fourteen lines, and every one of them exists because **a
+channel is a declaration**: a second box needs a second `__ng_cell_1__`,
+and the only way to get one is to write it.  That is seam 3 wearing
+the generator's clothes, and it is smaller than seam 1.
+
+### What is missing, by item — each with the part that carries it
+
+| | needs | carried today by | missing |
+|---|---|---|---|
+| **A** | **stage-one evaluation inside the compiler**: run a closed set of the program's definitions, with its preludes, before the rest is checked | `charts.Terms` + the G-machine, after a whole compile, in the host | the **cut** — which definitions are stage one, found by a needs walk back from each splice, a cycle refused on the author's line — and its place in `_analyse`, between desugaring and inference |
+| **B** | **a value that is a type**: the row of a kind as a type | `facts.base_columns`, Python | either `Row : Kind -> …` as **one** type-level function the compiler knows how to reify, or a `Type` ADT in the prelude mirroring `TCon/TApp/TFun/TInt` with a general reifier (Zig's `@Type`) — Q5 |
+| **C** | **a splice in the type grammar**: `board : Sig (Set (Row markKind))` | nothing; `_parse_type` has one production per type form | one production, one kind rule (a splice has the kind its value reifies to), one call into A |
+| **D** | **`document "mark"` as a form the parser knows** — the type provider made honest | `facts.documents` and `with_documents`, 45 lines of regex, the hand-written signature, the host checking the two agree | the form's type from `kinds` through A + B; the channel it stands on declared by the compiler rather than by appended text; the hand-written signature and the parity check gone — **derived, not declared** (`doc/memory/declare-parity-derive.md`) |
+| **E** | **declaration splices**, for what the generators still write once the tables are functions | `deriving.py`, for three fixed classes; `gridbox.py`, `scorebox.py` as text | either quotes and a `Decl` value (MetaOCaml/TH), **or channels as values** allocated by an expression so a box is a function — Q6; the census says the demand is fourteen lines, and its cause is a channel's identity |
+| **F** | **a stage-one failure lands as a complaint**: `kinds` names no `mark`, a stage-one definition diverges, a splice's value is not a type | `doc/complaints.md` is the ledger; `ChartError` from `Terms` today reads *"tic-tac-toe-facts.ges declares no `kinds`"* with no line | the line, the ledger row, and a step budget for stage one — Zig points at the source line; the tree's rule is the same |
+| **G** | **parity while the door moves**: `with_documents`' text against the new path on `tic-tac-toe-facts.ges`, and `test_documents.py`'s nine | the nine tests, `test_facts`, `test_gui` | the parity test itself, and the census re-taken after the grid's tables are `.ges` |
+| **H** | **what must not move**: the model-checker and the two machines see stage two only; the wire carries what it carries; wasm is untouched | already so | nothing — it is the reason for the choice, and G is what says it stayed true |
+
+**Reading the list as an order.**  A, B narrow, C and D are one slice
+and one seam: seam 1 closed, `with_documents` deleted, the program
+saying `board : Sig (Set (Row markKind))` and nothing by hand — or
+saying nothing at all, if `document "mark"` carries its own type.  E
+is a different slice and, on the census, may not be a splice at all.
+F rides in A.  G is the gate on both.
+
+### The kill test, restated with a number
+
+The card said: *if the code that generates the score box cannot be
+written readably in the language itself, staging has only moved the
+Python into a worse language.*  The census makes it concrete and
+cheaper.  **Move the grid's four tables into `.ges` over the `Kind`
+value** — a word table is `index words c`, a domain table is `index
+(oneOf f) c`, a width is the same eight lines `gridbox.width_of` is —
+and re-run the census.  If the generated text drops from 71 lines to
+the fourteen channel lines, the language *can* say the tables and the
+only thing left for a stage is E.  If it does not, the reason is a
+thing the language cannot say, and that thing is the finding.  Nothing
+in this test needs A–D; it is an afternoon, and it is the first thing
+to do.
+
+**Postcondition, the session's sentence, for the seam-1 slice,
+uncorrected:** *a program that declares a document's kinds names its
+rows' type nowhere by hand, and a kind edited in the program changes
+what the checker accepts on the next compile, with no Python between.*
+
+### Questions — shaped, 2026-09-14
+
+**Q5 — how wide is "a value that is a type".**  One reifier, `Row :
+Kind -> Type`, known to the compiler; or a `Type` ADT in the prelude
+that any stage-one expression may build, with `@Type`'s generality.
+*Default:* the narrow one — it is the only caller, it is a hundred
+lines, and the wide one is a design he would want to see.  *Trigger:*
+a second caller that is not a kind's row.
+
+**Q6 — what the fourteen lines become.**  Declaration splices with a
+`Decl` value and quotes, or a channel that is a value — `chan` as an
+expression a function may evaluate, a box a function of its number.
+*Default:* neither until the kill test has been run and the fourteen
+counted again; then the lean is **channels as values**, because it
+removes the cause and not the symptom, and because a `Decl` value is
+the most syntax any family here adds.  *Trigger:* the count.
+
+**Q7 — declaration groups or on demand.**  Template Haskell cuts the
+file at each top-level splice and a splice sees only what is above it;
+Zig analyses on demand and refuses a cycle.  *Default:* on demand — no
+new line in the file, the needs graph exists, and a cycle is a
+refusal with two names in it.  *Trigger:* a program whose stage-one
+set a reader cannot find without a marker.
+
+**Q8 — where `document` reads its schema.**  From the program's own
+`kinds` (today; the declaration is the program's and the file is
+checked against it), or from the `.board` file itself, as an F#
+provider reads a sample (the schema is the data's, and two programs
+over one file cannot disagree — `card:gui-is-difficult.md` §"Where a
+kind is declared", kill 3).  *Default:* the program's `kinds`, because
+a file with no program beside it is the case the kinds prelude was
+chosen for, and because a schema read off data is a guess about the
+data.  *Trigger:* the first document two programs declare differently.
+
 ## What a session does now
 
-Nothing but the reading, when he asks for it.  Henri: *"we should
-solve in a some neat way"* — a neat solution is a design, and designs
-here are his; a session's part is to read the sources, measure the
-tree, and shape the decision.
+Run the kill test — the grid's tables into `.ges` over the `Kind`,
+`tools/generated.py` before and after — and bring the number.  Then,
+on his answer to Q5, the seam-1 slice A + B + C + D on
+`tic-tac-toe-facts.ges`, held by `test_documents.py`'s nine and a
+parity test against `with_documents`' text.  E waits on Q6, and Q6
+waits on the number.  Henri: *"we should solve in a some neat way"* —
+the neat part is his, and what the tree can offer him is the count.
