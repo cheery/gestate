@@ -130,7 +130,7 @@ session inferred.
 - [Dialogue is its own mode](dialogue-is-its-own-mode.md) — Alhanen: understanding rather than winning or agreeing; and a rhetorical question is an opinion wearing a question mark, so say the view instead
 - [The language goal](the-language-goal.md) — 2026-08-20, his words: a language that compiles to wasm, is easy to model-check, and is optimised for reading; **wasm is new**, and it sits against the environment card's deferral
 - [Music craft](music-craft.md) — the harmonic vocabulary he actually works in, and the four mistakes he has named in his own writing
-- [Decisions arrive shaped](decisions-arrive-shaped.md) — three gates before a question reaches Henri; a default with a trigger is the part usually missing, and questions come batched
+- [Decisions arrive shaped](decisions-arrive-shaped.md) — three gates before a question reaches Henri; a default with a trigger is the part usually missing, and questions come batched; a reversible choice is decided and said, not asked (his words, 2026-09-14)
 - [Sediment versus debt](sediment-versus-debt.md) — a shelved card waiting on an event costs nothing; one waiting on a decision compounds — *waiting on an event, or on me?*
 - [Capacity is not a caller](capacity-is-not-a-caller.md) — "I can" is not a `because`; software is kept, not written, and there is one keeper — the three legitimate pulls
 - [Weights, context, suite](weights-context-suite.md) — weights for what the model must know, context for what it must currently obey, suite for what must be guaranteed; the rules never go into weights

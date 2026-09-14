@@ -48,4 +48,15 @@ cannot be delegated, so the goal is never *fewer* decisions — it is
 reversible ones, and what reaches him is pre-shaped, defaulted, batched
 and timed.  The bottleneck stays; the queue discipline changes.
 
-Related: [[sediment-versus-debt]], [[capacity-is-not-a-caller]].
+**The second gate, said again by him — 2026-09-14:** *"Päätöksenteko
+on kuormittavaa ja kaipaisin että toisinaan päättäisit asioita silloin
+kun asia on peruutettavissa, kuitenkin kertoen siitä mitä päätit."*
+So a reversible choice is decided, not asked, and the decision is said
+in the reply and on the card — where `Act` went (the prelude, not
+`gui.ges`), what the class and the two verbs are called, where `Does`
+sits in the wire's table, that the panel performs nothing on it: four
+decided that evening and each said.  What still reaches him is the
+irreversible or the material fork, shaped as above.
+
+Related: [[sediment-versus-debt]], [[capacity-is-not-a-caller]],
+[[small-edits-to-his-pages-said-out-loud]].
