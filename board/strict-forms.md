@@ -448,12 +448,92 @@ mechanism answers.  So: yes, and the examples were mostly asking for
 something cheaper than staging, which is why the stage is worth
 building small.
 
+### Built — 2026-09-14: seam 1 closed, the stage in the compiler
+
+**Henri:** *"Q5: Then it's the wide one kept minimal.  Ok.  lets do the
+seam-1 slice on the tic-tac-toe."*  Built the same sitting; the
+postcondition above holds, and `test/test_documents.py` says so in
+its own words: *the row type is computed from the kind and written
+nowhere by hand*, and *a kind edited in the program changes what the
+checker accepts* — a third required column makes a placing a triple
+and the program's own `(c, m)` is refused at its first use, from the
+kind alone, with no Python between.
+
+**What landed, by the items of the list:**
+
+- **B, the value that is a type** — `facts.ges` gains `Type := TyCon
+  Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (List
+  Type)`, the compiler's own grammar as five constructors, and
+  `kindRow : Kind -> Type` written beside it in the language: the key
+  columns, then every required scalar field, a `Number` an `Int` and a
+  word a `Text`, a `Headed` kind's bare name a `Text`.  `kindColumns`
+  is held equal to `facts.base_columns` for every kind gestate ships
+  and the game's (`test/test_stage.py`).  The compiler knows the five
+  names and nothing about kinds.
+- **A and C, the stage and the splice** — `gestate/stage.py`, 330
+  lines, run in both analysis paths after the operators are resolved
+  and before anything is classified.  `$(e)` in a type position is a
+  site; so is `document "kind"`.  The items holding a site, and
+  everything that mentions them transitively, are stage two: blanked
+  line for line so every position holds, and what remains is compiled
+  once — through the same cache every compile uses, and through the
+  lockless door, because the front end's lock is not reentrant and the
+  first run of this deadlocked exactly as `doc/memory/a-run-silent-for-a-minute.md`
+  said it would.  Each splice's expression is appended as a `Type`
+  global, evaluated on the G-machine, read back, and put into the type
+  syntax where the author wrote it; aliases expand over it as over any
+  type.  **On demand, Q7:** no marker; a splice that needs an item the
+  splice types is refused with both names.
+- **D, the door made honest** — `document "mark"` is a form the stage
+  knows: its row from `documentRow kinds "mark"`, the read of its
+  channel built by the parser and put in the expression's place, and
+  `__doc_mark__ : Chan (List <row>)` declared **by the compiler**, as
+  syntax, never as text.  `facts.with_documents` and the signature
+  regex are deleted; `facts.documents` now answers only *which kinds*,
+  which is what the host feeds; the substrate lists the compiler's
+  channels beside the author's.  A kind the program does not declare
+  is refused with the kinds it does, at the author's line through
+  `audiospans.in_source` like every other complaint.
+- **F, the complaints** — `StageError`, `author`, placed; one
+  `machine` site.  On `doc/complaints.md`.
+- **G, the parity** — the nine document tests unchanged and green, the
+  bench pressing cells and reading the file as before; `test_stage.py`
+  five, `test_documents.py` twelve; the gates 809.
+
+**The program, after.**  `type Placing = $(kindRow markKind)` and
+`type Board = Set Placing` are the two lines about the row; `board :
+Sig Board`, `markAt : Board -> Int -> List Text`, `retractOne :
+Placing -> Act`.  `(Int, Text)` is in no line of code.  The name
+`Row` was the first choice and is `gui.ges`' picture constructor, which
+the checker reported as *Unknown global 'Row'* at a use of the
+constructor rather than as an alias clashing with a constructor —
+`fixme.md` F231, found on the way and not this card's.
+
+| | before | after |
+|---|---|---|
+| lines about the row, by hand | 1 signature, 8 more naming `(Int, Text)` | 0; one splice, one alias |
+| the type checked against the kind by | the host, in Python, after the compile | the compiler, before the check |
+| `facts.py` lines for the door | 45, a regex and a rewrite | 12, which kinds to feed |
+| the game's build, `Substrate`, cold / warm | not measured on this path | 1.89 s / 0.30 s, two stage compiles inside the cold one |
+| `facts.beside`, the host reading `kinds` | 0.3–0.5 s, a second compile | 0.22 s, unchanged — the next cut, not this one |
+
+**Two spellings, one refused.**  The expression grammar reads `$`
+between two things as an operator binding looser than `->`, so
+`Set $(e) -> Int` would splice `e -> Int`; the stage refuses that
+form with the spelling that works, `Set ($(e))`, and the idiom is the
+alias anyway.  The splice is prefix-only.
+
+**What this does not do.**  Nothing reflects a type back into a value.
+E, the fourteen channel lines, is untouched.  `facts.Document` still
+compiles the program a second time to read `kinds` where stage one now
+has the value in hand.  The wire is untouched: a document program
+stays on the reference machine as before.
+
 ## What a session does now
 
-The kill test is run and its number is fourteen.  Next, on his word:
-the seam-1 slice — A, B wide-and-minimal per the Q5 recommendation if
-he takes it, C and D — on `tic-tac-toe-facts.ges`, held by
-`test_documents.py`'s nine and a parity test against `with_documents`'
-text; and, separately and smaller, the port's home in the prelude
-chain so the grid stops generating its tables.  E waits on the
-fourteen becoming a design for a channel that is a value, which is his.
+Seam 1 is closed and the kill test's number is fourteen.  Next, on
+his word: the grid's tables into the prelude chain (`facts.ges` before
+`grid.ges`, or a file after it) so the generator stops writing them;
+`facts.Document` reading `kinds` off stage one instead of a second
+compile; and E, the fourteen lines, which waits on a design for a
+channel that is a value — his.

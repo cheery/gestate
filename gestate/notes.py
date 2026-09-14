@@ -1682,12 +1682,10 @@ def expanded(source: str, base: Path | None = None,
     the `))` that closes it were written by nobody, and answering for
     them would be inventing a provenance.
     """
-    from .facts import with_documents
-
     found = [(_line_of(source, m.start()), m.group(2))
              for m in _INCLUDE.finditer(source)]
     if not found:
-        return with_documents(source), {}
+        return source, {}
     root = Path(base) if base is not None else Path.cwd()
     blanked = _INCLUDE.sub(lambda m: m.group(1), source)
     read: list = []
@@ -1705,7 +1703,7 @@ def expanded(source: str, base: Path | None = None,
         #: **A document that is not a `.notes` brings no score.**  It is
         #: the program's own document — read by the kinds the program
         #: declares, fed to it through `document "<kind>"` by the host
-        #: (`facts.with_documents`, `Workbench._feed_documents`) — so
+        #: (`gestate/stage.py`, `Workbench._feed_documents`) — so
         #: the line is blanked and nothing is appended.  Not parsed
         #: here either: its declaration is this very program, and
         #: reading it would expand this program to read it.
@@ -1732,7 +1730,7 @@ def expanded(source: str, base: Path | None = None,
         lines += text.splitlines()
         for generated, wrote in origin.items():
             where[at + generated - 1] = (one, wrote)
-    return with_documents("\n".join(lines) + "\n"), where
+    return "\n".join(lines) + "\n", where
 
 
 def documents(source: str) -> list[str]:

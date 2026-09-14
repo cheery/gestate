@@ -1182,7 +1182,7 @@ class Substrate:
             # A number, or a scope's trace as the `List Float` the
             # channel declared (`spec/scope.md`) — and since 2026-09-13
             # a document's rows, `List (Int, Text)` and the like
-            # (`facts.with_documents`): built with the program's own
+            # (`gestate/stage.py`): built with the program's own
             # constructors, the way `_event_node` builds an event.
             arrivals.append((cid, _value_node(self.state, value)))
             self.values[name] = value
@@ -1359,8 +1359,15 @@ def _channel_names(source: str) -> list:
         # somebody with more to say; the names are then nobody's.
         pass
 
-    return [n for n, t in _authored(source)[0].items()
-            if is_chan(t) and n not in generated]
+    named = [n for n, t in _authored(source)[0].items()
+             if is_chan(t) and n not in generated]
+    # **And the channel each `document "kind"` reads**, declared by the
+    # compiler rather than by the text (`gestate/stage.py`), so a scan of
+    # the signatures cannot see it; the host feeds it by this name.
+    from .facts import channel_of, documents
+
+    return named + [channel_of(k) for k in documents(source)
+                    if channel_of(k) not in named]
 
 
 # ── The window ──────────────────────────────────────────────────────────────

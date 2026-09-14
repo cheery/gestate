@@ -271,10 +271,16 @@ def _parsed(source: str) -> VModule:
     return parse(source, descend_fixity=False)
 
 
-def merge(user_source: str, prelude_path: str | None = None) -> VModule:
-    """Parse the prelude and ``user_source`` and merge them into one module."""
+def merge(user_source: str, prelude_path: str | None = None,
+          user_module: VModule | None = None) -> VModule:
+    """Parse the prelude and ``user_source`` and merge them into one module.
+
+    ``user_module``, when given, is the author's text already parsed —
+    and already through stage one (`gestate/stage.py`), which is why the
+    pipeline hands it in rather than the text alone."""
     prelude_module = _parsed(load(prelude_path))
-    user_module = _parsed(user_source)
+    if user_module is None:
+        user_module = _parsed(user_source)
 
     shadowed = _defined_names(prelude_module.items) & _defined_names(user_module.items)
     items = list(prelude_module.items)

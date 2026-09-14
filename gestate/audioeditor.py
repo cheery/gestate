@@ -1996,7 +1996,7 @@ class Workbench:
     #
     # `card:gui-is-difficult.md` §"The mashup, asked", 2026-09-13.  A
     # program that includes a document that is not a `.notes` reads its
-    # relations through `document "<kind>"` (`facts.with_documents`) and
+    # relations through `document "<kind>"` (`gestate/stage.py`) and
     # answers `acts : Sig (List Act)` — assert this fact, retract that
     # one, refuse with a sentence.  The host is the handler: it writes
     # the file through the document's own reader, and feeds the rows
@@ -2029,7 +2029,7 @@ class Workbench:
                 rels = relations_of(path.read_text(), one, where=path)
                 doc = beside(path)
                 pairs = [(channel_of(kind), rows_of(doc, rels, kind))
-                         for _name, kind, _elem in wanted]
+                         for kind in wanted]
             except (OSError, NotesError, FactsError) as exc:
                 self.say(f"{one}: {self._first_line(exc)}")
                 continue

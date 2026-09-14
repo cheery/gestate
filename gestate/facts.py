@@ -317,7 +317,7 @@ def relations(kind: Kind, records) -> dict:
     """The relations one kind's records are, **derived by one rule from
     the declaration** — `card:relational-model.md` Q6.
 
-    The key plus every required scalar field is the base relation,
+    The key plus every required fieldScalar field is the base relation,
     under the kind's name.  Each `May` field is a relation of its own,
     `kind.field`, so that absence is no row and never a null.  Each
     `Names` field is a relation of its own with a rank, so that a list
@@ -491,79 +491,50 @@ def beside(path) -> Document:
             f"will not load: {why}") from None
 
 
-# ── The `document` word ────────────────────────────────────────────────────
+# **A program reads its document through one word**:
 #
-# `card:gui-is-difficult.md` §"The mashup, asked", 2026-09-13 — choice 3,
-# the door in.  A program reads a relation of its document as a signal
-# of a set:
-#
-#     board : Sig (Set (Int, Text))
 #     board = document "mark"
 #
-# **The type is the program's to say**, and it is the row of the kind:
-# the key fields and then every required scalar field, in the declared
+# **The type is computed from the kind** — `facts.ges`' `kindRow`, run by
+# the compiler before the program is checked (`gestate/stage.py`): the
+# key fields and then every required fieldScalar field, in the declared
 # order, a `Number` an `Int` and a `Word` a `Text` — `relations`' base
-# relation, exactly.  The host checks the file against the kinds it
-# declares, feeds the rows at every change of the document, and the
-# program stores nothing (`Workbench._feed_documents`).
+# relation, exactly, and `base_columns` below is held to `kindColumns`
+# there.  The compiler declares the channel the rows arrive on; the host
+# checks the file against the kinds the program declares and feeds the
+# rows at every change of the document (`Workbench._feed_documents`).
+# The program stores nothing.
 #
 # Underneath it is the grid's road: a channel carrying the rows, the
 # rows made a set.  A person never writes that channel, and a number
-# channel carrying a cell was the seam Henri called hacky.
+# channel carrying a cell was the seam Henri called hacky.  Until
+# 2026-09-14 this file rewrote the line as text in front of the
+# compiler, with the row's type written by hand in the program and
+# checked against the kind by the host; `card:strict-forms.md` is where
+# that seam was measured and closed.
 
-_DOCUMENT = re.compile(r'^(\w+)[ \t]*=[ \t]*document[ \t]+"(\w+)"[ \t]*$', re.M)
+_DOCUMENT = re.compile(r'document[ \t]+"(\w+)"')
 
 
 def channel_of(kind: str) -> str:
     """The channel a kind's rows arrive on — the host's name, never a
-    person's."""
+    person's; `stage.channel_of` says the same."""
     return f"__doc_{kind}__"
 
 
 def documents(source: str) -> list:
-    """`(name, kind, the set's element type)` per `name = document
-    "kind"` a program writes.  Refused when the declaration is missing,
-    because the element type is what the channel is declared with."""
+    """The kinds a program reads through `document "kind"`, in the order
+    written, each once — what the host feeds."""
     out = []
     for m in _DOCUMENT.finditer(source):
-        name, kind = m.group(1), m.group(2)
-        sig = re.search(
-            rf"^{re.escape(name)}[ \t]*:[ \t]*Sig[ \t]*\([ \t]*Set[ \t]+(.+)\)[ \t]*$",
-            source, re.M)
-        if sig is None:
-            raise FactsError(
-                f'`{name} = document "{kind}"` needs `{name} : Sig (Set …)` '
-                "declared above it — the set's element is the row: the key, "
-                "then each required field, a number an `Int` and a word a "
-                "`Text`")
-        out.append((name, kind, sig.group(1).strip()))
+        if m.group(1) not in out:
+            out.append(m.group(1))
     return out
-
-
-def with_documents(source: str) -> str:
-    """`source` with each `document "kind"` read from its channel, and
-    the channel declared after the program — the same line count above,
-    so a complaint still lands on the line the author wrote."""
-    found = documents(source)
-    if not found:
-        return source
-
-    def rewrite(m):
-        return (f"{m.group(1)} = map (rows => set rows) "
-                f"(Nil ::: mkSig (wait {channel_of(m.group(2))}))")
-
-    out = _DOCUMENT.sub(rewrite, source)
-    tail = []
-    for _name, kind, elem in found:
-        chan = channel_of(kind)
-        typed = elem if elem.startswith("(") else f"({elem})"
-        tail.append(f"\n{chan} : Chan (List {typed})\n{chan} = chan\n")
-    return out + "".join(tail)
 
 
 def base_columns(kind: Kind) -> list:
     """The columns of a kind's base relation — the key, then every
-    required scalar field not in it — which is also the row a program
+    required fieldScalar field not in it — which is also the row a program
     reads and the fields a `Fact` constructor carries."""
     return list(kind.key) + [f.name for f in kind.fields
                              if f.need == "Must" and f.value != "Names"

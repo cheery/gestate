@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from .syntax import parse
 from .syntax.ast import VModule
-from .prelude import load as prelude_load, merge as prelude_merge
+from .prelude import _parsed as prelude_parsed, load as prelude_load, merge as prelude_merge
 from .declarations import classify
 from .desugar import (
     desugar_program, lower_fields, strip_annotations, DesugarError,
@@ -198,6 +198,17 @@ def _check_annotations(expr: Expr, kind_env: dict) -> None:
 # Loading, merging and shadowing live in `gestate/prelude.py`.
 
 _merge_prelude = prelude_merge
+
+
+def _staged(items: list, source: str, cut) -> list:
+    """`stage.staged`, behind its substring test — a program with no `$`
+    and no `document` pays nothing here."""
+    from .stage import might_stage, staged
+
+    if not might_stage(source):
+        return items
+    return staged(items, source, cut)
+
 
 
 # ---------------------------------------------------------------------------
@@ -660,6 +671,10 @@ def _analyse_staged(source: str):
         return None
     table = _build_fixity_table(VModule(list(sf.items) + list(rest_mod.items)))
     rest_items = [_descend_val(i, table) for i in rest_mod.items]
+    # **Stage one, once the operators are resolved and before anything
+    # is classified** — a splice or a `document` is replaced by the type
+    # it computes (`gestate/stage.py`).
+    rest_items = _staged(rest_items, source, cut)
     module = VModule(list(sf.items) + rest_items)
     program = classify(module)
     exhaust_errors = check_program(program)
@@ -764,8 +779,17 @@ def _analyse(source: str, *, typecheck: bool = True,
             return staged
     if prelude:
         module = _merge_prelude(source)
+        head = len(prelude_parsed(prelude_load()).items)
     else:
         module = parse(source)
+        head = 0
+    # **Stage one** — the author's items, resolved, through
+    # `gestate/stage.py`; the prelude's are never sited and their spans
+    # are not this text's.
+    staged_items = _staged(module.items[head:], source, None)
+    if staged_items is not module.items[head:]:
+        module = VModule(list(module.items[:head]) + list(staged_items),
+                         comments=module.comments)
     program = classify(module)
 
     # Exhaustiveness runs on the surface patterns, before desugaring: the

@@ -39,26 +39,32 @@ markKind = Kind "mark" Named
 kinds : List Kind
 kinds = markKind :: Nil
 
+#: **A placing — one row of the board — as a type computed from the
+#: kind**: its key and then its required fields, a number an `Int` and
+#: a word a `Text`, so `(Int, Text)` here, written nowhere by hand.
+#: `kindRow` is `facts.ges`', and the compiler runs it before checking
+#: the program (`card:strict-forms.md`).  A board is a set of placings.
+type Placing = $(kindRow markKind)
+type Board = Set Placing
+
 #: **The board, as the file says it** — every mark, a cell and a word.
-#: The host writes this at every change of the document; the row is
-#: the kind's key and then its required fields, a number an `Int` and
-#: a word a `Text`.
-board : Sig (Set (Int, Text))
+#: The host writes this at every change of the document.
+board : Sig Board
 board = document "mark"
 
 # ── The rules, as queries ────────────────────────────────────────────────
 
 #: What is in cell `k` — the mark, or nothing.
-markAt : Set (Int, Text) -> Int -> List Text
+markAt : Board -> Int -> List Text
 markAt b k = elems (for ((c, m) in b, c == k) {m})
 
 #: How many cells hold `m`.
-count : Set (Int, Text) -> Text -> Int
+count : Board -> Text -> Int
 count b m = length (elems (for ((c, n) in b, n == m) {c}))
 
 #: **Whose turn it is, read off the board and never carried.**  X goes
 #: first, so it is X's turn whenever the two counts are level.
-turn : Set (Int, Text) -> Text
+turn : Board -> Text
 turn b = case count b "X" == count b "O" of
     True -> "X"
     False -> "O"
@@ -69,17 +75,17 @@ ways = {(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4,
 
 #: The marks that own a line of three — the board joined with itself,
 #: three times, along a way.
-winners : Set (Int, Text) -> Set Text
+winners : Board -> Set Text
 winners b = for ((p, q, r) in ways, (c1, m1) in b, (c2, m2) in b, (c3, m3) in b,
                  c1 == p, c2 == q, c3 == r, m1 == m2, m2 == m3) {m1}
 
-winner : Set (Int, Text) -> List Text
+winner : Board -> List Text
 winner b = elems (winners b)
 
-full : Set (Int, Text) -> Bool
+full : Board -> Bool
 full b = length (elems b) == 9
 
-over : Set (Int, Text) -> Bool
+over : Board -> Bool
 over b = case winner b of
     m :: rest -> True
     Nil -> full b
@@ -97,7 +103,7 @@ Fact := Mark Int Text
 Act := Assert Fact | Retract Fact | Refuse Text
 
 #: The move: a mark in an empty cell of a game still going.
-play : Set (Int, Text) -> Int -> List Act
+play : Board -> Int -> List Act
 play b k = case over b of
     True -> Refuse "the game is over; press the foot to clear the board" :: Nil
     False -> case markAt b k of
@@ -105,10 +111,10 @@ play b k = case over b of
         Nil -> Assert (Mark k (turn b)) :: Nil
 
 #: Clearing the board: retract every mark it has.
-clear : Set (Int, Text) -> List Act
+clear : Board -> List Act
 clear b = map retractOne (elems b)
 
-retractOne : (Int, Text) -> Act
+retractOne : Placing -> Act
 retractOne (c, m) = Retract (Mark c m)
 
 # ── The hand ─────────────────────────────────────────────────────────────
@@ -127,7 +133,7 @@ hand = SyncLeft (0.0 - 1.0) ::: mkSig (sync (wait pressing) (wait clearing))
 
 #: A cell pressed is a move; the foot pressed is a clearing, whether or
 #: not a cell landed in the same instant.
-act : Set (Int, Text) -> Sync Float Float -> List Act
+act : Board -> Sync Float Float -> List Act
 act b s = case s of
     SyncLeft k -> play b (floor k)
     SyncRight f -> clear b
@@ -173,19 +179,19 @@ markPic ms = case ms of
     Nil -> Gap 0 0
     m :: rest -> Label 26 26 m (inkOf m)
 
-rowPic : Set (Int, Text) -> Int -> Sub
+rowPic : Board -> Int -> Sub
 rowPic b r = Row (tile b (r * 3))
                  (Row (tile b (r * 3 + 1)) (tile b (r * 3 + 2)))
 
-tile : Set (Int, Text) -> Int -> Sub
+tile : Board -> Int -> Sub
 tile b k = cellPic k (markAt b k)
 
-boardPic : Set (Int, Text) -> Sub
+boardPic : Board -> Sub
 boardPic b = Column (rowPic b 0) (Column (rowPic b 1) (rowPic b 2))
 
 #: What the foot says — who is to move, or who won — and it is what
 #: you press to clear the board.
-saying : Set (Int, Text) -> Sub
+saying : Board -> Sub
 saying b = case winner b of
     m :: rest -> wins m
     Nil -> case full b of
@@ -202,7 +208,7 @@ toPlay m = case m == "X" of
     True -> Label 90 14 "X TO PLAY" xInk
     False -> Label 90 14 "O TO PLAY" oInk
 
-foot : Set (Int, Text) -> Sub
+foot : Board -> Sub
 foot b = Meaning clearing 0.0 (saying b)
 
 substrate : Sig Sub

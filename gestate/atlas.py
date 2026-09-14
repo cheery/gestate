@@ -101,6 +101,10 @@ WHERE: dict[str, str] = {
     "prelude": "surface", "declarations": "surface", "desugar": "surface",
     "match": "surface", "envexpand": "surface", "helpers": "surface",
     "internals": "surface",
+    # `stage` runs between the parse and the classification: a type
+    # computed from a value is put into the surface syntax where the
+    # author wrote the splice (`card:strict-forms.md`).
+    "stage": "surface",
     # ── What it means ───────────────────────────────────────────────────
     "types": "types", "unify": "types", "infer": "types",
     "typecheck": "types", "kindcheck": "types", "constraint": "types",

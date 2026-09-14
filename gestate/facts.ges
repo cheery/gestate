@@ -27,16 +27,21 @@
 # **And a program reads its document through one word** — 2026-09-13,
 # `card:gui-is-difficult.md` §"The mashup, asked":
 #
-#     board : Sig (Set (Int, Text))
 #     board = document "mark"
 #
 # the rows of one kind of the file the program `include`s, as a signal
 # of a set the host writes at every change of the file: the key fields
 # and then each required field, in the declared order, a `Number` an
-# `Int` and a `Word` a `Text`.  What the program asks done to the file
-# is `acts : Sig (List Act)`, an `Assert`, `Retract` or `Refuse` at a
-# time, a fact being the kind's word capitalised over the same fields —
-# `examples/gui/tic-tac-toe-facts.ges` is the first program written so.
+# `Int` and a `Word` a `Text`.  **Its type is computed from the kind**
+# — `kindRow` below, run by the compiler before the program is checked
+# (`card:strict-forms.md` §"Decided — 2026-09-14"), so nothing about
+# the row is written by hand and a kind edited here changes what the
+# checker accepts.  The same row is a type wherever a program wants
+# one: `type Row = $(kindRow markKind)`.  What the program asks done to
+# the file is `acts : Sig (List Act)`, an `Assert`, `Retract` or
+# `Refuse` at a time, a fact being the kind's word capitalised over the
+# same fields — `examples/gui/tic-tac-toe-facts.ges` is the first
+# program written so.
 
 #: `command.ges` declares this too, and for the same reason: it is not
 #: in the core prelude and a file that wants strings has to say so.
@@ -157,3 +162,87 @@ mustHave f = case f of
 #: The kind of this name, if the document has one.
 kindOf : List Kind -> Text -> List Kind
 kindOf ks name = filter (k => kindName k == name) ks
+
+# ── A type, as a value ───────────────────────────────────────────────────
+#
+# **The compiler's own type grammar, as a value a program can build** —
+# `card:strict-forms.md` Q5, Henri, 2026-09-14: *the wide one, kept
+# minimal.*  A `TyCon` is a named type, `TyApp` applies one to another,
+# `TyFun` is the arrow, `TyInt` a type-level number such as the `12` of
+# `Cyclic 12`, `TyTuple` a tuple.  The compiler knows these five by
+# name and nothing else here; what a row *is* stays in this file, in
+# the language, where a reader can see it.
+#
+# A `Type` reaches the checker through one door, the splice: `$(e)`
+# in a type position, where `e` is an expression of this type that the
+# compiler evaluates before checking the program.  `document "kind"`
+# is the same door with `kindRow` already behind it.
+
+Type := TyCon Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (List Type)
+
+#: What a field's value is, as a type: a number is an `Int`, a word or
+#: a bounded word a `Text`.  Names have no base column and no row type.
+fieldType : Field -> Type
+fieldType f = case f of
+    Field n v need -> case v of
+        Word -> TyCon "Text"
+        Number -> TyCon "Int"
+        Names -> TyCon "Text"
+        Range lo hi -> TyCon "Int"
+        AtLeast lo -> TyCon "Int"
+        OneOf ns -> TyCon "Text"
+        Each ns -> TyCon "Text"
+
+#: Whether a field is one token a row carries — everything but a list of
+#: names, whose column is a relation of its own.
+fieldScalar : Field -> Bool
+fieldScalar f = case f of
+    Field n v need -> case v of
+        Names -> False
+        Each ns -> False
+        Word -> True
+        Number -> True
+        Range lo hi -> True
+        AtLeast lo -> True
+        OneOf ns -> True
+
+#: The field named `n`, if the kind has one.
+fieldNamed : Kind -> Text -> List Field
+fieldNamed k n = filter (f => fieldName f == n) (kindFields k)
+
+#: **The columns of a kind's base relation**, by name: the key, in key
+#: order, then every required scalar field not in it, in declared
+#: order.  This is the row `document` feeds and the fields a `Fact`
+#: carries — `facts.base_columns` in the host, held equal to this by
+#: `test/test_stage.py`.  A `Headed` kind's key names its bare first
+#: token, which is no field of the record.
+kindColumns : Kind -> List Text
+kindColumns k = kindKey k ++ map fieldName (filter (f => kindColumn k f) (kindFields k))
+
+kindColumn : Kind -> Field -> Bool
+kindColumn k f = case f of
+    Field n v need -> case need of
+        May -> False
+        Must -> case elem n (kindKey k) of
+            True -> False
+            False -> fieldScalar f
+
+#: A column's type: its field's, or a `Text` for a `Headed` kind's bare
+#: name.
+columnType : Kind -> Text -> Type
+columnType k n = case fieldNamed k n of
+    f :: rest -> fieldType f
+    Nil -> TyCon "Text"
+
+#: **The row of a kind, as a type**: a tuple of its columns' types — or
+#: the one column's type, when there is one.
+kindRow : Kind -> Type
+kindRow k = case map (columnType k) (kindColumns k) of
+    t :: Nil -> t
+    ts -> TyTuple ts
+
+#: The rows of the kinds named `name` — what `document "name"` is typed
+#: by; an empty list is a kind the program does not declare, and the
+#: compiler says so on the author's line.
+documentRow : List Kind -> Text -> List Type
+documentRow ks name = map kindRow (kindOf ks name)

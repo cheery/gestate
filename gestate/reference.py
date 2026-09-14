@@ -121,6 +121,27 @@ PRIMITIVES = (
          "An arrival that never comes.  The unit of `sync`, and what a "
          "signal that only ever holds one value waits on."),
     )),
+    ("Stage one", (
+        ("$", "Type -> <a type>",
+         "A splice: `$(e)` in a type position is the type the expression "
+         "`e` evaluates to, where `e` is a `Type` value — `facts.ges`' "
+         "`TyCon`, `TyApp`, `TyFun`, `TyInt`, `TyTuple`.  The compiler runs "
+         "the definitions `e` needs, with the preludes, before the program "
+         "is checked, and what the checker then sees is an ordinary type: "
+         "`type Placing = $(kindRow markKind)`.  Written as an argument of "
+         "its own — `Set ($(e))` — since `$` between two things reads as an "
+         "operator.  A definition the splice needs may not itself be typed "
+         "by it; that is refused with both names "
+         "(`card:strict-forms.md`, `gestate/stage.py`)."),
+        ("document", "<a kind's word> -> Sig (Set <its row>)",
+         "The rows of one kind of the file the program `include`s, as a "
+         "signal of a set the host writes at every change of the file — "
+         "`board = document \"mark\"`.  Its type is computed from the kind "
+         "the program declares in `kinds`, by `facts.ges`' `kindRow`, the "
+         "way a splice is; the channel the rows arrive on is declared by "
+         "the compiler and never written.  What the program asks done to "
+         "the file is `acts : Sig (List Act)`."),
+    )),
     ("Sets", (
         ("set", "List a -> Set a",
          "The list's elements as a set — sorted, duplicates dropped, by "

@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**516 complaints**, in 49 files.
+**522 complaints**, in 50 files.
 
 | | |
 |---|---|
-| `author` | 284 |
+| `author` | 289 |
 | `command` | 51 |
 | `world` | 27 |
-| `machine` | 154 |
-| say where | 191 |
-| say `nowhere`, on purpose | 55 |
+| `machine` | 155 |
+| say where | 197 |
+| say `nowhere`, on purpose | 54 |
 | `unplaced`, with a defect that owns it | 60 |
 
 ## A place that could exist, and does not
@@ -84,7 +84,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gui.py:710` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `pipeline.py:1155` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
+| `pipeline.py:1179` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -139,9 +139,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:413` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:419` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:489` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:534` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:592` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:598` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:563` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:569` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:634` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
@@ -151,10 +150,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
 | `online.py:122` | `OnlineError` | the score itself reads what a hand holds, and this page bakes its score; card:hands-in-the-tab.md is the seam that would fix it |
-| `pipeline.py:302` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:943` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:1013` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:1025` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:313` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:967` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1037` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1049` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
 ## Every complaint
 
@@ -617,9 +616,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 413 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
 | 419 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
 | 489 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
-| 534 | `FactsError` | `author` | *nowhere, on purpose* | '''`{name} = document "{kind}"` needs `{name} : Sig (Set …)` declared above it — the set's elem… |
-| 592 | `FactsError` | `author` | *nowhere, on purpose* | "`{head}` names no kind of {document.path.name}; a fact's constructor is a kind's word capitali… |
-| 598 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` carries {len(args)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}`… |
+| 563 | `FactsError` | `author` | *nowhere, on purpose* | "`{head}` names no kind of {document.path.name}; a fact's constructor is a kind's word capitali… |
+| 569 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` carries {len(args)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}`… |
 
 ### `gmachine.py`
 
@@ -690,7 +688,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 734 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
 | 998 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
 | 1020 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1378 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 1385 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -851,9 +849,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1187 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
 | 1195 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
 | 1197 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1701 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1717 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1773 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 1699 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1715 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1771 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -878,20 +876,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 302 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
-| 594 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 624 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 627 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 667 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 680 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 683 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 776 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 800 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 806 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 943 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
-| 1013 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
-| 1025 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
-| 1155 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
+| 313 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
+| 605 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 635 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 638 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 682 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 695 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 698 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 800 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 824 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 830 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 967 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
+| 1037 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
+| 1049 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
+| 1179 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
 
 ### `reactive.py`
 
@@ -973,6 +971,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 5460 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 | 5930 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
 | 5936 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+
+### `stage.py`
+
+*a stage-one expression the author wrote, on the line of the splice or the `document` that needed it: not a type, a kind the program does not declare, a definition that depends on the type it computes*
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 173 | `StageError` | `author` | written out | 'a splice is written as an argument of its own — `Set ($(e))`, not `Set $(e)` — because `$` bet… |
+| 242 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `kinds : List Kind` declared in this program — the row it … |
+| 265 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
+| 311 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `kinds` has ' + ', '.join((f'`{k}`' … |
+| 385 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
+| 412 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 427 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

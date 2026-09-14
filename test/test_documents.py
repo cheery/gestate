@@ -94,14 +94,63 @@ def test_the_two_edits_refuse_in_the_declarations_words():
         documents.retracted(back, "mark cell 4", board.name, where=board)
 
 
-def test_the_document_word_needs_its_type_said():
-    from gestate.facts import FactsError, with_documents
+def _code(text: str) -> str:
+    return "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
 
-    with pytest.raises(FactsError, match="needs `board : Sig"):
-        with_documents('board = document "mark"\n')
-    out = with_documents('board : Sig (Set (Int, Text))\nboard = document "mark"\n')
-    assert "__doc_mark__ : Chan (List (Int, Text))" in out
-    assert out.count("\n") >= 2 and out.splitlines()[1].startswith("board = map")
+
+def test_the_row_type_is_computed_from_the_kind_and_written_nowhere_by_hand():
+    """`card:strict-forms.md`, seam 1, closed 2026-09-14.  The postcondition:
+    *a program that declares a document's kinds names its rows' type
+    nowhere by hand.*  `type Placing = $(kindRow markKind)` is the one
+    line about the row, and it is computed; `(Int, Text)` is not in the
+    program's code, and the compiler declares the channel the rows come on."""
+    from gestate.gui import Substrate
+
+    text = GAME.read_text()
+    assert "(Int, Text)" not in _code(text)
+    assert "$(kindRow markKind)" in text and 'document "mark"' in text
+    view = Substrate(notes.read(GAME), 22050)
+    assert "__doc_mark__" in view.by_name, "the channel is the compiler's, not the text's"
+
+
+def test_a_kind_edited_in_the_program_changes_what_the_checker_accepts():
+    """The other half of the postcondition: *a kind edited in the program
+    changes what the checker accepts on the next compile, with no Python
+    between.*  A third required column makes a placing a triple, and the
+    program's own `(c, m)` patterns no longer fit it — refused by the
+    checker at the first of them, from the kind alone, with the triple
+    the kind now implies in the message."""
+    from gestate.gui import Substrate
+
+    text = GAME.read_text()
+    edited = text.replace(
+        'Field "mark" (OneOf marks) Must :: Nil)',
+        'Field "mark" (OneOf marks) Must :: Field "turn" Number Must :: Nil)')
+    assert edited != text
+    with pytest.raises(Exception) as why:
+        Substrate(notes.expand(edited, GAME.parent), 22050)
+    said = str(why.value)
+    assert "expected (a, b)" in said and "got (Int, String, Int)" in said, said
+    assert "while checking `markAt`" in said, said
+
+
+def test_a_document_of_an_undeclared_kind_is_refused_on_its_line():
+    """A stage-one refusal carries its position the way every compiler
+    complaint does, and `audiospans.in_source` moves it back into the
+    author's file — the line `document "marks"` stands on."""
+    from gestate.audiospans import in_source
+    from gestate.gui import Substrate
+    from gestate.stage import StageError
+
+    text = GAME.read_text().replace('document "mark"', 'document "marks"')
+    line = next(i for i, l in enumerate(text.splitlines(), 1)
+                if l.startswith('board = document "marks"'))
+    opened = notes.expand(text, GAME.parent)
+    with pytest.raises(StageError, match='`document "marks"` names no kind') as why:
+        Substrate(opened, 22050)
+    assert "`kinds` has `mark`" in str(why.value)
+    said = in_source(str(why.value), opened)
+    assert f"line {line}" in said or f" {line}:" in said, said
 
 
 # ── The substrate: the door in, the door out ────────────────────────────────
