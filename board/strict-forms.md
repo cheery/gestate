@@ -594,10 +594,95 @@ no longer wear a constructor's name: `_collect_aliases` refuses `type
 Row = …` beside `Row Sub Sub` at the alias, in the shape of its two
 neighbours — `fixme.md` F231, resolved.
 
+### Read — 2026-09-14: Kiselyov & Imai, *Session Types without Sophistry*
+
+**Henri:** *"Lets address the 'a meaning is a Float', what would we
+need to change it?"* — then, on the existential answer, *"existential
+constructor would be honest, but also change the language toward
+not-type-inferable.  I have a suggestion, but it's a bit silly.  Lets
+define something akin to 'IO' -monad.  Lets call it the 'Act'.. Hey I
+might even have something for this:
+https://okmij.org/ftp/meta-programming/sessions/description.pdf"*
+Read in full, 22 pages, from his download.  *The reading is the
+session's.*
+
+**What the paper is.**  A system description of `<session>`, a
+MetaOCaml library for binary session types (Yoshida & Vasconcelos'
+liberal system), with choices, recursion and delegation.  Its one idea
+is on page one: **type checking as staged computation** — the
+generator runs ordinary OCaml, the DSL's type is ordinary data to it,
+and a check that fails in the generator is a compile error from the
+generated program's point of view.  The load-bearing move is §4.1:
+factor the DSL into *communication* and *computation*, keep the
+computations as quoted code, and make communication a **value** the
+generator can inspect — their `comm` is a record of code plus an
+annotation, and sequencing merges the annotations.  They say it
+themselves: *"such a factoring is common: monadic IO in Haskell"*.
+
+**What it changes here.**
+
+- **Seam 2 is not solved by it.**  Their check runs in the generator,
+  before the program does; the picture here is stage-two data, rebuilt
+  every frame from the board, so nothing can walk a `Meaning` ahead of
+  the program to learn what its channel carries.  The existential
+  question stays where §"What a session does now" left it.
+- **It names the decision of §"Decided — 2026-09-14"** and defends it
+  from another tree: a stage in the compiler, a stage-one failure as a
+  complaint, a `Type` value with a reifier — their `trep` and
+  canonical structures, built independently.  Their one regret (§4.2,
+  §6) is the direction this card declined: they want the compiler to
+  reflect an inferred type back into a value, so the `trep`
+  annotations go.  Their caller is serialisation, which the hosts here
+  do by walking values, so the *no caller yet* reason holds.
+- **Their factoring is his suggestion, made for another DSL.**  `Act`
+  as data, performed by the host, is the standard move and not a
+  silly one.
+
+**Session types themselves — Henri:** *"session types are something
+I've been wanting, but I understand there are some limitations they
+bring and not all of it is good."*  What they would be about here is
+not the picture but the **host protocol**: one arrival per channel per
+instant (`reactive.py`), `acts` read only after a hand's write and
+never between, a signal that must hold a value before any arrival —
+three rules enforced at run time or by convention today, and the
+sentinel is a type-state defect of exactly their kind.  What they cost:
+linear endpoints, where a signal here is read many times; duality and
+its inference; and the paper's own answer to *"errors reported too
+late"* is the staging this card already has.  Not a proposal; a
+reading of where the want would land.
+
+### Q9 — what a press carries, shaped 2026-09-14
+
+**Henri:** *"the solution to this problem might indeed be 'Act'."*
+
+*Three forms.*  **(a)** `Meaning : Act -> Sub -> Sub`, `Act` a closed
+command type — no existential, no parameter on `Sub`, inference
+untouched; the picture is the dispatcher and the host performs, so
+`sync`, the `SyncBoth` arm, `floor`, the sentinel and `acts` as a held
+signal all go — both halves of the smell.  **(b)** the existential
+constructor, honest and the language's first non-inferable form.
+**(c)** stay.
+
+*Default:* **(a)**, beside the `Float` meaning and not instead of it —
+the roll's, the grid's and `onPress`'s meanings are values *into* the
+program and stay on their channel.  *Its costs, counted:* `Act` and
+`Fact` have to stand before `gui.ges` in the chain — `facts.ges` names
+no `Sub`, so moving it in front of `gui.ges` is the cheap form, and the
+prelude the other; `Fact` has to be one type, a kind's word over a
+list of values, or computed from the program's `kinds`, which is a
+stage-one *declaration* and E's door again; and the three walkers
+carry a node where a float was, the browser's wire a serialised `Act`
+per element — the cost §"What a session does now" already named.
+*Trigger, the kill:* a press whose reaction is a change of the
+program's own state with a message that is not a `Float` — a chart's
+transition, a mode, a selection — which (a) cannot carry and (b) can.
+Not built; his word first.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, and the grid's tables
 are the library's.  What remains on this card is E — the fourteen
 lines, every one of them `__x__ = chan` — which waits on a design for
-a channel that is a value, his; and the card's larger question, how a
-program is composed from pieces, is his too.
+a channel that is a value, his; seam 2, with Q9 shaped above and its
+default an `Act` the picture carries, his; and the card's larger
+question, how a program is composed from pieces, is his too.
