@@ -164,3 +164,106 @@ gridBack ws n rows = Rect (gridSum ws) ((length rows / n + 1) * gridRowH) gridNi
 #: The page: the head, then a row per record, over the ground.
 gridPage : Chan Float -> (Int -> Int -> String) -> List Int -> List String -> Int -> List Float -> Int -> Sub
 gridPage c show ws hs n rows sel = Over (gridBack ws n rows) (Column (gridHead ws hs) (gridRows c show sel ws (gridChunk n rows) 0))
+
+# ── The columns, from the declaration ────────────────────────────────────
+#
+# **What a cell shows, how wide a column is, what its head says — each
+# a function of the `Kind`**, and written here once.  Until 2026-09-14
+# `gridbox.py` wrote these out per file as `case` tables: 53 of a grid
+# program's 71 lines were a word list and two domain lists in the shape
+# of code (`card:strict-forms.md` §"Measured — what the two generators
+# actually write"), because the program could not hold the values.  It
+# can: `facts.ges` stands in front of this library and the `.notes`
+# declaration with it, so a page names `noteKind` and these do the rest.
+# The reading is still numbers — a word as its index in the file's own
+# word table, a bounded word as its index in the declaration's list, a
+# set of names as bits, an absent field as `-1` — and `gridbox.py` still
+# makes it; only the tables moved.
+
+#: The `i`th of a list, or `-` past its end.
+gridNth : List String -> Int -> String
+gridNth xs i = case xs of
+    Nil -> "-"
+    x :: rest -> case i == 0 of
+        True -> x
+        False -> gridNth rest (i - 1)
+
+#: A word by its code — `-1` is an absent field.
+gridWord : List String -> Int -> String
+gridWord ws c = case c < 0 of
+    True -> "-"
+    False -> gridNth ws c
+
+gridComma : String -> String -> String
+gridComma a b = case b of
+    Nil -> a
+    c :: rest -> a ++ "," ++ b
+
+gridEachOn : List String -> Int -> String
+gridEachOn ns bits = case ns of
+    Nil -> Nil
+    n :: rest -> case bits % 2 == 1 of
+        True -> gridComma n (gridEachOn rest (bits / 2))
+        False -> gridEachOn rest (bits / 2)
+
+#: A set of names by its bits, comma-joined as the file writes them —
+#: `-` for none, and for an absent field.
+gridEach : List String -> Int -> String
+gridEach ns bits = case bits < 0 of
+    True -> "-"
+    False -> case gridEachOn ns bits of
+        Nil -> "-"
+        s -> s
+
+#: One field's number, shown: a word by the file's table, a bounded word
+#: by the declaration's list, names by their bits, a number in digits.
+gridField : List String -> Field -> Int -> String
+gridField words f v = case f of
+    Field n val need -> case val of
+        Word -> gridWord words v
+        Number -> gridNum v
+        Names -> gridNum v
+        Range lo hi -> gridNum v
+        AtLeast lo -> gridNum v
+        OneOf ns -> gridWord ns v
+        Each ns -> gridEach ns v
+
+#: **What column `col` shows for the number `v`** — the `show` a page
+#: hands `gridPage`, over the kind's fields and the file's words.
+gridShow : List String -> List Field -> Int -> Int -> String
+gridShow words fs col v = case fs of
+    Nil -> gridNum v
+    f :: rest -> case col == 0 of
+        True -> gridField words f v
+        False -> gridShow words rest (col - 1) v
+
+gridLongest : List String -> Int
+gridLongest ns = case ns of
+    Nil -> 0
+    n :: rest -> max (length n) (gridLongest rest)
+
+#: How many characters a field's values can take.
+gridChars : Field -> Int
+gridChars f = case f of
+    Field n val need -> case val of
+        Word -> 8
+        Number -> 4
+        Names -> 12
+        Range lo hi -> 4
+        AtLeast lo -> 4
+        OneOf ns -> gridLongest ns
+        Each ns -> sum (map length ns) + length ns - 1
+
+#: A column's width in pixels: the 3×5 chrome font at scale two is four
+#: cells a character including its gap, and a cell keeps six pixels of
+#: margin — `gridbox.width_of` restates this for the host's hit table.
+gridWidth : Field -> Int
+gridWidth f = case f of
+    Field n val need -> (4 * max (gridChars f) (length n) - 1) * 2 + 8
+
+gridWidths : List Field -> List Int
+gridWidths fs = map gridWidth fs
+
+#: The head: a field's name over each column.
+gridHeads : List Field -> List String
+gridHeads fs = map fieldName fs

@@ -303,7 +303,7 @@ def preludes(source: str) -> str:
     if sounds and draws:
         return _AUDIO_GUI + facts
     if draws and has_grid(source):
-        return _GUI_GRID + facts
+        return _GUI_GRID                # `facts.ges` is already in it
     if draws and has_roll(source):
         return _GUI_ROLL + facts
     if draws:
@@ -352,16 +352,23 @@ _GUI_ONLY = (_SIGNAL + "\n"
 _GUI_ROLL = (_GUI_ONLY + "\n"
              + library_text("roll.ges"))
 
-#: A page that also draws a document as a **grid** — `grid.ges` after
-#: `roll.ges`, because the page a `.notes` opened alone builds holds
-#: both pictures in one program (`card:gex-sheet.md`).
-_GUI_GRID = (_GUI_ROLL + "\n"
-             + library_text("grid.ges"))
-
 #: The document vocabulary — `Kind`, `Field`, `By` — after whichever
 #: chain a program is compiled with, when the program declares `kinds`.
 #: Last, so that nothing a program without one compiles against moves.
 _FACTS = library_text("facts.ges")
+
+#: A page that also draws a document as a **grid** — `grid.ges` after
+#: `roll.ges`, because the page a `.notes` opened alone builds holds
+#: both pictures in one program (`card:gex-sheet.md`).  **And
+#: `facts.ges` and `notes.ges` before `grid.ges`** — Henri, 2026-09-14,
+#: `card:strict-forms.md`: the grid's tables are functions of the
+#: `Kind` value, written once in `grid.ges`, so the kind's vocabulary
+#: and the `.notes` declaration itself stand in front of it and the
+#: per-file program names `noteKind` instead of writing its tables out.
+_GUI_GRID = (_GUI_ROLL + "\n"
+             + _FACTS + "\n"
+             + library_text("notes.ges") + "\n"
+             + library_text("grid.ges"))
 
 #: 22,050 is a compromise: high enough that a sawtooth is recognisably
 #: itself, low enough that a second of sound is a few seconds of work.

@@ -549,10 +549,44 @@ are as they were, and a `Document` built *before* its program still
 pays the compile once — the analysis it leaves behind is then the
 substrate's front end, so the total is one front end either way.
 
+### Moved — 2026-09-14: the tables into `grid.ges`, the chain reordered
+
+**Henri:** *"facts.ges before grid.ges, move the tables."*  Done the
+same sitting.  `audio._GUI_GRID` is now `gui.ges`, `roll.ges`,
+**`facts.ges`, `notes.ges`, `grid.ges`** — the kind's vocabulary and
+the `.notes` declaration in front of the grid, so the per-file program
+names `noteKind` and `grid.ges` does the rest.  The four tables, the
+widths and the heads are the library's — `gridShow`, `gridWidths`,
+`gridHeads` and their helpers, the 63 lines the kill test wrote, under
+their own heading with the reason beside them — and
+`gridbox.grid_program` writes what the census said it would:
+
+```
+python tools/generated.py grid examples/audio/arc.notes
+grid program over arc.notes: 16 non-blank lines, 6 definitions
+```
+
+Fourteen of channel identity and two of the file's words; no `case`
+in the program, and `test_gridsheet.py` refuses one coming back.  The
+picture on the whole of `arc.notes` is the one the 71-line generator
+drew — the hit table, the labels and the presses aimed by the host's
+arithmetic all hold in the same tests as before, 14 of 14 — and the
+program stays byte-identical across a value edit.
+
+**`notes.ges` in the chain is the session's addition**, said so
+because he named only `facts.ges`: the tables are functions of a
+`Kind`, and the `.notes` kind is declared in `notes.ges`, which was in
+no chain — the choice was to put the declaration in front or to print
+the kind back from Python into the program, and printing a value as
+code is the thing this move removes.  A grid page therefore cannot
+declare its own `kinds`; the day a grid is drawn over a document that
+is not a `.notes`, that is the line to revisit.  Not on the reference
+roster, since it is a declaration and not a library.
+
 ## What a session does now
 
-Seam 1 is closed, its second compile is gone, and the kill test's
-number is fourteen.  Next, on his word: the grid's tables into the
-prelude chain (`facts.ges` before `grid.ges`, or a file after it) so
-the generator stops writing them; and E, the fourteen lines, which
-waits on a design for a channel that is a value — his.
+Seam 1 is closed, its second compile is gone, and the grid's tables
+are the library's.  What remains on this card is E — the fourteen
+lines, every one of them `__x__ = chan` — which waits on a design for
+a channel that is a value, his; and the card's larger question, how a
+program is composed from pieces, is his too.

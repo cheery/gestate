@@ -100,13 +100,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | where | error | why |
 |---|---|---|
-| `audio.py:563` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:647` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:653` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:659` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:669` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:875` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:895` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:570` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:654` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:660` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:666` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:676` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:882` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:902` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audioalloc.py:103` | `AllocError` | a bank with no voices is a count in a declaration; the declaration places it before this is reached |
 | `audioalloc.py:172` | `AllocError` | the piece's notes and the bank's payload disagree, which is about two declarations and not one line |
 | `audiodynamic.py:80` | `ScoreError` | the piece names a bank that was given no allocator, which is about two declarations and not one line |
@@ -163,20 +163,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 500 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
-| 563 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
-| 647 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
-| 653 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
-| 659 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
-| 669 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
-| 699 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
-| 739 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
-| 744 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
-| 753 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
-| 853 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
-| 875 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
-| 887 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
-| 895 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
+| 507 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
+| 570 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
+| 654 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
+| 660 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
+| 666 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
+| 676 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
+| 706 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
+| 746 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
+| 751 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
+| 760 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
+| 860 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
+| 882 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
+| 894 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
+| 902 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
 
 ### `audioalloc.py`
 

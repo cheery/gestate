@@ -11,8 +11,8 @@ picture lifted over the rows and the selected cell.
 numbers on a channel: a number field as itself, a word as its index in
 the file's own word table, a bounded field as its index in the
 declaration's list, a set of names as bits, an absent field as `-1`.
-So the program's text depends on the kind and on the file's *words*
-and on nothing a value edit changes — `test/test_gridsheet.py` holds a
+So the program's text depends on the file's *words* and the box's
+number and on nothing a value edit changes — `test/test_gridsheet.py` holds a
 program byte-identical across an edit, which is the drawn-scores lesson
 (`card:notes-editor.md` slice 3).  A new word — a voice, a spelling
 the file has not used — is a new program, once.
@@ -204,77 +204,43 @@ def _ges_string(text: str) -> str:
     return '"' + str(text).replace('"', "'") + '"'
 
 
-def _show_column(field, words_fn: str) -> str:
-    """The expression showing one column's number, over `v`."""
-    dom = field.domain
-    if dom is not None and dom[0] in ("OneOf", "Each"):
-        return None                     # its own case table, below
-    if field.value == "Word":
-        return f"{words_fn} v"
-    return "gridNum v"
-
-
-def _names_table(name: str, names: list, each: bool) -> str:
-    """A case table from a code to the declaration's names — an index
-    for `OneOf`, bits for `Each`."""
-    arms = []
-    if each:
-        for bits in range(1 << len(names)):
-            said = ",".join(n for i, n in enumerate(names) if bits >> i & 1)
-            arms.append(f"    {bits} -> {_ges_string(said or '-')}")
-    else:
-        for i, n in enumerate(names):
-            arms.append(f"    {i} -> {_ges_string(n)}")
-    arms.append('    _ -> "-"')
-    return (f"{name} : Int -> String\n{name} c = case c of\n"
-            + "\n".join(arms) + "\n\n")
-
-
 def grid_program(rels: dict, box: int = 0, kind_name: str = "note",
                  where=None) -> tuple:
     """`(ges_text, [cell channel])` — the box's program over `grid.ges`.
 
-    What is written is what differs from file to file: the channels,
-    the word table, how each column shows, the widths and heads, and
-    the picture.  The rows are not here; they arrive on the channel.
+    **Sixteen lines, and fourteen of them are channel identity.**  What
+    is written per file: the box's four channels with their held
+    signals, the file's words as a list, one picture lifted over the
+    rows and the selected cell, and the entry.  What a cell shows, how
+    wide a column is and what its head says are `grid.ges`' functions of
+    the kind — `gridShow`, `gridWidths`, `gridHeads` — over the `Kind`
+    value `notes.ges` declares, which stands in front of this program
+    since 2026-09-14 (`card:strict-forms.md`).  Until then this wrote
+    those out as `case` tables, 53 of 71 lines; `tools/generated.py`
+    is the census.  The rows are not here; they arrive on the channel.
     """
     from .notes import _kinds
 
     kind = _kinds(where).kind(kind_name)
     records = _records(rels, kind_name)
-    fields = columns(kind)
     words = words_of(rels, kind, records)
     N = lambda k: f"__ng_{k}_{box}__"
-    cell_c, sel_c, rows_c = cell_channel(box), N("sel"), N("rows")
-    word_fn, show_fn = N("word"), N("show")
+    cell_c, sel_c, rows_c, words_g = cell_channel(box), N("sel"), N("rows"), N("words")
+    kind_g = f"{kind_name}Kind"
+    ws = " :: ".join(_ges_string(w) for w in words) + " :: Nil"
+    pic = N("pic")
+    entry = entry_of(box)
     text = (f"{cell_c} : Chan Float\n{cell_c} = chan\n"
             f"{sel_c} : Chan Float\n{sel_c} = chan\n"
             f"{sel_c}_s : Sig Float\n{sel_c}_s = (0.0 - 1.0) ::: mkSig (wait {sel_c})\n"
             f"{rows_c} : Chan (List Float)\n{rows_c} = chan\n"
-            f"{rows_c}_s : Sig (List Float)\n{rows_c}_s = Nil ::: mkSig (wait {rows_c})\n\n")
-    # **The file's own words**, by code — the one table a value edit
-    # can outgrow, and then the program is new, once.
-    text += (f"{word_fn} : Int -> String\n{word_fn} c = case c of\n"
-             + "".join(f"    {i} -> {_ges_string(w)}\n" for i, w in enumerate(words))
-             + '    _ -> "-"\n\n')
-    arms = []
-    for col, f in enumerate(fields):
-        shown = _show_column(f, word_fn)
-        if shown is None:
-            table = N(f"dom{col}")
-            text += _names_table(table, list(f.domain[1]), f.domain[0] == "Each")
-            shown = f"{table} v"
-        arms.append(f"    {col} -> {shown}")
-    text += (f"{show_fn} : Int -> Int -> String\n{show_fn} col v = case col of\n"
-             + "\n".join(arms) + "\n    _ -> gridNum v\n\n")
-    ws = " :: ".join(str(w) for w in widths(kind)) + " :: Nil"
-    hs = " :: ".join(_ges_string(f.name) for f in fields) + " :: Nil"
-    pic = N("pic")
-    entry = entry_of(box)
-    text += (f"{N('widths')} : List Int\n{N('widths')} = {ws}\n\n"
-             f"{N('heads')} : List String\n{N('heads')} = {hs}\n\n"
-             f"{pic} : List Float -> Float -> Sub\n"
-             f"{pic} rows sel = gridPage {cell_c} {show_fn} {N('widths')} {N('heads')} "
-             f"{len(fields)} rows (floor sel)\n\n"
-             f"{entry} : Sig Sub\n{entry} = !{pic} {rows_c}_s {sel_c}_s\n")
+            f"{rows_c}_s : Sig (List Float)\n{rows_c}_s = Nil ::: mkSig (wait {rows_c})\n\n"
+            # **The file's own words**, by code — the one table a value
+            # edit can outgrow, and then the program is new, once.
+            f"{words_g} : List String\n{words_g} = {ws}\n\n"
+            f"{pic} : List Float -> Float -> Sub\n"
+            f"{pic} rows sel = gridPage {cell_c} (gridShow {words_g} (kindFields {kind_g})) "
+            f"(gridWidths (kindFields {kind_g})) (gridHeads (kindFields {kind_g})) "
+            f"(length (kindFields {kind_g})) rows (floor sel)\n\n"
+            f"{entry} : Sig Sub\n{entry} = !{pic} {rows_c}_s {sel_c}_s\n")
     return text, [cell_c]
