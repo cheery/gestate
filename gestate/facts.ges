@@ -7,17 +7,31 @@
 # already written this way and neither said so; this is where they say
 # it.
 #
-# **A kind is a value, the way a chart is a value.**  `chart.ges` made
-# that choice first and it is the same reason here: one value is
+# **A declaration is a value, the way a chart is a value.**  `chart.ges`
+# made that choice first and it is the same reason here: one value is
 # executed, printed, and enumerated for checking, and nothing has to be
 # added to the language for a document to describe itself.  A file that
-# owns a document declares
+# owns a document declares two things — **the model, and how it is
+# written**:
 #
-#     kinds : List Kind
-#     kinds = notesKinds
+#     model : List Rel        # the relations: headings, keys, domains
+#     lines : List Line       # one line per record, and what it folds in
 #
-# and what puts a kind there is an expression in the file, where you can
+# and what puts them there is an expression in the file, where you can
 # read it — `gui.ges`' rule, kept.
+#
+# **The relations come first and the text is their projection** —
+# Henri, 2026-09-14, `card:relational-model.md` §"The logical turn":
+# *"se normalisoitujen relaatioiden esitys ehkä kuuluisi olla esillä,
+# ja esitysnäkymä tulisi olla sen mukaan, eikä toisinpäin."*  A `Rel`
+# is a heading with a key; an `Of` is a relation keyed by another's key
+# — the home of a value a record may or may not carry, or a list of
+# them with a rank — and a `Line` says which relations one written
+# line folds together, in what shape and order.  What `notes.py` reads
+# and writes by, the `Kind` below with its `Field`s, is **derived** from
+# these by `lineKind` and declared by nobody: `Need`, `Names` and
+# `Each` are facts about a line, not about the model, and they fall out
+# of where a column lives.
 #
 # **What this does not decide.**  Nothing here parses or writes; it says
 # what the parser and the writer are to be held to.  The first use of it
@@ -37,7 +51,7 @@
 # (`card:strict-forms.md` §"Decided — 2026-09-14"), so nothing about
 # the row is written by hand and a kind edited here changes what the
 # checker accepts.  The same row is a type wherever a program wants
-# one: `type Row = $(kindRow markKind)`.  What the program asks done to
+# one: `type Row = $(rowType markRel)`.  What the program asks done to
 # the file is an `Act` — `gui.ges`' command language: `Assert`,
 # `Retract` or `Refuse`, a fact being the kind's word over its columns'
 # values as atoms — carried by the element that does it (`Does`) and
@@ -49,9 +63,52 @@
 #: in the core prelude and a file that wants strings has to say so.
 type Text = List Char
 
-# ── A field ──────────────────────────────────────────────────────────────
+# ── The model ────────────────────────────────────────────────────────────
 
-#: What a field's value is written as.  Every value in this format is
+#: What a column's value is drawn from — a `Value` below, one of the
+#: five a single token can be: `Word`, `Number`, `Range lo hi`,
+#: `AtLeast n`, `OneOf names` (`card:relational-model.md` Q2, the
+#: domains Codd put in the schema).  `Names` and `Each` are no domain
+#: of a column: a list is an `Of` with a rank.
+Value := Word | Number | Names | Range Int Int | AtLeast Int | OneOf (List Text) | Each (List Text)
+
+Col := Col Text Value
+
+#: A relation: its name, its heading in order — **the key first**, so
+#: a row reads as its identity and then its facts — and its key.
+#: **An empty key means at most one row in a document.**
+#:
+#: `Of parent field cols key need` is a relation keyed by its parent's
+#: key, named `parent.field`: with no key of its own it holds at most
+#: one row per parent — a value a record *may* carry, absent as no row
+#: and never a null — and with a `rank` key it holds a list, one row a
+#: name, the order a fact.  `need` says whether every parent must have
+#: at least one row there — `Must` for a section's voices, `May` for a
+#: note's manners — which is the one flag the model keeps, because it
+#: is a rule about the model (an inclusion) and not about a line.
+Rel := Rel Text (List Col) (List Text)
+     | Of Text Text (List Col) (List Text) Need
+
+#: How one written line is laid out: its kind word, its shape, the
+#: fields it folds in — a column of the relation named by the word, or
+#: an `Of` of it — in the order they are written, and the order lines
+#: of this kind are written in.  A `Headed` shape names the one token
+#: written without a field name, and that name is not among the
+#: fields; a `Bare` line's one field is.
+Line := Line Text Shape (List Text) (List Sort)
+
+# ── A value, and the line view ───────────────────────────────────────────
+#
+# **The line view is derived from the model and the lines, declared by
+# nobody.**  It is the form `notes.py` reads a file by and the
+# canonical writer writes it by, and the form `grid.ges`' tables are
+# functions of; a `Kind` is one `Line` with every field it folds in
+# resolved to what it is — a column, a value that may be absent, a list.
+
+#: What one token is.  Every value in this format is one
+#: whitespace-free token (`notes.py`, F203), so this says how to read
+#: it and what bound it is under.  `Range lo hi` and `AtLeast n` are
+#: numbers with a bound; `OneOf names` is a word from a list.
 #: one whitespace-free token (`notes.py`, F203), so this says how to
 #: read that token and nothing about layout.
 #:
@@ -59,16 +116,9 @@ type Text = List Char
 #: already writes — one token still, and the only shape beyond a word
 #: and a number that the two formats in the tree use.
 #:
-#: **And the domains** — `card:relational-model.md` Q2, 2026-09-10.
-#: Codd put domains in the schema and practice forgot them; a `key`
-#: that is really a MIDI key number, a `vel` that is one of eight
-#: names, a `len` that is at least one tick used to be four rules a
-#: parser remembered.  `Range lo hi` and `AtLeast n` are numbers with
-#: a bound; `OneOf names` is a word from a list; `Each names` is
-#: names, each from a list.  The token's shape is unchanged — a
-#: `Range` is still one number on the line — and what a reader does
-#: with the bound is derive the refusal from it.
-Value := Word | Number | Names | Range Int Int | AtLeast Int | OneOf (List Text) | Each (List Text)
+#: `Names` and `Each names` are how an `Of` with a rank reads on the
+#: line — one comma-joined token, each name from a list or not — and
+#: what a reader does with a bound is derive the refusal from it.
 
 #: Whether a record of this kind has to carry the field.  The refusal a
 #: missing one earns names it, so this is what makes that message
@@ -110,11 +160,10 @@ Shape := Named | Bare Text | Headed Text
 #: only because `arc.notes` happens to name its sections A, B, C.
 Sort := By Text | Along Text Text Text | Among Text Text
 
-#: One kind of fact: its word, the shape of its line, its fields, the
-#: fields that are its **key**, and the order its lines are written in.
+#: One kind of line, resolved: its word, the shape of its line, its
+#: fields, the key of the relation it writes, and the order its lines
+#: are written in — `lineKind` builds one from a `Line` and the model.
 #:
-#: **An empty key means at most one record of this kind in a
-#: document** — `bpm` is declared twice is a refusal, not a second fact.
 #: **An empty order means the order they were written in**, which is
 #: what `section` has: a section list is the author's sequence and
 #: sorting it would be a second thing to be canonical about.
@@ -165,6 +214,95 @@ mustHave f = case f of
 kindOf : List Kind -> Text -> List Kind
 kindOf ks name = filter (k => kindName k == name) ks
 
+# ── Reading the model ────────────────────────────────────────────────────
+
+#: A relation's name — `parent.field` for an `Of`.
+relName : Rel -> Text
+relName r = case r of
+    Rel n cs k -> n
+    Of p f cs k need -> p ++ "." ++ f
+
+#: The relation of this name, if the model has one.
+relOf : List Rel -> Text -> List Rel
+relOf rs name = filter (r => relName r == name) rs
+
+#: A relation's heading, in order: an `Of`'s is its parent's key
+#: columns and then its own.
+relCols : List Rel -> Rel -> List Col
+relCols rs r = case r of
+    Rel n cs k -> cs
+    Of p f cs k need -> keyCols rs p ++ cs
+
+#: A relation's key: an `Of`'s is its parent's and then its own.
+relKey : List Rel -> Rel -> List Text
+relKey rs r = case r of
+    Rel n cs k -> k
+    Of p f cs k need -> parentKey rs p ++ k
+
+parentKey : List Rel -> Text -> List Text
+parentKey rs p = case relOf rs p of
+    r :: rest -> relKey rs r
+    Nil -> Nil
+
+keyCols : List Rel -> Text -> List Col
+keyCols rs p = case relOf rs p of
+    r :: rest -> filter (c => elem (colName c) (relKey rs r)) (relCols rs r)
+    Nil -> Nil
+
+colName : Col -> Text
+colName c = case c of
+    Col n d -> n
+
+colDomain : Col -> Value
+colDomain c = case c of
+    Col n d -> d
+
+colNamed : List Col -> Text -> List Col
+colNamed cs n = filter (c => colName c == n) cs
+
+# ── The line view, derived ───────────────────────────────────────────────
+
+#: **A `Kind` from a `Line` and the model** — the derivation `notes.py`
+#: and the writer are held to.  Each field the line folds in is a
+#: column of the line's relation (`Must`), or an `Of` of it: with no
+#: key of its own a value the record may carry (`May`), with a rank a
+#: list — `Each` its names when the value column is bounded, `Names`
+#: otherwise — required or not as the `Of` says.
+#: A field nothing owns yields no `Field` here and is refused by name
+#: in the host (`facts.line_kind`), which reads the same model and
+#: lines and is held to this.
+lineKind : List Rel -> Line -> Kind
+lineKind rs l = case l of
+    Line w shape fs sort -> Kind w shape (join (map (lineField rs w) fs)) (parentKey rs w) sort
+
+lineField : List Rel -> Text -> Text -> List Field
+lineField rs w f = case relOf rs w of
+    r :: rest -> case colNamed (relCols rs r) f of
+        c :: more -> Field f (colDomain c) Must :: Nil
+        Nil -> ofField rs (w ++ "." ++ f) f
+    Nil -> Nil
+
+ofField : List Rel -> Text -> Text -> List Field
+ofField rs name f = case relOf rs name of
+    r :: rest -> case r of
+        Of p g cs k need -> case k of
+            Nil -> Field f (valueDomain cs) May :: Nil
+            ranked -> Field f (listValue (valueDomain cs)) need :: Nil
+        Rel n cs k -> Nil
+    Nil -> Nil
+
+#: The domain of an `Of`'s `value` column.
+valueDomain : List Col -> Value
+valueDomain cs = case colNamed cs "value" of
+    c :: rest -> colDomain c
+    Nil -> Word
+
+#: How a list reads on the line: each name from the list, or names.
+listValue : Value -> Value
+listValue d = case d of
+    OneOf ns -> Each ns
+    other -> Names
+
 # ── A type, as a value ───────────────────────────────────────────────────
 #
 # **The compiler's own type grammar, as a value a program can build** —
@@ -186,14 +324,19 @@ Type := TyCon Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (Li
 #: a bounded word a `Text`.  Names have no base column and no row type.
 fieldType : Field -> Type
 fieldType f = case f of
-    Field n v need -> case v of
-        Word -> TyCon "Text"
-        Number -> TyCon "Int"
-        Names -> TyCon "Text"
-        Range lo hi -> TyCon "Int"
-        AtLeast lo -> TyCon "Int"
-        OneOf ns -> TyCon "Text"
-        Each ns -> TyCon "Text"
+    Field n v need -> valueType v
+
+#: A value's type: a number is an `Int`, a word or a bounded word a
+#: `Text`, and so are names.
+valueType : Value -> Type
+valueType v = case v of
+    Word -> TyCon "Text"
+    Number -> TyCon "Int"
+    Names -> TyCon "Text"
+    Range lo hi -> TyCon "Int"
+    AtLeast lo -> TyCon "Int"
+    OneOf ns -> TyCon "Text"
+    Each ns -> TyCon "Text"
 
 #: Whether a field is one token a row carries — everything but a list of
 #: names, whose column is a relation of its own.
@@ -243,11 +386,24 @@ kindRow k = case map (columnType k) (kindColumns k) of
     t :: Nil -> t
     ts -> TyTuple ts
 
-#: The rows of the kinds named `name` — what `document "name"` is typed
-#: by; an empty list is a kind the program does not declare, and the
-#: compiler says so on the author's line.
-documentRow : List Kind -> Text -> List Type
-documentRow ks name = map kindRow (kindOf ks name)
+#: **The row of a relation, as a type**: a tuple of its heading's
+#: types — or the one column's, when there is one.  `rowType` is for a
+#: relation that stands alone; `relRow` reads an `Of`'s parent key off
+#: the model.
+rowType : Rel -> Type
+rowType r = relRow (r :: Nil) r
+
+relRow : List Rel -> Rel -> Type
+relRow rs r = case map (valueType @ colDomain) (relCols rs r) of
+    t :: Nil -> t
+    ts -> TyTuple ts
+
+#: The rows of the relation named `name` — what `document "name"` is
+#: typed by, `document "section.voices"` included; an empty list is a
+#: relation the program does not declare, and the compiler says so on
+#: the author's line.
+documentRow : List Rel -> Text -> List Type
+documentRow rs name = map (relRow rs) (relOf rs name)
 
 # ── A fact, from a kind and its row ──────────────────────────────────────
 #
@@ -257,8 +413,8 @@ documentRow ks name = map kindRow (kindOf ks name)
 # kind and its row, the same tuple `document` feeds and `kindRow`
 # types, and the atoms are derived here.  `Atoms` is the class of a
 # row: a number, a word, or a tuple of them.  A program holds the row
-# to the kind by naming it once — `type Placing = $(kindRow markKind)`
-# — and `asserting markKind (k, m)` then reads as the fact it is.
+# to the relation by naming it once — `type Placing = $(rowType markRel)`
+# — and `asserting markRel (k, m)` then reads as the fact it is.
 
 class Atoms r where
     atoms : r -> List Atom
@@ -286,11 +442,11 @@ instance (Atoms a, Atoms b, Atoms c, Atoms d, Atoms e) => Atoms (a, b, c, d, e) 
         (a, b, c, d, e) -> atoms a ++ atoms b ++ atoms c ++ atoms d ++ atoms e
 
 #: Assert this row of this kind — `mark  cell 4  mark X` from
-#: `asserting markKind (4, "X")`.
-asserting : (Atoms r) => Kind -> r -> Act
-asserting k r = Assert (kindName k) (atoms r)
+#: `asserting markRel (4, "X")`.
+asserting : (Atoms r) => Rel -> r -> Act
+asserting k r = Assert (relName k) (atoms r)
 
 #: Retract the row with this key — the host matches the key columns and
 #: the rest of the row is what the file says.
-retracting : (Atoms r) => Kind -> r -> Act
-retracting k r = Retract (kindName k) (atoms r)
+retracting : (Atoms r) => Rel -> r -> Act
+retracting k r = Retract (relName k) (atoms r)

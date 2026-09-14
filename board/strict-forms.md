@@ -743,6 +743,14 @@ which is where every document program runs.  A press that must change
 the *program's* state with a message that is not a `Float` still has
 only `Meaning`; that is Q9's trigger and nothing has pulled it.
 
+### And the declaration turned round — 2026-09-14, evening
+
+On `card:relational-model.md` §"The logical turn", at his word the
+same sitting: `model` and `lines` in place of `kinds`, the `Kind`
+derived by `lineKind`, `$(rowType markRel)` in the game, and
+`document "section.voices"` open.  Stage one now evaluates
+`documentRow model` and reads the model and the lines off the machine.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are

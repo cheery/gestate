@@ -32,22 +32,26 @@ marks : List Text
 marks = "X" :: "O" :: Nil
 
 #: `mark  cell 4  mark X` — keyed by the cell, so a cell holds one
-#: mark; an empty cell is **no row**, and the turn is a count.
-markKind : Kind
-markKind = Kind "mark" Named
-    (Field "cell" (Range 0 8) Must :: Field "mark" (OneOf marks) Must :: Nil)
-    ("cell" :: Nil)
-    (By "cell" :: Nil)
+#: mark; an empty cell is **no row**, and the turn is a count.  The
+#: relation first, then how its line is written (`facts.ges`).
+markRel : Rel
+markRel = Rel "mark" (Col "cell" (Range 0 8) :: Col "mark" (OneOf marks) :: Nil) ("cell" :: Nil)
 
-kinds : List Kind
-kinds = markKind :: Nil
+markLine : Line
+markLine = Line "mark" Named ("cell" :: "mark" :: Nil) (By "cell" :: Nil)
+
+model : List Rel
+model = markRel :: Nil
+
+lines : List Line
+lines = markLine :: Nil
 
 #: **A placing — one row of the board — as a type computed from the
-#: kind**: its key and then its required fields, a number an `Int` and
-#: a word a `Text`, so `(Int, Text)` here, written nowhere by hand.
-#: `kindRow` is `facts.ges`', and the compiler runs it before checking
-#: the program (`card:strict-forms.md`).  A board is a set of placings.
-type Placing = $(kindRow markKind)
+#: relation**: its heading, a number an `Int` and a word a `Text`, so
+#: `(Int, Text)` here, written nowhere by hand.  `rowType` is
+#: `facts.ges`', and the compiler runs it before checking the program
+#: (`card:strict-forms.md`).  A board is a set of placings.
+type Placing = $(rowType markRel)
 type Board = Set Placing
 
 #: **The board, as the file says it** — every mark, a cell and a word.
@@ -108,14 +112,14 @@ play b k = case over b of
     True -> Refuse "the game is over; press the foot to clear the board" :: Nil
     False -> case markAt b k of
         m :: rest -> Refuse "that cell is taken" :: Nil
-        Nil -> asserting markKind (k, turn b) :: Nil
+        Nil -> asserting markRel (k, turn b) :: Nil
 
 #: Clearing the board: retract every mark it has.
 clear : Board -> List Act
 clear b = map retractOne (elems b)
 
 retractOne : Placing -> Act
-retractOne p = retracting markKind p
+retractOne p = retracting markRel p
 
 # ── The picture ──────────────────────────────────────────────────────────
 

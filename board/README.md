@@ -71,7 +71,9 @@ still the tiebreak between two workable cards, and it is still his.
    a relation, and this holds it to what relational practice paid to
    learn: eight scars, each to be paid, refused or built, and the
    decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
-   dialogue he said he would continue.*
+   dialogue he said he would continue.  The logical turn built
+   2026-09-14 at his word: the model first, the text its projection,
+   the kinds derived; the physical turn is his.*
 6. **[hands-in-the-tab](hands-in-the-tab.md)** — the three pieces whose
    score reads what a hand holds, and the gallery cannot play them; the
    G-machine is already in the tab and what is missing is a seam

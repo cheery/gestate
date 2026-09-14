@@ -101,14 +101,14 @@ def _code(text: str) -> str:
 def test_the_row_type_is_computed_from_the_kind_and_written_nowhere_by_hand():
     """`card:strict-forms.md`, seam 1, closed 2026-09-14.  The postcondition:
     *a program that declares a document's kinds names its rows' type
-    nowhere by hand.*  `type Placing = $(kindRow markKind)` is the one
+    nowhere by hand.*  `type Placing = $(rowType markRel)` is the one
     line about the row, and it is computed; `(Int, Text)` is not in the
     program's code, and the compiler declares the channel the rows come on."""
     from gestate.gui import Substrate
 
     text = GAME.read_text()
     assert "(Int, Text)" not in _code(text)
-    assert "$(kindRow markKind)" in text and 'document "mark"' in text
+    assert "$(rowType markRel)" in text and 'document "mark"' in text
     view = Substrate(notes.read(GAME), 22050)
     assert "__doc_mark__" in view.by_name, "the channel is the compiler's, not the text's"
 
@@ -128,6 +128,12 @@ def test_a_built_programs_kinds_are_read_off_stage_one_and_not_compiled_again():
     doc = beside(board)
     took = time.time() - t
     assert doc.from_stage, "the kinds came from stage one"
+    #: and the line view the language derived is the one the host did
+    from gestate.facts import _kind
+    from gestate.pipeline import staged_value
+    from gestate.gui import assembled
+    said = staged_value(assembled(notes.read(game)), "kinds")
+    assert tuple(_kind(k) for k in said) == doc.kinds
     assert doc.names == ("mark",) and doc["mark"].key == ("cell",)
     assert doc["mark"].field("mark").domain == ("OneOf", ("X", "O"))
     assert took < 0.1, f"{took:.2f}s is a compile, not a read"
@@ -150,8 +156,8 @@ def test_a_kind_edited_in_the_program_changes_what_the_checker_accepts():
 
     text = GAME.read_text()
     edited = text.replace(
-        'Field "mark" (OneOf marks) Must :: Nil)',
-        'Field "mark" (OneOf marks) Must :: Field "turn" Number Must :: Nil)')
+        'Col "mark" (OneOf marks) :: Nil)',
+        'Col "mark" (OneOf marks) :: Col "turn" Number :: Nil)')
     assert edited != text
     with pytest.raises(Exception) as why:
         Substrate(notes.expand(edited, GAME.parent), 22050)
@@ -174,7 +180,7 @@ def test_a_document_of_an_undeclared_kind_is_refused_on_its_line():
     opened = notes.expand(text, GAME.parent)
     with pytest.raises(StageError, match='`document "marks"` names no kind') as why:
         Substrate(opened, 22050)
-    assert "`kinds` has `mark`" in str(why.value)
+    assert "`model` has `mark`" in str(why.value)
     said = in_source(str(why.value), opened)
     assert f"line {line}" in said or f" {line}:" in said, said
 
@@ -320,4 +326,63 @@ def test_ondo_lifts_a_does_over_signals():
         ("does", [("Refuse", [ord(c) for c in "nothing here"])])]
     assert view.acts() == [("Refuse", [ord(c) for c in "nothing here"])]
     assert view.touch_all("press", 100, 100) == [], "beside it, nothing"
+
+
+VOICES = """\
+include "voices.board"
+
+model : List Rel
+model = Rel "section" (Col "name" Word :: Col "bars" (AtLeast 1) :: Col "beats" (AtLeast 1) :: Nil) ("name" :: Nil)
+     :: Of "section" "voices" (Col "rank" (AtLeast 1) :: Col "value" Word :: Nil) ("rank" :: Nil) Must
+     :: Nil
+
+lines : List Line
+lines = Line "section" (Headed "name") ("bars" :: "beats" :: "voices" :: Nil) Nil :: Nil
+
+#: A relation hanging off the section, read as its own rows — the
+#: section's key, the rank, the voice.
+voices : Sig (Set (Text, Int, Text))
+voices = document "section.voices"
+
+substrate : Sig Sub
+substrate = map (v => Label 90 14 (show (length (elems v))) (RGB 1 2 3)) voices
+"""
+
+
+def test_a_relation_hanging_off_a_parent_reaches_the_program_as_its_own_rows(tmp_path):
+    """`document "section.voices"` — the normalised relation, not the
+    line: one row a voice, ranked, keyed by the section.  Typed by the
+    stage from the model, fed by the host from the file, and the
+    channel's name has no dot in it."""
+    from gestate.facts import beside, rows_of
+
+    (tmp_path / "voices.board").write_text(
+        "section A  bars 8  beats 4  voices melody,bass\n"
+        "section B  bars 8  beats 4  voices melody\n")
+    program = tmp_path / "voices.ges"
+    program.write_text(VOICES)
+    bench = _bench(program)
+    assert list(bench.substrate.by_name) == ["__doc_section_voices__"]
+    assert _texts(bench.substrate) == ["3"], "three voice rows across two sections"
+    doc = beside(tmp_path / "voices.board")
+    rels = notes.relations_of((tmp_path / "voices.board").read_text(), "voices.board",
+                              where=tmp_path / "voices.board")
+    assert rows_of(doc, rels, "section.voices") == [("A", 1, "melody"), ("A", 2, "bass"), ("B", 1, "melody")]
+    # A relation the model does not have is refused by name, with the ones it has.
+    with pytest.raises(Exception, match="section.voices"):
+        rows_of(doc, rels, "section.colour")
+
+
+def test_a_declaration_that_includes_its_own_notes_as_a_score_is_a_cycle_said_once(tmp_path):
+    """The boundary `notes.expanded` states: a `.notes` include is a
+    score, parsed by the declaration beside it — which would be this
+    program.  Found at the recursion limit on 2026-09-14, with the
+    refusal wrapped a hundred times; now one sentence."""
+    from gestate.facts import FactsError, beside
+
+    (tmp_path / "voices.notes").write_text("section A  bars 8  beats 4  voices melody\n")
+    (tmp_path / "voices.ges").write_text(VOICES.replace("voices.board", "voices.notes"))
+    with pytest.raises(FactsError, match="includes as a score") as why:
+        beside(tmp_path / "voices.notes")
+    assert str(why.value).count("will not load") <= 1
 

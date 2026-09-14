@@ -31,6 +31,11 @@ class FactsError(Exception):
     """A kinds declaration that could not be read."""
 
 
+class DeclarationCycle(FactsError):
+    """A declaration that needs its own document read first — said once,
+    and passed through `beside` unwrapped."""
+
+
 @dataclass(frozen=True)
 class Field:
     """One field of one kind: what it is called, how its one token is
@@ -196,6 +201,160 @@ def _kind(term) -> Kind:
                 fields=tuple(_field(f) for f in fields),
                 key=tuple(_text(k) for k in key),
                 order=tuple(_sort(o) for o in order))
+
+
+@dataclass(frozen=True)
+class Rel:
+    """One relation of a document's model, as its file declares it —
+    `facts.ges`' `Rel` and `Of`.  `cols` is the heading in order, each
+    `(name, domain)` with the domain a tuple `("Word",)`, `("Number",)`,
+    `("Range", lo, hi)`, `("AtLeast", n)` or `("OneOf", names)`; `key`
+    names columns of it.  An `Of` carries its parent's name and its
+    field, and `need` — whether every parent must have a row here —
+    and, once `model_of` has resolved it, its parent's key columns in
+    front of its own (`facts.ges`' `relCols`, `relKey`); `own_key` is
+    the part it declared, empty for a value a record may carry and
+    `rank` for a list."""
+    name: str
+    cols: tuple
+    key: tuple
+    parent: str | None = None
+    field: str | None = None
+    need: str | None = None
+    own_key: tuple = ()
+
+    @property
+    def heading(self) -> tuple:
+        return tuple(c for c, _d in self.cols)
+
+    def domain(self, col: str) -> tuple | None:
+        return next((d for c, d in self.cols if c == col), None)
+
+
+def _domain(term) -> tuple:
+    """A column's domain — a `Value` that is one token; a list is an
+    `Of` with a rank, and never a column's domain."""
+    head, *args = term
+    if head in ("Word", "Number"):
+        return (head,)
+    if head in ("Range", "AtLeast"):
+        return (head, *args)
+    if head == "OneOf":
+        return (head, tuple(_text(a) for a in args[0]))
+    if head in ("Names", "Each"):
+        raise FactsError(
+            f"`{head}` is no domain of a column: a list is an `Of` with a "
+            "`rank` key, one row a name")
+    raise FactsError(f"`{head}` is not a domain")
+
+
+def _col(term) -> tuple:
+    head, name, domain = term
+    if head != "Col":
+        raise FactsError(f"`{head}` is not a column")
+    return (_text(name), _domain(domain))
+
+
+def _rel(term) -> Rel:
+    head, *args = term
+    if head == "Rel":
+        name, cols, key = args
+        return Rel(name=_text(name), cols=tuple(_col(c) for c in cols),
+                   key=tuple(_text(k) for k in key))
+    if head == "Of":
+        parent, field, cols, key, need = args
+        key = tuple(_text(k) for k in key)
+        return Rel(name=f"{_text(parent)}.{_text(field)}",
+                   cols=tuple(_col(c) for c in cols), key=key,
+                   parent=_text(parent), field=_text(field), need=need[0],
+                   own_key=key)
+    raise FactsError(f"`{head}` is not a relation")
+
+
+def model_of(terms) -> tuple:
+    """The model a program declares, read and checked: every `Of` names
+    a parent the model has, and a relation's key is the front of its
+    heading, in key order — so a row reads as its identity and then
+    its facts, and `base_columns` and `relRow` agree on it."""
+    raw = tuple(_rel(t) for t in terms)
+    by_name = {r.name: r for r in raw if r.parent is None}
+    rels = []
+    for r in raw:
+        if r.parent is not None:
+            parent = by_name.get(r.parent)
+            if parent is None:
+                raise FactsError(
+                    f"`{r.name}` hangs off `{r.parent}`, which the model does "
+                    "not declare — " + ", ".join(f"`{n}`" for n in by_name))
+            if not r.own_key and r.need == "Must":
+                raise FactsError(
+                    f"`{r.name}` is a required single value; that is a column "
+                    f"of `{r.parent}`, not an `Of` with no key")
+            #: **Resolved**: the parent's key columns in front, the way
+            #: `relCols` and `relKey` read it in the language.
+            front = tuple(c for c in parent.cols if c[0] in parent.key)
+            r = Rel(name=r.name, cols=front + r.cols, key=parent.key + r.own_key,
+                    parent=r.parent, field=r.field, need=r.need, own_key=r.own_key)
+        own = tuple(c for c in r.heading if c in r.key)
+        if r.heading[:len(r.key)] != r.key or own != r.key:
+            raise FactsError(
+                f"`{r.name}`'s key comes first in its heading, in key order — "
+                + " ".join(r.key) + " and then the rest")
+        rels.append(r)
+    return tuple(rels)
+
+
+#: A domain's token shape on the line, and the `Field` domain it keeps.
+_LINE = {"Word": ("Word", None), "Number": ("Number", None),
+         "Range": ("Number", "keep"), "AtLeast": ("Number", "keep"),
+         "OneOf": ("Word", "keep")}
+
+
+def _line_field(name: str, domain: tuple, need: str, listed: bool) -> Field:
+    if listed:
+        if domain[0] == "OneOf":
+            return Field(name, "Names", need, ("Each", domain[1]))
+        return Field(name, "Names", need)
+    value, keep = _LINE[domain[0]]
+    return Field(name, value, need, domain if keep else None)
+
+
+def line_kind(rels: tuple, term) -> Kind:
+    """**A `Kind` from a `Line` and the model** — the host's half of
+    `facts.ges`' `lineKind`, held equal to it by `test/test_facts.py`.
+    Each field the line folds in is a column of the line's relation
+    (`Must`), or an `Of` of it: with no key of its own a value the
+    record may carry (`May`), with a rank a list, required or not as
+    the `Of` says.  A field nothing owns is refused by name."""
+    head, word, shape, fields, order = term
+    if head != "Line":
+        raise FactsError(f"`{head}` is not a line")
+    word = _text(word)
+    by_name = {r.name: r for r in rels}
+    base = by_name.get(word)
+    if base is None or base.parent is not None:
+        raise FactsError(
+            f"the line `{word}` writes no relation of the model — "
+            + ", ".join(f"`{r.name}`" for r in rels if r.parent is None))
+    out = []
+    for f in fields:
+        f = _text(f)
+        domain = base.domain(f)
+        if domain is not None:
+            out.append(_line_field(f, domain, "Must", False))
+            continue
+        of = by_name.get(f"{word}.{f}")
+        if of is None:
+            raise FactsError(
+                f"the line `{word}` folds in `{f}`, which is no column of "
+                f"`{word}` and no `Of` it — "
+                + ", ".join(f"`{c}`" for c in base.heading)
+                + "".join(f", `{r.field}`" for r in rels if r.parent == word))
+        domain = of.domain("value") or ("Word",)
+        out.append(_line_field(f, domain, of.need if of.own_key else "May",
+                               bool(of.own_key)))
+    return Kind(name=word, shape=_shape(shape), fields=tuple(out),
+                key=base.key, order=tuple(_sort(o) for o in order))
 
 
 def sort_key(kind: Kind, record: dict, along=None, among=None) -> tuple:
@@ -414,17 +573,23 @@ class Document:
         #: or a program nobody has built yet, compiles as before.
         from .pipeline import staged_value
 
-        found = staged_value(source, "kinds") if source is not None else None
+        found = staged_value(source, "model") if source is not None else None
         self.from_stage = found is not None
         if found is not None:
-            self.kinds = tuple(_kind(k) for k in found)
-            return
-        self.terms = Terms(self.path, LIBRARY, source)
-        try:
-            declared = self.terms.declared("kinds")
-        except ChartError as why:
-            raise FactsError(str(why)) from None
-        self.kinds = tuple(_kind(k) for k in self.terms.read(declared))
+            model, lines = found, staged_value(source, "lines")
+        else:
+            self.terms = Terms(self.path, LIBRARY, source)
+            try:
+                model = self.terms.read(self.terms.declared("model"))
+                lines = self.terms.read(self.terms.declared("lines"))
+            except ChartError as why:
+                raise FactsError(str(why)) from None
+        #: **The model first, the line view derived** — `facts.ges`
+        #: §"The line view".  `rels` is what `document "name"` reads,
+        #: any relation by name; `kinds` is what the parser and the
+        #: writer read a line by, and nobody declares it.
+        self.rels = model_of(model)
+        self.kinds = tuple(line_kind(self.rels, l) for l in lines)
 
     def __getitem__(self, name: str) -> Kind:
         found = self.kind(name)
@@ -437,19 +602,30 @@ class Document:
     def kind(self, name: str) -> Kind | None:
         return next((k for k in self.kinds if k.name == name), None)
 
+    def relation(self, name: str) -> Rel:
+        """The relation of this name — a base one or an `Of`, as
+        `section.voices` — or a refusal naming the ones there are."""
+        found = next((r for r in self.rels if r.name == name), None)
+        if found is None:
+            raise FactsError(
+                f"{self.path.name} declares no relation `{name}`; it has "
+                + ", ".join(f"`{r.name}`" for r in self.rels))
+        return found
+
     @property
     def names(self) -> tuple:
         return tuple(k.name for k in self.kinds)
 
 
 _LOADED: dict = {}
+_LOADING: set = set()
 
 #: **What makes a `.ges` beside a document its declaration**, cheaply
 #: and without compiling it: the file says `kinds`.  Every other `.ges`
 #: next to a document is a *piece* — `examples/audio/arc.ges` is one —
 #: and compiling those with `facts.ges` in front would be expensive and
 #: would fail, since a piece wants the audio preludes and not this one.
-_DECLARES = re.compile(r"^kinds\s*[:=]", re.M)
+_DECLARES = re.compile(r"^model\s*[:=]", re.M)
 
 
 def _document(path: Path) -> Document:
@@ -462,7 +638,24 @@ def _document(path: Path) -> Document:
     stamp = (path.stat().st_mtime_ns, LIBRARY.stat().st_mtime_ns)
     found = _LOADED.get(key)
     if found is None or found[0] != stamp:
-        found = _LOADED[key] = (stamp, Document(path))
+        #: **A declaration that includes its own document as a score is
+        #: a cycle**, said once rather than found at the recursion
+        #: limit: expanding the program parses the `.notes`, parsing it
+        #: reads the declaration beside it, which is this program.  A
+        #: document read through `document "<kind>"` is the program's
+        #: own and is not a `.notes` score include (`notes.expanded`).
+        if key in _LOADING:
+            #: complaint  author, nowhere — the program's own include line and its own model need each other first; the fault is the pairing of a suffix and a declaration, which no one line holds
+            raise DeclarationCycle(
+                f"{path.name} declares the model of a `.notes` it includes as "
+                "a score, and each needs the other first — a document the "
+                "program reads through `document` is its own, not a score: "
+                "name it by another suffix, or read the notes through the roll")
+        _LOADING.add(key)
+        try:
+            found = _LOADED[key] = (stamp, Document(path))
+        finally:
+            _LOADING.discard(key)
     return found[1]
 
 
@@ -498,9 +691,11 @@ def beside(path) -> Document:
         return load("notes")
     try:
         return _document(beside_it)
+    except DeclarationCycle:
+        raise                       # already a sentence about this declaration
     except Exception as why:                                # noqa: BLE001
         raise FactsError(
-            f"{beside_it.name} declares the kinds of {Path(path).name} and "
+            f"{beside_it.name} declares the model of {Path(path).name} and "
             f"will not load: {why}") from None
 
 
@@ -526,13 +721,17 @@ def beside(path) -> Document:
 # checked against the kind by the host; `card:strict-forms.md` is where
 # that seam was measured and closed.
 
-_DOCUMENT = re.compile(r'document[ \t]+"(\w+)"')
+#: A relation's name may carry a dot — `section.voices` — so the word
+#: is wider than an identifier.
+_DOCUMENT = re.compile(r'document[ \t]+"([\w.]+)"')
 
 
 def channel_of(kind: str) -> str:
     """The channel a kind's rows arrive on — the host's name, never a
     person's; `stage.channel_of` says the same."""
-    return f"__doc_{kind}__"
+    #: `section.voices` is a relation and no identifier: the dot is an
+    #: underscore on the channel, and nothing but the host reads it.
+    return f"__doc_{kind.replace('.', '_')}__"
 
 
 def documents(source: str) -> list:
@@ -554,12 +753,13 @@ def base_columns(kind: Kind) -> list:
                              and f.name not in kind.key]
 
 
-def rows_of(document: Document, rels: dict, kind: str) -> list:
-    """The rows a program's `document "kind"` receives: the base
-    relation's, each a tuple in heading order, sorted so a feed is the
-    same list for the same file."""
-    document[kind]
-    return sorted(rels[kind].rows)
+def rows_of(document: Document, rels: dict, name: str) -> list:
+    """The rows a program's `document "name"` receives: that relation's
+    — a base one or an `Of`, `section.voices` included — each a tuple
+    in heading order, sorted so a feed is the same list for the same
+    file."""
+    document.relation(name)
+    return sorted(rels[name].rows)
 
 
 def fact_of(document: Document, kind_text, atoms) -> tuple:

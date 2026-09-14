@@ -162,13 +162,121 @@ def test_a_kind_declared_and_unbuilt_is_refused_out_loud(tmp_path, monkeypatch):
     beside = tmp_path / "wider.ges"
     beside.write_text(
         (Path(notes.__file__).parent / "notes.ges").read_text()
-        .replace("kinds = notesKinds",
-                 'kinds = Kind "lyric" (Bare "text") '
-                 "(Field \"text\" Word Must :: Nil) Nil Nil :: notesKinds"))
+        .replace("model = notesModel",
+                 'model = Rel "lyric" (Col "text" Word :: Nil) Nil :: notesModel')
+        .replace("lines = notesLines",
+                 'lines = Line "lyric" (Bare "text") ("text" :: Nil) Nil :: notesLines'))
     wider = facts.Document(beside)
     monkeypatch.setattr(notes, "_kinds", lambda where=None: wider)
     with pytest.raises(notes.NotesError, match="does not know how to read"):
         notes.parse("lyric hello\n")
+
+
+# ── The line view is the declaration it replaced ────────────────────────
+
+#: `gestate/notes.ges` as it stood until 2026-09-14 — three `Kind`s
+#: written by hand — kept here as the **witness** the derived view is
+#: held to: the model and its lines, turned into kinds by `lineKind`,
+#: must be these to the field (`card:relational-model.md` §"The
+#: logical turn").
+OLD_DECLARATION = """\
+bpmKind : Kind
+bpmKind = Kind "bpm" (Bare "bpm") bpmFields Nil Nil
+bpmFields : List Field
+bpmFields = Field "bpm" (AtLeast 1) Must :: Nil
+sectionKind : Kind
+sectionKind = Kind "section" (Headed "name") sectionFields sectionKey Nil
+sectionFields : List Field
+sectionFields = Field "key" Word May
+    :: Field "mode" Word May
+    :: Field "bars" (AtLeast 1) Must
+    :: Field "beats" (AtLeast 1) Must
+    :: Field "voices" Names Must
+    :: Nil
+sectionKey : List Text
+sectionKey = "name" :: Nil
+noteKind : Kind
+noteKind = Kind "note" Named noteFields noteKey noteOrder
+noteFields : List Field
+noteFields = Field "section" Word Must
+    :: Field "bar" (AtLeast 1) Must
+    :: Field "at" (AtLeast 0) Must
+    :: Field "len" (AtLeast 1) Must
+    :: Field "voice" Word Must
+    :: Field "key" (Range 0 127) Must
+    :: Field "spell" Word May
+    :: Field "vel" (OneOf levels) Must
+    :: Field "manner" (Each manners) May
+    :: Nil
+levels : List Text
+levels = "ppp" :: "pp" :: "p" :: "mp" :: "mf" :: "f" :: "ff" :: "fff" :: Nil
+manners : List Text
+manners = "staccato" :: "accent" :: "portamento" :: Nil
+noteKey : List Text
+noteKey = "section" :: "bar" :: "voice" :: "at" :: "key" :: Nil
+noteOrder : List Sort
+noteOrder = Among "section" "section"
+    :: By "bar"
+    :: Along "voice" "section" "voices"
+    :: By "at"
+    :: By "key"
+    :: Nil
+kinds : List Kind
+kinds = bpmKind :: sectionKind :: noteKind :: Nil
+"""
+
+
+def test_the_line_view_derived_from_the_model_is_the_declaration_it_replaced(tmp_path, declared):
+    """**Declare, hold to parity, derive** (`doc/memory/declare-parity-derive.md`):
+    the relations-first declaration is new, and what makes it safe is
+    that the `Kind`s the parser reads by come out the same as the ones
+    that were written by hand until today."""
+    old = tmp_path / "old.ges"
+    old.write_text(OLD_DECLARATION)
+    terms = facts.Terms(old, facts.LIBRARY, None)
+    witness = tuple(facts._kind(k) for k in terms.read(terms.declared("kinds")))
+    assert declared.kinds == witness
+
+
+def test_the_model_is_the_relations_the_reader_derives(declared):
+    """The declared headings and keys are exactly the relations
+    `relations_of` builds from the piece — no relation the model does
+    not name, none it names missing."""
+    rels = notes.relations_of(PIECE.read_text(), PIECE.name, where=PIECE)
+    for r in declared.rels:
+        assert rels[r.name].heading == r.heading, r.name
+    index = {"line", "above", "beside", "closing"}
+    assert {r.name for r in declared.rels} == set(rels) - index
+
+
+def test_a_line_that_folds_in_what_nothing_owns_is_refused_by_name(tmp_path):
+    from gestate import facts as F
+    _sibling(tmp_path, "odd",
+             lambda t: t.replace('("key" :: "mode" :: "bars" :: "beats" :: "voices" :: Nil)',
+                                 '("key" :: "mode" :: "bars" :: "beats" :: "voices" :: "tempo" :: Nil)'))
+    (tmp_path / "odd.notes").write_text("bpm 96\n")
+    with pytest.raises(F.FactsError, match="folds in `tempo`, which is no column of `section`"):
+        F.beside(tmp_path / "odd.notes")
+
+
+def test_a_required_single_value_is_a_column_and_not_an_of(tmp_path):
+    from gestate import facts as F
+    _sibling(tmp_path, "odd",
+             lambda t: t.replace('Of "section" "key" (Col "value" Word :: Nil) Nil May',
+                                 'Of "section" "key" (Col "value" Word :: Nil) Nil Must'))
+    (tmp_path / "odd.notes").write_text("bpm 96\n")
+    with pytest.raises(F.FactsError, match="required single value; that is a column"):
+        F.beside(tmp_path / "odd.notes")
+
+
+def test_the_key_comes_first_in_a_heading(tmp_path):
+    from gestate import facts as F
+    _sibling(tmp_path, "odd",
+             lambda t: t.replace('(Col "name" Word :: Col "bars" (AtLeast 1) :: Col "beats" (AtLeast 1) :: Nil) ("name" :: Nil)',
+                                 '(Col "bars" (AtLeast 1) :: Col "name" Word :: Col "beats" (AtLeast 1) :: Nil) ("name" :: Nil)'))
+    (tmp_path / "odd.notes").write_text("bpm 96\n")
+    with pytest.raises(F.FactsError, match="key comes first in its heading"):
+        F.beside(tmp_path / "odd.notes")
 
 
 # ── The declaration is the one beside the document ──────────────────────
@@ -188,8 +296,8 @@ def test_the_kinds_come_from_the_ges_of_the_same_name(tmp_path):
     kinds do not, so a note without one is refused: the refusal is proof
     that the file beside the document is the one in force."""
     _sibling(tmp_path, "song",
-             lambda t: t.replace('Field "spell" Word May',
-                                 'Field "spell" Word Must'))
+             lambda t: t.replace('Col "vel" (OneOf levels) :: Nil)',
+                                 'Col "vel" (OneOf levels) :: Col "spell" Word :: Nil)'))
     song = tmp_path / "song.notes"
     song.write_text("section A  bars 1  beats 4  voices a\n"
                     "note  section A  bar 1  at 0  len 96  voice a  key 60  vel mf\n")
@@ -217,7 +325,7 @@ def test_a_declaration_that_will_not_load_is_refused_by_name(tmp_path):
     from gestate import facts as F
 
     _sibling(tmp_path, "broken",
-             lambda t: t.replace("kinds = notesKinds", "kinds = ((("))
+             lambda t: t.replace("model = notesModel", "model = ((("))
     (tmp_path / "broken.notes").write_text("bpm 96\n")
     with pytest.raises(F.FactsError, match="will not load"):
         F.beside(tmp_path / "broken.notes")

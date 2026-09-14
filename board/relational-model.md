@@ -972,3 +972,96 @@ lessons behind them.
 - **No history.**  The file has none, same as SQL.  Git and the session
   log carry it outside the relation, which is what event sourcing does
   too.
+
+## The logical turn — 2026-09-14: the relations first, the text their projection
+
+**Henri, the evening the game's `Act` landed (`card:strict-forms.md`
+§"Built — 2026-09-14: `Act`"):** *"Tieto on esillä tiedostossa
+denormalisoituna, mutta se kuuluisi normalisoida siinä vaiheessa kun
+se tulee ohjelmaan.  En ole nyt selvillä siitä miten se tapahtuu
+käytännössä?"* — then, shown that the reader already derives eight
+relations from the piece and the program's door showed one pöytä per
+kind: *"se normalisoitujen relaatioiden esitys ehkä kuuluisi olla
+esillä, ja esitysnäkymä tulisi olla sen mukaan, eikä toisinpäin kuten
+nyt on."*  Asked what `markKind` and `notes.ges` would look like
+turned round, and shown a sketch: *"Muutetaan se toimimaan näin kuten
+esitit.  Mielestäni tämä olisi parempi vaikka siinä olisikin kaksi
+julistusta yhden sijaan."*  Built the same sitting.
+
+**Two questions, told apart.**  The *logical* turn — the model is the
+relations and the `.notes` file is their canonical projection — moves
+no byte and is what was built.  The *physical* turn — the truth in a
+database and the text written from it — waits on one of three
+pressures, size, a second writer, or a query the fixpoint cannot make
+in time, and none is near 291 notes; and it carries the risk this
+card's scars are about, a truth moved where a person cannot read it.
+Not built, his.
+
+**The declaration, after.**  A document's file declares two things
+(`facts.ges` §"The model"):
+
+```
+model : List Rel        # Rel name cols key | Of parent field cols key need
+lines : List Line       # Line word shape fields sort
+```
+
+A `Rel` is a heading with its key first; an `Of` hangs off a parent's
+key — no key of its own for a value a record may carry, a `rank` for
+a list, one row a name — and a `Line` says which of them one written
+line folds together, in what shape and order.  `notes.ges` is `bpm`,
+`section` with `section.key`, `section.mode`, `section.voices`, and
+`note` with `note.spell`, `note.manner`, then three lines.  The game is
+`markRel`, `markLine`, and `type Placing = $(rowType markRel)`.
+
+**What fell out of the declaration.**  `Need` on a field, `Names`, and
+`Each` — each was a fact about the line, and each now falls out of
+where a column lives: in the relation, `Must`; an `Of` with no key,
+`May`; an `Of` with a rank, a list.  `Shape` and `Sort` moved to the
+`Line`, where they were always about the text.  **One flag stayed**:
+an `Of`'s `need`, whether every parent must have a row there — a
+section's voices `Must`, a note's manners `May` — because that is a
+rule about the model, an inclusion, and not about a line; and a
+required `Of` with no key is refused as *that is a column of the
+parent*.
+
+**Declare, hold to parity, derive.**  The `Kind` the parser and the
+writer read by is not gone: it is **derived**, by `lineKind` in the
+language and `facts.line_kind` in the host, and declared by nobody.
+Three tests hold the turn: the derived kinds equal the hand-written
+declaration of the morning to the field
+(`test_facts.py::test_the_line_view_derived_from_the_model_is_the_declaration_it_replaced`,
+with that text kept as the witness); the language's derivation equals
+the host's (`test_stage.py`, and on the game off stage one in
+`test_documents.py`); and the model's headings are exactly the
+relations `relations_of` builds from the piece.  `arc.notes` reads and
+writes as before; `notes.py` and `documents.py` did not change.
+
+**What opened.**  `document "section.voices"` — any relation of the
+model, an `Of` typed with its parent's key by `relRow`, fed by the
+host from the reader's own `section.voices` rows, on a channel the
+dot cannot reach (`__doc_section_voices__`).  The program's door and
+the reader now show the same normalised form; until today the door
+showed the base table alone and the side relations were joined back in
+Python views.
+
+**Found on the way.**  A program that declares the model of a `.notes`
+and includes it as a score is a cycle — expanding it parses the
+notes, parsing reads the declaration beside them, which is the
+program — and it surfaced at the recursion limit with the refusal
+wrapped a hundred times.  `facts._document` says it once now: a
+document read through `document` is the program's own and not a score
+include; name it by another suffix.  The boundary `notes.expanded`
+already stated, now enforced with a sentence.
+
+**Not done, and said.**  The sketch's `section.order` — the file's own
+sequence of sections as a `(name, rank)` fact rather than a rowid —
+was not built: the writer's *empty order means the order written*
+still holds and turning the position into a fact changes what a
+hand-reordering means (two rank edits, not a move), which is his to
+want first.  `grid.ges`' tables still take the derived `Field`s; a
+grid over `Line` and `Rel` directly is a later cut.
+
+**Held by** `test_facts.py` (+5), `test_stage.py` (+2),
+`test_documents.py` (+2); the five files 100 green; `doc/ref/facts.md`
+regenerated.
+

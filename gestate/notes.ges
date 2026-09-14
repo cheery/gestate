@@ -1,13 +1,15 @@
 # notes.ges — what a `.notes` file is, declared.
 #
-# The three kinds gestate ships, said in the vocabulary of
-# `gestate/facts.ges`.  A document's own file declares
+# The model of a `.notes` and how it is written, said in the vocabulary
+# of `gestate/facts.ges`.  A document's own file declares
 #
-#     kinds : List Kind
-#     kinds = notesKinds
+#     model : List Rel
+#     model = notesModel
+#     lines : List Line
+#     lines = notesLines
 #
-# and adds its own to that list; these are the ones every `.notes` has,
-# so they are here rather than in each piece.
+# and adds its own to those lists; these are the ones every `.notes`
+# has, so they are here rather than in each piece.
 #
 # **Held to `gestate/notes.py`, which has carried these facts by hand
 # since the format existed** — `test/test_facts.py` compares the fields,
@@ -15,75 +17,87 @@
 # canonical writer on `examples/audio/arc.notes`.  While both exist the
 # Python is the one that runs; this is what it is checked against.
 
-# ── The whole file's one fact ────────────────────────────────────────────
+# ── The model ────────────────────────────────────────────────────────────
+#
+# **The relations first, the lines after** — `facts.ges`, and Henri,
+# 2026-09-14.  What `arc.notes` reads as: `bpm`, `section` with three
+# relations hanging off it, `note` with two.  The `Kind`s the parser
+# and the writer use are derived below and declared by nobody.
 
-#: `bpm 96`.  A bare value, and **no key**, which is how a kind says
-#: there is at most one of it in a document: `notes.py` refuses a second
-#: as *`bpm` is declared twice*.
-bpmKind : Kind
-bpmKind = Kind "bpm" (Bare "bpm") bpmFields Nil Nil
+#: `bpm 96` — no key, so at most one in a document.
+bpm : Rel
+bpm = Rel "bpm" (Col "bpm" (AtLeast 1) :: Nil) Nil
 
-bpmFields : List Field
-bpmFields = Field "bpm" (AtLeast 1) Must :: Nil
+#: A section: its name, and the grid its notes are placed on.  Its
+#: key and mode may be said, its voices must be — one row a voice,
+#: **in the order written**, because that is the order the roll stacks
+#: them in (Henri, 2026-09-05).
+section : Rel
+section = Rel "section" (Col "name" Word :: Col "bars" (AtLeast 1) :: Col "beats" (AtLeast 1) :: Nil) ("name" :: Nil)
 
-# ── The grid a section's notes are placed on ─────────────────────────────
+sectionKey : Rel
+sectionKey = Of "section" "key" (Col "value" Word :: Nil) Nil May
 
-#: `section A  key D  mode lydian  bars 8  beats 4  voices melody,bass`.
-#: Headed, because the name is written bare after the kind word; keyed
-#: by that name, which `notes.py` refuses a second of; and **unordered
-#: on purpose** — a section list is the author's sequence, and sorting
-#: it would give the file a second thing to be canonical about.
-sectionKind : Kind
-sectionKind = Kind "section" (Headed "name") sectionFields sectionKey Nil
+sectionMode : Rel
+sectionMode = Of "section" "mode" (Col "value" Word :: Nil) Nil May
 
-sectionFields : List Field
-sectionFields = Field "key" Word May
-    :: Field "mode" Word May
-    :: Field "bars" (AtLeast 1) Must
-    :: Field "beats" (AtLeast 1) Must
-    :: Field "voices" Names Must
-    :: Nil
+sectionVoices : Rel
+sectionVoices = Of "section" "voices" (Col "rank" (AtLeast 1) :: Col "value" Word :: Nil) ("rank" :: Nil) Must
 
-sectionKey : List Text
-sectionKey = "name" :: Nil
+#: A note.  **The key is Q7's**, 2026-09-08 — *a note's identity is its
+#: content* — written out at the file's level, where a tick is a
+#: section, a bar and an offset: `section bar voice at key`.  A doubled
+#: line is one note said twice, which `notes.doubled` decided.  The
+#: key comes first in the heading, as every relation's does.
+note : Rel
+note = Rel "note"
+    (Col "section" Word :: Col "bar" (AtLeast 1) :: Col "voice" Word :: Col "at" (AtLeast 0)
+     :: Col "key" (Range 0 127) :: Col "len" (AtLeast 1) :: Col "vel" (OneOf levels) :: Nil)
+    ("section" :: "bar" :: "voice" :: "at" :: "key" :: Nil)
 
-# ── The note ─────────────────────────────────────────────────────────────
+#: A spelling a note may carry, and the manners it may have, each one
+#: of three.
+noteSpell : Rel
+noteSpell = Of "note" "spell" (Col "value" Word :: Nil) Nil May
 
-#: `note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff`.
-#:
-#: **The key is Q7's**, 2026-09-08 — *a note's identity is its content* —
-#: written out at the file's level, where a tick is a section, a bar and
-#: an offset: `section bar voice at key`.  A doubled line is one note
-#: said twice, which `notes.doubled` decided.
-noteKind : Kind
-noteKind = Kind "note" Named noteFields noteKey noteOrder
-
-noteFields : List Field
-noteFields = Field "section" Word Must
-    :: Field "bar" (AtLeast 1) Must
-    :: Field "at" (AtLeast 0) Must
-    :: Field "len" (AtLeast 1) Must
-    :: Field "voice" Word Must
-    :: Field "key" (Range 0 127) Must
-    :: Field "spell" Word May
-    :: Field "vel" (OneOf levels) Must
-    :: Field "manner" (Each manners) May
-    :: Nil
+noteManner : Rel
+noteManner = Of "note" "manner" (Col "rank" (AtLeast 1) :: Col "value" (OneOf manners) :: Nil) ("rank" :: Nil) May
 
 #: **The domains, said once** — `card:relational-model.md` Q2, decided
-#: 2026-09-10.  `notes.py` carried these as `LEVELS` and `MANNERS`
-#: and refused by hand; while it still runs, `test/test_notes_relations.py`
-#: holds its refusals to these bounds.  The eight dynamics are in the
-#: order the roll ranks them, softest first, and that order is what
-#: `vel` sorts by.
+#: 2026-09-10.  The eight dynamics are in the order the roll ranks
+#: them, softest first, and that order is what `vel` sorts by.
 levels : List Text
 levels = "ppp" :: "pp" :: "p" :: "mp" :: "mf" :: "f" :: "ff" :: "fff" :: Nil
 
 manners : List Text
 manners = "staccato" :: "accent" :: "portamento" :: Nil
 
-noteKey : List Text
-noteKey = "section" :: "bar" :: "voice" :: "at" :: "key" :: Nil
+notesModel : List Rel
+notesModel = bpm :: section :: sectionKey :: sectionMode :: sectionVoices :: note :: noteSpell :: noteManner :: Nil
+
+# ── The lines ────────────────────────────────────────────────────────────
+#
+# How the model is written: one line per `bpm`, per section and per
+# note, each folding its `Of`s in — a value beside its name, a list as
+# one comma-joined token.
+
+#: `bpm 96`.  A bare value.
+bpmLine : Line
+bpmLine = Line "bpm" (Bare "bpm") ("bpm" :: Nil) Nil
+
+#: `section A  key D  mode lydian  bars 8  beats 4  voices melody,bass`.
+#: Headed, because the name is written bare after the kind word; and
+#: **unordered on purpose** — a section list is the author's sequence,
+#: and sorting it would give the file a second thing to be canonical
+#: about.
+sectionLine : Line
+sectionLine = Line "section" (Headed "name") ("key" :: "mode" :: "bars" :: "beats" :: "voices" :: Nil) Nil
+
+#: `note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff`.
+noteLine : Line
+noteLine = Line "note" Named
+    ("section" :: "bar" :: "at" :: "len" :: "voice" :: "key" :: "spell" :: "vel" :: "manner" :: Nil)
+    noteOrder
 
 #: **Voice before tick, and the voice order is the section's own** —
 #: Henri, 2026-09-05, and it is a trade `notes.py` records: tick-major
@@ -99,10 +113,30 @@ noteOrder = Among "section" "section"
     :: By "key"
     :: Nil
 
+notesLines : List Line
+notesLines = bpmLine :: sectionLine :: noteLine :: Nil
+
 # ── The document ─────────────────────────────────────────────────────────
 
-notesKinds : List Kind
-notesKinds = bpmKind :: sectionKind :: noteKind :: Nil
+model : List Rel
+model = notesModel
 
-kinds : List Kind
-kinds = notesKinds
+lines : List Line
+lines = notesLines
+
+# ── The line view, for whoever reads by it ───────────────────────────────
+#
+# Derived, not declared: `grid.ges`' tables are functions of a `Kind`,
+# and a grid page names `noteKind`.
+
+bpmKind : Kind
+bpmKind = lineKind model bpmLine
+
+sectionKind : Kind
+sectionKind = lineKind model sectionLine
+
+noteKind : Kind
+noteKind = lineKind model noteLine
+
+notesKinds : List Kind
+notesKinds = map (lineKind model) lines

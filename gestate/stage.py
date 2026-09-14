@@ -228,15 +228,15 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
         for n in _defined(item):
             mentions.setdefault(n, set()).update(_names(item))
     all_sites = [(site, kind, item) for item, sites in sited for site, kind in sites]
-    has_kinds = any("kinds" in _defined(item) for item, _s in sited)
+    has_kinds = any("model" in _defined(item) for item, _s in sited)
     for site, kind, item in all_sites:
         if kind == "document":
             if not has_kinds:
                 raise StageError(
-                    f'`document "{site.arg.value}"` needs `kinds : List Kind` '
+                    f'`document "{site.arg.value}"` needs `model : List Rel` '
                     "declared in this program — the row it reads is computed "
-                    f"from the kind (`facts.ges`, `kindRow`){_at(site)}")
-            need = {"kinds"}
+                    f"from the relation (`facts.ges`, `relRow`){_at(site)}")
+            need = {"model"}
         else:
             need = _names(_expr_of(site))
         own = _defined(item) | {"main"}
@@ -270,18 +270,22 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
     for i, (site, kind, _item) in enumerate(all_sites):
         if kind == "document":
             tail.append(f"__stage_{i}__ : List Type\n__stage_{i}__ = "
-                        f'documentRow kinds "{site.arg.value}"\n')
+                        f'documentRow model "{site.arg.value}"\n')
         else:
             e = _expr_of(site)
             tail.append(f"__stage_{i}__ : Type\n__stage_{i}__ = "
                         f"({_slice(source, e.span)})\n")
     if any(kind == "document" for _s, kind, _i in all_sites):
-        tail.append("__stage_names__ : List Text\n__stage_names__ = map kindName kinds\n")
+        tail.append("__stage_names__ : List Text\n__stage_names__ = map relName model\n")
     if has_kinds:
-        # **The kinds themselves, read while the machine is warm** — what
-        # `facts.Document` used to compile the whole program a second
-        # time for, and now takes from the analysis (`pipeline.staged_value`).
-        tail.append("__stage_kinds__ : List Kind\n__stage_kinds__ = kinds\n")
+        # **The model and its lines, read while the machine is warm** —
+        # what `facts.Document` used to compile the whole program a
+        # second time for, and now takes from the analysis
+        # (`pipeline.staged_value`); and the line view the language
+        # derives from them, for the host's derivation to be held to.
+        tail.append("__stage_model__ : List Rel\n__stage_model__ = model\n")
+        tail.append("__stage_lines__ : List Line\n__stage_lines__ = lines\n")
+        tail.append("__stage_kinds__ : List Kind\n__stage_kinds__ = map (lineKind model) lines\n")
     text = "\n".join(lines).rstrip("\n") + "\n\n" + "".join(tail) + "\nmain : Int\nmain = 0\n"
     if cut is not None:
         note_seam(text, cut)
@@ -297,6 +301,8 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
     state = _compile(text)
     values = {}
     if has_kinds:
+        values["model"] = _read(state, "__stage_model__")
+        values["lines"] = _read(state, "__stage_lines__")
         values["kinds"] = _read(state, "__stage_kinds__")
     kind_names = None
     if "__stage_names__" in state.globals:
@@ -311,7 +317,7 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
             if not got:
                 raise StageError(
                     f'`document "{name}"` names no kind this program declares '
-                    "— `kinds` has "
+                    "— `model` has "
                     + ", ".join(f"`{k}`" for k in (kind_names or []))
                     + _at(site))
             row = _type_val(got[0], site.span)
@@ -339,7 +345,9 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
 def channel_of(kind: str) -> str:
     """The channel a kind's rows arrive on — `facts.channel_of`, restated
     so the two modules need not import each other."""
-    return f"__doc_{kind}__"
+    #: `section.voices` is a relation and no identifier: the dot is an
+    #: underscore on the channel, and nothing but the host reads it.
+    return f"__doc_{kind.replace('.', '_')}__"
 
 
 def _document_read(chan: str) -> Val:

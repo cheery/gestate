@@ -20,16 +20,16 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**525 complaints**, in 50 files.
+**537 complaints**, in 50 files.
 
 | | |
 |---|---|
-| `author` | 292 |
+| `author` | 304 |
 | `command` | 51 |
 | `world` | 27 |
 | `machine` | 155 |
 | say where | 197 |
-| say `nowhere`, on purpose | 57 |
+| say `nowhere`, on purpose | 69 |
 | `unplaced`, with a defect that owns it | 60 |
 
 ## A place that could exist, and does not
@@ -129,21 +129,33 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `desugar.py:180` | `DesugarError` | which libraries the program was assembled with, which is a fact about the assembly and not about a line of it |
 | `desugar.py:379` | `DesugarError` | an implicit nothing supplies is an absence, and an absence is not written anywhere |
 | `export.py:761` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
-| `facts.py:147` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:157` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:167` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:152` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:162` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:172` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:188` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:194` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:230` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:240` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:426` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:432` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:502` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:577` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:583` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:592` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:595` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:177` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:193` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:199` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:245` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:248` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:254` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:271` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:286` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:290` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:300` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:331` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:336` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:348` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:389` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:399` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:586` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:597` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:610` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:649` | `DeclarationCycle` | the program's own include line and its own model need each other first; the fault is the pairing of a suffix and a declaration, which no one line holds |
+| `facts.py:697` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:777` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:783` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:792` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:795` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:651` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
@@ -610,21 +622,33 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 147 | `FactsError` | `author` | *nowhere, on purpose* | 'not a text: {term!r}' |
-| 157 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a shape' |
-| 167 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a field' |
-| 172 | `FactsError` | `author` | *nowhere, on purpose* | '`{form}` is not a value' |
-| 188 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not an order' |
-| 194 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a kind' |
-| 230 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders along `{other} {ofield}` and nothing was given to look it up in' |
-| 240 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders among `{other}` and nothing was given to find it in' |
-| 426 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
-| 432 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
-| 502 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the kinds of {Path(path).name} and will not load: {why}' |
-| 577 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
-| 583 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
-| 592 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
-| 595 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
+| 152 | `FactsError` | `author` | *nowhere, on purpose* | 'not a text: {term!r}' |
+| 162 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a shape' |
+| 172 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a field' |
+| 177 | `FactsError` | `author` | *nowhere, on purpose* | '`{form}` is not a value' |
+| 193 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not an order' |
+| 199 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a kind' |
+| 245 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is no domain of a column: a list is an `Of` with a `rank` key, one row a name' |
+| 248 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a domain' |
+| 254 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a column' |
+| 271 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a relation' |
+| 286 | `FactsError` | `author` | *nowhere, on purpose* | '`{r.name}` hangs off `{r.parent}`, which the model does not declare — ' + ', '.join((f'`{n}`' … |
+| 290 | `FactsError` | `author` | *nowhere, on purpose* | '`{r.name}` is a required single value; that is a column of `{r.parent}`, not an `Of` with no k… |
+| 300 | `FactsError` | `author` | *nowhere, on purpose* | "`{r.name}`'s key comes first in its heading, in key order — " + ' '.join(r.key) + ' and then t… |
+| 331 | `FactsError` | `author` | *nowhere, on purpose* | '`{head}` is not a line' |
+| 336 | `FactsError` | `author` | *nowhere, on purpose* | 'the line `{word}` writes no relation of the model — ' + ', '.join((f'`{r.name}`' for r in rels… |
+| 348 | `FactsError` | `author` | *nowhere, on purpose* | 'the line `{word}` folds in `{f}`, which is no column of `{word}` and no `Of` it — ' + ', '.joi… |
+| 389 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders along `{other} {ofield}` and nothing was given to look it up in' |
+| 399 | `FactsError` | `author` | *nowhere, on purpose* | '`{kind.name}` orders among `{other}` and nothing was given to find it in' |
+| 586 | `FactsError` | `author` | *nowhere, on purpose* | str(why) |
+| 597 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no kind `{name}`; it has ' + ', '.join((f'`{k.name}`' for k in self.… |
+| 610 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no relation `{name}`; it has ' + ', '.join((f'`{r.name}`' for r in s… |
+| 649 | `DeclarationCycle` | `author` | *nowhere, on purpose* | '{path.name} declares the model of a `.notes` it includes as a score, and each needs the other … |
+| 697 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the model of {Path(path).name} and will not load: {why}' |
+| 777 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
+| 783 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
+| 792 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
+| 795 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
 
 ### `gmachine.py`
 
@@ -985,12 +1009,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 235 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `kinds : List Kind` declared in this program — the row it … |
+| 235 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `model : List Rel` declared in this program — the row it r… |
 | 258 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
-| 312 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `kinds` has ' + ', '.join((f'`{k}`' … |
-| 389 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
-| 416 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 431 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 318 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `model` has ' + ', '.join((f'`{k}`' … |
+| 397 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
+| 424 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 439 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

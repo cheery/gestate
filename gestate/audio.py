@@ -312,10 +312,10 @@ def preludes(source: str) -> str:
 
 
 def has_kinds(source: str) -> bool:
-    """Does this program declare a document's kinds?  `kinds : List Kind`
+    """Does this program declare a document's model?  `model : List Rel`
     is what a declaration says (`gestate/facts.ges`), and a program that
     says it is compiled with that vocabulary after its own."""
-    return "kinds" in _authored(source)[1]
+    return "model" in _authored(source)[1]
 
 
 def has_grid(source: str) -> bool:
@@ -353,7 +353,7 @@ _GUI_ROLL = (_GUI_ONLY + "\n"
              + library_text("roll.ges"))
 
 #: The document vocabulary — `Kind`, `Field`, `By` — after whichever
-#: chain a program is compiled with, when the program declares `kinds`.
+#: chain a program is compiled with, when the program declares `model`.
 #: Last, so that nothing a program without one compiles against moves.
 _FACTS = library_text("facts.ges")
 
