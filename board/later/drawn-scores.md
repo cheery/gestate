@@ -1,6 +1,7 @@
 # drawn-scores — a graphical score format with .ges's whole power
 
-    status   doing — 2026-09-06.  Off the shelf 2026-09-05, the spec
+    status   shelved — 2026-09-15, §"Shelved again".  Was doing from
+             2026-09-06.  Off the shelf 2026-09-05, the spec
              written, and the first slice built the same day: the
              parser, the `include` door, `arc.notes`, and 219 notes of
              `arc.ges` played from a flat file — §"Day one, landed".
@@ -879,3 +880,25 @@ And the last of the list, *"the tapped tempo"*: `tap` on `Ctrl-T`,
 `tempo` writing the number back, a `bpm` record for the format —
 `card:notes-editor.md` §"The tapped tempo".  **Slice 4 of that card is
 built whole.**
+
+## Shelved again — 2026-09-15
+
+The flow lamp named this card at nine days untouched, and he opened
+the next sitting with it as the rule of `board/README.md` §"The
+priority" says — his words, the reason it waits:
+
+> *"I think it's open because we've been balling so many things
+> recently at the same thing, and it should go to later/"*
+
+**The session's reading beside his.**  The card's own work is not
+unfinished; it moved.  Rungs 0–5 landed by 2026-09-06, and every
+slice since — the editing scale, one hand on both axes, the group
+carried, the resize, the section on its ruler, the tapped tempo — is
+recorded on `card:notes-editor.md`, which is where the hands now go.
+The format's next questions (`spec/drawnscores.md`, the physical turn
+of `card:relational-model.md`) are on those cards too.  So the last
+touch here was the 2026-09-06 tail, pointing away from itself, and
+nothing on this card waits on him.  *Waiting on an event, not on
+Henri:* the event is a `.notes` question that neither of those two
+cards can hold, and the trigger is either of them citing this one as
+its home for it.

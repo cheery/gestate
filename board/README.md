@@ -56,39 +56,36 @@ still the tiebreak between two workable cards, and it is still his.
    browser tab: the vision's opening line for a person who is not at
    this desk.  Michael's ask, 2026-08-28.  *Last: its open questions
    are his.*
-2. **[drawn-scores](drawn-scores.md)** — a flat note file the score is
-   written in; the roll edits 0–5% of a real piece and would edit all
-   of one of these.  *Off the shelf 2026-09-05, unplaced, spec written.*
-3. **[notes-editor](notes-editor.md)** — a note moves and you hear it
+2. **[notes-editor](notes-editor.md)** — a note moves and you hear it
    before the hand has left the mouse; today it is 5 s to redraw and
    5 s to hear, against Reaper's next block.  His list of tools, and
    the data path first.  *Arrived unplaced, 2026-09-06.*
-4. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
+3. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
    dialogue.  *Arrived unplaced, 2026-09-07.*
-5. **[relational-model](relational-model.md)** — the `.notes` format is
+4. **[relational-model](relational-model.md)** — the `.notes` format is
    a relation, and this holds it to what relational practice paid to
    learn: eight scars, each to be paid, refused or built, and the
    decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
    dialogue he said he would continue.  The logical turn built
    2026-09-14 at his word: the model first, the text its projection,
    the kinds derived; the physical turn is his.*
-6. **[hands-in-the-tab](hands-in-the-tab.md)** — the three pieces whose
+5. **[hands-in-the-tab](hands-in-the-tab.md)** — the three pieces whose
    score reads what a hand holds, and the gallery cannot play them; the
    G-machine is already in the tab and what is missing is a seam
    between the canvas module and the worklet.  *Arrived unplaced,
    2026-09-11, minted at his ask when the gallery's MIDI row split.*
-7. **[graphrag-c](graphrag-c.md)** — a subject graph over the tree's
+6. **[graphrag-c](graphrag-c.md)** — a subject graph over the tree's
    documents, extracted by a model, in one directory nothing outside
    cites; the pilot first, ten files against two models.  *Arrived
    unplaced, 2026-09-11, his decision after `card:GraphRAG.md`
    closed.*
-8. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
+7. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
    are gestate expressions, and `.notes` as the first grid; the textbox
    is the window's own line editor.  *Off the shelf 2026-09-12,
    unplaced.*
-9. **[strict-forms](strict-forms.md)** — the language refuses what
+8. **[strict-forms](strict-forms.md)** — the language refuses what
    Python allows and the cost is paid in Python: three seams measured
    on one slice, eight families of typed languages that attack the
    shape, each priced against the language goal.  *Arrived unplaced,
