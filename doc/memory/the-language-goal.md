@@ -1,6 +1,6 @@
 ---
 name: the-language-goal
-description: "Henri's short-term goal, 2026-08-20, in his own notes: a language that compiles to wasm, is easy to model-check and to study, and is optimised for reading — with later tunings for UI code, concurrency, live coding and mathematical code"
+description: "Henri's short-term goal, 2026-08-20, in his own notes: a language that compiles to wasm, is easy to model-check and to study, and is optimised for reading — with later tunings for UI code, concurrency, live coding and mathematical code; and since 2026-09-15 the direction beyond it, a general-purpose multi-staged language, where each stage is a moment more type information arrives — the capability, not an ecosystem"
 metadata:
   type: project
 ---
@@ -38,3 +38,62 @@ card, and by [[capacity-is-not-a-caller]] a direction is not yet a
 `because`.  Do notice it when the two touch: if the environment work
 starts pulling a language after it, this note is the reason to stop and
 ask rather than to design one.
+
+## The direction beyond it — 2026-09-15, his words
+
+Asked at the end of a rest day, before sleep, out of the staging work
+on `card:strict-forms.md`:
+
+> *"could gestate become a general purpose programming language?  This
+> staging -thing has been making me to think... each stage is simply a
+> moment when we discover more type information about the task at hand
+> and benefit from that somehow.  There is perhaps no reason that a
+> multi-staged type-principled language would lose to language like
+> python is.  it's other way around although I see that is a research
+> grade question."*
+
+And on what is wanted from it:
+
+> *"I don't want to write an ecosystem that pairs with python.  Instead
+> what I want is the capability to go into that direction.  I trust
+> that the ecosystem builds itself when there is the reason for it to
+> do so."*
+
+**What was said back, and he took as the shape of it.**  Three things
+the direction decomposes into, and he wants all three, *"but I think
+that right now"* — so only the third is done, and it is this section:
+
+1. **The theory.**  His sentence needs more than MetaOCaml or Zig give:
+   stage n+1 must be able to read the types stage n *inferred*, as
+   values.  That is the reflection Kiselyov & Imai regret lacking, and
+   the direction `card:strict-forms.md` §"Read — 2026-09-14" declined
+   with *no caller yet*.  This direction is the caller, named; not yet
+   pulled.  The precise research question: a stage's inferred types
+   reified into the next stage's data, sound, and HM-inferable within
+   each stage, the model-checker still seeing the last stage only.
+   That last property is why this route is preferred over full
+   dependent types for the goals above.
+2. **The self-hosting test.**  *General purpose* is a test, not a
+   property, and the tree holds one: ten Python files write `.ges`
+   text in f-strings, because the host is Python.  The naive thing is
+   to write one host — the reactive layer, or the score box — in
+   gestate, and read off what it lacked as a list.  A guess, unmeasured:
+   modules first (the card already notes the stage restriction has
+   nowhere to land without them), then mutable state, then strings.
+3. **The direction, written down** — here.
+
+**What it is not.**  Not a card, and not a `because` — the rule of
+§"How to apply" above stands unchanged.  Python is already multi-stage
+(a JIT specialising, a dataframe typed when its file is read); what
+this direction claims is only that stages an author *writes* can be
+checked and stages that *happen* cannot.  Where staged languages have
+lost is reading — a second syntax for the second stage — and
+*optimised for reading* above is the ruler that decides it; the `$(e)`
+splice already in the tree is the first bet.  Ecosystem is most of why
+Python wins and is explicitly not to be built.
+
+**How to apply, added:** when a language decision on a live card has
+two answers and one of them keeps the general-purpose door open at no
+cost to the three properties above, that is the tiebreak, and say so
+on the card.  When it would cost one of them, it is his to weigh, and
+this section is what to cite when putting it to him.
