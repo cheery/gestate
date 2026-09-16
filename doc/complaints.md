@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**537 complaints**, in 50 files.
+**540 complaints**, in 50 files.
 
 | | |
 |---|---|
-| `author` | 304 |
+| `author` | 306 |
 | `command` | 51 |
 | `world` | 27 |
-| `machine` | 155 |
+| `machine` | 156 |
 | say where | 197 |
 | say `nowhere`, on purpose | 69 |
-| `unplaced`, with a defect that owns it | 60 |
+| `unplaced`, with a defect that owns it | 62 |
 
 ## A place that could exist, and does not
 
@@ -86,6 +86,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1198` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
+| `stage.py:440` | `StageError` | fixme.md F238: a definition whose inferred type has a variable in it was asked for as a value; the place is the definition's, and the caller does not pass it down yet |
+| `stage.py:450` | `StageError` | fixme.md F238: a monotone arrow `~>` reached the reflector, which `TyFun` cannot say; the place is the definition's, and the caller does not pass it down yet |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:174` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -1013,8 +1015,11 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 258 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
 | 318 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `model` has ' + ', '.join((f'`{k}`' … |
 | 397 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
-| 424 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 439 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 440 | `StageError` | `author` | *unplaced — fixme.md F238: a definition whose inferred type has a variable in it was asked for as a value; the place is the definition's, and the caller does not pass it down yet* | 'a type with a variable in it cannot be read as a value{at}: `Type` says only closed types, and… |
+| 450 | `StageError` | `author` | *unplaced — fixme.md F238: a monotone arrow `~>` reached the reflector, which `TyFun` cannot say; the place is the definition's, and the caller does not pass it down yet* | 'a monotone arrow `~>` cannot be read as a value{at}: `TyFun` is `->` only' |
+| 460 | `StageError` | `machine` | — | 'no value for a {type(t).__name__}{at}' |
+| 467 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 482 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

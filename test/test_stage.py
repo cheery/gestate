@@ -147,3 +147,59 @@ main = documentRow model "section.voices" ++ documentRow model "note.manner" ++ 
         "note.manner: the note's five key columns, rank, value"
     assert said[2] == ("TyCon", [ord(c) for c in "Int"]), "bpm: one column, no tuple"
 
+
+
+
+# ── The reflector — `card:types-in-the-host.md` ─────────────────────────────
+
+def _reify(term):
+    """`_type_val` then the checker's own reader: the value as the type
+    the checker would see."""
+    from gestate.declarations import desugar_type
+    from gestate.stage import _type_val
+    from gestate.syntax.ast import Pos, Span
+    return desugar_type(_type_val(term, Span(Pos(1, 1), Pos(1, 1))))
+
+
+def test_a_ground_type_reflected_then_reified_is_itself():
+    """The theory's soundness pair, held by a test: on every closed type
+    the compiler's grammar has, reflect then reify is the identity —
+    the type the checker infers, read as a `Type` value, read back, is
+    the same type.  The list is the six the game's compile asks zero
+    changes at, plus the forms `Type` has a constructor for."""
+    from gestate.stage import reflect
+    from gestate.types import TApp, TCon, TFun, TInt, mk_tuple
+
+    Int, Text, Char = TCon("Int"), TCon("Text"), TCon("Char")
+    ground = [
+        Int, TCon("Tuple0"), TCon("String"), mk_tuple([Int, Text]),
+        mk_tuple([Int, Int, Int]), Char,
+        TApp(TCon("List"), Char), TApp(TCon("Set"), mk_tuple([Int, Text])),
+        TFun(Int, TFun(Text, TApp(TCon("Sig"), Int))),
+        TApp(TCon("Cyclic"), TInt(12)),
+        TApp(TApp(TCon("Bounded"), TInt(4)), TInt(30)),
+        mk_tuple([mk_tuple([Int, Int]), TApp(TCon("List"), mk_tuple([Char, Int]))]),
+    ]
+    for t in ground:
+        assert _reify(reflect(t)) == t, t
+
+
+def test_a_type_with_a_variable_is_refused_by_the_reflector():
+    """A scheme cannot be said in `Type`: it has no binder.  The refusal
+    names the place, so a reader of a polymorphic definition's type gets
+    a line and not `()`."""
+    from gestate.stage import reflect
+    from gestate.types import TCon, TFun, TVar
+
+    with pytest.raises(StageError, match="a type with a variable"):
+        reflect(TFun(TVar(7), TVar(7)), where="`id`")
+
+
+def test_a_monotone_arrow_is_refused_by_the_reflector():
+    """`TyFun` has no monotone flag; a value that forgot `~>` would reify
+    to `->`, which is the other function space."""
+    from gestate.stage import reflect
+    from gestate.types import TCon, TFun
+
+    with pytest.raises(StageError, match="monotone arrow"):
+        reflect(TFun(TCon("Int"), TCon("Int"), None, True))

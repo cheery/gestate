@@ -417,6 +417,49 @@ def _text(term) -> str:
     return "".join(chr(c) for c in term)
 
 
+def reflect(t, where: str = "") -> tuple:
+    """A compiler type as the term of a `Type` value — the inverse of
+    `_type_val` on the ground fragment.  `card:types-in-the-host.md`:
+    the other half of the stage, a type read back as a value.
+
+    `("TyCon", name)`, `("TyApp", f, a)`, `("TyFun", a, r)`, `("TyInt",
+    n)`, `("TyTuple", [parts])` — the shape `_read` yields for a `Type`
+    the machine built, so what this returns can be fed wherever that is
+    read.  Total on ground types; **a variable is refused**, because a
+    scheme cannot be said in `Type` (it has no binder, and the theory
+    says what one would cost — `doc/memory/the-language-goal.md`
+    §"Read — 2026-09-16"); and a monotone arrow is refused, because
+    `TyFun` does not carry the flag and a value that forgot it would
+    reify to the other arrow.
+    """
+    from .types import TApp, TCon, TFun, TInt, TVar, tuple_parts
+
+    at = f" ({where})" if where else ""
+    if isinstance(t, TVar):
+        #: complaint  author, unplaced — fixme.md F238: a definition whose inferred type has a variable in it was asked for as a value; the place is the definition's, and the caller does not pass it down yet
+        raise StageError(
+            f"a type with a variable in it cannot be read as a value{at}: "
+            f"`Type` says only closed types, and this one is a scheme")
+    if isinstance(t, TCon):
+        return ("TyCon", t.name)
+    if isinstance(t, TInt):
+        return ("TyInt", t.n)
+    if isinstance(t, TFun):
+        if getattr(t, "mono", False):
+            #: complaint  author, unplaced — fixme.md F238: a monotone arrow `~>` reached the reflector, which `TyFun` cannot say; the place is the definition's, and the caller does not pass it down yet
+            raise StageError(
+                f"a monotone arrow `~>` cannot be read as a value{at}: "
+                f"`TyFun` is `->` only")
+        return ("TyFun", reflect(t.arg, where), reflect(t.ret, where))
+    parts = tuple_parts(t)
+    if parts is not None:
+        return ("TyTuple", [reflect(a, where) for a in parts])
+    if isinstance(t, TApp):
+        return ("TyApp", reflect(t.fn, where), reflect(t.arg, where))
+    #: complaint  machine — a type of a kind the compiler's grammar does not have reached the reflector
+    raise StageError(f"no value for a {type(t).__name__}{at}")
+
+
 def _type_val(term, span: Span) -> Val:
     """A `Type` value as the type syntax the checker reads — `facts.ges`'
     five constructors, and nothing else is a type."""
