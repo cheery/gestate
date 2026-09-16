@@ -3256,3 +3256,133 @@ was written; and a commit message naming the build tool, which sent the
 commit through the fence without a git identity.
 
 The card says where it stands: `card:gui-is-difficult.md` §"Where it stands — 2026-09-13, evening, as he left".
+
+## Four defects in a plugin, and two numbers that had doubled while every page quoted the old ones — 2026-09-16
+
+A morning that began with a page and ended in a DAW.
+
+**The page first.**  `~/misc/notes/notes-on-kohtelu.md` went in as
+`doc/notes/`'s twentieth, the third kind: the session that was in the
+conversation, his words verbatim, the answers condensed.  Two firsts.
+It is the first page here written in Finnish on **both** sides, and it
+was not translated, because a translation would put a later session
+between the conversation and the page.  And it is the first where a
+session is asked about its own treatment, which puts
+`doc/memory/the-evaluation-loop.md` at its tightest: instrument and
+subject at once.
+
+It also needed the consent register moved.  The second question in it
+is quoted verbatim and he relayed it from somebody who has not been
+asked — the first time a third party's **words** appear in that
+directory, with no name and nothing identifying.  He answered the same
+day: *"I think the quote can be used although it'd be on a grey zone if
+we were more careful.  It was a question and it was answered."*  The
+row reads **his call** rather than a consent, and the grey zone is kept
+in his word rather than smoothed away.  `doc/consent.md` §"What the
+check cannot see" gained a bullet, because a question relayed without
+attribution walks past every pattern `test_consent.py` has.
+
+**Then: has the graph earned its place?**  Read at day five of the
+month `card:graphrag-c.md` set for itself.  Four counts, and the one
+that mattered was the control the lamp had never had.  `lamp --earned`
+said 48 of 155 fires followed, 31%.  Random documents score a median of
+12% and no draw of two hundred reached it, so the names are not noise —
+but **the `.md` files of the last commit score 94%**, with no graph, no
+model and no store.  The measure rewards naming what is already in
+flight, and the degenerate arm wins it.  `lamp --earned --control` was
+built to say so, and
+`doc/memory/a-judge-built-from-the-arms.md` gained the general form: the
+number was not false, it was **unable to distinguish**.
+
+Two corrections followed within the hour, both mine.  I called the store
+*decaying*; the count was right and the word was wrong — 226 of 302
+unread chunks are `fixme/`, a directory that did not exist until the cut
+of 2026-09-13.  And I called a live run *stalled* after reading `ps`'s
+`ELAPSED` of `07:00` as seven hours.  `tools/clock.sh` settled it at
+seven minutes.  The wrist clock doing the one job it was built for.
+
+His answer on the card: *"it is a bit on the expensive side… but I
+believe it's a feature worth its weight, and worthwhile on certain
+things, not on all."*  Which replaces the question.  Whether the layer
+stays is settled; **which of its four moments are the certain things**
+is what the month decides, so the card carries four verdicts now and a
+`VERDICT_DAY` that prints in the line the commit hook already shows.
+
+**The suite, run because he said both numbers were wrong.**  They were.
+
+| | said | is |
+|---|---|---|
+| the full pass | 25 minutes | **47m 47s** |
+| the gates | 12 seconds | **44 s** |
+
+Both had roughly doubled while six pages went on quoting the old pair.
+Corrected where the claim is live and left alone where it is a dated
+measurement.  The freeze got longer, which is the half of the board's
+rule that matters.  A gate caught the edit: `doc/method.md` records two
+files at exact line counts and both had grown.
+
+**`exportClap` builds the window now**, at his ask, and turning the flag
+on found something that had nothing to do with it.  `shell/clap/src/gui.rs`
+read fifteen of the descriptor's sixteen tags, so the crate had not
+compiled under `--features substrate` since `Does` was appended — **F233**,
+one line.  The hole is why it lasted: `cargo test --workspace` builds
+default features, and `gui` is off by default on purpose.  `tools/suite.py`
+now `cargo check`s every off-by-default feature in the workspace, one
+second warm, proved by breaking it.  F216 is the same defect one tag
+earlier; what this adds is that **copying a table's length into code
+nothing builds hides the copy**.
+
+**And then the DAW.**  Three defects, reported by him, each found the
+way the tree says and none of them where reading suggested.
+
+* **F234** — *"If I put a note onset at the beginning of the file in the
+  beautiful.clap, it plays nothing."*  Four readings gave two theories
+  and no evidence, so two Rust tests decided it instead: a score event
+  at tick zero **survives** the rising edge, and a hand-played key does
+  not.  `seek` reset every scored bank's voices without asking who wrote
+  them, and the MIDI drained earlier in the same block went with it.  He
+  sent `~/misc/fail-2026-09-16.webm`; counted at 4 fps, the meter reads
+  **exactly zero** for the whole first note and lights at the second,
+  within one frame.  Fixed on his word — *"whenever there's a note under
+  the playhead, it should play out"* — and the parity worry that held it
+  back turned out not to apply, because Python's `seek` resets its own
+  allocators and the score is their only writer.
+* **F235** — the stop fade, and **he diagnosed it himself**: *"I recall
+  there's a master fader that fades out the track… But I recall that had
+  a reason to be there."*  Both halves true.  The fade exists because
+  stop must mean silence in a stated time; what was wrong is that it
+  never re-opened, so past 1.5 s a pressed key was rendered and then
+  multiplied by zero.  His design was better than the three the entry
+  carried: *"The master fader could rise when it receives MIDI signal to
+  play (and fade back out when there's no MIDI notes playing)."*  One
+  field, `fade_held`, carries the subtlety — it tells *the fade was open
+  and a hand holds it* from *there was never a fade*.  The first draft
+  lacked it and faded out an instrument nobody had stopped; two older
+  tests caught that at 0.011 absolute against the offline render.
+* **F236** — *"'from score' parameters end up turning back 'on' when I
+  restart reaper DAW."*  The state chunk carried the knobs, the routing
+  and the seed, and not `plays_score`.  Appended after the seed and read
+  as optional, which is the move the seed itself documents one line
+  above.
+
+**One test was green for the wrong reason and that is worth more than
+the fix.**  F235's second gate, written against `fmpoly`, passed with
+the repair deleted — that patch's release is 0.35 s and its tail dies
+unaided.  It is `nightdrive` now, the case the fade's own comment names,
+and it goes red.
+
+**And the afternoon was music.**  A nine-bank instrument set in his
+scratchpad, then his own four-bar loop read out of
+`~/misc/music/nightdrive.MID` — B Aeolian, a B3 sixteenth pedal, the
+bass two eighths at the top of each bar and then silence — built into
+four parts with the loop as the third and the others made by
+subtraction.  The measured shape is a factor of eight between the
+quietest bar and the loudest with a real hole at bar 26, which is the
+*stop, cadence, stop, continue* his own notes ask for.  Two things he
+said about it are now craft rather than chat: **the call-and-answer
+reading comes from his bass's three-beat gap**, and the through-line —
+*"I should select some of the stems/voices and make it carry through the
+whole piece"* — which is `doc/memory/music-craft.md`'s new rule and the
+arrangement's own next decision.
+
+Fifteen commits.  Nothing pushed; that is his.
