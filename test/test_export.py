@@ -1307,3 +1307,80 @@ def test_the_seed_is_a_parameter_and_turning_it_changes_the_night(tmp_path):
     # checked exactly: `shell/clap/tests/dynscore_parity.rs`'s
     # `the_same_seed_replays`, which forces the piece with no threads
     # and no clock in the room.
+
+
+def test_a_switch_turned_off_is_still_off_after_the_host_reopens(tmp_path):
+    """**`from score` survives a reload** — `fixme.md` F236.
+
+    Henri, 2026-09-16: *"'from score' parameters end up turning back
+    'on' when I restart reaper DAW after they have been turned
+    'off'."*
+
+    The switch is how a player takes a bank away from the piece and
+    plays it by hand, and a setting that forgets itself between
+    sessions is worse than one that was never offered: the player sets
+    it, hears it work, and finds it undone tomorrow with nothing to
+    blame.
+
+    Its neighbour already survives.  The routing matrix — the other
+    half of the same panel, sixteen channels into a bank — is written
+    into the state chunk and read back.  This drives the pair the way a
+    host does: turn the switch off on one instance, save, load into a
+    fresh one, and ask it.
+    """
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "fmpoly.ges").read_text()
+    out = tmp_path / "fmpoly.clap"
+    export_clap(source, out, rate=RATE, name="fmpoly")
+
+    def switches(plugin, plug_raw):
+        """`{name: (id, value)}` for every `… from score` parameter."""
+        ext = plugin.get_extension(plug_raw, b"clap.params")
+        assert ext, "no clap.params"
+        params = ctypes.cast(ext, POINTER(Params)).contents
+        found = {}
+        for i in range(params.count(plug_raw)):
+            info = ParamInfo()
+            assert params.get_info(plug_raw, i, ctypes.byref(info))
+            name = info.name.decode()
+            if name.endswith(" from score"):
+                value = c_double(0.0)
+                assert params.get_value(plug_raw, info.id,
+                                        ctypes.byref(value))
+                found[name] = (info.id, value.value)
+        return params, found
+
+    lib, raw_a, plug_a = _plugin_of(out)
+    assert plug_a.init(raw_a)
+    params_a, before = switches(plug_a, raw_a)
+    assert before, "a scored piece offers no `from score` switch"
+
+    name = sorted(before)[0]
+    switch_id, was = before[name]
+    assert was == 1.0, f"{name} did not start on"
+
+    # A host turning a switch off while nothing is playing sends it
+    # through `params.flush`, which is the path the plugin documents for
+    # a knob dragged with the transport stopped.
+    assert plug_a.activate(raw_a, float(RATE), 32, 512)
+    evs, keep = _one_event(switch_id, 0.0)
+    params_a.flush(raw_a, ctypes.cast(ctypes.pointer(evs), c_void_p),
+                   None)
+    del keep
+
+    _, after = switches(plug_a, raw_a)
+    assert after[name][1] == 0.0, "the switch did not turn off at all"
+
+    lib2, raw_b, plug_b = _plugin_of(out)
+    assert plug_b.init(raw_b)
+    _state_roundtrip(plug_a, raw_a, plug_b, raw_b)
+
+    _, reopened = switches(plug_b, raw_b)
+    assert reopened[name][1] == 0.0, (
+        f"{name} came back on through a save and load — the state chunk "
+        "carries the knobs, the routing and the seed, and forgets this")
+
+    plug_a.destroy(raw_a)
+    plug_b.destroy(raw_b)

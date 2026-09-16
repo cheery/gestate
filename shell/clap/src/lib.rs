@@ -1587,6 +1587,23 @@ unsafe extern "C" fn state_save(plugin: *const clap_plugin,
     // sessions fail to load, which is a strange thing to do to somebody
     // for the sake of a number nobody reads.
     out.extend(inst.seed.to_le_bytes());
+    // **The `from score` switches, appended the same way and for the
+    // same reason** — `fixme.md` F236.  Henri, 2026-09-16: *"'from
+    // score' parameters end up turning back 'on' when I restart reaper
+    // DAW after they have been turned 'off'."*  They are parameters a
+    // player sets and the state chunk did not carry them, so every
+    // reopened session handed the bank back to the piece.  Their own
+    // neighbour — the routing matrix, the other half of the same panel
+    // — has been saved all along, which is what made the omission read
+    // as a decision rather than a gap.
+    //
+    // On the end, after the seed, and `STATE_VERSION` does not move:
+    // the argument above about not failing older sessions for the sake
+    // of a number is this field's argument too.
+    out.extend((inst.plays_score.len() as u32).to_le_bytes());
+    for on in &inst.plays_score {
+        out.push(u8::from(*on));
+    }
     let mut sent = 0usize;
     while sent < out.len() {
         let n = ((*stream).write)(stream,
@@ -1673,6 +1690,23 @@ unsafe extern "C" fn state_load(plugin: *const clap_plugin,
         // A loaded session is a loaded take: the stream must be opened
         // on *this* seed, not on whatever `activate` guessed.
         inst.needs_seek = true;
+    }
+    // And the switches after it, optional for the same reason — a
+    // state saved before F236 ends at the seed and keeps the defaults.
+    // **A count that disagrees is skipped rather than refused**: a
+    // shape change is `shape_hash`'s job, and failing a whole session
+    // over one panel would lose the knobs and the routing with it.
+    if read_exact(stream, &mut w4) {
+        let n = u32::from_le_bytes(w4) as usize;
+        if n == inst.plays_score.len() {
+            let mut one = [0u8; 1];
+            for b in 0..n {
+                if !read_exact(stream, &mut one) {
+                    break;
+                }
+                inst.plays_score[b] = one[0] != 0;
+            }
+        }
     }
     true
 }
