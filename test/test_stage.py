@@ -191,8 +191,8 @@ def test_a_type_with_a_variable_is_refused_by_the_reflector():
     from gestate.stage import reflect
     from gestate.types import TCon, TFun, TVar
 
-    with pytest.raises(StageError, match="a type with a variable"):
-        reflect(TFun(TVar(7), TVar(7)), where="`id`")
+    with pytest.raises(StageError, match=r"a type with a variable.* in `id` \(at 3:0\)"):
+        reflect(TFun(TVar(7), TVar(7)), place=" in `id` (at 3:0)")
 
 
 def test_a_monotone_arrow_is_refused_by_the_reflector():

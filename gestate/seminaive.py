@@ -71,13 +71,19 @@ class SeminaiveCtx:
     the reference escapes to the lambda lifter.
     """
 
-    __slots__ = ("_changes", "_depth", "zero_suffix", "changes", "plan")
+    __slots__ = ("_changes", "_depth", "zero_suffix", "changes", "plan",
+                 "place")
 
     def __init__(self, changes: dict | None = None, depth: int = 0,
                  zero_suffix: str = "Set_Int", builder=None,
-                 plan=None):
+                 plan=None, place: str = ""):
         self._changes: dict[str, tuple[str, int]] = changes or {}
         self._depth = depth
+        #: Whose definition this is, and where — `` `f` (at 12:0)`` — so a
+        #: zero change the rule refuses says which definition asked
+        #: (`fixme.md` F238).  Set by `transform` as it enters each
+        #: supercombinator; carried through `bind` and `enter_box`.
+        self.place = place
         #: Where a zero change goes when the tree does not record its
         #: type.  One case is left: a variable referenced inside a box and
         #: bound outside it has a zero change at *its* type, and an `EVar`
@@ -98,12 +104,12 @@ class SeminaiveCtx:
         changes = dict(self._changes)
         changes[name] = (chg_name, self._depth)
         return SeminaiveCtx(changes, self._depth, self.zero_suffix,
-                            self.changes, self.plan)
+                            self.changes, self.plan, self.place)
 
     def enter_box(self) -> SeminaiveCtx:
         """The context inside a `□`: everything bound so far is constant."""
         return SeminaiveCtx(self._changes, self._depth + 1, self.zero_suffix,
-                            self.changes, self.plan)
+                            self.changes, self.plan, self.place)
 
     def has_phi(self, name: Name) -> bool:
         """Is there a `name_phi` to rename this reference to?"""
@@ -132,7 +138,7 @@ class SeminaiveCtx:
 
     def zero_at(self, t: object, value: Expr | None = None) -> Expr:
         """The zero change at type ``t`` — see `gestate/changes.py`."""
-        return self.changes.zero(t, value)
+        return self.changes.zero(t, value, self.place)
 
     def change_of(self, name: str) -> str | None:
         """The change variable for ``name``, or ``None`` for a zero change."""
@@ -687,6 +693,19 @@ def _globals_under_box(e: Expr) -> set[str]:
 # Program-level transform — generate f_phi/f_delta pairs
 # ---------------------------------------------------------------------------
 
+def _place(name: str, sig) -> str:
+    """Where a definition is, for a complaint raised while transforming
+    it: its name, and the line of its signature when the signature
+    carries one — 0-based in the assembled text, the way every compiler
+    complaint says it, for `audiospans.in_source` to move back into the
+    author's file."""
+    span = getattr(sig, "span", None)
+    start = getattr(span, "start", None)
+    if start is not None:
+        return f" in `{name}` (at {start.line}:{start.col})"
+    return f" in `{name}`"
+
+
 def transform(
     scs: list[tuple[str, int, ELambda, object]],
     helper_names: set[str] | None = None,
@@ -761,7 +780,7 @@ def transform(
             result.append((name, arity, lam, sig))
             continue
 
-        ctx = SeminaiveCtx(builder=builder, plan=plan)
+        ctx = SeminaiveCtx(builder=builder, plan=plan, place=_place(name, sig))
         for p in lam.params:
             ctx = ctx.bind(p, "d" + p)
 

@@ -15,6 +15,8 @@ pair, and it is `split` that moves between them.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from gestate.changes import UNIT, Changes
@@ -92,9 +94,42 @@ def test_a_type_with_a_variable_is_refused_and_an_untyped_node_is_unit():
     transform's unannotated case, and it is not a scheme."""
     from gestate.stage import StageError
 
-    with pytest.raises(StageError, match="zero change at `Maybe a"):
-        _changes().zero(TApp(TCon("Maybe"), TVar(1)), EVar("m"))
+    with pytest.raises(StageError, match=r"zero change at `Maybe a\d+` in `f` \(at 4:0\)"):
+        _changes().zero(TApp(TCon("Maybe"), TVar(1)), EVar("m"),
+                        " in `f` (at 4:0)")
     assert _changes().zero(None, EVar("m")) == UNIT
+
+
+def test_the_transform_hands_each_definition_s_place_to_the_zero_rule(monkeypatch):
+    """`fixme.md` F238: a refusal from the rule must say whose definition
+    asked.  The transform enters each supercombinator with its name and
+    its signature's line, and every zero change asked for inside — a
+    `for`'s element, a dead branch, a dummy's field — carries it."""
+    from gestate import changes as C
+
+    seen = []
+    orig = C.Changes.zero
+
+    def spy(self, t, value=None, place=""):
+        seen.append(place)
+        return orig(self, t, value, place)
+
+    monkeypatch.setattr(C.Changes, "zero", spy)
+    evaluate("""T := A (Set (Cyclic 4)) | B Int
+
+f : T -> Set (Cyclic 4)
+f t = case t of
+    A s -> s
+    B n -> {1}
+
+main : Set (Cyclic 4)
+main = for (x in {1, 2}) (f (B 2))
+""")
+    assert seen, "the program asked for no zero change at all"
+    assert all(p.startswith(" in `") for p in seen), seen
+    # The one ask here is the `for`'s element change, in `main`, placed
+    # at `main`'s signature: 0-based, in the assembled text.
+    assert any(re.match(r" in `main` \(at \d+:\d+\)$", p) for p in seen), seen
 
 
 # ── The generated `dummyA` ───────────────────────────────────────────────────

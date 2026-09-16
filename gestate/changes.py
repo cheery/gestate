@@ -139,7 +139,8 @@ class Changes:
 
     def __init__(self, cons: dict):
         self.cons = cons
-        self.dummies: dict[str, Type] = {}
+        #: suffix → (the type, whose definition first asked for it)
+        self.dummies: dict[str, tuple[Type, str]] = {}
         self.sets: dict[str, Type] = {}
         #: Already emitted, so `generate` can be called again for whatever
         #: the last round asked for.
@@ -162,15 +163,16 @@ class Changes:
 
     # -- the rule -----------------------------------------------------------
 
-    def shape(self, t: Type):
+    def shape(self, t: Type, place: str = ""):
         """What `changes.ges` says the zero change at `t` is — a term:
         `("ZUnit",)`, `("ZBottom",)`, `("ZPair", [shapes])`, `("ZDummy",)`,
         `("ZFun", shape)`.  Refuses a type with a variable in it, with
-        the type named (`stage.reflect`, `fixme.md` F238 for the line)."""
+        the type and the place named (`stage.reflect`; `place` is the
+        transform's, `` in `f` (at 12:0)``)."""
         from .show import show_type
         from .stage import reflect
 
-        term = reflect(t, where=f"the zero change at `{show_type(t)}`")
+        term = reflect(t, place=f", the zero change at `{show_type(t)}`{place}")
         key = _key(term)
         got = self._shapes.get(key)
         if got is None:
@@ -185,19 +187,22 @@ class Changes:
 
     # -- the zero change ----------------------------------------------------
 
-    def zero(self, t: object, value: Expr | None = None) -> Expr:
+    def zero(self, t: object, value: Expr | None = None,
+             place: str = "") -> Expr:
         """The zero change at type ``t``, of the value ``value``.
 
         ``value`` is needed only where the change type follows the value's
         shape — a sum's tag, a function's result.  Where it is unavailable
         (an unannotated node) the answer degrades to `()`, which is what a
-        change nothing can describe amounts to.
+        change nothing can describe amounts to.  ``place`` is whose
+        definition asked, for the refusal.
         """
         if not isinstance(t, Type):
             return UNIT
-        return self._build(self.shape(t), t, value)
+        return self._build(self.shape(t, place), t, value, place)
 
-    def _build(self, shape, t: Type, value: Expr | None) -> Expr:
+    def _build(self, shape, t: Type, value: Expr | None,
+               place: str = "") -> Expr:
         """The expression a shape says, walked beside the type it is the
         shape of — the type names the helper (`bottom_X`, `dummy_X`)
         and the value is threaded to where the shape needs it."""
@@ -221,7 +226,7 @@ class Changes:
             n = len(parts)
             return ETuple([
                 self._build(sh, p, None if value is None
-                            else EAp(EProj(i, n), value))
+                            else EAp(EProj(i, n), value), place)
                 for i, (sh, p) in enumerate(zip(shape[1], parts))
             ])
         if head == "ZFun":
@@ -236,14 +241,14 @@ class Changes:
                 return UNIT
             return ELambda(["_zx", "_zdx"],
                            self._build(shape[1], t.ret,
-                                       EAp(value, EVar("_zx"))))
+                                       EAp(value, EVar("_zx")), place))
         if head == "ZDummy":
             # A sum: the tag must be reproduced, so this is the generated
             # `dummyA`.  Without the value there is nothing to reproduce.
             if value is None:
                 return UNIT
             suffix = _type_suffix(t)
-            self.dummies[suffix] = t
+            self.dummies[suffix] = (t, place)
             return EAp(EGlobal(f"dummy_{suffix}"), value)
         #: complaint  machine — a shape `changes.ges` does not declare
         raise ChangesError(f"`zeroShape` answered `{head}`, which is no shape")
@@ -263,15 +268,16 @@ class Changes:
 
         out: list[tuple[str, int, ELambda]] = []
         while True:
-            pending = [(s, t) for s, t in self.dummies.items()
+            pending = [(s, tp) for s, tp in self.dummies.items()
                        if s not in self._generated]
             if not pending:
                 return out
-            for suffix, t in pending:
+            for suffix, (t, place) in pending:
                 self._generated.add(suffix)
-                out.append(self._gen_dummy(suffix, t))
+                out.append(self._gen_dummy(suffix, t, place))
 
-    def _gen_dummy(self, suffix: str, t: Type) -> tuple[str, int, ELambda]:
+    def _gen_dummy(self, suffix: str, t: Type,
+                   place: str = "") -> tuple[str, int, ELambda]:
         head, args = _spine(t)
         assert isinstance(head, TCon)
         alts: list[Alter] = []
@@ -287,7 +293,8 @@ class Changes:
             sub = {p.id: a for p, a in zip(params, args) if isinstance(p, TVar)}
             names = [f"_z{i}" for i in range(len(fields))]
             alts.append(Alter(info.tag, names, ECon(info.tag, [
-                self.zero(_apply_subst_map(f, sub), EVar(n))
+                self.zero(_apply_subst_map(f, sub), EVar(n),
+                          f"{place}, a field of `{info.name}`")
                 for f, n in zip(fields, names)
             ])))
         return (f"dummy_{suffix}", 1,

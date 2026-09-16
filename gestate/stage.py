@@ -417,7 +417,7 @@ def _text(term) -> str:
     return "".join(chr(c) for c in term)
 
 
-def reflect(t, where: str = "") -> tuple:
+def reflect(t, place: str = "") -> tuple:
     """A compiler type as the term of a `Type` value — the inverse of
     `_type_val` on the ground fragment.  `card:types-in-the-host.md`:
     the other half of the stage, a type read back as a value.
@@ -425,7 +425,9 @@ def reflect(t, where: str = "") -> tuple:
     `("TyCon", name)`, `("TyApp", f, a)`, `("TyFun", a, r)`, `("TyInt",
     n)`, `("TyTuple", [parts])` — the shape `_read` yields for a `Type`
     the machine built, so what this returns can be fed wherever that is
-    read.  Total on ground types; **a variable is refused**, because a
+    read.  `place` is the caller's — whose definition, and its line —
+    and goes on the refusal.  Total on ground types; **a variable is
+    refused**, because a
     scheme cannot be said in `Type` (it has no binder, and the theory
     says what one would cost — `doc/memory/the-language-goal.md`
     §"Read — 2026-09-16"); and a monotone arrow is refused, because
@@ -434,11 +436,10 @@ def reflect(t, where: str = "") -> tuple:
     """
     from .types import TApp, TCon, TFun, TInt, TVar, tuple_parts
 
-    at = f" ({where})" if where else ""
     if isinstance(t, TVar):
-        #: complaint  author, unplaced — fixme.md F238: a definition whose inferred type has a variable in it was asked for as a value; the place is the definition's, and the caller does not pass it down yet
+        #: complaint  author — a definition whose inferred type has a variable in it was asked for as a value; `place` is the caller's, the definition and its line
         raise StageError(
-            f"a type with a variable in it cannot be read as a value{at}: "
+            f"a type with a variable in it cannot be read as a value{place}: "
             f"`Type` says only closed types, and this one is a scheme")
     if isinstance(t, TCon):
         return ("TyCon", t.name)
@@ -446,18 +447,18 @@ def reflect(t, where: str = "") -> tuple:
         return ("TyInt", t.n)
     if isinstance(t, TFun):
         if getattr(t, "mono", False):
-            #: complaint  author, unplaced — fixme.md F238: a monotone arrow `~>` reached the reflector, which `TyFun` cannot say; the place is the definition's, and the caller does not pass it down yet
+            #: complaint  author — a monotone arrow `~>` reached the reflector, which `TyFun` cannot say; `place` is the caller's, the definition and its line
             raise StageError(
-                f"a monotone arrow `~>` cannot be read as a value{at}: "
+                f"a monotone arrow `~>` cannot be read as a value{place}: "
                 f"`TyFun` is `->` only")
-        return ("TyFun", reflect(t.arg, where), reflect(t.ret, where))
+        return ("TyFun", reflect(t.arg, place), reflect(t.ret, place))
     parts = tuple_parts(t)
     if parts is not None:
-        return ("TyTuple", [reflect(a, where) for a in parts])
+        return ("TyTuple", [reflect(a, place) for a in parts])
     if isinstance(t, TApp):
-        return ("TyApp", reflect(t.fn, where), reflect(t.arg, where))
+        return ("TyApp", reflect(t.fn, place), reflect(t.arg, place))
     #: complaint  machine — a type of a kind the compiler's grammar does not have reached the reflector
-    raise StageError(f"no value for a {type(t).__name__}{at}")
+    raise StageError(f"no value for a {type(t).__name__}{place}")
 
 
 def _type_val(term, span: Span) -> Val:
