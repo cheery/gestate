@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 233 entries, **186 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 234 entries, **186 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -120,6 +120,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F230 | resolved | An error message about the buffer re-reads the disk into the bench's relations and origins |
 | F231 | resolved | A type alias named like a constructor is accepted, and the clash surfaces later as *Unknown global* at a use of the constructor |
 | F232 | resolved | Declared constructors counted straight through the reserved tags, and the seventy-seventh was `Nothing` |
+| F234 | bug | A seek wipes a hand-played note on a bank the score also writes, so a key at the top of the timeline plays nothing |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.

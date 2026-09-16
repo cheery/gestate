@@ -429,6 +429,53 @@ mod tests {
     }
 
     #[test]
+    fn a_seek_to_the_top_still_plays_what_stands_at_tick_zero() {
+        // The transport's rising edge at position zero, as
+        // `plugin_process` spells it: seek to 0, then advance one
+        // block.  An event *at* the target belongs to the advance, so
+        // both onsets on tick 0 must sound.
+        let tb = tables();
+        let (mut voices, mut control) = fresh();
+        let mut p = Performer::new();
+        p.seek(&tb, TEMPO, 0, 0, &mut voices, &mut control);
+        assert_eq!(p.pos, 0, "nothing stands before the top");
+        p.advance(&tb, TEMPO, &mut voices, &mut control, 64);
+        assert_eq!(control[2], 60, "key 60 sounded");
+        assert_eq!(control[5], 67, "key 67 sounded under it");
+        assert_eq!(control[0], 1, "v0's gate is on, and one-based");
+        assert_eq!(control[1], 0, "nothing released it");
+    }
+
+    /// **Red on purpose, and ignored rather than deleted** — `fixme.md`
+    /// F234.  The fix is a semantic change to a path with a Python
+    /// parity partner, so it is Henri's call; this is the gate waiting
+    /// for it.  `cargo test -p gestate-clap -- --ignored` runs it.
+    #[test]
+    #[ignore = "fixme.md F234 — open; the fix is a design call"]
+    fn a_seek_erases_a_key_pressed_into_a_scored_bank() {
+        // **The shape under Henri's two reports, 2026-09-16.**
+        // `plugin_process` drains MIDI into voices *before* it turns
+        // the transport's rising edge into a seek, and `seek` puts
+        // every scored bank's voices and channels back to "never
+        // played".  So a key pressed in the block the transport starts
+        // is written and then wiped.
+        let tb = tables();
+        let (mut voices, mut control) = fresh();
+        let mut p = Performer::new();
+        // A hand-played note, as `Instance::note_on_bank` leaves it.
+        voices[0][1] = VoiceState { key: Some(NoteKey::Midi(0, 72)),
+                                    started: 1, released: None };
+        control[3] = 1;
+        control[4] = 0;
+        control[5] = 72;
+        p.seek(&tb, TEMPO, 0, 0, &mut voices, &mut control);
+        assert_eq!(control[5], 72,
+                   "the pressed key survived the seek");
+        assert!(voices[0][1].key.is_some(),
+                "and the voice still holds it");
+    }
+
+    #[test]
     fn a_hot_backward_seek_releases_into_silence() {
         // Play into the piece, then seek to the top: nothing has
         // history there, so gates read "never played" and what sounded
