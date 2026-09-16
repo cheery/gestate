@@ -38,6 +38,14 @@ PUBLIC = ("project", "feedback", "reference")
 #: `- [Title](name.md) — hook`, the one-line index entry.
 ENTRY = re.compile(r"^- \[[^\]]+\]\(([^)]+\.md)\)")
 
+#: The most a hook may be.  The loader that reads the private index
+#: truncates the file past ~25,000 characters and says so in its own
+#: warning — *keep index entries to one line under ~200 chars* — and on
+#: 2026-09-16 the last eleven hooks were being cut off at every boot,
+#: because 59 of 90 had grown into summaries of their bodies.  A hook is
+#: the reason to open the file, not the file.
+HOOK_CHARS = 200
+
 
 def memories() -> list[Path]:
     return sorted(p for p in MEMORY.glob("*.md") if p.name != "README.md")
@@ -120,3 +128,16 @@ def test_the_index_lists_each_memory_once():
     assert not twice, (
         f"indexed twice in doc/memory/README.md: {', '.join(twice)}.  "
         f"Two hooks for one fact is two things that can drift apart.")
+
+
+def test_a_hook_is_a_reason_to_open_the_file_not_the_file():
+    long = [(len(line), line[:line.index("]") + 1]) for line in
+            INDEX.read_text(encoding="utf-8").splitlines()
+            if ENTRY.match(line) and len(line) > HOOK_CHARS]
+    assert not long, (
+        f"{len(long)} hook(s) in doc/memory/README.md over {HOOK_CHARS} "
+        f"characters: {', '.join(f'{t} ({n})' for n, t in long)}.  The "
+        f"private index is loaded whole and truncated past ~25,000 "
+        f"characters, so a hook that carries the body pushes other "
+        f"memories out of every session's boot.  Say why to open the "
+        f"file; the fact is in the file.")

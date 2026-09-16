@@ -40,6 +40,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 README = ROOT / "doc" / "memory" / "README.md"
 DEFAULT = pathlib.Path.home() / ".claude" / "projects" / "-home-cheery-gestate" / "memory" / "MEMORY.md"
 
+#: What the loader reads before it truncates the private index and warns —
+#: 24.4KB in its own units, 25,000 characters.  `test_memory.py` caps a
+#: hook at 200 for the same reason; this is the whole file, private
+#: section included, measured after a write.
+LOADER_CHARS = 25_000
+
 OPEN = "<!-- memoryindex: generated from doc/memory/README.md by tools/memoryindex.py — add hooks THERE, not here -->"
 CLOSE = "<!-- /memoryindex -->"
 HOOK = re.compile(r"^- \[([^\]]+)\]\(([\w.-]+\.md)\)(.*)$")
@@ -63,6 +69,16 @@ def block(readme=README, root=ROOT):
         lines.append(f"- [{title}]({root / 'doc' / 'memory' / name}){rest}")
     lines.append(CLOSE)
     return "\n".join(lines)
+
+
+def size_line(text):
+    """The index against what the loader will read of it — the loader
+    truncates past `LOADER_CHARS` and the tail hooks are gone at boot."""
+    n = len(text)
+    if n > LOADER_CHARS:
+        return (f"memoryindex: the index is {n:,} characters, over the loader's "
+                f"{LOADER_CHARS:,} — the last hooks are cut off at boot; shorten hooks")
+    return f"memoryindex: {n:,} of {LOADER_CHARS:,} characters, room for ~{(LOADER_CHARS - n) // 230} hooks"
 
 
 def apply(text, new):
@@ -105,6 +121,7 @@ def main():
         return 1
     args.path.write_text(want, encoding="utf-8")
     print(f"memoryindex: wrote {len(hooks())} hooks into {args.path}")
+    print(size_line(want))
     return 0
 
 
