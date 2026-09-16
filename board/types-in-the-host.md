@@ -169,6 +169,15 @@ the language and read by the compiler; and a type the rule cannot
 answer is refused at compile time, at a line, rather than answered
 with nothing.*
 
+## Built — 2026-09-16: the reflector
+
+`stage.reflect`, the inverse of `_type_val` on the ground fragment,
+and `test_stage.py` holds the pair: reflect then reify is the identity
+on twelve closed types, the game's six among them; a variable and a
+monotone arrow are refused.  The refusals name no line yet — `fixme.md`
+F238, the first caller holds a type and no span — and the complaints
+ledger prints them unplaced.  Nothing calls it yet; that is Q2's.
+
 ## What a session does now
 
 Q1–Q4 are his, batched above; the reflector and its round-trip test
