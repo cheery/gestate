@@ -68,8 +68,9 @@ that right now"* — so only the third is done, and it is this section:
    values.  *Two sources read at their page 2026-09-16, §"Read"
    below.*  That is the reflection Kiselyov & Imai regret lacking, and
    the direction `card:strict-forms.md` §"Read — 2026-09-14" declined
-   with *no caller yet*.  This direction is the caller, named; not yet
-   pulled.  The precise research question: a stage's inferred types
+   with *no caller yet*.  **That sentence was about the program; the
+   host has callers already** — Henri asked for them on 2026-09-16 and
+   the tree answered, §"The callers" below.  The precise research question: a stage's inferred types
    reified into the next stage's data, sound, and HM-inferable within
    each stage, the model-checker still seeing the last stage only.
    That last property is why this route is preferred over full
@@ -237,3 +238,32 @@ untouched on both sides, the checker seeing stage two only — the
 reflector being the inverse of `gestate/stage.py`'s reifier on the
 ground fragment.  Still no caller, and the direction is still not a
 card.
+
+## The callers — 2026-09-16, found in the tree at his ask
+
+*"I thought we had some caller for it already"* — Henri.  He was right:
+the card's *no caller yet* was carried forward without a grep, and the
+grep finds six places where **Python reads a type the compiler holds**
+and computes something from it.  Every one is a program that would be
+written in the language, over a `Type` value, if a stage could read
+the type.  In order of how squarely each is the theory's case:
+
+| | where | reads | computes | declared or inferred |
+|---|---|---|---|---|
+| 1 | `changes.py` — `Changes.zero`, `_gen_dummy` | the monomorphic types the specialiser reached | `Δ(A×B)`, `Δ(A→B)`, `dummy_T` per ADT, `bottom_S` per set — a whole type-directed program | **inferred**; and `free_vars(t) → UNIT` is the scheme case of Shields et al., done by hand |
+| 2 | `deriving.py` | a type declaration | `Show`, `Eq`, `Ord` instances as surface AST, three classes hard-coded | declared — Template Haskell's `reify`, and the card's item E |
+| 3 | `audioextract._layout` | constructor types of every ADT the graph carries | the LLVM struct layouts — *the only place that still has the compiler's types* | declared — Kiselyov & Imai's caller, serialisation |
+| 4 | `audio._channels_out` | the type of `sound` | how many channels the frame has, because the machine cannot tell `Int` from `Float` by value | **inferred** |
+| 5 | `audiograph._settled`, `_monomorphise` | a signature's type with variables | *flat once settled*, by instantiating each variable to a witness | declared, open — the free-variable case again |
+| 6 | `reference.py`, `session.py` §argument names | the signature **as text** | the reference pages and the editor's argument names | declared, and read off the line rather than off the checker — `[[declare-parity-derive]]` |
+
+**What this changes.**  The theory's precise question stands, and its
+first arm is now named: **1**, because it is a program computed from
+*inferred* types, in the host, with the polymorphic case already
+visible as a dead branch.  Writing `zero` and `dummy` in `.ges` over a
+`Type` value read off the specialiser is the self-hosting test of item
+2 and the reflector of item 1 in one slice, and it would be the first
+stage-two program to need a type it did not write.  Still not a card —
+the `because` would be that the host's six readers are six places the
+checker cannot see, which is `[[declare-parity-derive]]`'s argument
+and his to weigh.
