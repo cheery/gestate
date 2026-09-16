@@ -1,0 +1,124 @@
+# rules.ges — what the compiler decides over a type, written in the language
+#
+# `card:types-in-the-host.md`, shape (c) — Henri, 2026-09-16: *"yea. it
+# all seems ok."*  Six places in the host read a type the compiler holds
+# and compute something from it, where the checker cannot see the
+# computation.  Each **decision** moves here one at a time, over a
+# `Type` value the compiler reads back from the inferred type
+# (`stage.reflect`) and, where the decision is about what a type is
+# made of, over its constructors (`stage.reflect_data`); the host
+# builds what the answer says and composes the English of a refusal.
+# Compiled after `facts.ges`, which holds `Type`, through
+# `stage.rules()` — once per process, and through the lockless door.
+#
+# This file has no `fix` and no set in it, on purpose: the transform
+# that asks for zero changes runs only over a program that uses one, so
+# it never asks while this file is being compiled (Q3 of the card).
+
+# ── A type's constructors, as a value ────────────────────────────────────
+#
+# What a declared type is made of, at one ground instantiation: each
+# constructor's name and its field types with the type's parameters
+# already filled in — `Maybe Int` is `Con "Nothing" Nil :: Con "Just"
+# (TyCon "Int" :: Nil) :: Nil`.  Ground on purpose: a declaration with
+# its parameters still open is a scheme, and `Type` has no binder
+# (`doc/memory/the-language-goal.md` §"Read — 2026-09-16"); a rule that
+# needs one is the day the binder is designed, and `deriving` is that
+# rule.
+
+Con := Con Text (List Type)
+
+# ── The zero change at a type — `gestate/changes.py` ─────────────────────
+#
+# The compiler's change structure (`spec/data.md` §I.4.2, §I.4.3) says
+# what the zero change at each type is.  Until 2026-09-16 that decision
+# was a `case` over the compiler's own types in `changes.py`; now the
+# host builds the expression the shape says — a `()`, a `⊥`, a pair, a
+# `dummy`, a lambda.
+
+#: The shape of a zero change: nothing (`ΔInt = 1`, and every discrete
+#: type), the empty set (`Δ{A} = {A}`), the pair of the components'
+#: shapes (`Δ(A×B) = ΔA × ΔB`), a `dummy` of the value at a type with
+#: constructors (`Δ(A+B)`: the tag is the value's, so the host needs it),
+#: and a function's — the shape of its result (`Δ(A→B) = □A → ΔA → ΔB`).
+Zero := ZUnit | ZBottom | ZPair (List Zero) | ZDummy | ZFun Zero
+
+#: The zero change at a type, given the names of the types that have
+#: constructors.  A tuple is componentwise; a function's is its
+#: result's; a set is `⊥`; a type somebody declared is a `dummy`; and
+#: everything else — `Int`, `Char`, `Cyclic n`, `lo .. hi`, `□A`, every
+#: Rizzo former — is discrete, so its change is nothing.
+zeroShape : List Text -> Type -> Zero
+zeroShape adts t = case t of
+    TyTuple parts -> ZPair (map (zeroShape adts) parts)
+    TyFun a r -> ZFun (zeroShape adts r)
+    TyInt n -> ZUnit
+    other -> case typeHead t == "Set" of
+        True -> ZBottom
+        False -> case elem (typeHead t) adts of
+            True -> ZDummy
+            False -> ZUnit
+
+#: The name at the head of a type — `Set` of `Set (Int, Text)`, `Int`
+#: of `Int`; a type-level number has none.
+typeHead : Type -> Text
+typeHead t = case t of
+    TyApp f a -> typeHead f
+    TyCon n -> n
+    other -> ""
+
+# ── What `sound` carries per sample — `gestate/audio.py` ─────────────────
+#
+# A signal's payload is one channel if it is a `Float`, and one channel
+# per component if it is a tuple of `Float`s or a record with one
+# constructor whose fields are all `Float`.  Read off the **type**, not
+# the value: the machine keeps an `Int` and a `Float` in the same node,
+# so a `Frame Float Int` read by value would play the integer.  The
+# answer is data — a count, or which part is not a `Float` — and the
+# host says it in English.
+
+#: What the payload of `sound` is: a channel count, or why it is not a
+#: frame — which tuple components are not `Float`, which fields of the
+#: one constructor are not (`Nil` when it has none), that the type has
+#: some other number of constructors, or that the payload is no kind of
+#: frame at all.
+Frame := Channels Int | ComponentNotFloat (List Int) | FieldsNotFloat Text (List Int) | NotOneConstructor Int | PayloadNotFrame
+
+#: The frame a payload type makes, given the payload's constructors when
+#: it is a declared type (and `Nil` when it is not).
+frameOf : Type -> List Con -> Frame
+frameOf payload cons = case payload of
+    TyCon name -> case isFloat payload of
+        True -> Channels 1
+        False -> recordFrame cons
+    TyTuple parts -> case notFloats parts of
+        Nil -> Channels (length parts)
+        bad -> ComponentNotFloat bad
+    other -> PayloadNotFrame
+
+#: A declared type as a frame: one constructor, fields all `Float`, at
+#: least one of them.
+recordFrame : List Con -> Frame
+recordFrame cons = case cons of
+    Con name fields :: Nil -> case fields of
+        Nil -> FieldsNotFloat name Nil
+        other -> case notFloats fields of
+            Nil -> Channels (length fields)
+            bad -> FieldsNotFloat name bad
+    other -> NotOneConstructor (length cons)
+
+isFloat : Type -> Bool
+isFloat t = case t of
+    TyCon n -> n == "Float"
+    other -> False
+
+#: The positions of the types in a list that are not `Float`.
+notFloats : List Type -> List Int
+notFloats ts = notFloatsFrom 0 ts
+
+notFloatsFrom : Int -> List Type -> List Int
+notFloatsFrom i ts = case ts of
+    Nil -> Nil
+    t :: rest -> case isFloat t of
+        True -> notFloatsFrom (i + 1) rest
+        False -> i :: notFloatsFrom (i + 1) rest

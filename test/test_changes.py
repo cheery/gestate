@@ -302,12 +302,12 @@ def test_the_rule_is_compiled_through_the_lockless_door(monkeypatch):
     suite had not noticed, because `test_changes.py` runs first and built
     the rule outside any compile.  So: build it fresh with the locked door
     refusing, and it must still come up."""
-    from gestate import changes, pipeline
+    from gestate import pipeline, stage
 
     def locked(*a, **k):
         raise AssertionError("the rule went through the locked door")
 
-    monkeypatch.setattr(changes, "_RULE", None)
+    monkeypatch.setattr(stage, "_RULES", None)
     monkeypatch.setattr(pipeline, "compile", locked)
-    rule = changes._rule()
+    rule = stage.rules()
     assert "zeroShape" in rule.state.globals

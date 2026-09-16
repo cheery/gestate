@@ -461,6 +461,74 @@ def reflect(t, place: str = "") -> tuple:
     raise StageError(f"no value for a {type(t).__name__}{place}")
 
 
+def reflect_data(t, cons: dict, place: str = "") -> list:
+    """The constructors of a ground type, as `rules.ges`' `List Con` —
+    `[("Con", name, [field types])]` in declaration order, the type's
+    parameters filled in from `t`'s arguments so every field is ground;
+    `[]` when `t`'s head is not a declared type.  The second reflector:
+    what a type is *made of*, for a rule that decides over that."""
+    from .types import TCon, TFun, TVar, _apply_subst_map, _spine
+
+    head, args = _spine(t)
+    if not isinstance(head, TCon):
+        return []
+    out = []
+    for info in sorted(cons.values(), key=lambda c: c.tag):
+        fields, result = [], info.type_
+        while isinstance(result, TFun):
+            fields.append(result.arg)
+            result = result.ret
+        rhead, params = _spine(result)
+        if not (isinstance(rhead, TCon) and rhead.name == head.name):
+            continue
+        subst = {p.id: a for p, a in zip(params, args) if isinstance(p, TVar)}
+        out.append(("Con", info.name,
+                    [reflect(_apply_subst_map(f, subst), place) for f in fields]))
+    return out
+
+
+#: The rules' machine — `rules.ges` after `facts.ges` — compiled once
+#: per process, on first use, because importing this module must not
+#: compile a library.
+_RULES = None
+
+
+def rules():
+    """The machine that answers the compiler's rules.  Compiled through
+    the **lockless door**, `pipeline._compile`, never `compile`: the
+    first ask comes from inside a compile, which holds
+    `pipeline._FRONT_END`, and that lock is not reentrant — the locked
+    door waited on itself for two minutes on 2026-09-16
+    (`doc/memory/a-run-silent-for-a-minute.md`), and the tests had not
+    seen it only because one of them built the rule first, outside any
+    compile."""
+    global _RULES
+    if _RULES is None:
+        from .charts import Terms
+        from .pipeline import _compile
+        here = __import__("pathlib").Path(__file__).resolve().parent
+        _RULES = Terms(here / "rules.ges", here / "facts.ges", compile=_compile)
+    return _RULES
+
+
+def ask(name: str, *terms):
+    """`name` from `rules.ges` applied to Python terms, the answer read
+    back as a term.  A string is `Text`, so it goes in as its codes."""
+    rule = rules()
+    return rule.read(rule._apply(rule.declared(name),
+                                 *[rule.node(_codes(t)) for t in terms]))
+
+
+def _codes(term):
+    if isinstance(term, str):
+        return [ord(c) for c in term]
+    if isinstance(term, list):
+        return [_codes(a) for a in term]
+    if isinstance(term, tuple):
+        return (term[0], *[_codes(a) for a in term[1:]])
+    return term
+
+
 def _type_val(term, span: Span) -> Val:
     """A `Type` value as the type syntax the checker reads — `facts.ges`'
     five constructors, and nothing else is a type."""

@@ -635,49 +635,72 @@ def _channels_out(state) -> int | None:
     shape of the first value decides and this hole is open again — no
     renderer path does that today, and `_frame` is what would notice.
     """
-    from .types import TApp, TCon, tuple_parts
+    from .types import TApp, TCon
 
     declared = getattr(state, "result_type", None)
     if not isinstance(declared, TApp) or declared.fn != TCon("Sig"):
         return None
-    payload = declared.arg
-    if payload == TCon("Float"):
-        return 1
+    return frame_of(declared.arg, state.cons)
 
-    # A tuple is a record whose name nobody wrote, and it reaches the same
-    # tagged `NCon` — so `Sig (Float, Float)` is two channels for the same
-    # reason `Sig Stereo` is, and neither needs the other's spelling.
-    parts = tuple_parts(payload)
-    if parts is not None:
-        bad = [i for i, p in enumerate(parts) if p != TCon("Float")]
-        if bad:
-            raise AudioError(
-                "an output frame's components must all be `Float`, and "
-                + ", ".join(f"component {i} is a `{parts[i]}`" for i in bad))
-        return len(parts)
 
-    if not isinstance(payload, TCon):
-        raise AudioError(
-            f"`sound` is a `Sig {payload}`, and a signal's payload must be "
-            "`Float` for one channel or a record of `Float`s for more")
+def frame_of(payload, cons: dict) -> int:
+    """How many channels a payload type carries, by `rules.ges`' `frameOf`
+    — `card:types-in-the-host.md`, reader 4.  The decision is the
+    language's, over the type and its constructors read back as values;
+    what is left here is the English of a refusal."""
+    from .show import show_type
+    from .stage import ask, reflect, reflect_data
+    from .types import tuple_parts
 
-    cons = [c for c in state.cons.values() if _result_con(c.type_) == payload]
-    if len(cons) != 1:
+    place = ", the payload of `sound`"
+    answer = ask("frameOf", reflect(payload, place),
+                 reflect_data(payload, cons, place))
+    head = answer[0]
+    if head == "Channels":
+        return answer[1]
+    if head == "ComponentNotFloat":
+        parts = tuple_parts(payload)
         raise AudioError(
-            f"`{payload}` has {len(cons)} constructors, so it cannot be an "
-            "output frame — a frame type is one constructor whose fields "
-            "are all `Float`")
-    con = cons[0]
-    fields = _arg_types(con.type_)
-    bad = [i for i, f in enumerate(fields) if f != TCon("Float")]
-    if bad or not fields:
-        which = ", ".join(f"field {i} is a `{fields[i]}`" for i in bad) \
-            or "it has no fields"
+            "an output frame's components must all be `Float`, and "
+            + ", ".join(f"component {i} is a `{show_type(parts[i])}`"
+                        for i in answer[1]))
+    if head == "PayloadNotFrame":
         raise AudioError(
-            f"`{con.name}` cannot be an output frame: {which}.  A "
+            f"`sound` is a `Sig {show_type(payload)}`, and a signal's payload "
+            "must be `Float` for one channel or a record of `Float`s for more")
+    if head == "NotOneConstructor":
+        raise AudioError(
+            f"`{show_type(payload)}` has {answer[1]} constructors, so it cannot "
+            "be an output frame — a frame type is one constructor whose "
+            "fields are all `Float`")
+    if head == "FieldsNotFloat":
+        name = "".join(chr(c) for c in answer[1])
+        fields = reflect_data(payload, cons)[0][2]
+        which = ", ".join(f"field {i} is a `{_term_text(fields[i])}`"
+                          for i in answer[2]) or "it has no fields"
+        raise AudioError(
+            f"`{name}` cannot be an output frame: {which}.  A "
             "multi-channel `sound` is a signal of a record of `Float`s, one "
             "field per channel")
-    return len(fields)
+    #: complaint  machine — `frameOf` answered a constructor this reader does not know
+    raise AudioError(f"`frameOf` answered `{head}`, which is no frame")
+
+
+def _term_text(term) -> str:
+    """A reflected `Type` term, printed the way `show_type` prints."""
+    head = term[0]
+    if head == "TyCon":
+        return term[1]
+    if head == "TyInt":
+        return str(term[1])
+    if head == "TyApp":
+        arg = _term_text(term[2])
+        if term[2][0] in ("TyApp", "TyFun"):
+            arg = f"({arg})"
+        return f"{_term_text(term[1])} {arg}"
+    if head == "TyFun":
+        return f"{_term_text(term[1])} -> {_term_text(term[2])}"
+    return "(" + ", ".join(_term_text(a) for a in term[1]) + ")"
 
 
 def _arg_types(t) -> list:

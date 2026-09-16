@@ -203,3 +203,59 @@ def test_a_monotone_arrow_is_refused_by_the_reflector():
 
     with pytest.raises(StageError, match="monotone arrow"):
         reflect(TFun(TCon("Int"), TCon("Int"), None, True))
+
+
+def test_a_ground_types_constructors_reflect_with_the_parameters_filled_in():
+    """The second reflector: what a type is made of, at one ground
+    instantiation, in declaration order — `Maybe Int`'s `Just` holds an
+    `Int`, not an `a`."""
+    from gestate.declarations import classify
+    from gestate.stage import reflect_data
+    from gestate.syntax import parse
+    from gestate.types import TApp, TCon, mk_tuple
+
+    cons = classify(parse("Pair a b := Pair a b")).cons
+    Int, Text = TCon("Int"), TCon("Text")
+    assert reflect_data(TApp(TCon("Maybe"), Int), cons) == [
+        ("Con", "Nothing", []), ("Con", "Just", [("TyCon", "Int")])]
+    assert reflect_data(TApp(TApp(TCon("Pair"), Int), Text), cons) == [
+        ("Con", "Pair", [("TyCon", "Int"), ("TyCon", "Text")])]
+    assert reflect_data(mk_tuple([Int, Int]), cons) == []
+    assert reflect_data(TCon("Float"), cons) == []
+
+
+# ── Reader 4: what `sound` carries, by the rule ─────────────────────────────
+
+def _frame(payload: str, decls: str = ""):
+    from gestate.audio import frame_of
+    from gestate.declarations import classify
+    from gestate.syntax import parse
+
+    program = classify(parse(decls + "\nx : " + payload + "\nx = x\n"))
+    sig = next(sc.sig_type for sc in program.scs if sc.name == "x")
+    return frame_of(sig, program.cons)
+
+
+def test_the_frame_rule_counts_channels_off_the_type():
+    """`Float` is one; a tuple of `Float`s is one per component; a record
+    with one constructor of `Float`s is one per field — decided in
+    `rules.ges`, read back as a count."""
+    assert _frame("Float") == 1
+    assert _frame("(Float, Float)") == 2
+    assert _frame("Stereo", "Stereo := Stereo Float Float") == 2
+    assert _frame("Quad", "Quad := Quad Float Float Float Float") == 4
+
+
+def test_the_frame_rule_refuses_what_is_not_a_frame_and_says_which_part():
+    from gestate.audio import AudioError
+
+    with pytest.raises(AudioError, match=r"component 1 is a `Int`"):
+        _frame("(Float, Int)")
+    with pytest.raises(AudioError, match=r"`Frame` cannot be an output frame: field 1 is a `Int`"):
+        _frame("Frame", "Frame := Frame Float Int")
+    with pytest.raises(AudioError, match=r"it has no fields"):
+        _frame("Unit", "Unit := Unit")
+    with pytest.raises(AudioError, match=r"`Two` has 2 constructors"):
+        _frame("Two", "Two := A Float | B Float")
+    with pytest.raises(AudioError, match=r"`sound` is a `Sig List Float`"):
+        _frame("List Float")

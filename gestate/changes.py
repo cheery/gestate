@@ -30,7 +30,7 @@ recognise a call.
 
 **The decision is the language's, since 2026-09-16** —
 `card:types-in-the-host.md`, shape (c).  Which of the five shapes a type's
-zero change has is `gestate/changes.ges`' `zeroShape`, over a `Type`
+zero change has is `gestate/rules.ges`' `zeroShape`, over a `Type`
 value the compiler reads back from the inferred type (`stage.reflect`);
 this module builds the expression the shape says and nothing more.  A
 type with a variable in it is refused there rather than answered `()`
@@ -39,7 +39,6 @@ type with a variable in it is refused there rather than answered `()`
 
 from __future__ import annotations
 
-import pathlib
 
 from .expr import (
     Alter, EAp, ECase, ECon, EGlobal, ELambda, ENum, EProj, ETuple, EVar,
@@ -50,7 +49,7 @@ from .types import (
 )
 
 
-#: complaint  machine — the rule in `changes.ges` and this builder disagree about a shape; nothing an author wrote can reach it
+#: complaint  machine — the rule in `rules.ges` and this builder disagree about a shape; nothing an author wrote can reach it
 class ChangesError(Exception):
     """`zeroShape` answered something this module cannot build."""
 
@@ -62,54 +61,6 @@ class ChangesError(Exception):
 #: the entire point of `fixme.md` F3 — so it is a number instead.  Nothing
 #: ever inspects it: a value of type `1` is determined by its type.
 UNIT: Expr = ENum(0)
-
-
-#: The rule, compiled once per process: `changes.ges` after `facts.ges`,
-#: read through the same door `facts.Document` reads a program's kinds.
-#: Built on first use, because importing this module must not compile a
-#: library — the pipeline imports it.
-_RULE = None
-_HERE = pathlib.Path(__file__).resolve().parent
-
-
-def _rule():
-    """The rule's machine.  Compiled through the **lockless door**,
-    `pipeline._compile`, never `compile`: the first ask comes from inside
-    a compile, which holds `pipeline._FRONT_END`, and that lock is not
-    reentrant — the locked door waited on itself for two minutes on
-    2026-09-16 (`doc/memory/a-run-silent-for-a-minute.md`), and the
-    tests had not seen it only because one of them built the rule first,
-    outside any compile."""
-    global _RULE
-    if _RULE is None:
-        from .charts import Terms
-        from .pipeline import _compile
-        _RULE = Terms(_HERE / "changes.ges", _HERE / "facts.ges",
-                      compile=_compile)
-    return _RULE
-
-
-def _term_node(rule, term):
-    """A reflected `Type` term as a heap node: `Text` is `List Char`, so a
-    string becomes its codes on the way in."""
-    if isinstance(term, str):
-        return rule.node([ord(c) for c in term])
-    if isinstance(term, list):
-        return rule.node([_term_node_term(a) for a in term])
-    if isinstance(term, tuple):
-        return rule.node((term[0], *[_term_node_term(a) for a in term[1:]]))
-    return rule.node(term)
-
-
-def _term_node_term(term):
-    """`_term_node` for the parts `Terms.node` will walk itself."""
-    if isinstance(term, str):
-        return [ord(c) for c in term]
-    if isinstance(term, list):
-        return [_term_node_term(a) for a in term]
-    if isinstance(term, tuple):
-        return (term[0], *[_term_node_term(a) for a in term[1:]])
-    return term
 
 
 def _key(term):
@@ -157,31 +108,27 @@ class Changes:
         #: The rule's answer per reflected type — six distinct types in a
         #: compile of the game, twenty-eight asks.
         self._shapes: dict = {}
-        #: The names the rule is told have constructors, as a heap node,
-        #: built when first asked.
+        #: The names the rule is told have constructors, when first asked.
         self._adts = None
 
     # -- the rule -----------------------------------------------------------
 
     def shape(self, t: Type, place: str = ""):
-        """What `changes.ges` says the zero change at `t` is — a term:
+        """What `rules.ges` says the zero change at `t` is — a term:
         `("ZUnit",)`, `("ZBottom",)`, `("ZPair", [shapes])`, `("ZDummy",)`,
         `("ZFun", shape)`.  Refuses a type with a variable in it, with
         the type and the place named (`stage.reflect`; `place` is the
         transform's, `` in `f` (at 12:0)``)."""
         from .show import show_type
-        from .stage import reflect
+        from .stage import ask, reflect
 
         term = reflect(t, place=f", the zero change at `{show_type(t)}`{place}")
         key = _key(term)
         got = self._shapes.get(key)
         if got is None:
-            rule = _rule()
             if self._adts is None:
-                self._adts = rule.node([[ord(c) for c in n]
-                                        for n in sorted(self._by_type)])
-            got = rule.read(rule._apply(rule.declared("zeroShape"),
-                                        self._adts, _term_node(rule, term)))
+                self._adts = sorted(self._by_type)
+            got = ask("zeroShape", self._adts, term)
             self._shapes[key] = got
         return got
 
@@ -219,7 +166,7 @@ class Changes:
             # `Δ(A×B) = ΔA × ΔB`, componentwise.
             parts = tuple_parts(t)
             if parts is None or len(parts) != len(shape[1]):
-                #: complaint  machine — the rule said a tuple's shape for a type that is not one, or not that wide: `changes.ges` and the reflector disagree
+                #: complaint  machine — the rule said a tuple's shape for a type that is not one, or not that wide: `rules.ges` and the reflector disagree
                 raise ChangesError(
                     f"`zeroShape` answered a pair of {len(shape[1])} for "
                     f"`{t}`, which is not that tuple")
@@ -250,7 +197,7 @@ class Changes:
             suffix = _type_suffix(t)
             self.dummies[suffix] = (t, place)
             return EAp(EGlobal(f"dummy_{suffix}"), value)
-        #: complaint  machine — a shape `changes.ges` does not declare
+        #: complaint  machine — a shape `rules.ges` does not declare
         raise ChangesError(f"`zeroShape` answered `{head}`, which is no shape")
 
     # -- the generated helpers ----------------------------------------------

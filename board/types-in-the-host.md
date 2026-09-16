@@ -187,7 +187,7 @@ ledger prints them unplaced.  Nothing calls it yet; that is Q2's.
 
 ## Built — 2026-09-16: the zero rule in the language, shape (c)
 
-**`gestate/changes.ges`**, compiled after `facts.ges`: `Zero := ZUnit |
+**`gestate/rules.ges`**, compiled after `facts.ges`: `Zero := ZUnit |
 ZBottom | ZPair (List Zero) | ZDummy | ZFun Zero` and `zeroShape : List
 Text -> Type -> Zero`, forty lines with their reasons.  `changes.py`
 reflects the inferred type (`stage.reflect`), asks the rule's machine
@@ -201,7 +201,7 @@ own gate breaks.
 
 | | before | after |
 |---|---|---|
-| the decision | `changes.py`, a `case` over `types.Type` | `changes.ges`, a `case` over `Type` |
+| the decision | `changes.py`, a `case` over `types.Type` | `rules.ges`, a `case` over `Type` |
 | a type with a variable | `()`, silently | refused, naming the type (`stage.reflect`; the line is F238) |
 | the game's compile, cold | 1.84 s | 2.11 s — the rule's own compile, 0.22 s, once per process; an ask is under a millisecond |
 | asks, the game | 28, six types, counting the recursion | 15 at five types at the top, the same work inside |
@@ -218,19 +218,42 @@ the stage does, and
 builds it fresh with the locked door refusing.  Third time for this
 seam — `doc/memory/a-run-silent-for-a-minute.md`.
 
-**Not done here.**  `changes.ges` is not on the reference roster, since
+**Not done here.**  `rules.ges` is not on the reference roster, since
 it is the compiler's rule and not a library a program includes; F238
 still owes the two refusals a line.
 
+## Built — 2026-09-16: reader 4, and the second reflector
+
+**The rule file is `gestate/rules.ges` now** — one file for what the
+compiler decides over a type, a section per reader, one machine
+(`stage.rules()`, through the lockless door, once per process) and one
+door for asking it (`stage.ask`).  The zero rule moved in unchanged.
+
+**The second reflector, `stage.reflect_data`:** the constructors of a
+*ground* type as `rules.ges`' `List Con`, in declaration order, the
+type's parameters filled in from the use — `Maybe Int`'s `Just` holds
+an `Int`.  Ground on purpose: a declaration with its parameters open
+is a scheme, and `Type` has no binder; the reader that needs one is
+`deriving`, and that is the day the binder is designed.
+
+**Reader 4, `audio._channels_out`:** `frameOf : Type -> List Con ->
+Frame` in `rules.ges` decides what an output frame is — a `Float`, a
+tuple of `Float`s, or one constructor of `Float`s — and answers a count
+or *which part* is not a `Float`; `audio.frame_of` composes the English
+the four refusals always said.  Its `case` over `TApp`, `TCon`,
+`tuple_parts` and the constructor table is gone.  Nine tests in
+`test_stage.py` hold the counts and the five refusals, which nothing
+had pinned before; `test_audiovoices.py`'s end-to-end refusal holds as
+it did.
+
 ## What a session does now
 
-Reader 1 is moved; the postcondition holds and `test_changes.py` says
-so.  Readers 2–6 are next, each the same move — reflect, ask the
-language, build what it says — and each its own slice: `deriving`
-(2) is the one that wants a declaration splice and should be read
-against Q6 of `card:strict-forms.md` before it is taken; the LLVM
-layouts (3) and the channel count (4) are the cheapest; the flatness
-judge (5) is where a scheme reaches the reflector on purpose, and Q4's
-trigger lives there; the textual readers (6) are
-`doc/memory/declare-parity-derive.md`'s.  F238 first, since every
-reader after this one will want the line.
+Readers 1 and 4 are moved and F238 is resolved; the postcondition
+holds and `test_changes.py` says so.  Next, each the same move —
+reflect, ask the language, build what it says — and each its own
+slice: the LLVM layouts (3), whose decision is one line and whose walk
+over constructor types is `reflect_data`'s already; the flatness judge
+(5), where a scheme reaches the reflector on purpose and Q4's trigger
+lives; the textual readers (6), `doc/memory/declare-parity-derive.md`'s;
+and `deriving` (2) last, read against Q6 of `card:strict-forms.md`
+first, because it is the reader that needs the binder.
