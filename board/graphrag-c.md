@@ -755,6 +755,99 @@ stale — what it is not allowed to be is stale without saying so.
    names and relation keywords, no embeddings, until a real question
    in the trial is defeated by a synonym.  *Open, with that trigger.*
 
+## The measures, read at day five — 2026-09-16
+
+Henri: *"Can we look at whether graphrag system has earned its place
+here?"*  Read against this card's own plan, which named the month and
+two numbers.  **It is day five, not a month**, so nothing below closes
+the card; what it does is say which of its measures can decide and
+which cannot.
+
+**The scoreboard, all four re-runnable:**
+
+| measure | today | what it is against |
+|---|---|---|
+| finds written into the tree, graph as the finder | **0** | the count §"How the graph proves its value" names as the one that settles it |
+| the cue, on every read | **5 of 76 followed, 7%** | the backlinks names it rides beside, **248 of 1088, 23%** |
+| the lamp, at commit | **48 of 155 followed, 31%** | see below — the measure does not hold |
+| the store's coverage | **445 of 754 chunks, 59%** | it was whole, 535 of 535, on 2026-09-12 |
+
+    python tools/graphrag.py check
+    python tools/graphrag.py lamp --earned --control
+    python tools/backlinks.py --earned
+
+**The lamp's follow count cannot decide, and the control says why.**
+`--control` was built today and is the missing arm: the same count for
+names drawn at random, and for a lamp with no graph in it at all.
+
+* random documents, 200 draws: **median 18 of 155, 12%**, and no draw
+  reached the lamp's 48.  So the lamp's names are **not** noise.
+* the `.md` files of the **last commit** — one `git log`, no model, no
+  store, no $12.50: **145 of 155, 94%.**
+
+The second arm is three times the lamp on the lamp's own measure, which
+means the measure rewards **naming what is already in flight**.  A lamp
+that named the file being committed would score near 100% and would be
+worthless.  This is `doc/memory/a-judge-built-from-the-arms.md`'s first
+rule — a judge a degenerate arm wins is not a judge — arriving at a
+lamp instead of at a sheet, and it was written into that memory today.
+
+**So of the four, two can still decide and two cannot.**  The finds
+count and the cue's follow rate are honest and both are weak at day
+five: zero, and a third of the rate of the hook the cue rides on.  The
+lamp's number is retired as evidence until it has a judge that a
+recency heuristic cannot win.
+
+**And §"What would kill it" is unrunnable as written.**  It says *if no
+session follows a `doc/graph/` page in a month of the pages existing*.
+There are no pages: §"LightRAG instead of summaries" struck the summary
+step on 2026-09-12 and the store became the graph.  `doc/graph/` has
+never existed, so the clock the kill rule starts has never started.  The
+rule needs restating against something that exists, and that is a
+decision rather than an edit.
+
+**The store is decaying and the last run stopped partway.**  Whole at
+535 chunks on 2026-09-12; 445 of 754 today, 41% unread.  The causes are
+known and recorded — the prompt-version bump and the `fixme/` cut, both
+on 2026-09-13, priced at 361 chunks re-extracted once.  What is new is
+that the catching-up is not happening on its own: a run started
+2026-09-16 04:54, wrote 71 chunks, and ended by 06:07 without
+finishing, leaving a stale `extract.pid` behind.  **This is the cost
+the card predicted in §"Keeping it current" arriving as a fact**: the
+graph is allowed to be stale, and what it is not allowed to be is stale
+without saying so — the lamp does say so, at every commit, and has said
+so for three days with nobody acting on it.
+
+**What this session is not saying.**  Not that the layer should come
+out; the month is not up, the door has held, the query layer answered
+its one real question with eleven resolving citations, and `lookup` is
+what he called *some sort of brains*.  Not that the lamp is useless
+either — its names beat random by a wide margin, which is a real
+property and a different claim from *the lamp is followed*.  And this
+session is inside the loop the card names, so none of the above is a
+reading of the answers' quality; it is four counts and one control.
+
+**Shaped for him, three ways, and the default is the first:**
+
+1. **Run the month out.**  Nothing changes except that `extract` gets
+   run to close the 309 and the two honest measures get their
+   denominator.  Cost: a run on the subscription, and the lamp lines
+   staying in the commit output.  *Default, because the card set a
+   month and the month is the evidence.*
+2. **Keep the store, retire the lamp.**  The cue and `query`/`lookup`
+   stay; the commit lamp comes out of `pre-commit.sh` until it has a
+   measure that a recency heuristic cannot win.  Cheapest reduction of
+   noise, and it costs one of the two moments he asked for on
+   2026-09-12.
+3. **Take it out.**  `git rm` the tool, the test, the trial sheets and
+   this card, as §"What this is" says is possible by construction.  The
+   argument for it is the one he raised himself that evening — *it is
+   getting really advanced* — and the argument against is that the
+   month has not run.
+
+*The trigger for 3 is the card's own: the month, with finds still zero
+and the cue still under the backlinks rate.  That date is 2026-10-12.*
+
 ## What would kill it
 
 The backlinks lamp's own measure, applied here: if no session follows a

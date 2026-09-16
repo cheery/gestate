@@ -1022,12 +1022,12 @@ def lamp_lines(modified: list[str], added: list[str], ents: dict[str, dict], tex
     return out[:max_lines]
 
 
-def lamp(earned: bool = False) -> int:
+def lamp(earned: bool = False, control: bool = False) -> int:
     total, have = freshness("haiku")
     print(f"graphrag: {have} of {total} chunks extracted; {total - have} would be called by `extract`"
           + (" — the graph is current" if have == total else ""))
     if earned:
-        return lamp_earned()
+        return lamp_earned(control=control)
     mod, add = staged()
     if not (mod or add):
         return 0
@@ -1054,7 +1054,7 @@ def lamp(earned: bool = False) -> int:
     return 0
 
 
-def lamp_earned(days: int = 30) -> int:
+def lamp_earned(days: int = 30, control: bool = False) -> int:
     """A fire is followed when an offered document was changed in a commit
     after the fire.  Read from git, so it needs no second log."""
     import subprocess
@@ -1090,7 +1090,85 @@ def lamp_earned(days: int = 30) -> int:
         followed += hit
     print(f"graphrag lamp --earned, {days} days: {followed} of {len(fires)} fires were followed by a change to a document they named"
           " — correlation, as the backlinks number is")
+    if control:
+        lamp_control(fires, followed)
     return 0
+
+
+#: **The control the follow count does not have.**  `--earned` says how
+#: often a named document was changed later; it does not say how often
+#: *any* document would have been.  Two arms answer that, and the second
+#: one is the one that matters:
+#:
+#:   * **random** — the same number of names per fire, drawn from the
+#:     tree's committed markdown.  If the lamp cannot beat this, its
+#:     names are noise.
+#:   * **the last commit's own documents** — a lamp with no graph, no
+#:     model and no store, that any tree has for one `git log`.  If this
+#:     beats the lamp, the *measure* is wrong rather than the lamp:
+#:     naming what is already in flight scores highest, and a lamp that
+#:     named the file being committed would score ~100%.
+#:
+#: Added 2026-09-16, when the second arm came back at 94% against the
+#: lamp's 31%.  `doc/memory/a-judge-built-from-the-arms.md` is the rule
+#: it belongs to — a judge that a degenerate arm wins is not a judge —
+#: and this is that rule applied to a lamp instead of to a sheet.
+def lamp_control(fires: list, followed: int, trials: int = 200) -> None:
+    import random, subprocess
+    out = subprocess.run(["git", "log", "--format=%ct", "--name-only"],
+                         capture_output=True, text=True, cwd=ROOT).stdout
+    docs = subprocess.run(["git", "ls-files", "*.md"],
+                          capture_output=True, text=True, cwd=ROOT).stdout.split()
+    commits: list[tuple[int, list[str]]] = []
+    when_at, files_at = None, []
+    for ln in out.splitlines():
+        if not ln.strip():
+            continue
+        if ln.isdigit():
+            if when_at is not None:
+                commits.append((when_at, files_at))
+            when_at, files_at = int(ln), []
+        elif when_at is not None:
+            files_at.append(ln)
+    if when_at is not None:
+        commits.append((when_at, files_at))
+    commits.sort()
+    changed: dict[str, list[int]] = {}
+    for t_, files in commits:
+        for f in files:
+            changed.setdefault(f, []).append(t_)
+
+    def rel(n: str) -> str:
+        return str(path_of(n).relative_to(ROOT)) if n.startswith("card:") else n
+
+    def hit(names: list[str], when: int) -> bool:
+        return any(any(c > when for c in changed.get(rel(n), ())) for n in names)
+
+    if not docs or not fires:
+        return
+    random.seed(0)
+    nulls = sorted(sum(hit(random.sample(docs, min(len(names), len(docs))), when)
+                       for when, _k, _f, _s, names in fires) for _ in range(trials))
+    med = nulls[trials // 2]
+    over = sum(n >= followed for n in nulls)
+    print(f"  control, random documents ({trials} draws): median {med} of {len(fires)}"
+          f" ({med / len(fires):.0%}), {over} draws at or above the lamp")
+
+    def recent(when: int, k: int) -> list[str]:
+        seen: list[str] = []
+        for _t, files in reversed([c for c in commits if c[0] <= when][-k:]):
+            for f in files:
+                if f.endswith(".md") and f not in seen:
+                    seen.append(f)
+        return seen
+
+    for k in (1, 3):
+        n = sum(hit(recent(when, k)[:len(names)] or recent(when, k)[:1], when)
+                for when, _kk, _f, _s, names in fires)
+        print(f"  control, the .md files of the last {k} commit(s) — no graph, no model: "
+              f"{n} of {len(fires)} ({n / len(fires):.0%})")
+    print("  a control above the lamp means the measure rewards naming what is already"
+          " in flight — see lamp_control's note and doc/memory/a-judge-built-from-the-arms.md")
 
 
 # --- the query: LightRAG's dual-level retrieval, one hop, one answer ------
@@ -1542,6 +1620,7 @@ def main(argv=None) -> int:
     cd.add_argument("--top", type=int, default=40)
     la = sub.add_parser("lamp", help="at commit: freshness, and what the staged documents contradict or repeat — no model")
     la.add_argument("--earned", action="store_true", help="how many lamp lines were followed by a change to a document they named")
+    la.add_argument("--control", action="store_true", help="with --earned: the same count for random documents and for a lamp with no graph in it")
     cu = sub.add_parser("cue", help="item 4: the line the backlinks hook adds for a file, from the store — no model")
     cu.add_argument("path")
     q = sub.add_parser("query", help="a global question to the graph: keywords, two-level match, one hop, one answer")
@@ -1577,7 +1656,7 @@ def main(argv=None) -> int:
     if a.cmd == "contradictions":
         return contradictions(a.arm, a.min_docs, a.top)
     if a.cmd == "lamp":
-        return lamp(a.earned)
+        return lamp(a.earned, a.control)
     if a.cmd == "cue":
         line, offered = cue(a.path, set())
         print(line or f"cue: nothing to say about {a.path}")

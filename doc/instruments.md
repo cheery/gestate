@@ -693,6 +693,8 @@ sort by kind.
     python tools/graphrag.py contradictions   numbers about one subject that disagree across documents, no model
     python tools/graphrag.py query "<q>"      the global search: two calls on the cli, printed, never written; defaults decided by doc/trial/graphrag-union.md
     python tools/graphrag.py cue <path>       the line the backlinks hook adds for a file, no model
+    python tools/graphrag.py lamp            at commit: freshness, and what the staged documents contradict or repeat, no model
+    python tools/graphrag.py lamp --earned --control   the follow count, and the two arms that say whether it can decide
 
 `card:graphrag-c.md`: a model's reading of the tree's documents, kept
 in one directory that nothing outside may cite (`test/test_graphrag.py`
