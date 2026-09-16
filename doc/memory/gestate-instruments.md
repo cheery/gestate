@@ -31,12 +31,13 @@ The ones easiest to forget you have:
 - The generated pages that are suite gates: `gestate.complaints`,
   `gestate.reference`, `gestate.atlas` ([[gestate-atlas]]).
 - **`python tools/suite.py --gates`** — the eight structural gates, fenced,
-  then stop.  **12s**, writes `test/gates.md` (never `test/report.md`).  Built
+  then stop.  **~45 s**, writes `test/gates.md` (never `test/report.md`).  Built
   2026-08-19, `card:cheap-gates.md`.  `tools/pre-commit.sh --install` runs them
   at every commit and **is installed in Henri's checkout**; hooks are untracked
   so a fresh clone needs the install.  It caught four things in its first hour,
-  all in a session's own new prose.  The full 25-minute pass is unchanged:
-  still one per shift, tree frozen.
+  all in a session's own new prose.  The full pass is unchanged in
+  cadence — one per shift, tree frozen — and is **~48 minutes**, not the
+  25 every page said until 2026-09-16.
 - **`tools/driven.py`** — the driven-window harness (moved out of
   `lagcheck.py` 2026-08-19).  `Run(name)` refuses if a *different*
   `libgestate_editor.so` is newer than the loaded one (`cargo build` from

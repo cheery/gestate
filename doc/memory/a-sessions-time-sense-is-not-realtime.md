@@ -23,8 +23,10 @@ collisions announced that nobody at the desk would see.
 
 **How to apply:** before saying two things collide, put a wall-clock
 number on each — minutes for the machine (`git log` shows what a batch
-cost; the suite says twelve seconds for the gates and 25 minutes for the
-full pass), hours for the person, as he gives them.  A dated task and an
+cost; the suite says about 45 seconds for the gates and about 48
+minutes for the full pass, both timed 2026-09-16 — they were 12 s and
+25 minutes when this was written, which is the reason to time rather
+than to quote), hours for the person, as he gives them.  A dated task and an
 outing in one day are not a conflict until the numbers say so, and the
 default when they do not is silence: the schedule on
 `card:ungated-fixes.md` already says what a missed day does, and it is

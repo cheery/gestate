@@ -640,7 +640,7 @@ file; the README's order moving is not one.
 The gates are seconds-long structural checks that a working session
 breaks: whether the tree's documents still agree with the tree.
 `suite.GATES` is the list, and the only place it is right.  **A full run
-is ~25 minutes and the tree must be frozen while it runs** —
+is ~48 minutes and the tree must be frozen while it runs** —
 editing under a run produces a red that describes a moment rather than a
 defect, which has cost two runs already.
 
@@ -792,7 +792,7 @@ what a run shells out to.
 
 ### `tools/suite.py --gates` — the gates, and stop
 
-    python tools/suite.py --gates      # ~12s, fenced, writes test/gates.md
+    python tools/suite.py --gates      # ~45s, fenced, writes test/gates.md
 
 **The cadence is the commit, not the shift.**  The gates are about
 whether the tree's documents still agree with the tree, which is exactly

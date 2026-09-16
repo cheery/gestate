@@ -157,7 +157,8 @@ arrives, however right it was.
 into ownership: *this is what it caught, that you would have shipped.*
 Three practices arrived on 2026-08-17 and each came with one: the gates
 (**8 seconds to a named failure against 25 minutes**, measured on a
-deliberately broken tree), the photographed window (**three defects the
+deliberately broken tree — and the gap has since widened to 44 seconds
+against 47m 47s, measured 2026-09-16), the photographed window (**three defects the
 suite could not see**), and the example rosters (**a bug in a file that
 had already been looked at in a real window**).  That is not manners; on
 this evidence it is the mechanism by which any of it survives.
@@ -359,7 +360,7 @@ That is the whole method:
 we will run the test and talk."*
 
 **Two things at once, and the pairing is the point.**  The suite takes
-about twenty-five minutes and nothing can be done to the tree while it
+about three quarters of an hour and nothing can be done to the tree while it
 runs — which makes it the one reliable window in a day for the
 conversation that has no other slot: what today's work turned out to be
 about, what the next card is really asking, what a finding generalises

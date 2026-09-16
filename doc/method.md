@@ -66,8 +66,8 @@ Three habits follow, and they are most of it:
 ## What is actually enforced
 
 Twenty-four structural checks run at every commit, through a git hook, in
-about half a minute. They test nothing about whether the program
-works — that is a separate suite of about forty minutes. They test that the
+about three quarters of a minute. They test nothing about whether the program
+works — that is a separate suite of about three quarters of an hour. They test that the
 tree still agrees with itself, which is the property that editing the
 tree breaks:
 
@@ -155,8 +155,8 @@ decline honestly:
 |---|---|---|
 | [`README.md`](../README.md) | 262 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
-| [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
-| [`board/README.md`](../board/README.md) | 665 | how a task is worked — written for sessions |
+| [`manifesto.md`](../manifesto.md) | 378 | how an instrument fails, and the two standing rules |
+| [`board/README.md`](../board/README.md) | 672 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~18,000 | how each part is designed, and what it cost |
 | [`fixme.md`](../fixme.md) + `fixme/` | 232 entries, 185 resolved, one file each | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |

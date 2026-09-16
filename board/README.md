@@ -525,8 +525,8 @@ is what the `blocked` field is for.
    paragraphs belong to the journal, not to the card.**
 2. `status` becomes `done — <date>`.
 3. Move the card to `board/done/` and take it out of the priority above.
-4. **Run the gates** — `python tools/suite.py --gates`, about twelve
-   seconds.  They are the checks a card's own edits break, and steps 1–3
+4. **Run the gates** — `python tools/suite.py --gates`, about
+   three quarters of a minute.  They are the checks a card's own edits break, and steps 1–3
    above have just edited several of them.
 
    `tools/pre-commit.sh --install` makes this automatic and is installed
@@ -606,7 +606,7 @@ F-number with no link back to the work that found it loses the only
 context that explains why anybody was looking there.
 
 **The suite is a serial gate, and a session can invalidate its own
-run** — a tree edited under a 25-minute pass returns a red that
+run** — a tree edited under a three-quarter-hour pass returns a red that
 describes a moment rather than a defect, which is this file's own rule
 about two writers with the test run as the second writer.  So:
 
@@ -615,7 +615,14 @@ about two writers with the test run as the second writer.  So:
 
 If something must be changed mid-run, kill the run.  Finishing a run
 against a tree that no longer exists proves nothing and costs the same
-25 minutes.
+three quarters of an hour.
+
+*The two numbers here were 25 minutes and twelve seconds until
+2026-09-16, when Henri said neither was true and the pass was timed:
+**47m 47s** for the suite and **44 s** for the gates, `test/report.md`
+and `test/gates.md`.  Both had roughly doubled while every page went on
+quoting the old pair.  The freeze got longer, which is the half of this
+rule that matters.*
 
 **And the gates at every commit, which is a third cadence and not a
 weakening of the second.**  *Added 2026-08-19, `card:cheap-gates.md`.*
