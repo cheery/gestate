@@ -3445,6 +3445,22 @@ the private memory index had grown past what the loader reads, cutting
 the last eleven hooks off every boot: fifty-nine hooks shortened, a
 200-character cap gated, and the generator reporting its size.
 
+**The evening.**  A second sound bank, physically modelled this time,
+in `~/gestate.scratchpad/neatness.ges` — nine banks and not one
+oscillator: five waveguides on `slide` with the reflection written as
+the step, four banks of `resonate` struck by a click.  The three
+nonlinear reflections were probed at a fixed pitch before they were
+trusted, and the bow took five tries and two more in the bank; the
+levels were set from stems, not by ear.  Then the exported plugin
+played every bank's first note except the plucked and struck ones,
+and *"bowed instruments do produce sound on the first MIDI note"* was
+the whole diagnosis: at the engine's first instant every source is
+its init and a control source holds it across the block, so a hand's
+note in a fresh instance's first block is read a block late, and a
+one-millisecond pick is gone by then — F240.  A step past the first
+instant was the first fix, and nine parity tests refused it; the
+shell now splits only that block, and the bake can say the same.
+
 **What the day says.**  The card's `because` was a session's sentence
 and he made a card of it in four words; the six callers had been in
 the tree all along, and a grep was the whole difference between *no
