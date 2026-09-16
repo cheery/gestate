@@ -1022,10 +1022,35 @@ def lamp_lines(modified: list[str], added: list[str], ents: dict[str, dict], tex
     return out[:max_lines]
 
 
+#: **The verdict date, carried by the line that already prints.**
+#: Henri, 2026-09-16: *"I think it's a bit expensive, but might be
+#: earning its place.  But since it's too early to say still.  We have
+#: to wait for the verdict."*  So the card runs its month, and the wait
+#: needs something that ends it — a date filed where nobody owns reading
+#: it produces nothing (`doc/memory/recorded-is-not-answered.md`).  This
+#: is the cheapest mechanism that exists: the freshness line is printed
+#: at every commit already, and it now carries how long is left.  Past
+#: the date it says the month is up and names the three counts, and it
+#: still never refuses a commit — the verdict is his to give, not a
+#: gate's.  `card:graphrag-c.md` §"The measures, read at day five".
+VERDICT_DAY = "2026-10-12"
+
+
+def verdict_line() -> str:
+    from datetime import date
+    y, m, d = (int(x) for x in VERDICT_DAY.split("-"))
+    left = (date(y, m, d) - date.today()).days
+    if left > 0:
+        return f"; verdict in {left} d"
+    return (f"; **the month is up** — `lamp --earned --control`, `backlinks --earned`,"
+            f" and finds with the graph as the finder; card:graphrag-c.md")
+
+
 def lamp(earned: bool = False, control: bool = False) -> int:
     total, have = freshness("haiku")
     print(f"graphrag: {have} of {total} chunks extracted; {total - have} would be called by `extract`"
-          + (" — the graph is current" if have == total else ""))
+          + (" — the graph is current" if have == total else "")
+          + verdict_line())
     if earned:
         return lamp_earned(control=control)
     mod, add = staged()

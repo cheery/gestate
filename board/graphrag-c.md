@@ -770,7 +770,7 @@ which cannot.
 | finds written into the tree, graph as the finder | **0** | the count §"How the graph proves its value" names as the one that settles it |
 | the cue, on every read | **5 of 76 followed, 7%** | the backlinks names it rides beside, **248 of 1088, 23%** |
 | the lamp, at commit | **48 of 155 followed, 31%** | see below — the measure does not hold |
-| the store's coverage | **445 of 754 chunks, 59%** | it was whole, 535 of 535, on 2026-09-12 |
+| the store's coverage | **452 of 754 chunks, 60%** | whole on 2026-09-12; the gap is 226 `fixme/` chunks, see below |
 
     python tools/graphrag.py check
     python tools/graphrag.py lamp --earned --control
@@ -806,17 +806,29 @@ never existed, so the clock the kill rule starts has never started.  The
 rule needs restating against something that exists, and that is a
 decision rather than an edit.
 
-**The store is decaying and the last run stopped partway.**  Whole at
-535 chunks on 2026-09-12; 445 of 754 today, 41% unread.  The causes are
-known and recorded — the prompt-version bump and the `fixme/` cut, both
-on 2026-09-13, priced at 361 chunks re-extracted once.  What is new is
-that the catching-up is not happening on its own: a run started
-2026-09-16 04:54, wrote 71 chunks, and ended by 06:07 without
-finishing, leaving a stale `extract.pid` behind.  **This is the cost
-the card predicted in §"Keeping it current" arriving as a fact**: the
-graph is allowed to be stale, and what it is not allowed to be is stale
-without saying so — the lamp does say so, at every commit, and has said
-so for three days with nobody acting on it.
+**The store is not decaying — it is missing one directory.**  *This
+corrects the first reading of the same number, made an hour earlier on
+this card and reported to him as decay; the count was right and the
+word was wrong.*  Of 302 unread chunks, **226 are `fixme/`**, the
+directory that did not exist until the cut of 2026-09-13 turned one
+file into 227.  Another 76 are ordinary drift across about forty
+documents in `doc/`, `board/` and `spec/`.  So the graph still holds
+what it held when it was whole; what it has never read is one
+refactor's output.  **265 of the 266 documents with an unread chunk are
+wholly unread**, which is the signature of new files rather than of
+rot.
+
+    python tools/graphrag.py check          the count
+    python tools/graphrag.py extract        the catch-up, `--backend cli`, billed to the subscription
+
+**And the marginal cost is not money.**  `extract` defaults to
+`--backend cli`, which runs on the subscription; the 302 outstanding
+chunks would be about **$5.40** on the API at the assumed prices and
+**nothing** on the default. The ~$12.50 spent was the build, the
+pilot and the seven sheets, which are one-time and already paid.  What
+catching up actually costs is subscription minutes and a run that
+finishes: one started 2026-09-16 04:54, wrote 71 chunks, ended by 06:07
+without finishing and left a stale `extract.pid`.
 
 **What this session is not saying.**  Not that the layer should come
 out; the month is not up, the door has held, the query layer answered
@@ -847,6 +859,48 @@ reading of the answers' quality; it is four counts and one control.
 
 *The trigger for 3 is the card's own: the month, with finds still zero
 and the cue still under the backlinks rate.  That date is 2026-10-12.*
+
+**His answer, 2026-09-16:** *"I think it's a bit expensive, but might be
+earning its place.  But since it's too early to say still.  We have to
+wait for the verdict."*
+
+**So it is way 1, and the card stays open until 2026-10-12.**  Nothing
+comes out, nothing is retired beyond the lamp's follow count, and the
+two measures that can decide run their month.
+
+**Three things follow from that, and they are what the wait needs.**
+
+* **The verdict has a trigger now.**  `VERDICT_DAY` in
+  `tools/graphrag.py`, carried by the freshness line the pre-commit
+  hook already prints — *verdict in 26 d* today, and on the day it
+  says the month is up and names the three counts.  No new line, no
+  gate, never a refusal: a date nobody owns reading produces nothing
+  (`doc/memory/recorded-is-not-answered.md`), and this is the cheapest
+  thing that ends a wait.
+* **`fixme/` has to be read before the verdict means anything.**  226
+  of the 302 unread chunks are the tree's whole defect ledger, and a
+  graph asked *what goes wrong here* with none of it read would answer
+  from the documents that describe defects rather than from the defects.
+  The catch-up is `extract` on the subscription and **this session did
+  not start it** — it is hours of a shared resource on a day he has
+  just called the thing expensive, so it is his word and not a
+  session's initiative.
+* **The seven-day lamp will name this card and should not shelve it.**
+  `tools/flow.py --check` names a card untouched for seven days, and
+  this one is now waiting on an **event** and not on a decision —
+  `board/README.md` §"The priority", *is this waiting on an event, or
+  on me?*  The answer is written here so the next session does not have
+  to ask: the event is 2026-10-12.
+
+**And the cost sentence is worth stating precisely, because his word
+for it was *expensive*.**  What was expensive is spent and will not
+recur: about $12.50 for the build, the pilot and the seven sheets.  What
+recurs is subscription minutes for `extract`, four lines at most in a
+commit's output, one or two in a read's, and 21 MB of cache outside the
+repository.  The money side of keeping it is zero on the default
+backend.  Whether the *attention* side is worth it is exactly what the
+month is for.
+
 
 ## What would kill it
 
