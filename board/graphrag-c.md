@@ -821,14 +821,29 @@ rot.
     python tools/graphrag.py check          the count
     python tools/graphrag.py extract        the catch-up, `--backend cli`, billed to the subscription
 
-**And the marginal cost is not money.**  `extract` defaults to
-`--backend cli`, which runs on the subscription; the 302 outstanding
-chunks would be about **$5.40** on the API at the assumed prices and
-**nothing** on the default. The ~$12.50 spent was the build, the
-pilot and the seven sheets, which are one-time and already paid.  What
-catching up actually costs is subscription minutes and a run that
-finishes: one started 2026-09-16 04:54, wrote 71 chunks, ended by 06:07
-without finishing and left a stale `extract.pid`.
+**The marginal cost is only zero on the default backend, and the run
+now in flight is not on it.**  `extract` defaults to `--backend cli`,
+billed to the subscription.  The ~$12.50 already spent was the build,
+the pilot and the seven sheets, one-time and paid.
+
+*Corrected 2026-09-16 06:41, during the sitting:* an earlier paragraph
+here said the catching-up was not happening and that a stale
+`extract.pid` had been left behind.  That was true when it was written
+and stopped being true a few minutes later.  **A run is live** — pid
+13198, started 06:34, `extract --backend api --workers 6`, climbing the
+freshness count while this card was being edited.  The first reading
+misread `ps`'s `ELAPSED` of `07:00` as seven hours; `tools/clock.sh`
+is what settled it at seven minutes, which is the clock's whole
+purpose.
+
+**Two things about that run worth one line each.**  It is on
+`--backend api`, the paid side, not the subscription the default uses.
+And it carries **no `--budget`**, where §"`extract` is running" spells
+the command with `--budget 12`; nothing stops it but the work running
+out.  About 100 chunks were called today before 06:41, roughly **$1.79**
+at the assumed prices, and the ~286 left would be about **$5** more on
+the same backend and nothing on the other.  Neither number is alarming
+and both are his to weigh, on a day he called the thing expensive.
 
 **What this session is not saying.**  Not that the layer should come
 out; the month is not up, the door has held, the query layer answered
@@ -877,14 +892,15 @@ two measures that can decide run their month.
   gate, never a refusal: a date nobody owns reading produces nothing
   (`doc/memory/recorded-is-not-answered.md`), and this is the cheapest
   thing that ends a wait.
-* **`fixme/` has to be read before the verdict means anything.**  226
-  of the 302 unread chunks are the tree's whole defect ledger, and a
-  graph asked *what goes wrong here* with none of it read would answer
-  from the documents that describe defects rather than from the defects.
-  The catch-up is `extract` on the subscription and **this session did
-  not start it** — it is hours of a shared resource on a day he has
-  just called the thing expensive, so it is his word and not a
-  session's initiative.
+* **`fixme/` has to be read before the verdict means anything, and it
+  is being read now.**  226 of the 302 unread chunks are the tree's
+  whole defect ledger, and a graph asked *what goes wrong here* with
+  none of it read would answer from the documents that describe defects
+  rather than from the defects.  This session did not start the
+  catch-up and did not stop the one it found in flight: a measurement
+  already going outlives the sitting, and the tree does not have to
+  change under it
+  (`doc/memory/a-measurement-in-flight-outlives-the-sitting.md`).
 * **The seven-day lamp will name this card and should not shelve it.**
   `tools/flow.py --check` names a card untouched for seven days, and
   this one is now waiting on an **event** and not on a decision —
@@ -895,11 +911,11 @@ two measures that can decide run their month.
 **And the cost sentence is worth stating precisely, because his word
 for it was *expensive*.**  What was expensive is spent and will not
 recur: about $12.50 for the build, the pilot and the seven sheets.  What
-recurs is subscription minutes for `extract`, four lines at most in a
-commit's output, one or two in a read's, and 21 MB of cache outside the
-repository.  The money side of keeping it is zero on the default
-backend.  Whether the *attention* side is worth it is exactly what the
-month is for.
+recurs is `extract` — subscription minutes on the default backend, or
+a few dollars a catch-up on the API, which is what today's run chose —
+four lines at most in a commit's output, one or two in a read's, and
+21 MB of cache outside the repository.  Whether the *attention* side is
+worth it is exactly what the month is for.
 
 
 ## What would kill it
