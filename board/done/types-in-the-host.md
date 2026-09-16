@@ -340,6 +340,22 @@ Found on the way: a deadlock the test order had hidden, F237, F238
 (resolved).  The story is `journal.md` §"The compiler's decisions moved
 into the language — 2026-09-16".
 
+## Postscript — 2026-09-16, the full pass
+
+The shift's full pass ran at 156ce83 and eight of 4,483 did not pass.
+Seven were this card's and one was the morning's.  **Q4's trigger
+fired:** the zero rule's refusal of a variable ran *during* the
+transform and preempted the pipeline's own refusal of a polymorphic
+datafun program, which runs after it, reads references, and names the
+definition (F157) — four `test_monomorphization.py` tests and one of
+the manual's said so, one of them by the variable leaking into the
+message.  So the rule answers a variable itself now, `TyVar n ->
+ZUnit`, with the reason on its line, and Q4's default is reversed by
+its own trigger.  The formatter rewrote `rules.ges` — a tuple pattern
+at a cons head, F239 — and the file was written around it.  The
+eighth was the suite runner's note growing a clause this morning
+(ca87bd9) with its test not told; the test is told.
+
 ## What a session does now
 
 Nothing; the card is closed.  If a fourth derivable class is ever

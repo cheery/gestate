@@ -33,8 +33,11 @@ recognise a call.
 zero change has is `gestate/rules.ges`' `zeroShape`, over a `Type`
 value the compiler reads back from the inferred type (`stage.reflect`);
 this module builds the expression the shape says and nothing more.  A
-type with a variable in it is refused there rather than answered `()`
-(Q4), and a type the rule cannot name is a complaint, not a guess.
+type with a variable in it is `()` *by the rule's own line*, with the
+reason beside it — the card's Q4 said refuse, and the polymorphic
+datafun refusal that names the definition (`pipeline`, F157) was being
+preempted with a message that leaked the variable, which is its own
+trigger — and a type the rule cannot name is a complaint, not a guess.
 """
 
 from __future__ import annotations
@@ -122,7 +125,11 @@ class Changes:
         from .show import show_type
         from .stage import ask, reflect
 
-        term = reflect(t, place=f", the zero change at `{show_type(t)}`{place}")
+        # `variables=True`: the rule answers a variable itself — nothing —
+        # because the precise refusal of a *reached* one is the pipeline's,
+        # after the transform, and it names the definition (F157).
+        term = reflect(t, place=f", the zero change at `{show_type(t)}`{place}",
+                       variables=True)
         key = _key(term)
         got = self._shapes.get(key)
         if got is None:

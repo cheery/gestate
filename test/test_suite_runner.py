@@ -55,7 +55,10 @@ def test_a_green_workspace_is_counted_across_every_binary():
     """
     rc, _out, note = suite._rust(fake_stream(0, GREEN), False, ROOT)
     assert rc == 0
-    assert note == "90 passed"
+    # `, N feature builds checked` since 2026-09-16 (ca87bd9): a build
+    # behind an off-by-default feature is checked and counted, and the
+    # note says so — `doc/memory/a-build-is-not-an-instrument-until-it-has-failed.md`.
+    assert note.startswith("90 passed, ") and note.endswith(" feature builds checked")
 
 
 def test_a_red_crate_reaches_the_report_and_the_exit_code():

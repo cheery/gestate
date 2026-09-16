@@ -85,18 +85,17 @@ def test_a_sum_with_no_value_at_hand_degrades_to_unit():
     assert _changes().zero(MAYBE_INT, None) == UNIT
 
 
-def test_a_type_with_a_variable_is_refused_and_an_untyped_node_is_unit():
+def test_a_type_with_a_variable_is_unit_by_the_rules_own_line():
     """Helpers are per monomorphic type (D9), so `a` has nothing to call.
-    Until 2026-09-16 that answered `()` silently; `card:types-in-the-host.md`
-    Q4 makes it a refusal that names the type, because a scheme reaching
-    the zero rule is a place the checker lost track of, not a change of
-    nothing.  A node with no type at all is still `()` — that is the
-    transform's unannotated case, and it is not a scheme."""
-    from gestate.stage import StageError
-
-    with pytest.raises(StageError, match=r"zero change at `Maybe a\d+` in `f` \(at 4:0\)"):
-        _changes().zero(TApp(TCon("Maybe"), TVar(1)), EVar("m"),
-                        " in `f` (at 4:0)")
+    `card:types-in-the-host.md` Q4 made this a refusal for an evening,
+    and its trigger fired the same evening: the polymorphic-datafun
+    refusal that names the definition (`test_monomorphization.py`, F157)
+    runs *after* the transform and was being preempted by a message
+    that leaked the variable.  So `rules.ges` answers a variable itself
+    — nothing — with the reason on its line, and a node with no type at
+    all is `()` too, the transform's unannotated case."""
+    assert _changes().zero(TApp(TCon("Maybe"), TVar(1)), EVar("m"),
+                           " in `f` (at 4:0)") == UNIT
     assert _changes().zero(None, EVar("m")) == UNIT
 
 

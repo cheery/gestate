@@ -442,9 +442,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 170 | `ChangesError` | `machine` | — | '`zeroShape` answered a pair of {len(shape[1])} for `{t}`, which is not that tuple' |
-| 185 | `ChangesError` | `machine` | — | "`zeroShape` answered a function's shape for `{t}`" |
-| 201 | `ChangesError` | `machine` | — | '`zeroShape` answered `{head}`, which is no shape' |
+| 177 | `ChangesError` | `machine` | — | '`zeroShape` answered a pair of {len(shape[1])} for `{t}`, which is not that tuple' |
+| 192 | `ChangesError` | `machine` | — | "`zeroShape` answered a function's shape for `{t}`" |
+| 208 | `ChangesError` | `machine` | — | '`zeroShape` answered `{head}`, which is no shape' |
 
 ### `charts.py`
 

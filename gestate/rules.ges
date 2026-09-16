@@ -47,17 +47,43 @@ Zero := ZUnit | ZBottom | ZPair (List Zero) | ZDummy | ZFun Zero
 #: constructors.  A tuple is componentwise; a function's is its
 #: result's; a set is `⊥`; a type somebody declared is a `dummy`; and
 #: everything else — `Int`, `Char`, `Cyclic n`, `lo .. hi`, `□A`, every
-#: Rizzo former — is discrete, so its change is nothing.
+#: Rizzo former — is discrete, so its change is nothing.  **A variable
+#: is nothing too**, and not a refusal: helpers are made per
+#: monomorphic type, the polymorphic prelude's dead branches mention
+#: variables legitimately, and a variable a program *reaches* is
+#: refused after the transform by the check that reads references and
+#: names the definition (`pipeline._check_helpers_exist`, F157) — the
+#: card's Q4 said refuse, and its own trigger fired the same evening.
 zeroShape : List Text -> Type -> Zero
-zeroShape adts t = case t of
-    TyTuple parts -> ZPair (map (zeroShape adts) parts)
-    TyFun a r -> ZFun (zeroShape adts r)
+zeroShape adts t = case hasVar t of
+    True -> ZUnit
+    False -> groundShape adts t
+
+#: The shape of a zero change at a closed type.
+groundShape : List Text -> Type -> Zero
+groundShape adts t = case t of
+    TyTuple parts -> ZPair (map (groundShape adts) parts)
+    TyFun a r -> ZFun (groundShape adts r)
     TyInt n -> ZUnit
     other -> case typeHead t == "Set" of
         True -> ZBottom
         False -> case elem (typeHead t) adts of
             True -> ZDummy
             False -> ZUnit
+
+#: Whether a variable stands anywhere in a type — `Maybe a` as much as
+#: `a`: a helper at either would be one nothing generates.
+hasVar : Type -> Bool
+hasVar t = case t of
+    TyVar n -> True
+    TyApp f a -> case hasVar f of
+        True -> True
+        False -> hasVar a
+    TyFun a r -> case hasVar a of
+        True -> True
+        False -> hasVar r
+    TyTuple parts -> any hasVar parts
+    other -> False
 
 #: The name at the head of a type — `Set` of `Set (Int, Text)`, `Int`
 #: of `Int`; a type-level number has none.
@@ -193,6 +219,7 @@ firstNotFlat table seen ts wrap = case ts of
 lookupCons : Text -> List (Text, List Con) -> Maybe (List Con)
 lookupCons name table = case table of
     Nil -> Nothing
-    (n, cons) :: rest -> case n == name of
-        True -> Just cons
-        False -> lookupCons name rest
+    entry :: rest -> case entry of
+        (n, cons) -> case n == name of
+            True -> Just cons
+            False -> lookupCons name rest
