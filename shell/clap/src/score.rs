@@ -235,6 +235,26 @@ impl Performer {
     /// Only *scored* banks are touched: a keyboard-only bank keeps its
     /// held notes through a loop seam, because the piece never wrote
     /// there and `value_at` parity says nothing about it.
+    ///
+    /// **And within a scored bank, only what the *score* wrote** —
+    /// `fixme.md` F234, and the same sentence the stop path already
+    /// says in the other direction: the piece's notes live on the
+    /// timeline, a played key lives under the player's hands.  A voice
+    /// holding a `NoteKey::Midi` is left exactly as it stands, its
+    /// channels untouched and no release stamped for it.
+    ///
+    /// *Henri, 2026-09-16, taking the call: "whenever there's a note
+    /// under the playhead, it should play out."*
+    ///
+    /// **This costs no parity**, which is the thing worth being exact
+    /// about, because the docstring above leans on parity for its other
+    /// clause.  Python's `audiodynamic.Performer.seek` resets *its own
+    /// allocators*, and the score is the only writer they have; the one
+    /// voice array with two writers is this shell's own arrangement
+    /// (see `VoiceState`).  So parity is a claim about what the score
+    /// does, and after this change the score still does all of it — the
+    /// replay, the release, the replay winning a collision.  What
+    /// changes is only the fate of voices Python has no word for.
     pub fn seek(&mut self, tb: &Tables, tempo: f64, target: i64, now: i64,
                 voices: &mut [Vec<VoiceState>], control: &mut [i64]) {
         let scored = tb.scored();
@@ -244,14 +264,18 @@ impl Performer {
                 continue;
             }
             for (i, v) in voices[b].iter().enumerate() {
-                if v.key.is_some() {
+                if matches!(v.key, Some(NoteKey::Score(_))) {
                     off.push(bank.voices[i][1]);
                 }
             }
-            for v in voices[b].iter_mut() {
-                *v = FRESH_VOICE;
-            }
-            for chans in bank.voices.iter() {
+            for (i, chans) in bank.voices.iter().enumerate() {
+                // A hand-played voice is not the score's to clear, and
+                // that includes its channels: resetting them is what
+                // silenced the note in F234's recording.
+                if matches!(voices[b][i].key, Some(NoteKey::Midi(..))) {
+                    continue;
+                }
+                voices[b][i] = FRESH_VOICE;
                 for slot in chans.iter() {
                     control[*slot] = tb.controls[*slot].init_bits;
                 }
@@ -446,13 +470,43 @@ mod tests {
         assert_eq!(control[1], 0, "nothing released it");
     }
 
-    /// **Red on purpose, and ignored rather than deleted** — `fixme.md`
-    /// F234.  The fix is a semantic change to a path with a Python
-    /// parity partner, so it is Henri's call; this is the gate waiting
-    /// for it.  `cargo test -p gestate-clap -- --ignored` runs it.
+    /// **Both halves in one assertion**, because the skip is easy to
+    /// widen by accident: a seek must still clear everything the score
+    /// wrote, and clearing that is what makes the replay meaningful.
     #[test]
-    #[ignore = "fixme.md F234 — open; the fix is a design call"]
-    fn a_seek_erases_a_key_pressed_into_a_scored_bank() {
+    fn a_seek_clears_what_the_score_wrote_and_keeps_what_a_hand_did() {
+        let tb = tables();
+        let (mut voices, mut control) = fresh();
+        let mut p = Performer::new();
+        // v0 is the score's and sounding; v1 is a key under a hand.
+        voices[0][0] = VoiceState { key: Some(NoteKey::Score(0)),
+                                    started: 1, released: None };
+        control[0] = 1;
+        control[1] = 0;
+        control[2] = 60;
+        voices[0][1] = VoiceState { key: Some(NoteKey::Midi(0, 72)),
+                                    started: 1, released: None };
+        control[3] = 1;
+        control[4] = 0;
+        control[5] = 72;
+
+        p.seek(&tb, TEMPO, 0, 5000, &mut voices, &mut control);
+
+        assert_eq!(control[0], 0, "the score's gate reads never-played");
+        assert_eq!(control[1], 5001, "and it released at the seek");
+        assert!(voices[0][0].key.is_none(), "and its voice is free");
+
+        assert_eq!(control[3], 1, "the hand's gate is still on");
+        assert_eq!(control[4], 0, "and nothing released it");
+        assert_eq!(control[5], 72, "and its payload stands");
+        assert!(matches!(voices[0][1].key, Some(NoteKey::Midi(0, 72))),
+                "and the voice still holds the key");
+    }
+
+    /// `fixme.md` F234's gate — red until 2026-09-16, when Henri took
+    /// the call.
+    #[test]
+    fn a_seek_keeps_a_key_pressed_into_a_scored_bank() {
         // **The shape under Henri's two reports, 2026-09-16.**
         // `plugin_process` drains MIDI into voices *before* it turns
         // the transport's rising edge into a seek, and `seek` puts
