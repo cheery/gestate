@@ -15,6 +15,8 @@ pair, and it is `split` that moves between them.
 
 from __future__ import annotations
 
+import pytest
+
 from gestate.changes import UNIT, Changes
 from gestate.declarations import classify
 from gestate.expr import (
@@ -81,9 +83,17 @@ def test_a_sum_with_no_value_at_hand_degrades_to_unit():
     assert _changes().zero(MAYBE_INT, None) == UNIT
 
 
-def test_an_unknown_type_has_no_change():
-    """Helpers are per monomorphic type (D9), so `a` has nothing to call."""
-    assert _changes().zero(TApp(TCon("Maybe"), TVar(1)), EVar("m")) == UNIT
+def test_a_type_with_a_variable_is_refused_and_an_untyped_node_is_unit():
+    """Helpers are per monomorphic type (D9), so `a` has nothing to call.
+    Until 2026-09-16 that answered `()` silently; `card:types-in-the-host.md`
+    Q4 makes it a refusal that names the type, because a scheme reaching
+    the zero rule is a place the checker lost track of, not a change of
+    nothing.  A node with no type at all is still `()` — that is the
+    transform's unannotated case, and it is not a scheme."""
+    from gestate.stage import StageError
+
+    with pytest.raises(StageError, match="zero change at `Maybe a"):
+        _changes().zero(TApp(TCon("Maybe"), TVar(1)), EVar("m"))
     assert _changes().zero(None, EVar("m")) == UNIT
 
 
@@ -248,3 +258,21 @@ g t = case t of
 main : Set (Cyclic 8)
 main = for (x in {1}) (g (B 0))
 """)) == 1
+
+
+def test_the_rule_is_compiled_through_the_lockless_door(monkeypatch):
+    """The first ask for a zero change comes from inside a compile, which
+    holds the front end's lock; a rule compiled through `pipeline.compile`
+    waits on that lock for ever.  It deadlocked on 2026-09-16 and the
+    suite had not noticed, because `test_changes.py` runs first and built
+    the rule outside any compile.  So: build it fresh with the locked door
+    refusing, and it must still come up."""
+    from gestate import changes, pipeline
+
+    def locked(*a, **k):
+        raise AssertionError("the rule went through the locked door")
+
+    monkeypatch.setattr(changes, "_RULE", None)
+    monkeypatch.setattr(pipeline, "compile", locked)
+    rule = changes._rule()
+    assert "zeroShape" in rule.state.globals

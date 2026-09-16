@@ -39,7 +39,8 @@ class Terms:
     exactly this.  What is chart-specific is `Chart` below.
     """
 
-    def __init__(self, path: Path, library: Path, source: str | None = None):
+    def __init__(self, path: Path, library: Path, source: str | None = None,
+                 compile=None):
         self.path, self.library = Path(path), Path(library)
         if source is None:
             #: The library in front of the file and a `main` after it —
@@ -50,7 +51,12 @@ class Terms:
         #: Or a program somebody else assembled — a GUI program that
         #: declares its own document's kinds is compiled with the
         #: canvas's vocabulary, not this library alone (`facts.Document`).
-        self.state = compile_program(source)
+        #: `compile` is for a reader that runs *inside* a compile — the zero
+        #: rule (`gestate/changes.py`) is asked for while a program is
+        #: being compiled, on the deep stack and under the front end's
+        #: lock, which is not reentrant; it passes the lockless door
+        #: (`pipeline._compile`), as the stage does.
+        self.state = (compile or compile_program)(source)
         self._tag = {k: v.tag for k, v in self.state.cons.items()}
         self._name = {v.tag: k for k, v in self.state.cons.items()}
 

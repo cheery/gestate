@@ -36,3 +36,13 @@ compile once at the top, deep-stack only the forcing.
 `pipeline.compile` waits on that lock forever; `pipeline._compile` is the
 door for a caller already inside — the same cache, no lock — and the
 first run of the stage hung for two minutes before this line was read.
+
+**Third time, 2026-09-16.**  The zero rule's machine
+(`gestate/changes.py`, `card:types-in-the-host.md`) was compiled through
+`pipeline.compile` from inside a compile and waited on the front end's
+lock for two minutes at 1 % CPU.  The targeted tests had not seen it
+because `test_changes.py` runs first and builds the rule outside any
+compile — **test order can hide a non-reentrant lock**, so a reader
+that runs inside a compile gets a test that builds it fresh with the
+locked door refusing.  The rule: a `Terms` or any compile asked for
+*during* a compile goes through `pipeline._compile`, never `compile`.

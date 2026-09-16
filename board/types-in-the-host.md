@@ -162,6 +162,13 @@ prelude's dead branches.  Under the reflector it is a refusal.
 the game trips it zero times.  *Trigger:* one that does, in a branch
 that is not dead.
 
+### His answers — 2026-09-16, the same sitting
+
+**Henri:** *"yea. it all seems ok."*  So every default stands: Q1 the
+session's sentence, marked; Q2 shape (c); Q3 the rule's file compiled
+without the transform; Q4 refuse.  And the postcondition below,
+uncorrected.
+
 ## The postcondition, before anything is built
 
 *The rule that says what the zero change at a type is, is written in
@@ -178,10 +185,52 @@ monotone arrow are refused.  The refusals name no line yet — `fixme.md`
 F238, the first caller holds a type and no span — and the complaints
 ledger prints them unplaced.  Nothing calls it yet; that is Q2's.
 
+## Built — 2026-09-16: the zero rule in the language, shape (c)
+
+**`gestate/changes.ges`**, compiled after `facts.ges`: `Zero := ZUnit |
+ZBottom | ZPair (List Zero) | ZDummy | ZFun Zero` and `zeroShape : List
+Text -> Type -> Zero`, forty lines with their reasons.  `changes.py`
+reflects the inferred type (`stage.reflect`), asks the rule's machine
+once per distinct type, and builds the expression the shape says,
+walking the shape beside the type so the type still names the helper;
+its own `case` over the compiler's types is gone.  The rule's file has
+no `fix` and no set in it, so the transform that asks for zero changes
+never runs over it — Q3 answered by `_uses_datafun`, which already
+existed, and the card's "cycle" was a bootstrap that the pipeline's
+own gate breaks.
+
+| | before | after |
+|---|---|---|
+| the decision | `changes.py`, a `case` over `types.Type` | `changes.ges`, a `case` over `Type` |
+| a type with a variable | `()`, silently | refused, naming the type (`stage.reflect`; the line is F238) |
+| the game's compile, cold | 1.84 s | 2.11 s — the rule's own compile, 0.22 s, once per process; an ask is under a millisecond |
+| asks, the game | 28, six types, counting the recursion | 15 at five types at the top, the same work inside |
+| held by | `test_changes.py`, 21 | `test_changes.py`, 22: the same expressions as before, the refusal, and the lockless door |
+
+**Found on the way, and fixed in the slice.**  The rule's machine was
+first compiled through `pipeline.compile`, from inside a compile —
+which holds the front end's lock, not reentrant — and the measurement
+waited two minutes on itself.  The targeted tests had passed because
+`test_changes.py` runs first and built the rule outside any compile.
+The rule goes through the lockless door now, `pipeline._compile`, as
+the stage does, and
+`test_changes.py::test_the_rule_is_compiled_through_the_lockless_door`
+builds it fresh with the locked door refusing.  Third time for this
+seam — `doc/memory/a-run-silent-for-a-minute.md`.
+
+**Not done here.**  `changes.ges` is not on the reference roster, since
+it is the compiler's rule and not a library a program includes; F238
+still owes the two refusals a line.
+
 ## What a session does now
 
-Q1–Q4 are his, batched above; the reflector and its round-trip test
-are common to every answer and are the first thing to build.  Then
-the zero rule in `.ges` under Q2/Q3's answers, held to parity with
-`changes.py` on `tic-tac-toe-facts.ges`'s 28 before the Python
-decision is deleted.  Readers 2–6 wait on this one landing.
+Reader 1 is moved; the postcondition holds and `test_changes.py` says
+so.  Readers 2–6 are next, each the same move — reflect, ask the
+language, build what it says — and each its own slice: `deriving`
+(2) is the one that wants a declaration splice and should be read
+against Q6 of `card:strict-forms.md` before it is taken; the LLVM
+layouts (3) and the channel count (4) are the cheapest; the flatness
+judge (5) is where a scheme reaches the reflector on purpose, and Q4's
+trigger lives there; the textual readers (6) are
+`doc/memory/declare-parity-derive.md`'s.  F238 first, since every
+reader after this one will want the line.

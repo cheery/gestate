@@ -27,17 +27,32 @@ folded to a constant, and a recursive type needs a recursive helper.
 Everything else is built inline, which matters for `spec/errata.md` D3:
 `⊥`-propagation recognises the `⊥` it can delete work with, and would not
 recognise a call.
+
+**The decision is the language's, since 2026-09-16** —
+`card:types-in-the-host.md`, shape (c).  Which of the five shapes a type's
+zero change has is `gestate/changes.ges`' `zeroShape`, over a `Type`
+value the compiler reads back from the inferred type (`stage.reflect`);
+this module builds the expression the shape says and nothing more.  A
+type with a variable in it is refused there rather than answered `()`
+(Q4), and a type the rule cannot name is a complaint, not a guess.
 """
 
 from __future__ import annotations
+
+import pathlib
 
 from .expr import (
     Alter, EAp, ECase, ECon, EGlobal, ELambda, ENum, EProj, ETuple, EVar,
     Expr,
 )
 from .types import (
-    TApp, TCon, TFun, TVar, Type, _apply_subst_map, free_vars, tuple_parts,
+    TApp, TCon, TFun, TVar, Type, _apply_subst_map, tuple_parts,
 )
+
+
+#: complaint  machine — the rule in `changes.ges` and this builder disagree about a shape; nothing an author wrote can reach it
+class ChangesError(Exception):
+    """`zeroShape` answered something this module cannot build."""
 
 
 #: `()`.  The unit type has one value and it carries no information, so it
@@ -47,6 +62,59 @@ from .types import (
 #: the entire point of `fixme.md` F3 — so it is a number instead.  Nothing
 #: ever inspects it: a value of type `1` is determined by its type.
 UNIT: Expr = ENum(0)
+
+
+#: The rule, compiled once per process: `changes.ges` after `facts.ges`,
+#: read through the same door `facts.Document` reads a program's kinds.
+#: Built on first use, because importing this module must not compile a
+#: library — the pipeline imports it.
+_RULE = None
+_HERE = pathlib.Path(__file__).resolve().parent
+
+
+def _rule():
+    """The rule's machine.  Compiled through the **lockless door**,
+    `pipeline._compile`, never `compile`: the first ask comes from inside
+    a compile, which holds `pipeline._FRONT_END`, and that lock is not
+    reentrant — the locked door waited on itself for two minutes on
+    2026-09-16 (`doc/memory/a-run-silent-for-a-minute.md`), and the
+    tests had not seen it only because one of them built the rule first,
+    outside any compile."""
+    global _RULE
+    if _RULE is None:
+        from .charts import Terms
+        from .pipeline import _compile
+        _RULE = Terms(_HERE / "changes.ges", _HERE / "facts.ges",
+                      compile=_compile)
+    return _RULE
+
+
+def _term_node(rule, term):
+    """A reflected `Type` term as a heap node: `Text` is `List Char`, so a
+    string becomes its codes on the way in."""
+    if isinstance(term, str):
+        return rule.node([ord(c) for c in term])
+    if isinstance(term, list):
+        return rule.node([_term_node_term(a) for a in term])
+    if isinstance(term, tuple):
+        return rule.node((term[0], *[_term_node_term(a) for a in term[1:]]))
+    return rule.node(term)
+
+
+def _term_node_term(term):
+    """`_term_node` for the parts `Terms.node` will walk itself."""
+    if isinstance(term, str):
+        return [ord(c) for c in term]
+    if isinstance(term, list):
+        return [_term_node_term(a) for a in term]
+    if isinstance(term, tuple):
+        return (term[0], *[_term_node_term(a) for a in term[1:]])
+    return term
+
+
+def _key(term):
+    return term if not isinstance(term, (list, tuple)) else \
+        tuple(_key(a) for a in term)
 
 
 def _spine(t: Type) -> tuple[Type, list[Type]]:
@@ -66,7 +134,8 @@ class Changes:
     which ones are needed is not known until δ has run.
     """
 
-    __slots__ = ("cons", "dummies", "sets", "_by_type", "_generated")
+    __slots__ = ("cons", "dummies", "sets", "_by_type", "_generated",
+                 "_shapes", "_adts")
 
     def __init__(self, cons: dict):
         self.cons = cons
@@ -84,6 +153,35 @@ class Changes:
             head, _ = _spine(ret)
             if isinstance(head, TCon):
                 self._by_type.setdefault(head.name, []).append(info)
+        #: The rule's answer per reflected type — six distinct types in a
+        #: compile of the game, twenty-eight asks.
+        self._shapes: dict = {}
+        #: The names the rule is told have constructors, as a heap node,
+        #: built when first asked.
+        self._adts = None
+
+    # -- the rule -----------------------------------------------------------
+
+    def shape(self, t: Type):
+        """What `changes.ges` says the zero change at `t` is — a term:
+        `("ZUnit",)`, `("ZBottom",)`, `("ZPair", [shapes])`, `("ZDummy",)`,
+        `("ZFun", shape)`.  Refuses a type with a variable in it, with
+        the type named (`stage.reflect`, `fixme.md` F238 for the line)."""
+        from .show import show_type
+        from .stage import reflect
+
+        term = reflect(t, where=f"the zero change at `{show_type(t)}`")
+        key = _key(term)
+        got = self._shapes.get(key)
+        if got is None:
+            rule = _rule()
+            if self._adts is None:
+                self._adts = rule.node([[ord(c) for c in n]
+                                        for n in sorted(self._by_type)])
+            got = rule.read(rule._apply(rule.declared("zeroShape"),
+                                        self._adts, _term_node(rule, term)))
+            self._shapes[key] = got
+        return got
 
     # -- the zero change ----------------------------------------------------
 
@@ -95,43 +193,51 @@ class Changes:
         (an unannotated node) the answer degrades to `()`, which is what a
         change nothing can describe amounts to.
         """
-        from .helpers import _type_suffix
-
         if not isinstance(t, Type):
             return UNIT
-        if free_vars(t):
-            # A change at an unknown type.  Helpers are generated per
-            # monomorphic type (`spec/errata.md` D9), so there is nothing
-            # to call; the places this arises are the polymorphic
-            # prelude's dead branches.
+        return self._build(self.shape(t), t, value)
+
+    def _build(self, shape, t: Type, value: Expr | None) -> Expr:
+        """The expression a shape says, walked beside the type it is the
+        shape of — the type names the helper (`bottom_X`, `dummy_X`)
+        and the value is threaded to where the shape needs it."""
+        from .helpers import _type_suffix
+
+        head = shape[0]
+        if head == "ZUnit":
             return UNIT
-
-        parts = tuple_parts(t)
-        if parts is not None:
-            # `Δ(A×B) = ΔA × ΔB`, componentwise.
-            n = len(parts)
-            return ETuple([
-                self.zero(p, None if value is None
-                          else EAp(EProj(i, n), value))
-                for i, p in enumerate(parts)
-            ])
-
-        if isinstance(t, TFun):
-            # `Δ(A→B) = □A → ΔA → ΔB`.  fig. 3.5's `dummyA→B f = λx. dummy
-            # (f x)` — the one place a zero change has to *call* the value
-            # it is the change of, to get a result of the right shape.
-            if value is None:
-                return UNIT
-            return ELambda(["_zx", "_zdx"],
-                           self.zero(t.ret, EAp(value, EVar("_zx"))))
-
-        head, args = _spine(t)
-        if isinstance(head, TCon) and head.name == "Set":
+        if head == "ZBottom":
             suffix = _type_suffix(t)
             self.sets[suffix] = t
             return EGlobal(f"bottom_{suffix}")
-
-        if isinstance(head, TCon) and head.name in self._by_type:
+        if head == "ZPair":
+            # `Δ(A×B) = ΔA × ΔB`, componentwise.
+            parts = tuple_parts(t)
+            if parts is None or len(parts) != len(shape[1]):
+                #: complaint  machine — the rule said a tuple's shape for a type that is not one, or not that wide: `changes.ges` and the reflector disagree
+                raise ChangesError(
+                    f"`zeroShape` answered a pair of {len(shape[1])} for "
+                    f"`{t}`, which is not that tuple")
+            n = len(parts)
+            return ETuple([
+                self._build(sh, p, None if value is None
+                            else EAp(EProj(i, n), value))
+                for i, (sh, p) in enumerate(zip(shape[1], parts))
+            ])
+        if head == "ZFun":
+            # `Δ(A→B) = □A → ΔA → ΔB`.  fig. 3.5's `dummyA→B f = λx. dummy
+            # (f x)` — the one place a zero change has to *call* the value
+            # it is the change of, to get a result of the right shape.
+            if not isinstance(t, TFun):
+                #: complaint  machine — the rule said a function's shape for a type that is not an arrow
+                raise ChangesError(
+                    f"`zeroShape` answered a function's shape for `{t}`")
+            if value is None:
+                return UNIT
+            return ELambda(["_zx", "_zdx"],
+                           self._build(shape[1], t.ret,
+                                       EAp(value, EVar("_zx"))))
+        if head == "ZDummy":
             # A sum: the tag must be reproduced, so this is the generated
             # `dummyA`.  Without the value there is nothing to reproduce.
             if value is None:
@@ -139,10 +245,8 @@ class Changes:
             suffix = _type_suffix(t)
             self.dummies[suffix] = t
             return EAp(EGlobal(f"dummy_{suffix}"), value)
-
-        # `Int`, `Char`, `Cyclic n`, `lo .. hi`, `□A`, and every Rizzo
-        # former: discrete, so `ΔA = 1` (`spec/errata.md` D8).
-        return UNIT
+        #: complaint  machine — a shape `changes.ges` does not declare
+        raise ChangesError(f"`zeroShape` answered `{head}`, which is no shape")
 
     # -- the generated helpers ----------------------------------------------
 

@@ -1,0 +1,46 @@
+# changes.ges — the zero change at a type, decided in the language
+#
+# `card:types-in-the-host.md`, shape (c) — Henri, 2026-09-16: *"yea. it
+# all seems ok."*  The compiler's change structure (`spec/data.md`
+# §I.4.2, §I.4.3) says what the zero change at each type is.  Until
+# today that decision was a `case` over the compiler's own types in
+# `gestate/changes.py`, where the checker could not see it.  Now the
+# **decision** is here, over a `Type` value the compiler reads back from
+# an inferred type (`stage.reflect`), and the host builds the expression
+# the shape says — a `()`, a `⊥`, a pair, a `dummy`, a lambda.
+#
+# Compiled after `facts.ges`, which holds `Type`.  This file has no
+# `fix` and no set in it, on purpose: the transform that asks for zero
+# changes runs only over a program that uses one, so it never asks while
+# this file is being compiled (Q3 of the card).
+
+#: The shape of a zero change: nothing (`ΔInt = 1`, and every discrete
+#: type), the empty set (`Δ{A} = {A}`), the pair of the components'
+#: shapes (`Δ(A×B) = ΔA × ΔB`), a `dummy` of the value at a type with
+#: constructors (`Δ(A+B)`: the tag is the value's, so the host needs it),
+#: and a function's — the shape of its result (`Δ(A→B) = □A → ΔA → ΔB`).
+Zero := ZUnit | ZBottom | ZPair (List Zero) | ZDummy | ZFun Zero
+
+#: The zero change at a type, given the names of the types that have
+#: constructors.  A tuple is componentwise; a function's is its
+#: result's; a set is `⊥`; a type somebody declared is a `dummy`; and
+#: everything else — `Int`, `Char`, `Cyclic n`, `lo .. hi`, `□A`, every
+#: Rizzo former — is discrete, so its change is nothing.
+zeroShape : List Text -> Type -> Zero
+zeroShape adts t = case t of
+    TyTuple parts -> ZPair (map (zeroShape adts) parts)
+    TyFun a r -> ZFun (zeroShape adts r)
+    TyInt n -> ZUnit
+    other -> case typeHead t == "Set" of
+        True -> ZBottom
+        False -> case elem (typeHead t) adts of
+            True -> ZDummy
+            False -> ZUnit
+
+#: The name at the head of a type — `Set` of `Set (Int, Text)`, `Int`
+#: of `Int`; a type-level number has none.
+typeHead : Type -> Text
+typeHead t = case t of
+    TyApp f a -> typeHead f
+    TyCon n -> n
+    other -> ""

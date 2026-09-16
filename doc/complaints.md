@@ -20,14 +20,14 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**540 complaints**, in 50 files.
+**543 complaints**, in 51 files.
 
 | | |
 |---|---|
 | `author` | 306 |
 | `command` | 51 |
 | `world` | 27 |
-| `machine` | 156 |
+| `machine` | 159 |
 | say where | 197 |
 | say `nowhere`, on purpose | 69 |
 | `unplaced`, with a defect that owns it | 62 |
@@ -120,10 +120,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:525` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
 | `audioscore.py:591` | `ScoreError` | a note names a bank the piece does not declare |
 | `audioscore.py:1381` | `ScoreError` | the piece names a bank that was given no allocator |
-| `charts.py:62` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:85` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:68` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `charts.py:91` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
-| `charts.py:103` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:97` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
+| `charts.py:109` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
 | `declarations.py:233` | `DeclError` | the program and its libraries declare more constructors than the machine has tags for |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
@@ -439,16 +439,24 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 135 | `WasmError` | `machine` | — | '{wasm} is not a wasm binary' |
 | 183 | `WasmError` | `world` | — | 'no `wasmtime` in this interpreter (`tools/toolbox.sh`)' |
 
+### `changes.py`
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 218 | `ChangesError` | `machine` | — | '`zeroShape` answered a pair of {len(shape[1])} for `{t}`, which is not that tuple' |
+| 233 | `ChangesError` | `machine` | — | "`zeroShape` answered a function's shape for `{t}`" |
+| 249 | `ChangesError` | `machine` | — | '`zeroShape` answered `{head}`, which is no shape' |
+
 ### `charts.py`
 
 *a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line*
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 62 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{name}`' |
-| 85 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
-| 91 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
-| 103 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
+| 68 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no `{name}`' |
+| 91 | `ChartError` | `author` | *nowhere, on purpose* | '{self.path.name} has no constructor `{head}`' |
+| 97 | `ChartError` | `author` | *nowhere, on purpose* | 'not a term: {term!r}' |
+| 109 | `ChartError` | `author` | *nowhere, on purpose* | 'a chart answered a {type(node).__name__}, not a value' |
 
 ### `coherence.py`
 
