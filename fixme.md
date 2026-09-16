@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 236 entries, **188 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 236 entries, **189 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -121,7 +121,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F231 | resolved | A type alias named like a constructor is accepted, and the clash surfaces later as *Unknown global* at a use of the constructor |
 | F232 | resolved | Declared constructors counted straight through the reserved tags, and the seventy-seventh was `Nothing` |
 | F234 | resolved | A seek wiped a hand-played note on a bank the score also writes, so a key at the top of the timeline played nothing |
-| F235 | bug | The stop fade is a master fader that never re-opens, so a key pressed more than 1.5 s after the transport stopped is rendered and then multiplied by zero |
+| F235 | resolved | The stop fade was a master fader that never re-opened, so a key pressed more than 1.5 s after the transport stopped was rendered and then multiplied by zero |
 | F236 | resolved | The state chunk carried the knobs, the routing and the seed, and not the `from score` switches, so every reopened session handed the banks back to the piece |
 
 Several of these are **closed rather than pending** under

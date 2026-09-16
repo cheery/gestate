@@ -1384,3 +1384,169 @@ def test_a_switch_turned_off_is_still_off_after_the_host_reopens(tmp_path):
 
     plug_a.destroy(raw_a)
     plug_b.destroy(raw_b)
+
+
+@needs_toolchain
+def test_a_key_pressed_long_after_the_stop_is_heard(tmp_path):
+    """**The stop fade re-opens for a hand** — `fixme.md` F235.
+
+    Henri, 2026-09-16, having found it himself: *"I recall there's a
+    master fader that fades out the track… The master fader could rise
+    when it receives MIDI signal to play (and fade back out when there's
+    no MIDI notes playing)."*
+
+    The fade exists for a good reason and keeps it: stop must mean
+    silence within a stated time, and a patch with a long reverb rang
+    for the whole ten-second voice grace before it was added.  What it
+    must not do is sit at zero over a note that began *after* the stop,
+    which is what made a key pressed on a stopped transport inaudible.
+
+    Three moments, in one run: the piece plays, the transport stops and
+    the fade runs out, and then a key is pressed with nothing else
+    sounding.  The third has to be audible.
+    """
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "fmpoly.ges").read_text()
+    out = tmp_path / "fmpoly.clap"
+    export_clap(source, out, rate=RATE, name="fmpoly")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames = 200
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    transport = Transport()
+
+    def block(playing: bool, at: int, events=None) -> float:
+        transport.flags = IS_PLAYING if playing else 0
+        proc = Process(steady_time=at, frames_count=frames,
+                       transport=ctypes.pointer(transport),
+                       audio_inputs=None,
+                       audio_outputs=ctypes.pointer(port),
+                       audio_inputs_count=0, audio_outputs_count=1,
+                       in_events=events, out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        return max(abs(x) for x in buf)
+
+    t = 0
+    for _ in range(4):
+        block(True, t)
+        t += frames
+
+    # Stop, then wait out the fade with room to spare — it is 1.5 s and
+    # this is three, still well inside the ten-second voice grace, so
+    # the plugin is rendering and not taking its silent early return.
+    for _ in range(int(3.0 * RATE / frames)):
+        block(False, t)
+        t += frames
+    assert block(False, t) == pytest.approx(0.0, abs=1e-6), \
+        "the fade never reached silence, so this test proves nothing"
+    t += frames
+
+    evs, keep = _note_event(0, 60, 0.9)
+    peak = block(False, t,
+                 ctypes.cast(ctypes.pointer(evs), c_void_p))
+    t += frames
+    for _ in range(6):
+        peak = max(peak, block(False, t))
+        t += frames
+    del keep
+    plugin.destroy(plug_raw)
+
+    assert peak > 0.01, (
+        "a key pressed three seconds after the transport stopped was "
+        "rendered and then multiplied by the stop fade's zero")
+
+
+@needs_toolchain
+def test_the_stop_fade_closes_again_when_the_hands_are_empty(tmp_path):
+    """The other half of F235, and the half that keeps the reason.
+
+    `STOP_FADE_SECONDS` exists because stop must mean silence in a
+    stated time — before it, a patch with a long reverb rang for the
+    whole ten-second voice grace.  Re-opening the fade for a hand is
+    only safe if it closes again when the hand lets go, or the fix has
+    quietly reinstated the thing the fade was written to stop.
+
+    **`nightdrive` and not `fmpoly`, and the first draft of this test
+    got that wrong.**  Written against `fmpoly` it passed with the
+    re-arm deleted, because that patch's release is 0.35 s and its tail
+    dies on its own — a green that said nothing.  `nightdrive` is the
+    case the fade's own comment names: a 1.4 s pad release into
+    `reverb 1.7 0.45`, which is still ringing two seconds after the key
+    comes up unless something silences it.
+    """
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "nightdrive.ges").read_text()
+    out = tmp_path / "nightdrive.clap"
+    export_clap(source, out, rate=RATE, name="nightdrive")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames = 200
+    nch = 2
+    bufs = [(c_float * frames)() for _ in range(nch)]
+    chans = (POINTER(c_float) * nch)(
+        *[ctypes.cast(b, POINTER(c_float)) for b in bufs])
+    port = AudioBuffer(data32=chans, data64=None, channel_count=nch,
+                       latency=0, constant_mask=0)
+    transport = Transport()
+
+    def block(at: int, events=None, playing=False) -> float:
+        transport.flags = IS_PLAYING if playing else 0
+        proc = Process(steady_time=at, frames_count=frames,
+                       transport=ctypes.pointer(transport),
+                       audio_inputs=None,
+                       audio_outputs=ctypes.pointer(port),
+                       audio_inputs_count=0, audio_outputs_count=1,
+                       in_events=events, out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        return max(abs(x) for b in bufs for x in b[:frames])
+
+    # **Play and stop first, because that is when a fade exists.**  A
+    # plugin on a transport that has never run has nothing faded down,
+    # and arming one there would fade out an instrument nobody stopped
+    # — which is what `fade_held` in the shell is for, and what two
+    # older tests in this file caught when the first draft did it.
+    t = 0
+    for _ in range(4):
+        block(t, playing=True)
+        t += frames
+    block(t)
+    t += frames
+
+    on, keep_on = _note_event(0, 60, 0.9)
+    block(t, ctypes.cast(ctypes.pointer(on), c_void_p))
+    t += frames
+    held = 0.0
+    for _ in range(int(1.5 * RATE / frames)):
+        held = max(held, block(t))
+        t += frames
+    del keep_on
+    assert held > 0.01, "the held key was never audible"
+
+    off, keep_off = _note_event(1, 60, 0.0)
+    block(t, ctypes.cast(ctypes.pointer(off), c_void_p))
+    t += frames
+    del keep_off
+
+    # Two seconds, against a 1.5 s fade and a ten-second voice grace.
+    for _ in range(int(2.0 * RATE / frames)):
+        block(t)
+        t += frames
+    tail = max(block(t + k * frames) for k in range(4))
+    plugin.destroy(plug_raw)
+
+    assert tail == pytest.approx(0.0, abs=1e-6), (
+        "the tail outlived the stop fade — re-opening it for a hand "
+        "must not stop it closing when the hand lets go")

@@ -67,6 +67,15 @@ pub(crate) struct Instance {
     active: Option<&'static engine::RateCase>,
     /// The engine sample the transport last stopped at, for the fade.
     stopped_at: Option<i64>,
+    /// **Whether a hand is holding the stop fade open** — `fixme.md`
+    /// F235.  Set when a played key clears `stopped_at`, cleared when
+    /// the last one is let go and the fade is re-armed from that
+    /// instant.  It exists to tell two Nones apart: *the fade was open
+    /// and a hand is holding it* against *there was never a fade*,
+    /// which is a plugin on a transport that has not run.  Without it
+    /// the re-arm fires on the first block of a stopped timeline and
+    /// fades out an instrument nobody ever stopped.
+    fade_held: bool,
     /// The session transcript, when `GESTATE_TRACE` asked for one.
     tracing: Option<trace::Trace>,
     /// A host reset happened and the transport has not been consulted
@@ -184,6 +193,7 @@ impl Instance {
             plays_score: default_plays(),
             active: None,
             stopped_at: None,
+            fade_held: false,
             tracing: None,
             needs_seek: false,
             beat_pos: 0.0,
@@ -853,6 +863,7 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         fell = !now && inst.playing;
         if rose {
             inst.stopped_at = None;
+            inst.fade_held = false;
             inst.rewind();
             // **Two plays are one performance.**  A baked cursor
             // rewinds by resetting its index; a forced one re-roots its
@@ -1057,6 +1068,37 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
                                   p.frames_count as usize);
         }
         return CLAP_PROCESS_CONTINUE;
+    }
+    // **The fade re-opens for a hand, and closes when the hands are
+    // empty** — `fixme.md` F235, and Henri's own design for it,
+    // 2026-09-16: *"The master fader could rise when it receives MIDI
+    // signal to play (and fade back out when there's no MIDI notes
+    // playing)."*
+    //
+    // `stopped_at` was stamped on the falling edge and cleared only on
+    // the rising one, so past `STOP_FADE_SECONDS` the gain below sat at
+    // zero for as long as the transport stayed stopped — and a key
+    // pressed there was rendered and then multiplied by it.  Now the
+    // stamp is a statement about *the tail*, not about the transport:
+    // a hand on the keys clears it, and letting go re-arms it from that
+    // instant, so the ring-out gets its 1.5 s from where it actually
+    // began.
+    //
+    // `key` is `None` the moment a note is released (`release_voice`),
+    // so "playing" here means held rather than ringing — which is the
+    // right side of the line: a ringing tail is exactly what the fade
+    // is for.  Score voices are not counted; the falling edge released
+    // those, and a stopped timeline is not playing them.
+    if stopped {
+        let handed = inst.voices.iter().flatten()
+            .any(|v| matches!(v.key, Some(NoteKey::Midi(..))));
+        if handed {
+            inst.fade_held |= inst.stopped_at.is_some();
+            inst.stopped_at = None;
+        } else if inst.fade_held {
+            inst.stopped_at = Some(inst.t);
+            inst.fade_held = false;
+        }
     }
     let began = inst.t;
     inst.process(out, p.frames_count);
