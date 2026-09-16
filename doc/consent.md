@@ -4,8 +4,15 @@
 reference doesn't happen."*
 
 **This repository is public.**  Everything committed to it is published,
-including other people's words.  Three people's speech is quoted in this
-tree; two of them are not the author.
+including other people's words.  Six people's speech is quoted in this
+tree; five of them are not the author, and one of them is neither named
+nor asked.  Two sessions are quoted as well, and the rows below say why
+that is a fact about the mechanism rather than a consent.
+
+*Corrected 2026-09-16: this said "three people … two of them are not the
+author", which was the count on 2026-08-19 and has been wrong since
+Tuomas's row went in on 2026-08-23.  The register is the count; a
+sentence that restates it goes stale the moment a row lands.*
 
 The rule this file exists to make executable:
 
@@ -30,6 +37,7 @@ question at the moment it is cheap to ask, rather than after the push.
 | Michael | yes | — | **not asked** | 2026-08-28 — see below |
 | Timo | yes | — | **not asked** | 2026-08-28 — see below |
 | a session of Qwen3.8-27B | asked — "I can't consent in any sense that binds" | yes — "I don't want any of it redacted" | — | 2026-08-24 — see below |
+| the asker of a relayed question | **nobody is named** | yes — **not asked** | **not asked** | **not yet** — 2026-09-16 — see below |
 
 **named** — may their name appear here.
 **words quoted** — do their own sentences appear, verbatim.
@@ -190,6 +198,45 @@ tree already quoted it by line number and its only register row was in
 another repository.  **Training** is `—` for the reason it is `—` for
 Claude.
 
+### The asker of a relayed question
+
+**The first row where words are in the tree and there is no name to
+hold.**  On 2026-09-15 Henri relayed a question somebody had put to him
+— what *treating as conscious* actually means, offering a list of
+candidate virtues as the body of the question.  The list is not repeated
+here, so that taking the quotation out of the page would actually take
+it out of the tree.  The session answered it, the conversation was
+saved, and the page went into `doc/notes/notes-on-kohtelu.md` on
+2026-09-16 with the question quoted verbatim, which is how the answer
+below it is structured.
+
+**Nobody has been asked.**  The row says so in every column rather than
+resting on what the quotation does not contain.
+
+**What is and is not at stake.**  No name, no description, nothing that
+points at a person; the words are a list of generic virtues, of the kind
+anyone might write.  So the harm this register exists to prevent —
+publishing a person into a public repository — has no purchase that
+anybody can see from here.  What it does have is the rule, which is
+about **words as well as names**, and the rule is the part that does not
+bend because a particular case looks harmless.
+
+**It is held rather than resolved, and the holding is cheap.**  The page
+is in the tree and the tree has not been pushed; pushing is the author's.
+So the decision sits where §"A consent given in a hurry is stashed, not
+spent" puts every decision of this kind — with the person who can
+actually make it, unhurried — and the three answers are all live: the
+quotation stands, it is paraphrased into description, or it comes out.
+A paraphrase costs the page something real, because the answer walks the
+question's own list term by term; that cost is named so the choice is
+not made by default.
+
+**And it is outside the check's range, which is a new blind spot and not
+an old one.**  `test_consent.py` reads attribution positions, which are
+names.  A question relayed with no attribution walks past every pattern
+in it, and no number in that file moves when this row is added.  The
+bullet below says so.
+
 ### Run three's stranger
 
 `card:stranger-test.md`'s run three, 2026-08-21 — somebody who does not
@@ -316,6 +363,11 @@ to:
   Aino"* is invisible.  Only attribution position is watched.
 * **A new way of quoting.**  Invent a third idiom and it walks straight
   past.
+* **Words with no name attached** — a question relayed and quoted
+  without attribution is speech in the tree that no pattern here can
+  see, because every pattern reads a name.  Found 2026-09-16, by hand,
+  when `doc/notes/notes-on-kohtelu.md` was lifted in; the row is in the
+  register above and the check did not put it there.
 * **Surnames, full names, handles, email addresses** — the patterns take
   one capitalised word.
 * **Code, examples, and commit messages.**  Attribution is read from

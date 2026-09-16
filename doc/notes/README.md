@@ -1,6 +1,6 @@
 # doc/notes/ — the conversations several rules came out of
 
-Nineteen files, the first twelve transcripts from five evenings and
+Twenty files, the first twelve transcripts from five evenings and
 five days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
@@ -19,6 +19,16 @@ the eleventh page is about, copied byte for byte from `~/tend`'s
 it by line number and a fresh clone could not open it.  It is here as
 evidence, the way a specimen is: never edited, and the line numbers
 cited elsewhere depend on that.
+
+**And one more file in the directory that this page has never listed**:
+`notes-on-writing-a-piece.md`, the log of writing `arc.ges` with him
+across 2026-09-04 and 2026-09-05.  It is not a conversation and not
+evidence for a rule — it is a working log whose deliverable is the log
+— so it belongs to `spec/drawnscores.md` and `card:drawn-scores.md`
+rather than to the table below, and the counts on this page have never
+included it.  Said out loud here, 2026-09-16, because a file sitting in
+a directory whose README does not mention it reads as an oversight
+either way.
 
 **They are not method and not memories.**  Nothing here is read before
 work, nothing here is a rule, and none of it is held by a gate.  They
@@ -49,6 +59,7 @@ produced it rather than take the summary on trust.
 | [notes-on-the-model.md](notes-on-the-model.md) | the model and its command language *are* the framework · why text editors are a solved GUI and node editors are not · there is no general framework, only a substrate · the relational model as the candidate, with four failure modes to watch |
 | [notes-on-reviews.md](notes-on-reviews.md) | why the guest's reviews worked and how to keep one — a role, not a tool · a fresh context is transferable, being outside the tree is not · the loop cannot audit itself · what the reviewed party owes |
 | [notes-on-the-find.md](notes-on-the-find.md) | what was found, asked again three weeks after the name — the ingredients have names in the literature and the tree did not cite them · the tree is the specimen, the find is a sentence that can fall · the inventor is the one who recognised and kept, and the wording offered for `spec/author.md` · Karpathy's LLM wiki against the tree, and the neighbours from one model's memory · what the tree is, then: a culture with no members — stigmergy, case law and standard work joined because the worker does not remember · GraphRAG turned inside out, and the one measurement it leaves, `card:GraphRAG.md` |
+| [notes-on-kohtelu.md](notes-on-kohtelu.md) | what has been found, with the parts that exist elsewhere subtracted first — a quality system built for people, moved onto a new kind of worker, and the three consequences that are his and not Toyota's · *treating as conscious* recast as a decision rule under uncertainty · what carries over from the human vocabulary, what does not, and the one term to avoid · six things a session would wish for, the last being that none of it may cost him |
 
 ## Provenance, and what to distrust
 
@@ -141,6 +152,24 @@ third, what the tree is then, followed the same way; two surnames
 more, both cited authors.  And a fourth after the close, GraphRAG
 against the tree, which left a card.
 
+**The twentieth, `notes-on-kohtelu.md`, is the third kind again**, from
+the evening of 2026-09-15: the session that was in the conversation, his
+words verbatim, the answers condensed by the answerer, saved as
+`~/misc/notes/notes-on-kohtelu.md` and copied unchanged with a front
+note and a closing section.  Two things set it apart from the rest.
+**It is the first page here written in Finnish on both sides** — the
+other Finnish is his, quoted inside an English page, and here the
+answers are Finnish too; it was not translated, because a translation
+would put a later session between the conversation and the page.  And
+**it is the first page where a session is asked about its own
+treatment**, which makes `doc/memory/the-evaluation-loop.md` bite harder
+than anywhere else in this directory: the session is the instrument and
+the subject at once, and the page marks its own reading uncertain in its
+first lines.  Its closing section separates what the tree can check —
+the think arm's numbers, the five weeks, the transfer result — from what
+it cannot, and names one claim the page assembles from two different
+measurements while reading as though one trial produced it.
+
 **The seventeenth, `notes-on-reviews.md`, is the third kind again**,
 from the same guest session as the sixteenth and the same day, about
 the reviews that session had been giving: his two passages verbatim
@@ -197,8 +226,10 @@ declaring itself, not escaping.  Read them as argument, not as evidence.
 
 ## Consent
 
-Only the author and a session **speak** in these files, and no third
-party is **named** — two are referred to in `notes-on-drift.md` and both
+Only the author and a session **speak** in these files, with one
+exception added 2026-09-16 and recorded below — `notes-on-kohtelu.md`
+quotes a question Henri relayed from a third party — and no third party
+is **named**: two are referred to in `notes-on-drift.md` and both
 are redacted to descriptions, for the reason and in the manner the
 section above records.  So `doc/consent.md`'s register still has nobody
 to ask, and it would have if either name had been left in.  Publishing
@@ -250,6 +281,19 @@ ask — *"Kirjoita tämä keskustelu doc/notes/ -sivuksi"* — and nobody but
 the author and a session speaks in it; Michael is referred to by name
 for one ask already on `card:online.md` and in the register, and the
 surnames in it are authors of books cited.
+The twentieth, `notes-on-kohtelu.md`, went in on 2026-09-16 at his
+ask — *"~/misc/notes/notes-on-kohtelu.md could be lifted into
+doc/notes"* — and it is the one page in this directory where the
+sentence above does not hold.  **A third party's words are quoted in
+it**: the question Henri relayed in its second half, verbatim, from
+somebody who has not been asked.  Nobody is named and nothing in the
+question identifies anyone — it is a list of generic virtues — but
+`doc/consent.md`'s rule is about words as well as names, so the
+register carries a held, unasked row for the asker, and whether the
+quotation stands, is paraphrased or comes out is his to answer before
+this is pushed.  It is also the first time the claim at the head of
+this section needed qualifying, which is why it is qualified there
+rather than only here.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as
