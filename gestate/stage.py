@@ -604,6 +604,17 @@ def _codes(term):
     return term
 
 
+def unreflect(term):
+    """A `Type` term as the compiler's type — `_type_val` and then the
+    checker's own reader, so a value that reifies is read the way a
+    signature is.  The inverse of `reflect` on the ground fragment;
+    `test_stage.py` holds the pair."""
+    from .declarations import desugar_type
+    from .syntax.ast import Pos
+
+    return desugar_type(_type_val(term, Span(Pos(0, 0), Pos(0, 0))))
+
+
 def _type_val(term, span: Span) -> Val:
     """A `Type` value as the type syntax the checker reads — `facts.ges`'
     five constructors, and nothing else is a type."""

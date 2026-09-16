@@ -153,12 +153,10 @@ main = documentRow model "section.voices" ++ documentRow model "note.manner" ++ 
 # ── The reflector — `card:types-in-the-host.md` ─────────────────────────────
 
 def _reify(term):
-    """`_type_val` then the checker's own reader: the value as the type
-    the checker would see."""
-    from gestate.declarations import desugar_type
-    from gestate.stage import _type_val
-    from gestate.syntax.ast import Pos, Span
-    return desugar_type(_type_val(term, Span(Pos(1, 1), Pos(1, 1))))
+    """`unreflect`: `_type_val` then the checker's own reader, the value
+    as the type the checker would see."""
+    from gestate.stage import unreflect
+    return unreflect(term)
 
 
 def test_a_ground_type_reflected_then_reified_is_itself():

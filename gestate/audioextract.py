@@ -834,7 +834,8 @@ class _Extract:
         time a code generator has the graph, `Voice` is a string.
         """
         from .gmachine import tuple_tag
-        from .types import TCon, TVar, _apply_subst_map, _spine, tuple_parts
+        from .stage import reflect_data, unreflect
+        from .types import TCon, _spine, tuple_parts
 
         name = show_type(t)
         if name in ("Int", "Float") or name in self.graph.layouts:
@@ -861,21 +862,18 @@ class _Extract:
             #: complaint  machine — the layout table is this program's own
             raise ExtractError(f"no layout for {name}")
 
+        # What the type is made of is the reflector's to say
+        # (`stage.reflect_data`, `card:types-in-the-host.md` reader 3):
+        # the constructors in declaration order, the parameters filled
+        # in from this use, every field ground.  What is decided here is
+        # one sentence, above — a tuple is a one-constructor record.
         constructors: list = []
         self.graph.layouts[name] = constructors      # before recursing
-        for info in self.cons.values():
-            fields, result = _arrow(info.type_)
-            rhead, params = _spine(result)
-            if not (isinstance(rhead, TCon) and rhead.name == head.name):
-                continue
-            subst = {p.id: a for p, a in zip(params, args)
-                     if isinstance(p, TVar)}
+        for _con, cname, fields in reflect_data(t, self.cons):
             constructors.append({
-                "tag": info.tag, "name": info.name,
-                "fields": [self._layout(_apply_subst_map(f, subst))
-                           for f in fields],
+                "tag": self.cons[cname].tag, "name": cname,
+                "fields": [self._layout(unreflect(f)) for f in fields],
             })
-        constructors.sort(key=lambda c: c["tag"])
         if not constructors:
             del self.graph.layouts[name]
             #: complaint  machine — the layout table is this program's own

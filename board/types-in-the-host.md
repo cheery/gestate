@@ -305,12 +305,26 @@ it reads is a checked thing.  What is unchecked there is argument
 names, which are not types.  Struck from the list, with this sentence
 as the reason.
 
+## Built — 2026-09-16: reader 3, the layouts
+
+`audioextract._layout` reads its constructors from `stage.reflect_data`
+now — declaration order, parameters filled in from the use, every
+field ground — and recurses through `stage.unreflect`, the reifier
+made a function so the walk keeps the compiler's types for naming.
+Its own walk over constructor types, the arrow-splitting and the
+substitution, is gone; what it still decides is the one sentence it
+always did, *a tuple is laid out like a one-constructor record*, and
+that stays with the builder because it is about the machine's tags and
+not about the type.  `reflect_data` is now the one place in the tree
+that says what a declared type is made of at a use, and three readers
+ask it.  Held by the extraction, graph, LLVM, live-update and fragment
+tests as before, 170 green, and the round-trip test in `test_stage.py`
+holds `unreflect` against `reflect`.
+
 ## What a session does now
 
-Readers 1, 4 and 5 are moved, 6 is struck, and F238 is resolved; the
-postcondition holds and the tests say so.  Left: the LLVM layouts (3),
-whose decision is one sentence — *a tuple is laid out like a
-one-constructor record* — and whose walk over constructor types is
-`reflect_data`'s already, so the slice is to make it read the
-reflector; and `deriving` (2), the reader that needs the binder, which
-is a question for him and not a slice — Q5 below.
+Readers 1, 3, 4 and 5 are moved, 6 is struck, and F238 is resolved;
+the postcondition holds and the tests say so.  Left is `deriving` (2),
+the reader that needs the binder, which is a question for him and not
+a slice — Q5 above.  His answer to it is what closes the card, either
+way.

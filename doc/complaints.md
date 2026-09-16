@@ -53,7 +53,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `audioextract.py:632` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audioextract.py:689` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audioextract.py:694` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
-| `audioextract.py:1023` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
+| `audioextract.py:1021` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audiollvm.py:432` | `LLVMError` | fixme.md F157: a definition used at two types inside one fragment is the author's, and the name is carried where the line is not |
 | `audioscore.py:491` | `ScoreError` | fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on |
 | `audioscore.py:1133` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
@@ -269,19 +269,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 689 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | "{where}: a delay line's length has to be a whole number of samples known before the program ru… |
 | 694 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: a delay line of {value} samples reaches back to nothing; `feedback 1` is the shortest… |
 | 746 | `ExtractError` | `machine` | — | '{path}: `{name}` has no definition' |
-| 862 | `ExtractError` | `machine` | — | 'no layout for {name}' |
-| 882 | `ExtractError` | `machine` | — | '`{name}` is not a data type gestate knows' |
-| 895 | `ExtractError` | `machine` | — | '{origin}: its step function takes {len(e.params)} argument(s), and this node calls it with {wa… |
-| 907 | `ExtractError` | `machine` | — | '{origin}: a step function that is not a definition or a lambda reached extraction' |
-| 917 | `ExtractError` | `machine` | — | '`{name}` has no definition' |
-| 940 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is not in scope' |
-| 943 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is a signal, used as a value' |
-| 981 | `ExtractError` | `machine` | — | '{where}: a recursive `let` reached extraction' |
-| 1000 | `ExtractError` | `machine` | — | '{where}: cannot apply {head!r}' |
-| 1003 | `ExtractError` | `machine` | — | '{where}: no IR for {type(e).__name__}' |
-| 1014 | `ExtractError` | `machine` | — | '{where}: `{name}` has no definition' |
-| 1023 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: `{name}` takes {arity} argument(s) and is applied to {len(ir_args)} — a partial appli… |
-| 1045 | `ExtractError` | `author` | carried from `exc` | '{where}: this should be a constant and is not: {exc}' |
+| 863 | `ExtractError` | `machine` | — | 'no layout for {name}' |
+| 880 | `ExtractError` | `machine` | — | '`{name}` is not a data type gestate knows' |
+| 893 | `ExtractError` | `machine` | — | '{origin}: its step function takes {len(e.params)} argument(s), and this node calls it with {wa… |
+| 905 | `ExtractError` | `machine` | — | '{origin}: a step function that is not a definition or a lambda reached extraction' |
+| 915 | `ExtractError` | `machine` | — | '`{name}` has no definition' |
+| 938 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is not in scope' |
+| 941 | `ExtractError` | `machine` | — | '{where}: `{e.name}` is a signal, used as a value' |
+| 979 | `ExtractError` | `machine` | — | '{where}: a recursive `let` reached extraction' |
+| 998 | `ExtractError` | `machine` | — | '{where}: cannot apply {head!r}' |
+| 1001 | `ExtractError` | `machine` | — | '{where}: no IR for {type(e).__name__}' |
+| 1012 | `ExtractError` | `machine` | — | '{where}: `{name}` has no definition' |
+| 1021 | `ExtractError` | `author` | *unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other* | '{where}: `{name}` takes {arity} argument(s) and is applied to {len(ir_args)} — a partial appli… |
+| 1043 | `ExtractError` | `author` | carried from `exc` | '{where}: this should be a constant and is not: {exc}' |
 
 ### `audiohost.py`
 
@@ -1025,9 +1025,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 447 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
 | 462 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
 | 471 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
-| 611 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 628 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
-| 632 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 622 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 639 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
+| 643 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 
