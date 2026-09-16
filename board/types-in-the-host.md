@@ -169,6 +169,17 @@ session's sentence, marked; Q2 shape (c); Q3 the rule's file compiled
 without the transform; Q4 refuse.  And the postcondition below,
 uncorrected.
 
+**Q5 — `deriving`, and the binder.**  Reader 2 builds three instances
+from a declaration *with its parameters open* — `(Show a, Show b) =>
+Show (Pair a b)` — so it reads a scheme, and `Type` has no binder to
+say one.  Moving it means two designs at once: a bound variable in
+`Type`, and a declaration splice for the instance it writes, which is
+Q6 of `card:strict-forms.md` and the quotation Jay & Palsberg price.
+*Default:* it stays in Python, three classes, until both exist; the
+card closes with reader 2 named as the one it did not move and why.
+*Trigger:* a fourth derivable class asked for, or a program that
+wants to derive something the compiler does not know.
+
 ## The postcondition, before anything is built
 
 *The rule that says what the zero change at a type is, is written in
@@ -246,14 +257,60 @@ the four refusals always said.  Its `case` over `TApp`, `TCon`,
 had pinned before; `test_audiovoices.py`'s end-to-end refusal holds as
 it did.
 
+## Built — 2026-09-16: reader 5, the flatness judge
+
+**`is_flat` and `why_not_flat` keep their names and callers; the
+decision is `rules.ges`' `flatness`.**  A number is flat, a variable
+and a function are not, a tuple is flat when its components are, a
+former in `notFlatFormers` is not, a base type in `flatBase` is, and a
+declared type is flat when it is not recursive and every field is —
+the two name tables moved into the language with the walk.  The answer
+is *why not*, as data: which component, which field, which former,
+recursion, or a name nothing declares; `types.py` composes the English
+the tests pin, and the two tables' English stays there beside it.
+
+**Two things the reader needed, said out loud.**
+
+- **`TyVar Text` joined `Type`** — a *free* variable with its name, not
+  a binder.  The judge's honest answer for a variable is *not flat: a
+  variable*, so the reflector says one when asked (`variables=True`)
+  and still refuses one by default; the reifier refuses a `TyVar` on
+  the way back, because nothing binds it.  A scheme's binder is still
+  not there.  The card's Q4 stands: the zero rule refuses.
+- **The third reflector, `stage.reflect_closure`:** every declared type
+  reachable from a type through constructor fields, each with its
+  constructors at the instantiation first met, keyed by name the way
+  recursion is detected.  A rule that walks structure gets the whole
+  structure as one value.
+
+**What stays in Python, and why.**  `audiograph._settled` and
+`_monomorphise` — a signature's variables replaced by a witness before
+the judge is asked — are the *scheme* decision, and they stay until
+the binder exists; the card said reader 5 is where a scheme reaches
+the reflector on purpose, and with the witness in front of it, it does
+not.
+
+| | before | after |
+|---|---|---|
+| the decision | `is_flat`, `_adt_flat`, `why_not_flat`, two tables — 70 lines of `types.py` | `flatness` and six helpers, 50 lines of `rules.ges`; 40 lines of English in `types.py` |
+| a recursive user type, asked why | looped for ever composing the sentence | *a data type whose field `Tree` is recursive…* |
+| `moods.ges`, one second through `audioperform` | 2.66 s | 2.74 s; the judge asked 194 times at 5 types, the first ask 0.32 s (the rule file's compile, once per process), the rest under a millisecond |
+| held by | `test_audiofragment.py`'s two flatness tests, the phrases pinned | the same two unchanged, plus the closure and the recursive type in `test_stage.py` |
+
+**Reader 6 is not a reader of what the checker cannot see.**  Looked
+at before taking it: `reference.py` reads the *written* signature by
+design — *a reference is what the library promises* — and the written
+signature is exactly what the checker holds the body to, so the text
+it reads is a checked thing.  What is unchecked there is argument
+names, which are not types.  Struck from the list, with this sentence
+as the reason.
+
 ## What a session does now
 
-Readers 1 and 4 are moved and F238 is resolved; the postcondition
-holds and `test_changes.py` says so.  Next, each the same move —
-reflect, ask the language, build what it says — and each its own
-slice: the LLVM layouts (3), whose decision is one line and whose walk
-over constructor types is `reflect_data`'s already; the flatness judge
-(5), where a scheme reaches the reflector on purpose and Q4's trigger
-lives; the textual readers (6), `doc/memory/declare-parity-derive.md`'s;
-and `deriving` (2) last, read against Q6 of `card:strict-forms.md`
-first, because it is the reader that needs the binder.
+Readers 1, 4 and 5 are moved, 6 is struck, and F238 is resolved; the
+postcondition holds and the tests say so.  Left: the LLVM layouts (3),
+whose decision is one sentence — *a tuple is laid out like a
+one-constructor record* — and whose walk over constructor types is
+`reflect_data`'s already, so the slice is to make it read the
+reflector; and `deriving` (2), the reader that needs the binder, which
+is a question for him and not a slice — Q5 below.

@@ -649,7 +649,7 @@ def frame_of(payload, cons: dict) -> int:
     language's, over the type and its constructors read back as values;
     what is left here is the English of a refusal."""
     from .show import show_type
-    from .stage import ask, reflect, reflect_data
+    from .stage import ask, reflect, reflect_data, term_text
     from .types import tuple_parts
 
     place = ", the payload of `sound`"
@@ -676,7 +676,7 @@ def frame_of(payload, cons: dict) -> int:
     if head == "FieldsNotFloat":
         name = "".join(chr(c) for c in answer[1])
         fields = reflect_data(payload, cons)[0][2]
-        which = ", ".join(f"field {i} is a `{_term_text(fields[i])}`"
+        which = ", ".join(f"field {i} is a `{term_text(fields[i])}`"
                           for i in answer[2]) or "it has no fields"
         raise AudioError(
             f"`{name}` cannot be an output frame: {which}.  A "
@@ -684,23 +684,6 @@ def frame_of(payload, cons: dict) -> int:
             "field per channel")
     #: complaint  machine — `frameOf` answered a constructor this reader does not know
     raise AudioError(f"`frameOf` answered `{head}`, which is no frame")
-
-
-def _term_text(term) -> str:
-    """A reflected `Type` term, printed the way `show_type` prints."""
-    head = term[0]
-    if head == "TyCon":
-        return term[1]
-    if head == "TyInt":
-        return str(term[1])
-    if head == "TyApp":
-        arg = _term_text(term[2])
-        if term[2][0] in ("TyApp", "TyFun"):
-            arg = f"({arg})"
-        return f"{_term_text(term[1])} {arg}"
-    if head == "TyFun":
-        return f"{_term_text(term[1])} -> {_term_text(term[2])}"
-    return "(" + ", ".join(_term_text(a) for a in term[1]) + ")"
 
 
 def _arg_types(t) -> list:

@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**544 complaints**, in 51 files.
+**545 complaints**, in 51 files.
 
 | | |
 |---|---|
-| `author` | 306 |
+| `author` | 307 |
 | `command` | 51 |
 | `world` | 27 |
 | `machine` | 160 |
-| say where | 200 |
+| say where | 201 |
 | say `nowhere`, on purpose | 69 |
 | `unplaced`, with a defect that owns it | 60 |
 
@@ -105,8 +105,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audio.py:668` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audio.py:672` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audio.py:681` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:905` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:925` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:888` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:908` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audioalloc.py:103` | `AllocError` | a bank with no voices is a count in a declaration; the declaration places it before this is reached |
 | `audioalloc.py:172` | `AllocError` | the piece's notes and the bank's payload disagree, which is about two declarations and not one line |
 | `audiodynamic.py:80` | `ScoreError` | the piece names a bank that was given no allocator, which is about two declarations and not one line |
@@ -185,14 +185,14 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 672 | `AudioError` | `author` | *nowhere, on purpose* | '`{show_type(payload)}` has {answer[1]} constructors, so it cannot be an output frame — a frame… |
 | 681 | `AudioError` | `author` | *nowhere, on purpose* | '`{name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a record o… |
 | 686 | `AudioError` | `machine` | — | '`frameOf` answered `{head}`, which is no frame' |
-| 729 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
-| 769 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
-| 774 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
-| 783 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
-| 883 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
-| 905 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
-| 917 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
-| 925 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
+| 712 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
+| 752 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
+| 757 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
+| 766 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
+| 866 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
+| 888 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
+| 900 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
+| 908 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
 
 ### `audioalloc.py`
 
@@ -1022,11 +1022,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 258 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
 | 318 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `model` has ' + ', '.join((f'`{k}`' … |
 | 397 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
-| 441 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
-| 451 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
-| 461 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
-| 536 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 551 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 447 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
+| 462 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
+| 471 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
+| 611 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 628 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
+| 632 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

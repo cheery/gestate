@@ -309,16 +309,23 @@ listValue d = case d of
 # `card:strict-forms.md` Q5, Henri, 2026-09-14: *the wide one, kept
 # minimal.*  A `TyCon` is a named type, `TyApp` applies one to another,
 # `TyFun` is the arrow, `TyInt` a type-level number such as the `12` of
-# `Cyclic 12`, `TyTuple` a tuple.  The compiler knows these five by
-# name and nothing else here; what a row *is* stays in this file, in
-# the language, where a reader can see it.
+# `Cyclic 12`, `TyTuple` a tuple, `TyVar` a free variable by name.  The
+# compiler knows these six by name and nothing else here; what a row
+# *is* stays in this file, in the language, where a reader can see it.
 #
 # A `Type` reaches the checker through one door, the splice: `$(e)`
 # in a type position, where `e` is an expression of this type that the
 # compiler evaluates before checking the program.  `document "kind"`
 # is the same door with `kindRow` already behind it.
 
-Type := TyCon Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (List Type)
+Type := TyCon Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (List Type) | TyVar Text
+
+# `TyVar` is a *free* variable with its name, not a binder — added
+# 2026-09-16 for `card:types-in-the-host.md` reader 5, the flatness
+# judge, whose honest answer for a variable is *not flat: a variable*.
+# A splice refuses it: a variable cannot become a type the checker
+# reads, because nothing binds it.  A scheme's binder is still not here;
+# the reader that needs one is `deriving`.
 
 #: What a field's value is, as a type: a number is an `Int`, a word or
 #: a bounded word a `Text`.  Names have no base column and no row type.

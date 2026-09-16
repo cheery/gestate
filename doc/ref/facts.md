@@ -365,7 +365,7 @@ How a list reads on the line: each name from the list, or names.
 ### `Type`  <sub>data</sub>
 
 ```
-Type := TyCon Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (List Type)
+Type := TyCon Text | TyApp Type Type | TyFun Type Type | TyInt Int | TyTuple (List Type) | TyVar Text
 ```
 
 

@@ -122,3 +122,77 @@ notFloatsFrom i ts = case ts of
     t :: rest -> case isFloat t of
         True -> notFloatsFrom (i + 1) rest
         False -> i :: notFloatsFrom (i + 1) rest
+
+# ── Is a type flat — `gestate/types.py`, `is_flat` and `why_not_flat` ────
+#
+# A value of a flat type has a known, fixed size: the audio engine lays
+# a step function's state out once, as a struct, and never allocates
+# again, and every value through an audio-rate node has to fit that.
+# The judge walks the type: a number is flat, a variable and a
+# function are not, a tuple is flat when its components are, a former
+# in the list below is not, a base type is, and a declared type is flat
+# when it is not recursive and every field is.  The answer is *why
+# not*, as data — which component, which field, which former — and the
+# host says it in English; `Nothing` is flat.
+
+#: Why a type is not flat: a variable, a function, a component of a
+#: tuple (with why), a former by name, a field of a declared type (with
+#: why), recursion, or a name nothing declares.
+NotFlat := AVariable | AFunction | InComponent Type NotFlat | Former Text | InField Type NotFlat | Recursive | Unknown
+
+#: The base types a value of which is one machine word or a few.
+flatBase : List Text
+flatBase = "Int" :: "Float" :: "Bool" :: "Char" :: "Cyclic" :: "Bounded" :: Nil
+
+#: The formers a value of which is never flat — a heap structure, a
+#: computation, a signal — whatever they are applied to.
+notFlatFormers : List Text
+notFlatFormers = "Sig" :: "Chan" :: "FaL" :: "ExL" :: "Box" :: "Score" :: "Set" :: "List" :: Nil
+
+#: The judge, given the declared types reachable from the type with
+#: their constructors (`stage.reflect_closure`).
+flatness : List (Text, List Con) -> Type -> Maybe NotFlat
+flatness table t = flatnessIn table Nil t
+
+flatnessIn : List (Text, List Con) -> List Text -> Type -> Maybe NotFlat
+flatnessIn table seen t = case t of
+    TyInt n -> Nothing
+    TyVar n -> Just AVariable
+    TyFun a r -> Just AFunction
+    TyTuple parts -> firstNotFlat table seen parts InComponent
+    other -> namedFlatness table seen (typeHead t)
+
+#: A named type: a former is refused by name, a base type accepted, a
+#: name already open is recursion, and a declared type is its fields.
+namedFlatness : List (Text, List Con) -> List Text -> Text -> Maybe NotFlat
+namedFlatness table seen name = case elem name notFlatFormers of
+    True -> Just (Former name)
+    False -> case elem name flatBase of
+        True -> Nothing
+        False -> case elem name seen of
+            True -> Just Recursive
+            False -> case lookupCons name table of
+                Nothing -> Just Unknown
+                Just cons -> consFlatness table (name :: seen) cons
+
+consFlatness : List (Text, List Con) -> List Text -> List Con -> Maybe NotFlat
+consFlatness table seen cons = case cons of
+    Nil -> Nothing
+    Con name fields :: rest -> case firstNotFlat table seen fields InField of
+        Nothing -> consFlatness table seen rest
+        found -> found
+
+#: The first of the types that is not flat, wrapped with which one.
+firstNotFlat : List (Text, List Con) -> List Text -> List Type -> (Type -> NotFlat -> NotFlat) -> Maybe NotFlat
+firstNotFlat table seen ts wrap = case ts of
+    Nil -> Nothing
+    t :: rest -> case flatnessIn table seen t of
+        Nothing -> firstNotFlat table seen rest wrap
+        Just why -> Just (wrap t why)
+
+lookupCons : Text -> List (Text, List Con) -> Maybe (List Con)
+lookupCons name table = case table of
+    Nil -> Nothing
+    (n, cons) :: rest -> case n == name of
+        True -> Just cons
+        False -> lookupCons name rest

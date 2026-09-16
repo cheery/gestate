@@ -187,12 +187,19 @@ def test_a_ground_type_reflected_then_reified_is_itself():
 def test_a_type_with_a_variable_is_refused_by_the_reflector():
     """A scheme cannot be said in `Type`: it has no binder.  The refusal
     names the place, so a reader of a polymorphic definition's type gets
-    a line and not `()`."""
+    a line and not `()`.  A reader whose answer is *about* the variable
+    asks for it by name and gets a `TyVar`, which the reifier refuses
+    on the way back: nothing binds it."""
+    from gestate.show import show_type
     from gestate.stage import reflect
     from gestate.types import TCon, TFun, TVar
 
     with pytest.raises(StageError, match=r"a type with a variable.* in `id` \(at 3:0\)"):
         reflect(TFun(TVar(7), TVar(7)), place=" in `id` (at 3:0)")
+    said = reflect(TFun(TVar(7), TCon("Int")), variables=True)
+    assert said == ("TyFun", ("TyVar", show_type(TVar(7))), ("TyCon", "Int"))
+    with pytest.raises(StageError, match="a variable cannot be a type"):
+        _reify(("TyVar", "a"))
 
 
 def test_a_monotone_arrow_is_refused_by_the_reflector():
@@ -259,3 +266,33 @@ def test_the_frame_rule_refuses_what_is_not_a_frame_and_says_which_part():
         _frame("Two", "Two := A Float | B Float")
     with pytest.raises(AudioError, match=r"`sound` is a `Sig List Float`"):
         _frame("List Float")
+
+
+# ── Reader 5: the flatness judge, by the rule ───────────────────────────────
+
+def test_the_closure_of_a_type_is_every_declared_type_it_reaches():
+    from gestate.declarations import classify
+    from gestate.stage import reflect_closure
+    from gestate.syntax import parse
+    from gestate.types import TApp, TCon
+
+    cons = classify(parse("Deep := Deep (Maybe (List Int))")).cons
+    table = dict(reflect_closure(TCon("Deep"), cons))
+    assert set(table) >= {"Deep", "Maybe", "List"}
+    assert table["Deep"] == [("Con", "Deep", [("TyApp", ("TyCon", "Maybe"),
+                                                 ("TyApp", ("TyCon", "List"), ("TyCon", "Int")))])]
+    assert table["Maybe"][1] == ("Con", "Just", [("TyApp", ("TyCon", "List"), ("TyCon", "Int"))])
+
+
+def test_a_recursive_type_is_said_to_be_recursive_at_its_field():
+    """The old judge looped for ever composing this sentence; the rule
+    says which field, and that it is the type itself."""
+    from gestate.declarations import classify
+    from gestate.syntax import parse
+    from gestate.types import TCon, is_flat, why_not_flat
+
+    cons = classify(parse("Tree := Leaf | Node Tree Tree")).cons
+    assert not is_flat(TCon("Tree"), cons)
+    assert why_not_flat(TCon("Tree"), cons) == (
+        "a data type whose field Tree is recursive, so a value of it is a "
+        "chain of heap cells whose length is a run-time fact")

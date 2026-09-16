@@ -827,108 +827,81 @@ def is_fixtype(t: Type, cons: dict | None = None) -> bool:
 #: Base types that occupy a fixed number of bytes.
 _FLAT_BASE = frozenset({"Int", "Float", "Bool", "Char", "Cyclic", "Bounded"})
 
-#: Why a former is not flat — the message says which one and why.
+#: Why a former is not flat — the English for the name `rules.ges` answers.
 _NOT_FLAT_REASON = dict(_NOT_EQTYPE_REASON, **{
     "Set": "a set, which is a heap structure of unbounded size",
     "List": "a list, which is recursive and so has no fixed size",
 })
 
 
-def is_flat(t: Type, cons: dict | None = None, _seen=frozenset()) -> bool:
+#: The judge's answers, per constructor table and type — a piece's
+#: compile asks 194 times at five types (`moods.ges`), and the closure
+#: walk is the cost, not the ask.  The table is keyed by its identity
+#: *and* its names, so a program's table freed and another's at the
+#: same address cannot answer for it.
+_FLAT_MEMO: dict = {}
+
+
+def _flatness(t: Type, cons: dict | None):
+    """`rules.ges`' `flatness` — `card:types-in-the-host.md`, reader 5.
+    The decision is the language's, over the type and every declared
+    type reachable from it read back as values; a variable is said, not
+    refused, because *a variable is not flat* is the answer here."""
+    from .stage import ask, reflect, reflect_closure
+
+    cons = cons or {}
+    key = (id(cons), frozenset(cons), show(t))
+    got = _FLAT_MEMO.get(key)
+    if got is None:
+        table = reflect_closure(t, cons)
+        got = ask("flatness", table, reflect(t, variables=True))
+        if len(_FLAT_MEMO) > 4096:
+            _FLAT_MEMO.clear()
+        _FLAT_MEMO[key] = got
+    return got
+
+
+def is_flat(t: Type, cons: dict | None = None) -> bool:
     """Does a value of this type have a known, fixed size?
 
     This is the condition on a step function's state and on every value
     flowing through an audio-rate node: the engine lays the state out once,
-    as a struct, and never allocates again.
+    as a struct, and never allocates again.  Decided in `rules.ges`.
     """
-    if isinstance(t, TInt):
-        return True                     # a type-level number, not a value
-    if isinstance(t, TVar):
-        return False                    # see above: unknown is a rejection
-    if isinstance(t, TFun):
-        return False
-    parts = tuple_parts(t)
-    if parts is not None:
-        return all(is_flat(a, cons, _seen) for a in parts)
-    head, args = _spine(t)
-    if not isinstance(head, TCon):
-        return False
-    if head.name in _NOT_FLAT_REASON:
-        return False
-    if head.name in _FLAT_BASE:
-        return True
-    if cons is None:
-        return False
-    return _adt_flat(head.name, args, cons, _seen)
-
-
-def _adt_flat(name: str, args: list, cons: dict, seen) -> bool:
-    """A data type is flat when it is non-recursive over flat fields.
-
-    Recursion is the disqualifier rather than a depth bound: a value of a
-    recursive type is a chain of heap cells whose length is a run-time
-    fact, and a state layout is a compile-time one.
-    """
-    if name in seen:
-        return False
-    seen = seen | {name}
-    found = False
-    for info in cons.values():
-        ret = info.type_
-        fields = []
-        while isinstance(ret, TFun):
-            fields.append(ret.arg)
-            ret = ret.ret
-        head, params = _spine(ret)
-        if not (isinstance(head, TCon) and head.name == name):
-            continue
-        found = True
-        subst = {p.id: a for p, a in zip(params, args) if isinstance(p, TVar)}
-        for f in fields:
-            if not is_flat(_apply_subst_map(f, subst), cons, seen):
-                return False
-    return found
+    return _flatness(t, cons)[0] == "Nothing"
 
 
 def why_not_flat(t: Type, cons: dict | None = None) -> str:
     """A phrase saying which part of ``t`` is not flat, and why."""
-    if isinstance(t, TVar):
+    from .stage import term_text
+
+    answer = _flatness(t, cons)
+    if answer[0] == "Nothing":
+        return "flat"
+    return _why(answer[1], term_text)
+
+
+def _why(reason, term_text) -> str:
+    head = reason[0]
+    if head == "AVariable":
         return ("a type variable, so its size is not known at compile "
                 "time — the fragment is monomorphic")
-    if isinstance(t, TFun):
+    if head == "AFunction":
         return "a function, and a function has no layout in a state struct"
-    parts = tuple_parts(t)
-    if parts is not None:
-        for a in parts:
-            if not is_flat(a, cons):
-                return f"a tuple whose component {show(a)} is {why_not_flat(a, cons)}"
-    head, args = _spine(t)
-    if isinstance(head, TCon):
-        if head.name in _NOT_FLAT_REASON:
-            return _NOT_FLAT_REASON[head.name]
-        if head.name not in _FLAT_BASE and cons is not None:
-            # A field that is not flat is the more useful answer, so look
-            # for one first: `Maybe (List Int)` is not recursive, its field
-            # is, and saying "recursive" of `Maybe` would be a lie.
-            for info in cons.values():
-                ret, fields = info.type_, []
-                while isinstance(ret, TFun):
-                    fields.append(ret.arg)
-                    ret = ret.ret
-                rhead, params = _spine(ret)
-                if not (isinstance(rhead, TCon) and rhead.name == head.name):
-                    continue
-                subst = {p.id: a for p, a in zip(params, args)
-                         if isinstance(p, TVar)}
-                for f in fields:
-                    f = _apply_subst_map(f, subst)
-                    if not is_flat(f, cons):
-                        return (f"a data type whose field {show(f)} is "
-                                f"{why_not_flat(f, cons)}")
-            if not _adt_flat(head.name, args, cons, frozenset()):
-                return ("recursive, so a value of it is a chain of heap "
-                        "cells whose length is a run-time fact")
-            return "not a data type gestate knows"
+    if head == "InComponent":
+        return (f"a tuple whose component {term_text(reason[1])} is "
+                f"{_why(reason[2], term_text)}")
+    if head == "Former":
+        name = "".join(chr(c) for c in reason[1])
+        return _NOT_FLAT_REASON.get(name, f"a `{name}`, which is not flat")
+    if head == "InField":
+        return (f"a data type whose field {term_text(reason[1])} is "
+                f"{_why(reason[2], term_text)}")
+    if head == "Recursive":
+        return ("recursive, so a value of it is a chain of heap "
+                "cells whose length is a run-time fact")
+    if head == "Unknown":
+        return "not a data type gestate knows"
     return "not flat"
 
 

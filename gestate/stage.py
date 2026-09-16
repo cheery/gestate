@@ -417,7 +417,7 @@ def _text(term) -> str:
     return "".join(chr(c) for c in term)
 
 
-def reflect(t, place: str = "") -> tuple:
+def reflect(t, place: str = "", variables: bool = False) -> tuple:
     """A compiler type as the term of a `Type` value — the inverse of
     `_type_val` on the ground fragment.  `card:types-in-the-host.md`:
     the other half of the stage, a type read back as a value.
@@ -437,10 +437,21 @@ def reflect(t, place: str = "") -> tuple:
     from .types import TApp, TCon, TFun, TInt, TVar, tuple_parts
 
     if isinstance(t, TVar):
+        if variables:
+            # A reader whose answer *about* a variable is the point —
+            # the flatness judge says *not flat: a variable* — asks for
+            # it by name.  `_type_val` refuses it on the way back.
+            from .show import show_type
+            return ("TyVar", show_type(t))
         #: complaint  author — a definition whose inferred type has a variable in it was asked for as a value; `place` is the caller's, the definition and its line
         raise StageError(
             f"a type with a variable in it cannot be read as a value{place}: "
             f"`Type` says only closed types, and this one is a scheme")
+    parts = tuple_parts(t)
+    if parts is not None:
+        # Before `TCon`: the unit type is the bare `Tuple0`, a tuple of
+        # nothing, and a rule must see it as one.
+        return ("TyTuple", [reflect(a, place, variables) for a in parts])
     if isinstance(t, TCon):
         return ("TyCon", t.name)
     if isinstance(t, TInt):
@@ -451,17 +462,17 @@ def reflect(t, place: str = "") -> tuple:
             raise StageError(
                 f"a monotone arrow `~>` cannot be read as a value{place}: "
                 f"`TyFun` is `->` only")
-        return ("TyFun", reflect(t.arg, place), reflect(t.ret, place))
-    parts = tuple_parts(t)
-    if parts is not None:
-        return ("TyTuple", [reflect(a, place) for a in parts])
+        return ("TyFun", reflect(t.arg, place, variables),
+                reflect(t.ret, place, variables))
     if isinstance(t, TApp):
-        return ("TyApp", reflect(t.fn, place), reflect(t.arg, place))
+        return ("TyApp", reflect(t.fn, place, variables),
+                reflect(t.arg, place, variables))
     #: complaint  machine — a type of a kind the compiler's grammar does not have reached the reflector
     raise StageError(f"no value for a {type(t).__name__}{place}")
 
 
-def reflect_data(t, cons: dict, place: str = "") -> list:
+def reflect_data(t, cons: dict, place: str = "",
+                 variables: bool = False) -> list:
     """The constructors of a ground type, as `rules.ges`' `List Con` —
     `[("Con", name, [field types])]` in declaration order, the type's
     parameters filled in from `t`'s arguments so every field is ground;
@@ -483,8 +494,63 @@ def reflect_data(t, cons: dict, place: str = "") -> list:
             continue
         subst = {p.id: a for p, a in zip(params, args) if isinstance(p, TVar)}
         out.append(("Con", info.name,
-                    [reflect(_apply_subst_map(f, subst), place) for f in fields]))
+                    [reflect(_apply_subst_map(f, subst), place, variables)
+                     for f in fields]))
     return out
+
+
+def reflect_closure(t, cons: dict, place: str = "") -> list:
+    """Every declared type reachable from `t` through constructor fields,
+    each with its constructors at the instantiation first met — the
+    `List (Text, List Con)` a rule that walks a type's structure reads,
+    keyed by the type's name the way recursion is detected.  Variables
+    are said, not refused: a rule that walks structure answers for
+    them."""
+    from .types import TCon, TFun, TVar, _apply_subst_map, _spine
+
+    table: dict = {}
+    todo = [t]
+    while todo:
+        cur = todo.pop()
+        head, args = _spine(cur)
+        if isinstance(cur, TFun):
+            todo += [cur.arg, cur.ret]
+            continue
+        todo += args
+        if not isinstance(head, TCon) or head.name in table:
+            continue
+        found = reflect_data(cur, cons, place, variables=True)
+        if not found:
+            continue
+        table[head.name] = found
+        for info in cons.values():
+            fields, result = [], info.type_
+            while isinstance(result, TFun):
+                fields.append(result.arg)
+                result = result.ret
+            rhead, params = _spine(result)
+            if isinstance(rhead, TCon) and rhead.name == head.name:
+                subst = {p.id: a for p, a in zip(params, args) if isinstance(p, TVar)}
+                todo += [_apply_subst_map(f, subst) for f in fields]
+    return [Bare((name, found)) for name, found in table.items()]
+
+
+def term_text(term) -> str:
+    """A `Type` term, printed the way `show_type` prints — reflected, or
+    read back from the machine, where a `Text` is its codes."""
+    head = term[0]
+    if head in ("TyCon", "TyVar"):
+        return _text(term[1])
+    if head == "TyInt":
+        return str(term[1])
+    if head == "TyApp":
+        arg = term_text(term[2])
+        if term[2][0] in ("TyApp", "TyFun"):
+            arg = f"({arg})"
+        return f"{term_text(term[1])} {arg}"
+    if head == "TyFun":
+        return f"{term_text(term[1])} -> {term_text(term[2])}"
+    return "(" + ", ".join(term_text(a) for a in term[1]) + ")"
 
 
 #: The rules' machine — `rules.ges` after `facts.ges` — compiled once
@@ -519,11 +585,20 @@ def ask(name: str, *terms):
                                  *[rule.node(_codes(t)) for t in terms]))
 
 
+class Bare(tuple):
+    """A bare tuple in a term — `(name, cons)` — as opposed to a
+    constructor's `("Con", …)`, which `Terms.node` tells apart by the
+    head being a string; a pair whose first component is a `Text` would
+    otherwise read as a constructor named by it."""
+
+
 def _codes(term):
     if isinstance(term, str):
         return [ord(c) for c in term]
     if isinstance(term, list):
         return [_codes(a) for a in term]
+    if isinstance(term, Bare):
+        return tuple(_codes(a) for a in term)
     if isinstance(term, tuple):
         return (term[0], *[_codes(a) for a in term[1:]])
     return term
@@ -548,6 +623,12 @@ def _type_val(term, span: Span) -> Val:
     if head == "TyTuple":
         items = [_type_val(t, span) for t in args[0]]
         return items[0] if len(items) == 1 else VTuple(items, span)
+    if head == "TyVar":
+        #: complaint  author — a splice evaluated to a type variable, which nothing binds, so it cannot be the type the checker reads
+        raise StageError(
+            f"the splice is a type variable `{_text(args[0])}`, and a "
+            f"variable cannot be a type — nothing binds it "
+            f"(at {span.start.line}:{span.start.col})")
     raise StageError(
         f"the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, "
         f"`TyInt` or `TyTuple` (`facts.ges`) (at {span.start.line}:{span.start.col})")
