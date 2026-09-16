@@ -1043,8 +1043,18 @@ mode here.
 exportClap path : Path -> Command
 ```
 
-Build this file as a CLAP plugin.  Given no path: `~/.clap/<name>.clap`,
-which is where a host looks.
+Build this file as a CLAP plugin, with its own window.  Given no
+path: `~/.clap/<name>.clap`, which is where a host looks.
+
+**The window comes with it from here**, and that is the one place
+this differs from `python -m gestate.export`: the command line builds
+the headless shell unless you pass `--gui`, because a script wants
+the plugin with no dependencies at all.  A person exporting from the
+workbench is already at a window looking at the thing, so the plugin
+they get is the one with its knobs and its note routing on the front.
+A file that draws nothing still gets the window; only the canvas half
+is left out.  The cost is the shell's zero-dependency build and the
+minutes cargo spends on it.
 
 **The work is not done here.**  A plugin runs `clang` and `cargo`, so
 the command starts it and says so, and the status line says again when

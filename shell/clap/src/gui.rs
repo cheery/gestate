@@ -289,7 +289,16 @@ fn canvas_of(sub: &'static engine::Substrate)
             rect: t[0], circle: t[1], gap: t[2], over: t[3], row: t[4],
             column: t[5], shift: t[6], sized: t[7], pad: t[8],
             touch_x: t[9], touch_y: t[10], label: t[11],
-            meaning: t[12], cons: t[13], nil: t[14],
+            // **`does` is `t[15]`, and its absence here did not fail a
+            // build for anybody.**  `Does` was appended to
+            // `export._SUB_CONS` and the descriptor has carried sixteen
+            // tags since; this one construction kept reading fifteen, so
+            // the crate stopped compiling under `--features substrate`
+            // and nothing noticed, because nothing builds that feature.
+            // F216 is the same defect one tag earlier, and its lesson —
+            // a table's length is copied into more places than anybody
+            // remembers — is why this line names the index out loud.
+            meaning: t[12], cons: t[13], nil: t[14], does: t[15],
         },
         chans: sub.chans.iter().map(|c| c.to_string()).collect(),
         bridge: sub.bridge.iter()

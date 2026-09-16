@@ -332,15 +332,36 @@ def _first_line(exc: Exception) -> str:
 def _export_clap(text: str, want, bench):
     """`gestate.export`'s own door, so the plugin is the documented one.
 
-    **`gui` stays off, as the CLI has it.**  `export.py` argues that
-    default rather than picking it — without the window the shell has no
-    dependencies at all, which is the property `shell/README.md` is built
-    around — and a command that quietly disagreed with the flag's own
-    documentation would be the drift this whole list exists to prevent.
+    **`gui` is on here and off on the CLI, and the difference is the
+    caller.**  *Henri, 2026-09-16: "you could put the exportClap
+    -command in gestate workbench to run the export with --gui -flag
+    on."*
+
+    `export.py` keeps `gui=False` as the **function's** default and
+    should: without the window the shell has no dependencies at all,
+    which is the property `shell/README.md` is built around, and a
+    script or a CI job exporting a headless plugin is the case that
+    default is for.  Somebody exporting from *this window* has already
+    said what they are doing — they are at a workbench, looking at the
+    thing, and the plugin they want is the one with its knobs and its
+    note routing on the front.  Handing them a plugin whose only face is
+    the host's generic parameter list is answering a different question.
+
+    So this is not the drift the old note here feared.  A command that
+    disagreed with the flag's documentation *silently* would be; a door
+    that picks the flag its own caller wants, and says so where the
+    reference reads it, is the door doing its job.
+
+    **What it costs**, stated plainly: the shell's zero-dependency
+    build, and the minutes cargo spends on `gestate-panel`, `baseview`,
+    `softbuffer` and `raw-window-handle`.  A file that draws nothing
+    still gets the window — `substrate_of` returns `None` and only the
+    canvas half is left out — which is exactly what `--gui` does from
+    the command line.
     """
     from .export import export_clap
 
-    return export_clap(text, want, name=want.stem, gui=False)
+    return export_clap(text, want, name=want.stem, gui=True)
 
 
 def _trim_wav(path, start: float) -> None:
@@ -4353,7 +4374,15 @@ class Session:
         return f"exporting {want.name}…"
 
     def do_exportClap(self, path: str = "") -> str:
-        """Build this file as a CLAP plugin."""
+        """Build this file as a CLAP plugin, with its own window.
+
+        **The window comes with it from here**, which is the one place
+        the workbench differs from `python -m gestate.export`: that one
+        builds the headless shell unless you pass `--gui`, and this one
+        is already a window, so the plugin it makes is the one with
+        knobs and note routing on the front.  The cost is the shell's
+        zero-dependency build and the minutes cargo spends on it.
+        """
         return self._export("clap", path)
 
     def do_exportWav(self, path: str = "") -> str:

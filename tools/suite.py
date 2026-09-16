@@ -291,10 +291,60 @@ def _rust(stream, fenced, root):
               re.findall(r"^test result: ok\. (\d+) passed", out, re.M))
     if rc:
         # **Not a stop.**  A red crate must not erase the page that says
-        # what else is true — the Python pass is twenty-five minutes of
-        # evidence and it is still worth having.
+        # what else is true — the Python pass is three quarters of an
+        # hour of evidence and it is still worth having.
         return rc, out, "**failed**"
-    return 0, out, f"{ran} passed"
+    frc, fout, fnote = _rust_features(stream, fenced, root)
+    if frc:
+        return frc, out + fout, f"{ran} passed, {fnote}"
+    return 0, out + fout, f"{ran} passed, {fnote}"
+
+
+#: **The features nothing builds by default**, and therefore the only
+#: code in this workspace that can stop compiling without anybody
+#: hearing about it.  `cargo test --workspace` builds each crate with
+#: its default features, so a line behind `#[cfg(feature = "…")]` is
+#: never seen by the step above.
+#:
+#: **Found the hard way, 2026-09-16.**  `shell/clap/src/gui.rs` built a
+#: `SubTags` without its `does` field — `Does` was appended to
+#: `export._SUB_CONS` and the descriptor carried sixteen tags from that
+#: day, while this one construction went on reading fifteen.  The crate
+#: had not compiled under `--features substrate` since, and the first
+#: person to find out was a `exportClap` on a file that draws.  This is
+#: `fixme.md` F233; F216 is the same defect one tag earlier and in
+#: seven places, and the
+#: lesson there was that a table's length gets copied, and the lesson
+#: here is that copying it into code nothing builds hides it.
+#:
+#: `check` rather than `test`: these have no tests of their own to run
+#: and the question is only whether they still compile.  **A second,
+#: warm, for all three** — measured, which is why this is affordable at
+#: all.  See [[a-build-is-not-an-instrument-until-it-has-failed]]: the
+#: editor's `capi` is on this list for the same reason, a featureless
+#: build of it compiles none of `window.rs` and says *Finished*.
+FEATURES = (("gestate-clap", "substrate,dynscore"),
+            ("gestate-panel", "window,substrate"),
+            ("gestate-editor", "capi"))
+
+
+def _rust_features(stream, fenced, root):
+    """`cargo check` for every off-by-default feature, after the tests."""
+    print("\n--- the features nothing builds by default ---")
+    bad = []
+    text = ""
+    for crate, features in FEATURES:
+        cmd = ["cargo", "check", "-p", crate, "--features", features,
+               "--quiet"]
+        if fenced:
+            cmd = [str(root / "tools" / "sandbox.sh"), *cmd]
+        rc, out = stream(cmd)
+        text += out
+        if rc:
+            bad.append(f"{crate} [{features}]")
+    if bad:
+        return 1, text, "**" + ", ".join(bad) + " did not compile**"
+    return 0, text, f"{len(FEATURES)} feature builds checked"
 
 
 def _tally(chunks):
