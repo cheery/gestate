@@ -26,6 +26,18 @@ above, chromatic below*.  The scale's pull: 2↓1, 6↓5, 4↓3, 7↑1, 5→1.
 **The rule of three:** say it once, say it again slightly differently,
 say it a third time and break it while you do.  Let the ear catch hold.
 
+**A through-line, added 2026-09-16 from his own ear.**  Hearing a
+four-part arrangement built by subtraction — parts made by taking
+instruments away and putting them back — he said: *"I should select
+some of the stems/voices and make it carry through the whole piece."*
+This is the standing intention below arriving as a practical rule:
+*build a piece as one whole with its own harmony.*  A part-by-part
+build gives contrast cheaply and costs unity; **one or two voices that
+never stop are what make four parts one track** rather than four loops
+in a row.  Choose them deliberately, and note that a pedal or an
+ostinato is the natural candidate, being the thing already present in
+every bar.
+
 **And the four mistakes, which are the useful half** because they are
 self-diagnosed and a tool can be built against them:
 
