@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 236 entries, **189 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 237 entries, **189 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -123,6 +123,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F234 | resolved | A seek wiped a hand-played note on a bank the score also writes, so a key at the top of the timeline played nothing |
 | F235 | resolved | The stop fade was a master fader that never re-opened, so a key pressed more than 1.5 s after the transport stopped was rendered and then multiplied by zero |
 | F236 | resolved | The state chunk carried the knobs, the routing and the seed, and not the `from score` switches, so every reopened session handed the banks back to the piece |
+| F237 | bug | `audioperform --peak` and `--oracle` refuse a scored piece with an unresolved name at a "prelude line", where `-o --seconds N` renders it |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
