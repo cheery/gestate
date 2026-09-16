@@ -696,6 +696,16 @@ sort by kind.
     python tools/graphrag.py lamp            at commit: freshness, and what the staged documents contradict or repeat, no model
     python tools/graphrag.py lamp --earned --control   the follow count, and the two arms that say whether it can decide
 
+**Two backends, and which one is right depends on the day.**
+`extract` defaults to `--backend cli`, billed to the subscription, and
+most of the extraction has run there.  But a cli run spends the same
+allowance a session needs to work, so when the day's sessions need it,
+`--backend api` is the right call and a few dollars is what it costs to
+keep the hours.  *An `--backend api` invocation is not a slip to be
+corrected back to the default, and a run found in flight is left
+alone* — `doc/memory/headless-claude-inherits-the-hooks.md`, and Henri's
+own reason there, 2026-09-16.
+
 `card:graphrag-c.md`: a model's reading of the tree's documents, kept
 in one directory that nothing outside may cite (`test/test_graphrag.py`
 is the gate), because a summary is testimony and a global answer over

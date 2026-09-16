@@ -1,6 +1,6 @@
 ---
 name: headless-claude-inherits-the-hooks
-description: "A headless `claude -p` started in this checkout inherits .claude/settings.json's hooks — the sitting limit refused 276 extraction calls on 2026-09-11 and the tool cached the refusals as replies; run batch calls with a working directory outside the project, and never cache a reply with no tokens in it"
+description: "A headless `claude -p` started in this checkout inherits .claude/settings.json's hooks — the sitting limit refused 276 extraction calls on 2026-09-11 and the tool cached the refusals as replies; run batch calls with a working directory outside the project, never cache a reply with no tokens in it, and treat --backend api as a trade for the session allowance rather than a slip"
 metadata:
   type: project
 ---
@@ -26,11 +26,31 @@ to stop it: a person's hours are the person's, and nobody had told it
 this was not a person.  The defect was the tool's — it accepted a
 refusal as an answer.
 
+**And the backend is a trade, not a default to be restored —
+2026-09-16.**  `tools/graphrag.py extract` has two: `--backend cli`
+bills the subscription, `--backend api` bills the key.  The default is
+`cli` and most of the extraction has run there, but **the cli backend
+spends the same allowance a session needs to work**, so a long catch-up
+on it takes hours out of the day's sessions.  Henri, running the
+catch-up himself: *"Right now though, it would consume the session
+limits so I'm running it on api backend.  I do this because I believe
+it's a feature worth its weight, and worthwhile on certain things, not
+on all."*  A few dollars buys the hours back.  **So an `--backend api`
+invocation is not a slip to be corrected to the default**, and a
+session that finds one running leaves it alone; the two backends are
+for different days, and which day it is depends on whether anybody
+needs the limit.  Note also what this costs the *other* rule above:
+`cwd` outside the project protects a cli run from the hooks, and it
+cannot protect it from the quota.
+
 **How to apply:**
 
 - A batch `claude -p` runs with `cwd` outside the project — the tool's
-  cache directory — so no project hook reaches it.  The API key stays
-  unset so the subscription pays ([[personal-and-personally-paid]]).
+  cache directory — so no project hook reaches it.  The subscription is
+  the default payer ([[personal-and-personally-paid]]), *and that is a
+  default and not a rule*: when the run would take the allowance the
+  day's sessions need, the key pays instead, which is the section
+  above.
 - A reply is a reply only if the model was asked: output tokens above
   zero and an object in the text.  Anything else is retried, then
   fails out loud, and is **never cached** — a cached refusal is a

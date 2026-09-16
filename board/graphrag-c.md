@@ -908,6 +908,45 @@ two measures that can decide run their month.
   on me?*  The answer is written here so the next session does not have
   to ask: the event is 2026-10-12.
 
+**His clarification, 2026-09-16, and it changes what the verdict is:**
+*"I'm running it there right now.  And I repeat that it is a bit on the
+expensive side, although we're not talking about horrific costs, and
+I've been running most of it on --backend cli.  Right now though, it
+would consume the session limits so I'm running it on api backend.  I
+do this because I believe it's a feature worth its weight, and
+worthwhile on certain things, not on all."*
+
+**So the question is not whether the layer stays.**  He has answered
+that: it is worth its weight.  The open question is **which of its
+moments are the certain things**, and that is what the month decides.
+The four are already separate and already measured separately, so the
+verdict is four verdicts:
+
+| moment | what would earn it | today |
+|---|---|---|
+| `query` and `lookup`, asked by hand | a find written into the tree citing the document | 0, one good answer, one thin |
+| the cue, on every read | a follow rate near the backlinks names it sits beside | 7% against 23% |
+| the lamp, at commit | a judge a recency heuristic cannot win | retired until it has one |
+| the store itself | the other three; it is the substrate, not a moment | 490 of 754 and climbing |
+
+*The shape to expect is that one or two earn it and the rest come out.
+A layer that is worthwhile on certain things and not on all is kept by
+removing the moments that are not, and removing them is the cheap part
+— the lamp is a line in `pre-commit.sh`, the cue is a call in
+`tools/backlinks.py`.*
+
+**The backend is a trade between money and session limits, and it is
+not a mistake to be corrected.**  An earlier paragraph on this card
+noted the live run was on `--backend api` where the default is `cli`,
+with a hint of a raised eyebrow in it.  His reason is concrete and
+settles it: **most of the extraction has been on `cli`**, and the cli
+backend spends the same subscription allowance a session needs to work.
+When sessions need the allowance, the API is the right choice and a few
+dollars is what it costs to not take the hours from the work.  So a
+session reading `--backend cli` as the default must not "fix" an API
+invocation back to it; the two are for different days.
+`doc/memory/headless-claude-inherits-the-hooks.md` carries the rule.
+
 **And the cost sentence is worth stating precisely, because his word
 for it was *expensive*.**  What was expensive is spent and will not
 recur: about $12.50 for the build, the pilot and the seven sheets.  What
