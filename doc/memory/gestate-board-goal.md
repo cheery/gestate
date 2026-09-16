@@ -38,7 +38,7 @@ goal survived untouched.  That practice is now written into
 `board/README.md` as *a card may also arrive shelved*.
 
 He also promoted one card of mine onto the live board — `ungated-fixes`,
-79 of `fixme.md`'s 161 entries named by no test — with *"it deserves
+79 of `fixme.md`'s 161 entries then named by no test (236 entries by 2026-09-16, the sweep closed 2026-09-10) — with *"it deserves
 that, it should not wait our goal of zero new cards being passed."*
 
 So the rule is not *never a new card*.  It is: **a card needs a problem

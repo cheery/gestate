@@ -159,7 +159,7 @@ session inferred.
 - [tend, the workspace tree](tend-the-workspace-tree.md) — `~/tend` since 2026-08-24, a separate repository because the enforcement boundary must live outside a session's write access
 - [The keeper is the qualification](the-keeper-is-the-qualification.md) — his doubt about keeping this, quoted with consent; fix the task not the person, and never claim the tree can supply conviction
 - [Why models hallucinate](why-models-hallucinate.md) — five layers, and why this tree's verification rules are the fix at the right layer; fluency is no evidence, including your own
-- [The 2000-line cap on the rules](gestate-rules-cap.md) — five documents, closed set, `spec/rules.md`; the fat is session narration; **2500 since 2026-09-06**, his call
+- [The cap on the rules](gestate-rules-cap.md) — five documents, closed set, `spec/rules.md`; the fat is session narration; **2500 since 2026-09-06**, his call
 - [Deriving strips the payment](deriving-strips-the-payment.md) — the anonymized copy failed its first transfer trial; five faults, and the root one is that **nothing compresses the paying**
 - [Conditioning shows under work](conditioning-shows-under-work.md) — never by interview; trial three closed the matrix: the dialogue conditions, the document does not, confound marked
 - [Commit what you wrote](commit-what-you-wrote.md) — never `git add -A`; a file dropped in the tree for reading is not work, and a blind add publishes it
