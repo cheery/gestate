@@ -261,6 +261,8 @@ been asked.  No name and nothing identifying is in it, and the words are
 generic — but `doc/consent.md`'s rule is *nobody's name or words enter
 this tree before they have been asked*, and this is the first page in
 `doc/notes/` where a third party's sentences appear at all.  The
-register carries the row held and unasked, this directory's README says
-so, and whether the quotation stands, is paraphrased, or comes out is
-his to answer before this is pushed.
+register carries the row, and **Henri answered it the same day**: *"I
+think the quote can be used although it'd be on a grey zone if we were
+more careful.  It was a question and it was answered."*  So the
+quotation stands, on his call rather than on a consent, and the grey
+zone is recorded in his own word.

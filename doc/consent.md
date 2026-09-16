@@ -37,7 +37,7 @@ question at the moment it is cheap to ask, rather than after the push.
 | Michael | yes | — | **not asked** | 2026-08-28 — see below |
 | Timo | yes | — | **not asked** | 2026-08-28 — see below |
 | a session of Qwen3.8-27B | asked — "I can't consent in any sense that binds" | yes — "I don't want any of it redacted" | — | 2026-08-24 — see below |
-| the asker of a relayed question | **nobody is named** | yes — **not asked** | **not asked** | **not yet** — 2026-09-16 — see below |
+| the asker of a relayed question | **nobody is named** | yes — **his call**, 2026-09-16 | **not asked** | **not asked — he answered instead**, 2026-09-16 — see below |
 
 **named** — may their name appear here.
 **words quoted** — do their own sentences appear, verbatim.
@@ -221,15 +221,19 @@ anybody can see from here.  What it does have is the rule, which is
 about **words as well as names**, and the rule is the part that does not
 bend because a particular case looks harmless.
 
-**It is held rather than resolved, and the holding is cheap.**  The page
-is in the tree and the tree has not been pushed; pushing is the author's.
-So the decision sits where §"A consent given in a hurry is stashed, not
-spent" puts every decision of this kind — with the person who can
-actually make it, unhurried — and the three answers are all live: the
-quotation stands, it is paraphrased into description, or it comes out.
-A paraphrase costs the page something real, because the answer walks the
-question's own list term by term; that cost is named so the choice is
-not made by default.
+**Answered by Henri the same day, and the quotation stands.**  *"I
+think the quote can be used although it'd be on a grey zone if we were
+more careful.  It was a question and it was answered."*  So the row's
+`words quoted` column reads **his call** rather than a consent: the
+asker was not asked, and the person who relayed the question decided.
+
+**The grey zone is his word and it is kept here rather than smoothed
+away.**  This is not a clean row and the file should not read as though
+it were.  What makes it defensible is narrow: a question, answered, with
+no name, no description and nothing in the words that points at anybody.
+What would make it indefensible is any of those three changing — and
+the row exists so that the next case of this shape is read against this
+one rather than decided fresh.
 
 **And it is outside the check's range, which is a new blind spot and not
 an old one.**  `test_consent.py` reads attribution positions, which are

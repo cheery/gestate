@@ -289,9 +289,11 @@ it**: the question Henri relayed in its second half, verbatim, from
 somebody who has not been asked.  Nobody is named and nothing in the
 question identifies anyone — it is a list of generic virtues — but
 `doc/consent.md`'s rule is about words as well as names, so the
-register carries a held, unasked row for the asker, and whether the
-quotation stands, is paraphrased or comes out is his to answer before
-this is pushed.  It is also the first time the claim at the head of
+register carries a row for the asker.  **Henri answered it the same
+day and the quotation stands** — *"I think the quote can be used
+although it'd be on a grey zone if we were more careful.  It was a
+question and it was answered."*  The grey zone is his word and the
+register keeps it.  It is also the first time the claim at the head of
 this section needed qualifying, which is why it is qualified there
 rather than only here.
 This tree's own register had no row for it before 2026-08-25, because
