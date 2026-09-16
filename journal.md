@@ -3386,3 +3386,68 @@ whole piece"* — which is `doc/memory/music-craft.md`'s new rule and the
 arrangement's own next decision.
 
 Fifteen commits.  Nothing pushed; that is his.
+
+## The compiler's decisions moved into the language — 2026-09-16
+
+The day began as a question about theory and ended with a card closed.
+
+**The theory first.**  He asked what the tree had on gestate becoming a
+general-purpose language, and the answer was one research question in
+`doc/memory/the-language-goal.md` and nothing built for it: a stage's
+inferred types reified into the next stage's data.  Two papers were
+named from memory, he fetched both, and they were read at their page —
+Shields, Sheard and Peyton Jones (POPL '98) and Jay and Palsberg (ICFP
+'11).  One name had been wrong, and the correction is in the memory.
+What the reading settled: a reflected type is a scheme with its bound
+variables listed, only a closed type survives to a run, and reflection
+over *terms* costs HM where reflection over *types as data* does not,
+adequacy being the price.  The session said *no caller yet*, carrying
+the strict-forms card's sentence forward without a grep; he said *I
+thought we had some caller for it already*, and the grep found six —
+six places where Python reads a type the compiler holds and computes
+from it where the checker cannot see.  *"lets make it a card. then
+start working on changes.py."*
+
+**The card, `card:types-in-the-host.md`.**  Measured before anything
+was built: the game's compile asks for 28 zero changes at six ground
+types and none at a type with variables; a scored piece asks for none;
+and a stage-one program compiles through the transform that would call
+the rule, which was a bootstrap the pipeline's own gate turned out to
+break already.  Four questions shaped with defaults, a postcondition
+written before the code, and his answer to all of it: *"yea. it all
+seems ok."*
+
+**What moved, in order.**  The reflector, `stage.reflect`, the inverse
+of the reifier the stage already had, with the theory's soundness pair
+held by a test.  Then the zero change: `rules.ges` decides, over a
+`Type` value read back from the inferred type, and `changes.py` builds
+what the shape says; a type with a variable is refused, naming the
+definition and its line once F238 was resolved.  Then the channel count
+of `sound`, with a second reflector for a ground type's constructors;
+the flatness judge, with a third for every declared type a type
+reaches, and `TyVar` joining `Type` as a free variable by name; and the
+layouts, which now read the reflector instead of walking constructor
+types themselves.  The reference pages were struck from the list,
+because the written signature they read is what the checker already
+holds the body to.  `deriving` stays in Python at his word — *"keep
+deriving in python, close the card"* — because it reads a declaration
+with its parameters open, and that needs a binder `Type` does not have.
+
+**Found on the way.**  The rule's machine, first compiled through the
+locked door from inside a compile, waited two minutes on the front
+end's own lock, and the targeted tests had passed only because the
+zero-change tests run first and built it outside any compile; the
+third instance of `doc/memory/a-run-silent-for-a-minute.md`, and a
+test now builds it fresh with the locked door refusing.  F237: the
+audioperform `--peak` and `--oracle` door refuses a scored piece with
+an unresolved name at a "prelude line".  And earlier in the morning,
+the private memory index had grown past what the loader reads, cutting
+the last eleven hooks off every boot: fifty-nine hooks shortened, a
+200-character cap gated, and the generator reporting its size.
+
+**What the day says.**  The card's `because` was a session's sentence
+and he made a card of it in four words; the six callers had been in
+the tree all along, and a grep was the whole difference between *no
+caller yet* and a card.  `doc/memory/dont-conclude-from-a-shallow-check.md`,
+again, from the other side: the shallow check this time was a sentence
+carried forward rather than a search that came back empty.

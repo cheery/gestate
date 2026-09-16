@@ -94,11 +94,6 @@ still the tiebreak between two workable cards, and it is still his.
    same day, the grid's tables moved; seam 2 closed the same evening
    by `Act` — the picture carries the command and the host performs
    it.  E and composition remain, his.*
-9. **[types-in-the-host](types-in-the-host.md)** — six places Python
-   reads a type the checker holds and computes from it where the
-   checker cannot see; the other half of the stage, pulled by callers
-   that exist, `changes.py` first.  *Arrived unplaced, 2026-09-16, at
-   his word: "lets make it a card."*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

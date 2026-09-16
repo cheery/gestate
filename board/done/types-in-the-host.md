@@ -1,6 +1,6 @@
 # types-in-the-host — six places Python reads a type the checker holds, and computes from it where the checker cannot see
 
-    status   open
+    status   done — 2026-09-16
     because  Six type-directed programs live in the host: Python reads a
              type the compiler inferred or the author declared, and
              builds something from it — a zero change, a derived
@@ -180,6 +180,12 @@ card closes with reader 2 named as the one it did not move and why.
 *Trigger:* a fourth derivable class asked for, or a program that
 wants to derive something the compiler does not know.
 
+**His answer — 2026-09-16, the same sitting:** *"keep deriving in
+python, close the card."*  So Q5's default stands and the card closes
+with reader 2 named as the one it did not move: `deriving.py` keeps its
+three classes until a binder in `Type` and a declaration splice both
+exist, and the trigger is a fourth derivable class asked for.
+
 ## The postcondition, before anything is built
 
 *The rule that says what the zero change at a type is, is written in
@@ -321,10 +327,21 @@ ask it.  Held by the extraction, graph, LLVM, live-update and fragment
 tests as before, 170 green, and the round-trip test in `test_stage.py`
 holds `unreflect` against `reflect`.
 
+## Done — 2026-09-16
+
+Four of the six readers moved into `gestate/rules.ges` — the zero
+change, the channel count, the flatness judge, the layouts — through
+three reflectors in `gestate/stage.py` and one machine; the sixth was
+struck because the checker already sees what it reads; the second
+stays in Python at his word.  The postcondition holds: the rule that
+says what the zero change at a type is, is written in the language and
+read by the compiler, and a type it cannot answer is refused at a line.
+Found on the way: a deadlock the test order had hidden, F237, F238
+(resolved).  The story is `journal.md` §"The compiler's decisions moved
+into the language — 2026-09-16".
+
 ## What a session does now
 
-Readers 1, 3, 4 and 5 are moved, 6 is struck, and F238 is resolved;
-the postcondition holds and the tests say so.  Left is `deriving` (2),
-the reader that needs the binder, which is a question for him and not
-a slice — Q5 above.  His answer to it is what closes the card, either
-way.
+Nothing; the card is closed.  If a fourth derivable class is ever
+asked for, Q5 is where to start, and `card:strict-forms.md` Q6 is the
+other half of it.
