@@ -782,8 +782,13 @@ def test_a_played_note_is_the_scheduled_note(tmp_path):
                   0, frames)
     into_schedule(schedule, allocator.note_off((0, key), frames),
                   frames, frames)
+    # The note lands in the state's first block, which the plugin renders
+    # as the first instant and then the rest, so the controls are read at
+    # the second instant and not a block late (`fixme.md` F240); the bake
+    # says the same, and the two stay sample for sample.
     with tempfile.TemporaryDirectory() as d:
-        offline = list(run_native(graph, d, 3 * frames, block=frames,
+        offline = list(run_native(graph, d, 3 * frames,
+                                  block=[1, frames - 1, frames],
                                   control=schedule.control_for(graph)))
 
     assert played == pytest.approx(offline), \
@@ -915,8 +920,13 @@ def test_the_routing_matrix_layers_banks(tmp_path):
 
     strike(["lead"], 0)
     strike(["lead", "bass"], 2 * frames)
+    # The note lands in the state's first block, which the plugin renders
+    # as the first instant and then the rest, so the controls are read at
+    # the second instant and not a block late (`fixme.md` F240); the bake
+    # says the same, and the two stay sample for sample.
     with tempfile.TemporaryDirectory() as d:
-        offline = list(run_native(graph, d, 5 * frames, block=frames,
+        offline = list(run_native(graph, d, 5 * frames,
+                                  block=[1, frames - 1, frames],
                                   control=schedule.control_for(graph)))
 
     assert played == pytest.approx(offline), \
@@ -1550,3 +1560,64 @@ def test_the_stop_fade_closes_again_when_the_hands_are_empty(tmp_path):
     assert tail == pytest.approx(0.0, abs=1e-6), (
         "the tail outlived the stop fade — re-opening it for a hand "
         "must not stop it closing when the hand lets go")
+
+
+@needs_toolchain
+def test_a_click_in_the_first_block_a_fresh_plugin_renders_is_heard(tmp_path):
+    """`fixme.md` F240.  At the state's first instant every source is its
+    `init` and a control source holds it across the block, so a note
+    stamped into a fresh instance's first block was read a block late —
+    and a pick or a mallet, a millisecond long, was gone by then.  With
+    the transport stopped nothing renders until a key arrives, so the
+    first key of a session landed in exactly that block: the first note
+    on every plucked and struck bank was silent, and heard on the bowed
+    ones.  The shell now renders that one block as the first instant
+    alone and then the rest, at whose start the controls are read, and
+    stays bit-exact with the offline engine everywhere else — a step
+    past the first instant was tried first and nine parity tests
+    refused it.  Driven: a bank whose
+    whole voice is a one-millisecond click, one fresh instance, one
+    note at the first sample of the first block, and the first block
+    must carry the click."""
+    from gestate.export import export_clap
+
+    source = """Note := Note Int Int
+
+instance FromMIDI Note where
+    noteOn c n v = Just (Note n v)
+
+voices hit 1 hitVoice : Sig Float
+
+hitVoice : Sig Gate -> Sig Note -> Sig Float
+hitVoice g s = perc 1400.0 g
+
+sound : Sig Float
+sound = hit
+"""
+    out = tmp_path / "click.clap"
+    export_clap(source, out, rate=RATE, name="click")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 256)
+    assert plugin.start_processing(plug_raw)
+
+    frames = 256
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    events, keep = _note_event(0, 60, 0.9)
+    proc = Process(steady_time=0, frames_count=frames, transport=None,
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=ctypes.cast(ctypes.pointer(events), c_void_p),
+                   out_events=None)
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+    first_block = max(abs(x) for x in buf)
+    assert first_block > 0.5, (
+        f"the first block of a fresh plugin peaked at {first_block:.3f}: the "
+        f"click stamped into it was read a block late, when it had decayed")
+
+    plugin.stop_processing(plug_raw)
+    plugin.deactivate(plug_raw)
+    plugin.destroy(plug_raw)

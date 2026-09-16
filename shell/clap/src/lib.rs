@@ -540,18 +540,45 @@ impl Instance {
         }
     }
 
-    fn process(&mut self, out: &clap_audio_buffer, frames: u32) {
+    /// `notes` is how many note events this block drained — the one
+    /// fact the first block needs, below.
+    fn process(&mut self, out: &clap_audio_buffer, frames: u32, notes: u32) {
         let ch = self.desc.channels as usize;
         let need = frames as usize * ch;
         if self.scratch.len() < need {
             self.scratch.resize(need, 0.0);
         }
         if let Some(case) = self.active {
+            // **A note stamped into the state's first block.**  At
+            // `t == 0` the generated code makes every source its `init`
+            // — `0 ::: mkSig (wait chan)`, the language's own stream
+            // semantics — and a control source then *holds* that across
+            // the block, so a gate written before this block is read at
+            // the next block's start; a sustained voice loses a block
+            // and is heard, a pick or a mallet has decayed by then.
+            // With the transport stopped nothing renders until a key
+            // arrives, so the block a session's first key lands in is
+            // exactly this one (`fixme.md` F240).  So that block is
+            // rendered as two: the first instant alone, which is the
+            // inits exactly as offline, and the rest, at whose start
+            // the controls are read.  Only then — every other block is
+            // one call, and bit-exact with the offline engine.
+            let split = self.t == 0 && notes > 0 && frames > 1;
             unsafe {
-                (case.render)(self.state.as_mut_ptr(),
-                              self.scratch.as_mut_ptr(),
-                              frames as i64,
-                              self.control.as_ptr());
+                if split {
+                    (case.render)(self.state.as_mut_ptr(),
+                                  self.scratch.as_mut_ptr(), 1,
+                                  self.control.as_ptr());
+                    (case.render)(self.state.as_mut_ptr(),
+                                  self.scratch.as_mut_ptr().add(ch),
+                                  frames as i64 - 1,
+                                  self.control.as_ptr());
+                } else {
+                    (case.render)(self.state.as_mut_ptr(),
+                                  self.scratch.as_mut_ptr(),
+                                  frames as i64,
+                                  self.control.as_ptr());
+                }
             }
         } else {
             self.scratch[..need].fill(0.0);
@@ -1101,7 +1128,7 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         }
     }
     let began = inst.t;
-    inst.process(out, p.frames_count);
+    inst.process(out, p.frames_count, n_notes);
 
     // **Stop means stop, within a stated time.**
     //

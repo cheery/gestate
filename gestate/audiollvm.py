@@ -1240,7 +1240,13 @@ def native_blocks(graph: Graph, directory, samples: int,
     lib.render_block.restype = None
     lib.render_block.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
                                  ctypes.c_int64, ctypes.c_void_p]
-    size = block or samples
+    # `block` is one size, or a sequence of sizes whose last one repeats
+    # — `[1, 511, 512]` renders the first instant alone, then the rest
+    # of the first block, then whole blocks — which is how the plugin
+    # renders a first block a hand's note landed in (`fixme.md` F240),
+    # and what a bake that means to be bit-exact with it has to say.
+    sizes = list(block) if isinstance(block, (list, tuple)) else [block or samples]
+    size = max(sizes)
     # The state is `t` plus one slot per node; the widest field is 8 bytes
     # and everything is naturally aligned, so a zeroed buffer of 8-byte
     # slots is the layout.  Zero is right for `t`; every other field is
@@ -1257,8 +1263,10 @@ def native_blocks(graph: Graph, directory, samples: int,
     sources = graph.control_sources()
     slots = (ctypes.c_int64 * max(1, len(sources)))()
     done = 0
+    step = 0
     while done < samples:
-        want = min(size, samples - done)
+        want = min(sizes[min(step, len(sizes) - 1)], samples - done)
+        step += 1
         pack_control(graph, slots, sources, control, done)
         lib.render_block(ctypes.cast(state, ctypes.c_void_p), buf, want,
                          ctypes.cast(slots, ctypes.c_void_p))
@@ -1266,7 +1274,8 @@ def native_blocks(graph: Graph, directory, samples: int,
         done += want
 
 
-def run_native(graph: Graph, directory, samples: int, block: int | None = None,
+def run_native(graph: Graph, directory, samples: int,
+               block: int | list | tuple | None = None,
                control=None, opt: str = "-O2") -> list:
     """Render through the generated code — the stage-4 comparison itself."""
     channels = out_channels(graph)
