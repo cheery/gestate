@@ -63,21 +63,29 @@ def test_an_envelope_read_per_sample_is_in_the_fragment():
     assert report.errors == [], "\n".join(report.errors)
 
 
-def test_the_unrewritten_definition_still_says_what_it_means():
-    """A list whose contents are *not* known stays a list, and is refused.
+def test_the_unrewritten_definition_is_evaluated_before_the_graph_runs():
+    """A list whose contents the rewrite cannot read stays unrewritten in
+    the front end — and since 2026-09-18 that is not a refusal: the
+    points are a *static position* (`spec/liveaudio.md` §"Step
+    functions"), evaluated on the machine at extraction, so a computed
+    list renders what the literal it computes to renders.  Until that
+    day this test pinned the refusal *is a list*; the rewrite declining
+    to fire still means the program means what it wrote."""
+    from gestate.audioengine import run
+    from gestate.audioextract import extract
 
-    The rewrite declining to fire is not a failure: the program means what
-    it wrote, and the fragment reports it in terms of the list it actually
-    is rather than in terms of a rewrite that did not happen.
-    """
-    source = ("pts : List Envelope\n"
-              "pts = case 1 < 2 of\n"
-              "    True -> [Step 0.0 1.0]\n"
-              "    False -> [Step 0.0 2.0]\n\n"
-              "sound : Sig Float\n"
-              "sound = map (n => on pts (toFloat n)) ticks\n")
-    report = check(source, rate=8000)
-    assert any("is a list" in e for e in report.errors), report.errors
+    computed = ("pts : List Envelope\n"
+                "pts = case 1 < 2 of\n"
+                "    True -> [Step 0.0 1.0]\n"
+                "    False -> [Step 0.0 2.0]\n\n"
+                "sound : Sig Float\n"
+                "sound = map (n => on pts (toFloat n)) ticks\n")
+    literal = ("sound : Sig Float\n"
+               "sound = map (n => on [Step 0.0 1.0] (toFloat n)) ticks\n")
+    report = check(computed, rate=8000)
+    assert report.errors == [], "\n".join(report.errors)
+    assert (run(extract(computed, rate=8000), 8, block=4)
+            == run(extract(literal, rate=8000), 8, block=4))
 
 
 # ── Against a reading from outside the language ─────────────────────────────

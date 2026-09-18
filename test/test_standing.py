@@ -217,10 +217,14 @@ def test_this_trees_questions_file_is_usable():
 
 
 def test_the_command_answers_for_a_card_of_this_tree():
-    out = subprocess.run([sys.executable, str(TOOL), "card:" + "online.md"],
+    # Whichever card is live today: a card named here goes to a shelf
+    # one day (`online.md` did, 2026-09-18) and the test must not.
+    live = sorted(p.name for p in (ROOT / "board").glob("*.md")
+                  if p.name != "README.md")[0]
+    out = subprocess.run([sys.executable, str(TOOL), "card:" + live],
                          capture_output=True, text=True, cwd=ROOT)
     assert out.returncode == 0
-    assert SHELF + "online.md" in out.stdout
+    assert SHELF + live in out.stdout
 
 
 # --- the harvest --------------------------------------------------------------

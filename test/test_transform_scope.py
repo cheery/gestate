@@ -130,8 +130,25 @@ main = fix Box (r => {1} \\/ f r)
 
 
 def _halves(source: str) -> set[str]:
+    """The user's halves.  **Since 2026-09-18 the manufactured `Num
+    (Cyclic 8)` methods get halves too** — `resolve_static_methods`
+    resolves a dictionary slot that is a method applied to its
+    type-level number, so `+` at `Cyclic 8` is called by name and δ can
+    ask for its derivative by name, which is F57's own rule
+    (`card:strict-forms.md` §"Read — 2026-09-18", item 3).  They are the
+    compiler's, not the program's, so they are set aside here and
+    asserted once below."""
+    return {n for n in _all_halves(source) if not n.startswith("__Num_")}
+
+
+def _all_halves(source: str) -> set[str]:
     return {n for n in compile(source).globals
             if isinstance(n, str) and n.endswith(("_phi", "_delta"))}
+
+
+def test_the_manufactured_cyclic_methods_are_called_by_name_and_get_halves():
+    made = {n for n in _all_halves(IN_MAIN) if n.startswith("__Num_Cyclic_8_")}
+    assert made, "the Num (Cyclic 8) slots resolve to their methods now"
 
 
 def test_a_supercombinator_with_no_datafun_in_it_is_left_alone():

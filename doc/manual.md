@@ -663,8 +663,13 @@ wobble = !(t => t * 0.1) elapsed
 ```
 
 Two habits, both learned by tripping on them.  A numeric *literal*
-beside a signal lifts by itself (`tone * 2` needs no mark), but a
-**named** value does not: `every (!pulseHz)`, never `every pulseHz`.
+beside a signal lifts by itself (`tone * 2` needs no mark), and since
+2026-09-18 so does a **named** value wherever the checker already knows
+a signal is wanted — a `Sig` parameter, or the right side of a signal:
+`lowpass cutoff s` and `tone * gain` both work with `cutoff`, `gain :
+Float`.  Where it does not yet know, the mark stays: `gain * tone`
+needs `!gain`, because `*`'s first parameter is settled only by its
+first argument.  When in doubt, write the mark; it is never wrong.
 And `!(f x)` — application *inside* the parentheses — is the constant
 signal of the value `f x`, computed once; prefer it for derived
 constants, so the arithmetic happens at the value level rather than

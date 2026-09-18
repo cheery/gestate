@@ -310,7 +310,10 @@ main = case walk of
 def test_manual_s6_the_lifting_mark_rules():
     """§6 `!`: the manual's `wobble` runs, a *named* application inside
     the parentheses folds once into a constant signal, a literal beside
-    a signal lifts by itself — and a named Float does not."""
+    a signal lifts by itself — and a named Float does, to the right of a
+    signal, where the checker already wants a `Sig`; to the left it
+    does not, and the mark stays (2026-09-18, `card:strict-forms.md`
+    §"Read — 2026-09-18", item 4)."""
     from gestate.audioextract import extract
     from gestate.unify import UnifyError
 
@@ -322,6 +325,8 @@ def test_manual_s6_the_lifting_mark_rules():
     sound("!(half 0.25) * elapsed",
           "half : Float -> Float\nhalf x = x * 0.5\n")
     sound("!0.5 * elapsed * 2")
+    sound("!(t => t) elapsed * pulseHz",
+          "pulseHz : Float\npulseHz = 2.0\n")
     with pytest.raises(UnifyError):
-        sound("!(t => t) elapsed * pulseHz",
+        sound("pulseHz * !(t => t) elapsed",
               "pulseHz : Float\npulseHz = 2.0\n")
