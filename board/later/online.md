@@ -1,6 +1,7 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-09-04, pieces A, B, B2 and C2 landed; C is
+    status   shelved — 2026-09-18, §"Shelved — 2026-09-18".  Was doing
+             from 2026-09-04, pieces A, B, B2 and C2 landed; C is
              settled — C3 killed, **C1 struck with Pyodide at Henri's
              word**, C4 a finding with no runner, C2 what the page does
              — §"The pieces"
@@ -464,6 +465,18 @@ they were his.  What stands open is not there.  It is:
   the front end reaching `wasm32`, and it is nobody's today"*.
 
 So the sitting this card is waiting for is short: A, then the ledger.
+
+## Shelved — 2026-09-18
+
+The flow lamp named this card at seven days untouched a second time,
+and a session opened the sitting with it as `board/README.md` §"The
+priority" says.  The reading put to him: **waits on a sitting for
+piece A, the wasm build; the ledger is written when A lands** — which
+is waiting on him and not on an event, so the debt kind, and shelved
+only because he means to let it sit.  **Henri, 2026-09-18:** *"the
+defaults stand, shelve both."*  It comes back the way every card does:
+by him saying so, and the sitting it needs is short — §"The flow lamp,
+answered — 2026-09-11" says A, then the ledger.
 
 ## Done
 

@@ -1,6 +1,7 @@
 # hands-in-the-tab — the three pieces whose score reads what a hand holds
 
-    status   open — 2026-09-11
+    status   shelved — 2026-09-18, §"Shelved — 2026-09-18".  Open from
+             2026-09-11
     because  "I think I'd like to provide a gallery of controllable
              audio-visual experiences." — Henri, 2026-09-02, the
              `because` of card:audiovisual-gallery.md.  Three of the
@@ -90,6 +91,17 @@ offering one.*
 score does not depend on the hands, it is what the site ships today,
 and making every piece force a stream at frame rate to serve three
 would be paying everywhere for what is wrong in three places.
+
+## Shelved — 2026-09-18
+
+The flow lamp named this card at seven days untouched, and a session
+opened the sitting with it as `board/README.md` §"The priority" says.
+The reading put to him: **waits on the gallery being pulled again; day
+one's measurement is taken the sitting it is** — the event kind, so it
+costs nothing while it waits.  **Henri, 2026-09-18:** *"the defaults
+stand, shelve both."*  It comes back by him saying so, and its day one
+is unchanged: the serialize cost measured before question 1 is put to
+him.
 
 ## Done
 
