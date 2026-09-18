@@ -106,7 +106,10 @@ language in gestate.  Multi-staging proposes to that direction a little
 bit."*  Datafun is the logic fragment the tree has — sets, `fix`,
 `for` — and the day's staging pointed there because a stage is a moment
 where more is known.  A direction beside the one above, and by the same
-rule not a card: [[capacity-is-not-a-caller]].
+rule not a card: [[capacity-is-not-a-caller]].  Talked over the same
+night, `journal.md` §"Postscript — the logic language, talked over":
+search at stage one is admissible the day a term can cross, and the
+tables are that search at size one.
 
 ## Read — 2026-09-16: the theory's two sources, at their page
 

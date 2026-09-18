@@ -3691,3 +3691,46 @@ think, and written down so it is not lost.
 **Tomorrow's first thing.**  *Henri:* "Tomorrow's first thing is to
 visit my dad.  It's weekend."  The next sitting opens with
 `card:notes-editor.md`, which the lamp names at seven days.
+
+### Postscript — the logic language, talked over
+
+After the kaizen he stayed with the first answer.  *Henri:* "I know the
+datafun fragment is lively, but I wonder about more in same direction.
+The multi-staging -approach and the way compiler works would support
+something like logic programming.  I'm imagining about functional
+programs as plans to proceed with and logic programming as a planning
+or scheming tool..  I note that the python programs you write has
+multiple bases covered unlike the programs I do write myself.  I
+figure a logic programming might be a way to get onto same results
+even if the programs were written more like humans write them."
+
+*The session's reading, kept as one.*  The split he describes is the
+two-level one: stage two is the plan, stage one is where the tree
+already derives types from kinds, tables from finite functions, the
+compiler's decisions in `rules.ges`, and an envelope's points — every
+one a decision derived from data before the plan runs.  The coverage
+he sees in the session's Python is mostly case splits the ledger
+forces, one refusal per shape; a rule over a relation or a `case` over
+a declared type is total by construction instead, which is why
+`flatness` answers *why not* for every shape in fifty lines.  The move
+that scales it is the one `deriving` and `reflect_data` already make:
+more decisions written as rules over the structure the compiler
+holds, checked total, run at stage one — a human-written program then
+covers the bases because the rules do.
+
+**And a correction, his.**  The session called Prolog-style search the
+wrong animal because backtracking has no fixpoint.  *Henri:* "I don't
+know whether the prolog is the wrong animal if we're talking about
+model-checkable pieces put together by solution found by prolog-style
+search."  He is right: the model-checker judges the plan and never the
+planner, and the stage already extends that trust to arbitrary code.
+What a search would cost is the *shape of its answer* — today a
+stage-one value crosses as a type, a table or points; a plan crossing
+as a program is a term as a value, `card:strict-forms.md` Q6, the one
+thing both papers price.  So: admissible the day a term can cross,
+and today's tables are that search at size one.
+
+**Where this belongs**, since he asked: here, as what happened; the
+language-goal memory holds his sentence and points here; a note of its
+own the day it gets a second conversation, the roadmap's backlog the
+day it gets a caller.  A direction, not a card.
