@@ -751,11 +751,54 @@ derived by `lineKind`, `$(rowType markRel)` in the game, and
 `document "section.voices"` open.  Stage one now evaluates
 `documentRow model` and reads the model and the lines off the machine.
 
+### Read — 2026-09-18: two-level type theory, and seven places it reaches
+
+**Henri, the morning:** *"Read ~/misc/papers/2LTT.pdf and
+~/misc/papers/scoped-and-typed-staging-by-evaluation.pdf then tell me,
+where we could apply these papers in our work?  Right now we've got
+some kind of staging, but how could we go further there?"*  Then, on
+the answer: *"write this somewhere where it belongs.  I think we could
+work on some of these today."*
+
+What the two papers are, and what they say about the stage this card
+built, is `doc/memory/the-language-goal.md` §"Read — 2026-09-18: the
+two-level papers, at their page".  The one-line version: **the stage
+of §"Built — 2026-09-14" is a two-level type theory whose meta level
+is one type, `Type`, and whose splice is restricted to type positions**
+— Kovács gives it its theorems, Allais gives it a form small enough to
+write down, and neither covers the other direction the tree built on
+2026-09-16, a type read back as a value.  *The seven below are the
+session's, ranked by whether a caller exists today; none is decided.*
+
+| | what | the paper | the tree today | caller |
+|---|---|---|---|---|
+| **1** | **staging by evaluation, not blank–slice–recompile** | Allais §4, Kovács §4.4: one evaluation, static things host values, dynamic things syntax, no second parse | `stage.staged` blanks the source line by line, appends `__stage_i__` globals, compiles the *text* again from inside a compile through the lockless door; two stage compiles inside the game's 1.89 s cold build | `doc/memory/a-run-silent-for-a-minute.md` — the reentrant compile has deadlocked three times.  *Small step:* an entry that compiles items, not re-sliced text, so the blanking and the seam plumbing go.  *Large step:* a mixed evaluator, only the day a term is staged |
+| **2** | **a stage in the type, for the audio fragment's static arguments** | Allais §3.1, `Type st`: `List1 Point` and `⇑(Sig Float)` are different types, and a dynamic value in a static position is a type error | `on` needs its points literal at the call site; a bank's count is static; the refusal comes out of `audiograph` after monomorphisation, or not at all (`[[gestate-language-pitfalls]]`) | the pitfall list.  *Shape:* mark the primitives whose arguments must be stage-one values; the cut already answers whether one is |
+| **3** | **the trick, mechanised over the finite types the grammar has** | Kovács §2.3, cofibrancy: a function out of a finite type is a finite product | `Cyclic n`, `lo .. hi`, `Bounded` carry their size in the type; `spec/liveaudio.md` §"Step functions" tells the author to write the `case` table by hand; `roll.ges`' `rollNum` is one to sixty-four | the rule in that spec and the table in the library.  *Verifiable* against the golden buffers the way the hand rewrite was — a stage-one function from a finite type applied to an audio-rate value η-expands into the table |
+| **4** | **the lift as a coercion, not a marker** | Kovács §2.3.2: `A ≤ ⇑A` inserted during bidirectional elaboration wherever an inferred type meets an expected one | a numeric literal lifts on its own, a named `Float` does not — `every pulseHz` is a type error, `every (!pulseHz)` is right | the pitfall.  *Cost:* a coercion an author did not write, which *optimised for reading* has to weigh; the memory's preferred idiom, lift once at the use site, is what the coercion produces |
+| **5** | **the generators, and E** | Kovács §2.2 writes a voices bank in six lines — `map` over a static `Nat1` into a `Vec`, one object declaration per element; §8 lists let-insertion as future work, and Allais has none | ten Python files write program text; the irreducible fourteen lines are channel identity | **Q6's default stands, now with both related-work sections behind it**: a channel that is a value sidesteps the one problem both papers leave open.  Waits on his design, §"What a session does now" |
+| **6** | **the binder `deriving` waits on** | 2LTT never puts the binder in the data: the meta level's own Π over `⇑U0` is the quantifier, so a derivation is a stage-one function of its parameter types, instantiated per ground use | `deriving.py` stays in Python because a declaration with open parameters is a scheme and `Type` has no binder (`card:types-in-the-host.md` Q5); the tree already specialises to ground types before the machines, in `changes.py` and the audio graph | none — Q5's trigger, a fourth derivable class |
+| **7** | **the formal statement, small** | Allais's whole calculus is a page: terms indexed by phase and stage, lift only at `sta`, quote and splice only at `src`, so a staged term cannot contain a static subterm by construction; Kovács Definition 4.2 names soundness, stability, strictness | item H — the machines see stage two only — is a pipeline order and test G; `test_stage.py`'s round trip is stability and soundness for the type fragment, unnamed | the language goal's *easy to model-check*.  A section in `spec/types.md`, not a document, under `[[gestate-rules-cap]]`; the three properties naming which test holds which |
+
+**The session's order, his to reorder:** 1 first, because it has a
+defect count behind it and removes the seam every later item would
+otherwise inherit; then 4 and 3, each a rule in one place with an
+oracle already built; 2 after them, because it is the first *new*
+thing in a type; 7 whenever a sitting has the reading time; 5 and 6
+wait on their triggers.
+
+**Postcondition for 1, the session's sentence, uncorrected:** *a
+program with a splice compiles without the compiler reading its own
+source text a second time, and the stage cannot wait on the front
+end's lock because it never takes it.*
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are
 the library's, and seam 2 is closed by `Act` — the picture carries the
 command and the host performs it.  What remains on this card is E —
 the fourteen lines, every one of them `__x__ = chan` — which waits on
-a design for a channel that is a value, his; and the card's larger
-question, how a program is composed from pieces, is his too.
+a design for a channel that is a value, his; the card's larger
+question, how a program is composed from pieces, is his too; and
+**the seven places of §"Read — 2026-09-18"**, of which 1, 3 and 4 have
+a caller and an oracle today and 2 is the first new thing in a type.

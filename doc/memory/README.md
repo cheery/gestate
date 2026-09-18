@@ -128,7 +128,7 @@ session inferred.
 - [Blame the task, not the character](blame-the-task-not-the-character.md) — Henri, 2026-09-04: scolding a character is inert because nothing carries it forward; the environment he built changed him
 - [A defect is a caller, never a verdict](a-defect-is-a-caller-not-a-verdict.md) — Henri, 2026-09-05: counting mistakes is good, the guilt attached is the problem; an unashamed andon gets pulled
 - [Dialogue is its own mode](dialogue-is-its-own-mode.md) — Alhanen: understanding rather than winning or agreeing; a rhetorical question is an opinion wearing a question mark, so say the view
-- [The language goal](the-language-goal.md) — 2026-08-20: wasm, model-checkable, optimised for reading; 2026-09-15 the direction beyond it, general-purpose and multi-staged; sources read 2026-09-16
+- [The language goal](the-language-goal.md) — 2026-08-20: wasm, model-checkable, optimised for reading; 2026-09-15 general-purpose and multi-staged; four papers read at their page, 09-16 and 09-18
 - [Music craft](music-craft.md) — the harmonic vocabulary he works in, the four mistakes he has named, and the through-line rule: one or two voices that never stop make four parts one track
 - [Decisions arrive shaped](decisions-arrive-shaped.md) — three gates before a question reaches Henri; a default with a trigger, questions batched, a reversible choice decided and said (2026-09-14)
 - [Sediment versus debt](sediment-versus-debt.md) — a shelved card waiting on an event costs nothing; one waiting on a decision compounds — *waiting on an event, or on me?*

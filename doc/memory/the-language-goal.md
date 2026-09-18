@@ -1,6 +1,6 @@
 ---
 name: the-language-goal
-description: "Henri's short-term goal, 2026-08-20, in his own notes: a language that compiles to wasm, is easy to model-check and to study, and is optimised for reading — with later tunings for UI code, concurrency, live coding and mathematical code; and since 2026-09-15 the direction beyond it, a general-purpose multi-staged language, where each stage is a moment more type information arrives — the capability, not an ecosystem"
+description: "Henri's short-term goal, 2026-08-20, in his own notes: a language that compiles to wasm, is easy to model-check and to study, and is optimised for reading — with later tunings for UI code, concurrency, live coding and mathematical code; and since 2026-09-15 the direction beyond it, a general-purpose multi-staged language, where each stage is a moment more type information arrives — the capability, not an ecosystem; the two-level papers read 2026-09-18"
 metadata:
   type: project
 ---
@@ -267,3 +267,104 @@ stage-two program to need a type it did not write.  Still not a card —
 the `because` would be that the host's six readers are six places the
 checker cannot see, which is `[[declare-parity-derive]]`'s argument
 and his to weigh.
+
+## Read — 2026-09-18: the two-level papers, at their page
+
+*The reading is the session's, at Henri's ask the same morning: "where
+could we apply these papers in our work?  Right now we've got some
+kind of staging, but how could we go further there?"  Both from
+`~/misc/papers/`.  The work items the reading leaves are on the live
+card, `card:strict-forms.md` §"Read — 2026-09-18: two-level type
+theory, and seven places it reaches"; this section is what the papers
+are and what they say about the stage the tree already has.*
+
+**András Kovács.  "Staged Compilation with Two-Level Type Theory."
+*Proc. ACM Program. Lang.* 6, ICFP, Article 110, 30 pages.  ACM,
+2022.**  Two-level type theory, borrowed from synthetic homotopy
+theory, read as a staged language: universes `U0` (runtime, the object
+theory) and `U1` (compile time, the meta level); every type former
+stays within one stage; lifting `⇑A : U1` for `A : U0`, quote `⟨t⟩ :
+⇑A`, splice `∼t : A`, definitional inverses.  Staging is
+evaluation in the presheaf model over the object theory's contexts
+(§4), and it is a *strong conservativity* theorem: soundness `⌜Stage
+t⌝ = t`, stability `Stage ⌜t⌝ = t`, strictness — no β-reduction in the
+object theory, so the output is the program and not a normal form
+(Definition 4.2).  Types may be staged, which no earlier system
+allowed (§2.2, `Vec : Nat1 → ⇑U0 → ⇑U0`).  Binding-time improvement is
+rewriting along the preservation isomorphisms of §2.3, and Danvy's
+"trick" is *cofibrancy*: a function out of a finite meta type is a
+finite product, so it serialises.  §2.4 varies the object language —
+monomorphic, so *polymorphic functions cannot be stored inside
+runtime data*; and representation-polymorphic, `Rep : U1` indexing
+runtime types.  §6: intensional analysis of object terms is
+incompatible with stability under substitution (the Yoneda argument);
+stability under *weakening* only permits it and costs the object
+theory its dependent and polymorphic types.  No effects at the meta
+level; let-insertion, more stages and stage polymorphism are §8's
+future work.
+
+**Guillaume Allais.  "Scoped and Typed Staging by Evaluation."  In
+*PEPM '24*, London, 11 pages.  ACM, 2024; arXiv:2310.13413v3.**  The
+same calculus, minimal and intrinsically typed in Agda: terms indexed
+by a *phase* (`src` before staging, `stg` after) and a *stage* (`sta`,
+`dyn`), the static stage available only in the source phase, lifting
+only at `sta`, quote and splice only at `src` — so a staged term
+**cannot contain a static subterm, by construction** (§3).  Staging is
+one evaluation (§4): static values are host values, dynamic values are
+staged syntax, quote and splice are the identity in the model,
+application is `$$` at the static stage and the syntax constructor at
+the dynamic.  The two layers need not share features: §5 adds pairs at
+the static stage only, and §6 makes the dynamic layer a circuit
+language — `nand`, `par`, `seq`, `mix` — under a functional static
+layer, which reads Quipper and EWire as two-level theories after the
+fact (§7.3).  No let-insertion; purely generative.
+
+### What the tree already is, in their words
+
+| the tree | the papers' name for it |
+|---|---|
+| `Type` in `facts.ges`, five constructors and a free variable | Kovács §2.2, the deep embedding `Ty : U1` with `EvalTy : Ty → ⇑U0`; `stage._type_val` is `EvalTy` |
+| `$(e)` in a type position | the splice `∼e`, restricted to types — the case Kovács says no earlier system had |
+| the on-demand cut: an item mentioning a splice is stage two, transitively (`stage._names`, an over-approximation by name) | a name-walk standing in for what 2LTT decides by universe — anything typed at `U1` is staged away, and a `U1` value at `U0` is a type error, not a cycle refusal |
+| one prelude serving both stages | Allais §3.2, constructors polymorphic in phase and stage; Kovács §8 calls it stage polymorphism and leaves it open |
+| the audio fragment — first-order, flat types, no lists, `on` needs its points at the call site (`spec/liveaudio.md` §"Step functions", `[[gestate-language-pitfalls]]`) | Kovács §2.4.1 monomorphization and §2.4.2 representation polymorphism; *polymorphic functions cannot be stored inside runtime data types* is the fragment's first rule word for word, and the flatness judge decides a `Rep` |
+| `!x`; a numeric literal lifts on its own and a named `Float` does not | the serialisation map `A1 → ⇑A0` (Sheard and Taha's "lifting"), and the coercive subtyping `A ≤ ⇑A` of §2.3.2 inserted at literals only |
+| the integer `case` table of `spec/liveaudio.md`, and `roll.ges`' `rollNum` to sixty-four | the trick, §2.3: `Cyclic n`, `lo .. hi` and `Bounded` carry their size in the type, which is cofibrancy |
+| `stage.reflect` then `_type_val` is the identity on twelve types (`test_stage.py`) | soundness and stability, Definition 4.2, held by a test for the type fragment |
+| `rules.ges` deciding over `Type` *data* and never over a term | the §6 verdict, and Jay & Palsberg's above: reflection over types as data keeps stability and HM; over terms loses both |
+| the machines and the model-checker see stage two only (item H of the card) | Allais's phase index — a `Term stg` has no quote or splice constructor — stated as a typing rule rather than a pipeline order |
+
+So the stage sits on the sound side of every restriction the papers
+draw, and got there by refusing the same things they refuse.
+
+### What the papers do not answer
+
+**The upward direction is in neither.**  2LTT computes object code
+from meta values and nothing flows back.  `stage.reflect` and the four
+readers in `rules.ges` read a type the checker *inferred* and compute
+from it — the direction of Shields, Sheard and Peyton Jones above, a
+compiler pass here and not a language stage, which is why it costs
+nothing the papers warn about.  His sentence of 2026-09-15, each stage
+a moment when more type information arrives, needs both directions at
+once.  Kovács's nearest offer is §2.4.2: make the information you would
+reflect an explicit meta-level *index* on the object type, a `Rep`,
+computed by staging — for flatness, a signal's element type carrying
+its representation.  The honest alternative to reflection, and much
+larger.
+
+**More than two stages is future work in both.**  An N-level theory
+"appears straightforward" in syntax with "subtleties" in semantics
+(Kovács §7), and stage polymorphism is unsolved.  The tree runs three
+levels — the LLVM step functions, the G-machine substrate at frame
+rate, the compile-time stage — with Python above them and one prelude
+across the top two.  Allais's polymorphic indices are the nearest
+account of that, and they are a workshop paper's device.
+
+**Effects at stage one.**  The card's Q8 kept *in some cases the file
+itself* for where `document` reads its schema — F#'s type provider
+reading external data at compile time.  Kovács §7 has no meta-level
+effects and suggests a monad.  The tree has the factoring already, in
+`Act`: a program says what it wants done as data and the host
+performs it.  The day stage one reads a file, a stage-one value that
+*asks* for a schema and a host that answers is the same design a
+second time, and stage one stays pure and cacheable.
