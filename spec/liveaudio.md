@@ -238,6 +238,9 @@ calls must be:
   per sample inside a callback with a deadline, so it has to finish in a
   number of steps the compiler can count. Structural recursion over a flat
   type would be admissible — it unrolls, a flat type being non-recursive —
+  *(And since 2026-09-18 a **function of a finite type is a table** — see
+  below the list — which is the one place recursion over anything is
+  admitted, because it runs before the graph does.)*
   but nothing has wanted it, and admitting it means *proving* the unrolling
   terminates rather than assuming it.
 
@@ -338,6 +341,30 @@ Two things to carry into stage 2:
 
 Expect one or two more of these. Finding them is what stage 1 is for, and it
 found this one by rejecting a program the plan promised would pass.
+
+**A function of a finite type is a table** — *2026-09-18,
+`card:strict-forms.md` §"Read — 2026-09-18", item 3.*  A scalar definition
+of **one parameter whose type is finite** — `Cyclic n`, or `lo .. hi` —
+is not translated into a step function at all.  Its body is run **once
+per value of the domain at extraction time**, on the G-machine, and the
+answers become the constants of exactly the `prim_eq_int` cascade the
+hand-written `case` above compiles to, so the two are the same graph.
+The body may read a list, recurse, take a dictionary — anything the
+machine runs — with one exception: it may not reach a signal, because a
+signal has no value before the graph runs, and the checker names the
+signal it reached.  The result must be flat.
+
+This is Kovács's *cofibrancy* (2LTT, §2.3, Danvy's "trick"): a function
+out of a finite type is a finite product, so `Cyclic 8 -> Float` *is*
+eight floats.  It is also the finite types' only eliminator at audio
+rate — a `case` over a `Cyclic 4` does not typecheck, the match compiler
+comparing with an integer primitive — and the way into one is
+`fromInteger`, whose `Cyclic n` instance is `prim_mod_int` by
+construction and is admitted by its head like `Int`'s.  So the tune of
+`blip.ges` may be written as the list its comment wished for, read by a
+recursion over `Cyclic 8`, and it renders bit-identically to the golden
+(`test/test_audiograph.py`).  What was "a convenience with no caller"
+above needed no list lifting: give the index a finite type.
 
 ### The fork worth deciding early
 

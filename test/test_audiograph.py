@@ -603,3 +603,93 @@ def test_a_lift_the_author_did_not_write_renders_what_the_written_one_does():
     rate, samples, block = 800, 64, 8
     assert (run(extract(bare, rate=rate), samples, block=block)
             == run(extract(src, rate=rate), samples, block=block))
+
+
+# ── A function of a finite type is a table — `card:strict-forms.md` §"Read — 2026-09-18", item 3 ──
+
+
+def _blip_with_the_tune_as_a_list() -> str:
+    """`blip.ges` with its hand-written table replaced by the list its own
+    comment wished for, read by a recursion over `Cyclic 8` — outside the
+    fragment on every count the spec lists, and a table."""
+    src = _source("blip.ges")
+    old = src[src.index("noteOf : Int -> Float"):src.index("noteCount : Int")]
+    new = """tune : List Float
+tune = 220.0 :: 261.63 :: 293.66 :: 329.63 :: 392.0 :: 440.0 :: 392.0 :: 293.66 :: Nil
+
+noteOf : Cyclic 8 -> Float
+noteOf i = pick tune 0 i
+
+pick : List Float -> Cyclic 8 -> Cyclic 8 -> Float
+pick xs k i = case xs of
+    x :: rest -> case k == i of
+        True -> x
+        False -> pick rest (k + 1) i
+    Nil -> 0.0
+
+"""
+    out = src.replace(old, new).replace(
+        "noteOf (prim_mod_int (prim_div_int n samplesPerNote) noteCount)",
+        "noteOf (fromInteger (prim_div_int n samplesPerNote))")
+    assert out != src, "blip.ges no longer has the table this test rewrites"
+    return out
+
+
+def test_a_tune_written_as_a_list_over_a_finite_type_renders_the_golden():
+    """Kovács §2.3, cofibrancy: `Cyclic 8 -> Float` is eight floats.  The
+    body runs once per value at extraction, whatever it reads, and the
+    graph is the cascade the hand-written `case` compiles to — so the
+    committed golden, pinned to the hand table, is what the list renders."""
+    from gestate.audiograph import check
+
+    bare = _blip_with_the_tune_as_a_list()
+    header, want = _golden("blip.ges")
+    report = check(bare, rate=int(header["rate"]))
+    assert report, report.message
+    assert report.tables == ["noteOf"]
+    graph = extract(bare, rate=int(header["rate"]))
+    assert run(graph, len(want), block=_block(header)) == want
+    # And the table is the shape a hand-written `case` has: a chain of
+    # integer comparisons, one fewer than the domain has values.
+    body, depth = graph.funcs["noteOf"].body, 0
+    from gestate.audioir import Case
+    while isinstance(body, Case):
+        depth += 1
+        body = body.alts[1][2]
+    assert depth == 7
+
+
+def test_a_table_that_reads_a_signal_is_refused_naming_it():
+    """A table's body runs before the graph does, so a signal in it has
+    no value; the checker says which one and where."""
+    from gestate.audiograph import check
+
+    bad = _blip_with_the_tune_as_a_list().replace(
+        "noteOf i = pick tune 0 i", "noteOf i = head sound")
+    report = check(bad, rate=800)
+    assert not report
+    assert "`noteOf`" in report.message and "is a table over `Cyclic 8`" in report.message
+    assert "reads `head`" in report.message
+
+
+def test_a_bounded_range_is_a_table_too():
+    """`lo .. hi` is the other finite type: the domain is inclusive, and
+    an index outside it is the author's contract, not the table's."""
+    src = """gainAt : 3 .. 6 -> Float
+gainAt k = pickGain (3 :: 5 :: 7 :: 9 :: Nil) 3 k
+
+pickGain : List Int -> 3 .. 6 -> 3 .. 6 -> Float
+pickGain xs at k = case xs of
+    x :: rest -> case at == k of
+        True -> toFloat x
+        False -> pickGain rest (at + 1) k
+    Nil -> 0.0
+
+sound : Sig Float
+sound = map (t => gainAt (fromInteger (3 + floor t))) now
+"""
+    graph = extract(src, rate=4)
+    assert "gainAt" in graph.funcs
+    got = run(graph, 16, block=4)
+    # Four samples per second at rate 4: `floor t` is 0,0,0,0,1,1,1,1,…
+    assert got[:16] == [3.0] * 4 + [5.0] * 4 + [7.0] * 4 + [9.0] * 4

@@ -799,14 +799,30 @@ def resolve_static_methods(
 
     resolved: set[str] = set()
 
+    def constant_head(slot: Expr):
+        """The method global a constant slot names, or `None`.
+
+        A slot is the method itself, or — for a manufactured instance at
+        a type-level number, `Num (Cyclic 8)` — the method applied to
+        that number: `__Num_Cyclic_8_fromInteger__ 8`.  A global applied
+        to literals is as constant as a bare one, and leaving it as a
+        projection was what kept `fromInteger` at a `Cyclic n` out of
+        the audio fragment (`card:strict-forms.md` §"Read — 2026-09-18",
+        item 3)."""
+        e = slot
+        while isinstance(e, EAp) and isinstance(e.arg, ENum):
+            e = e.fn
+        return e if isinstance(e, EGlobal) else None
+
     def rewrite(e: Expr) -> Expr:
         if (isinstance(e, EAp) and isinstance(e.fn, EProj)
                 and isinstance(e.arg, EGlobal)):
             slots = table.get(str(e.arg.name))
             if slots is not None and e.fn.i < len(slots):
                 slot = slots[e.fn.i]
-                if isinstance(slot, EGlobal):
-                    resolved.add(str(slot.name))
+                head = constant_head(slot)
+                if head is not None:
+                    resolved.add(str(head.name))
                     return slot
         return map_children(e, rewrite)
 

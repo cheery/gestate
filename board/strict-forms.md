@@ -860,6 +860,55 @@ goal exactly what the item said: a `constSig` an author did not write,
 now in the core and on no line — the reference page says where it
 fires and where it does not.
 
+### Built — 2026-09-18: item 3, a function of a finite type is a table
+
+**Henri:** *"go on with 3."*  Built the same evening, and the looking
+changed its shape.  The card had it as *the trick, mechanised over the
+finite types the grammar has*; the tree said three things first.  The
+prelude has **no list-index function at all**, which is why every
+author writes the table by hand — `lead.ges` 48 arms, `strings2.ges`
+45, `sauna.ges` 67, `blip.ges` 8 with a comment wishing for the list.
+`spec/liveaudio.md` had recorded list lifting as *a convenience with no
+caller*.  And the finite types had **no eliminator in the fragment**: a
+`case` over a `Cyclic 4` does not typecheck, the match compiler
+comparing with `prim_eq_int`, and `fromInteger` at `Cyclic 8` reached
+the checker as a dictionary projection and was refused as polymorphic.
+So the item was not a shortcut; it was the finite types' missing
+eliminator and introduction at audio rate, which is Kovács's
+cofibrancy read as a rule.
+
+**The rule, in `spec/liveaudio.md` §"Step functions":** a scalar
+definition of one parameter of finite type — `Cyclic n`, `lo .. hi` —
+is a table.  `audiograph._table` admits it without walking its body
+into the fragment: the result must be flat and the body may reach no
+signal, transitively (`_reaches_a_signal`, naming the signal and
+through whom); `audioextract._table` runs it once per value of the
+domain on the G-machine — `pipeline._lower` over the analysis in hand,
+so no text and no lock, item 1's door — and emits the `prim_eq_int`
+cascade a hand-written `case` compiles to, so the two are the same
+graph.  Two smaller things made the way in: `resolve_static_methods`
+now resolves a slot that is a global applied to literals, which is what
+a manufactured `Num (Cyclic 8)` slot is (`fromInteger 8`), and `Cyclic`
+and `Bounded` joined the heads whose methods are trusted by name,
+because `constraint._numeric_instance` makes them `prim_mod_int` and
+integer comparisons by construction.
+
+| | before | after |
+|---|---|---|
+| `blip.ges`'s tune as a `List Float`, read by a recursion over `Cyclic 8` with `==` and `+` | refused: a list, a recursion, a dictionary | **bit-identical to the committed golden**, 600 samples; `report.tables == ["noteOf"]`; the table a chain of 7 comparisons, as the hand `case` is |
+| a table whose body reads `head sound` | — | *`noteOf` is a table over `Cyclic 8`, so its body runs once per value before the graph does — and it reads `head`, which has no value until the graph runs* |
+| `gainAt : 3 .. 6 -> Float` over a list | refused | a table, inclusive at both ends; 16 samples pinned |
+| a hand-written `Int -> Float` `case` table | as it was | as it was — the rule fires on a finite parameter only, and no example has one at audio rate, so nothing existing moved |
+| held by | — | `test_audiograph.py` three; `spec/liveaudio.md` §"Step functions"; the `List` hint in `audiograph._table_hint` now says the true thing — it used to claim an array lift that was never built |
+
+**What this does not do.**  It does not lift a list read at an `Int`
+index: `Int` is not finite, and the default arm is the author's.  It
+does not tabulate a function of two finite parameters, which would be
+a product of products; one parameter is what the examples' tables
+have.  And it does not make `Cyclic` arithmetic cheaper at audio rate
+than it was: `fromInteger` is a `prim_mod_int` per sample, as `noteAt`
+already paid.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are
@@ -868,5 +917,5 @@ command and the host performs it.  What remains on this card is E —
 the fourteen lines, every one of them `__x__ = chan` — which waits on
 a design for a channel that is a value, his; the card's larger
 question, how a program is composed from pieces, is his too; and
-**the seven places of §"Read — 2026-09-18"**, of which **1 and 4 are built**, 3 has
-a caller and an oracle today, and 2 is the first new thing in a type.
+**the seven places of §"Read — 2026-09-18"**, of which **1, 3 and 4 are built**, and 2 is the first new thing in a
+type.

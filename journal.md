@@ -3541,3 +3541,49 @@ rewrite of a table to the golden buffers; the same comparison, turned
 on `bell.ges` with two lifts removed, was bit-identical at 8 kHz over
 four thousand samples and again in the graph test at 800 Hz.  Nothing
 about the coercion needed a new instrument.
+
+## The finite types had no eliminator, and the table is it — 2026-09-18, evening
+
+Item 3 of the morning's reading, *the trick over the finite types the
+grammar has*, and the first of the day to change shape under the
+looking.
+
+**Three facts the tree gave up before a line was written.**  The
+prelude has no list-index function, so every author who wants a tune
+writes the `case` by hand — forty-eight arms in one example, sixty-seven
+in another, and `blip.ges`'s comment wishing for the list it could not
+have.  The spec had filed automatic list lifting as a convenience with
+no caller.  And `Cyclic n` and `lo .. hi`, the finite types Datafun's
+`fix` was given for termination, could not be *eliminated* in the
+fragment at all: a `case` over a `Cyclic 4` does not typecheck, since
+the match compiler compares with the integer primitive, and the way in
+from an `Int`, `fromInteger`, reached the checker as a projection out
+of a manufactured dictionary and was refused as polymorphic.  So the
+item was not a binding-time improvement over something that worked; it
+was the finite types' missing eliminator, and Kovács's cofibrancy says
+what the eliminator is: a function out of a finite type is a product,
+so evaluate it once per value and the product is the table.
+
+**Built as a rule, not a rewrite.**  A scalar definition of one finite
+parameter is a table.  The checker admits it without walking its body
+into the fragment — it may read a list, recurse, take a dictionary —
+and refuses it only for reaching a signal, naming the signal and
+through whom, because a signal has no value before the graph runs.
+The extractor runs it once per domain value on the G-machine, through
+the door item 1 built that morning so there is no text and no lock,
+and emits the same `prim_eq_int` cascade a hand-written `case` gives,
+so the two are one graph.  The way in took two small honesties: the
+method resolver now treats a global applied to literals as the constant
+it is, and the manufactured `Cyclic` and `Bounded` methods are trusted
+by their head like `Int`'s, since they are `prim_mod_int` by
+construction.
+
+**The oracle was the golden that pinned the hand table.**  `blip.ges`
+with its tune as a list, read by a recursion over `Cyclic 8`, renders
+bit-identical to the committed samples, six hundred of them, and the
+table in the graph is a chain of seven comparisons, as the hand table
+was.  The `List` hint the checker printed for a month claimed an array
+lift that was never built; it says the true thing now.  What it does
+not do is lift a list at an `Int` index, because `Int` is not finite
+and the default arm is the author's — which is the boundary the rule
+draws, and it is the type's.

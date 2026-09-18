@@ -134,12 +134,19 @@ def _extract_analysis(analysis, *, entry: str = "sound",
             "must be either a signal or a per-sample value, decided "
             "once at compile time (the static signal fragment, "
             "`spec/liveaudio.md`).  What stopped it:\n" + report.message)
-    return _Extract(analysis, entry, rate).run()
+    return _Extract(analysis, entry, rate,
+                    tables=frozenset(report.tables)).run()
 
 
 class _Extract:
-    def __init__(self, analysis, entry: str, rate: int):
+    def __init__(self, analysis, entry: str, rate: int,
+                 tables: frozenset = frozenset()):
         self.entry = entry
+        self.analysis = analysis
+        #: `Report.tables` — the finite-typed definitions the checker
+        #: admitted as tables, built by `_table` and not translated.
+        self.tables = tables
+        self._state = None
         self.cons = analysis.program.cons
         self.types = analysis.types
         self.by_name = {str(n): (a, lam, sig)
@@ -909,6 +916,8 @@ class _Extract:
         """Translate a scalar definition once, and remember it."""
         if name in self.graph.funcs:
             return name
+        if name in self.tables:
+            return self._table(name)
         arity, lam, _sig = self.by_name.get(name, (None, None, None))
         if lam is None:
             #: complaint  machine — inference refuses a name with no definition long before extraction
@@ -922,6 +931,61 @@ class _Extract:
         self.graph.funcs[name] = Func(name, tuple(lam.params),
                                       self._translate(lam.body, env, name))
         return name
+
+    def _table(self, name: str) -> str:
+        """A finite-typed definition as the cascade a hand-written `case`
+        becomes — `card:strict-forms.md` §"Read — 2026-09-18", item 3.
+        The body is stage one: run on the G-machine once per value of
+        the domain, and the answers become constants in a chain of
+        `prim_eq_int` tests, the same shape the match compiler gives an
+        integer `case` (`spec/liveaudio.md` §"Step functions"), so a
+        table and its hand-written twin are the same graph."""
+        from .audiograph import finite_domain
+
+        _arity, lam, _sig = self.by_name[name]
+        args, _result = _arrow(self._type_of(name))
+        lo, hi = finite_domain(args[0])
+        param = lam.params[0]
+        values = [self._table_value(name, k) for k in range(lo, hi + 1)]
+        body = values[-1]
+        for k, v in reversed(list(zip(range(lo, hi), values[:-1]))):
+            body = Case(Prim("prim_eq_int", (Var(param), Const(k))),
+                        ((self.graph.true_tag, (), v),
+                         (self.graph.false_tag, (), body)))
+        self.graph.funcs[name] = Func(name, (param,), body)
+        return name
+
+    def _machine(self):
+        """The program on the G-machine, built from the analysis in hand
+        the day a table asks — through `pipeline._lower`, so no text and
+        no lock (`card:strict-forms.md`, item 1)."""
+        if self._state is None:
+            from .pipeline import _lower
+
+            self._state = _lower(self.analysis)
+        return self._state
+
+    def _table_value(self, name: str, k: int):
+        """`name` applied to `k` on the machine, as an IR constant."""
+        from . import gmachine as gm
+        from .gmachine import run
+        from .midi import _force
+
+        state = self._machine()
+        node = gm.NAp(state.globals[name], gm.NNum(k))
+        state.stack, state.dump, state.code = [node], [], [gm.Eval()]
+        run(state)
+        out = _force(state.stack[0], state)
+        while isinstance(out, gm.NInd) and out.target is not None:
+            out = out.target
+        if isinstance(out, gm.NNum):
+            return Const(out.n)
+        if isinstance(out, gm.NCon) and out.tag in (self.graph.true_tag,
+                                                     self.graph.false_tag):
+            return Con(out.tag, ())
+        #: complaint  machine — the checker admits a table only at a flat result, so the machine's answer is a number or a Bool
+        raise ExtractError(f"`{name}` at {k}: the table answered a "
+                           f"{type(out).__name__}, not a value")
 
     # -- scalar expressions -> IR -------------------------------------------
 

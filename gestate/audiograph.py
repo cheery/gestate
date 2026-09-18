@@ -148,7 +148,11 @@ _DATAFUN_PRIMITIVES = frozenset({"empty?"})
 #: that survives `resolve_static_methods` as `__Num_Float_+__` is a direct
 #: call to machine arithmetic and is first-order; one still reached through
 #: a dictionary is not, and is caught as a dictionary instead.
-_FLAT_INSTANCE_HEADS = frozenset({"Int", "Float", "Bool", "Char"})
+#: `Cyclic` and `Bounded` since 2026-09-18: their `Num` and `Eq` instances
+#: are manufactured (`constraint._numeric_instance`) as `prim_mod_int` and
+#: the integer comparisons, with the type-level number baked into the
+#: method — machine arithmetic by construction, judged by name like `Int`.
+_FLAT_INSTANCE_HEADS = frozenset({"Int", "Float", "Bool", "Char", "Cyclic", "Bounded"})
 
 
 #: A specialised instance method's internal name —
@@ -183,6 +187,11 @@ class Report:
     scalars: list[str] = field(default_factory=list)
     #: Definitions whose body is `chan` — one clock each.
     clocks: list[str] = field(default_factory=list)
+    #: Scalar definitions of one **finite** parameter — `Cyclic n`, `lo ..
+    #: hi` — admitted as tables: the extractor evaluates each once per
+    #: value of the domain and emits the cascade a hand-written `case`
+    #: becomes (`spec/liveaudio.md` §"Step functions").
+    tables: list[str] = field(default_factory=list)
 
     def __bool__(self) -> bool:
         return not self.errors
@@ -229,6 +238,8 @@ class _Check:
         self.conflicted: set[str] = set()
         #: Calls between scalar definitions, for the recursion check.
         self.calls: dict[str, set[str]] = {}
+        #: The tables — `Report.tables`, as they are found.
+        self.tables: set[str] = set()
         self.here = ""
 
     # -- driving ------------------------------------------------------------
@@ -283,6 +294,7 @@ class _Check:
                                      if k == "signal")
         self.report.scalars = sorted(n for n, k in self.seen.items()
                                      if k == "scalar")
+        self.report.tables = sorted(self.tables)
         self.report.errors = _dedup(self.report.errors)
         return self.report
 
@@ -304,6 +316,9 @@ class _Check:
 
         if t is not None:
             args, result = _arrow(t)
+            if (kind == "scalar" and arity == 1 and len(args) == 1
+                    and finite_domain(args[0]) is not None):
+                return self._table(name, args[0], result)
             if arity > len(args):
                 # `elaborate` prepends one parameter per constraint, so a
                 # supercombinator wider than its own type is one that takes
@@ -326,6 +341,64 @@ class _Check:
             self._signal(lam.body)
         else:
             self._scalar(lam.body)
+
+    def _table(self, name: str, domain: Type, result: Type) -> None:
+        """**A function of a finite type is a table** — `card:strict-forms.md`
+        §"Read — 2026-09-18", item 3.  Kovács §2.3: a function out of a
+        finite type is a finite product, so `Cyclic n -> Float` *is* `n`
+        floats, and the fragment takes it as one — its body is stage one,
+        run once per value of the domain at extraction, whatever it
+        reads: a list, a recursion, a dictionary.  The one thing it may
+        not reach is a signal, because a signal has no value before the
+        graph runs.  This is also the finite types' only eliminator at
+        audio rate: a `case` over a `Cyclic 4` does not typecheck, since
+        the match compiler compares with an integer primitive."""
+        if not is_flat(result, self.cons):
+            self._error(name, f"yields {show_type(result)}, which is "
+                              f"{why_not_flat(result, self.cons)}")
+            return
+        reached = self._reaches_a_signal(name)
+        if reached is not None:
+            what, via = reached
+            self._error(name, f"is a table over `{show_type(domain)}`, so "
+                              f"its body runs once per value before the "
+                              f"graph does — and it reads {what}"
+                              + (f" through `{via}`" if via != name else "")
+                              + ", which has no value until the graph runs")
+            return
+        self.tables.add(name)
+
+    def _reaches_a_signal(self, root: str):
+        """`(what, via)` for the first signal a table's body reaches,
+        walking the definitions it calls, or `None` when it is stage one
+        all the way down."""
+        seen: set[str] = set()
+        todo = [root]
+        while todo:
+            name = todo.pop()
+            if name in seen or name not in self.by_name:
+                continue
+            seen.add(name)
+            t = self._type_of(name)
+            if name != root and t is not None and _mentions_signal(t):
+                return (f"`{name}`, a `{show_type(t)}`", name)
+            _arity, lam, _sig = self.by_name[name]
+            stack = [lam.body]
+            while stack:
+                e = stack.pop()
+                if isinstance(e, EAnnot):
+                    stack.append(e.expr)
+                    continue
+                if isinstance(e, (ESigCons, ESigHead, ETail, EDelay, EWait,
+                                  EWatch, ESync, EGFix, ENever, EChan)):
+                    return (_describe(e), name)
+                if isinstance(e, EGlobal):
+                    g = str(e.name)
+                    if g in FORMERS:
+                        return (f"`{g}`, a signal combinator", name)
+                    todo.append(g)
+                stack.extend(subexprs(e))
+        return None
 
     def _check_signature(self, name, args, result, kind) -> None:
         # **A signal definition may be polymorphic, and a scalar one may
@@ -392,14 +465,16 @@ class _Check:
                               + self._table_hint(want))
 
     def _table_hint(self, t: Type) -> str:
-        """The one transformation `spec/liveaudio.md` predicted."""
+        """The one transformation `spec/liveaudio.md` predicted, and how
+        it is had: give the *index* a finite type."""
         head = t.fn if isinstance(t, TApp) else t
         if isinstance(head, TCon) and head.name == "List":
             return (".  A constant list read per sample is a **lookup "
-                    "table**: the extractor lifts it to a constant array "
-                    "and indexes it, but only once it is written as one "
-                    "(`spec/liveaudio.md`, \"the transformation the "
-                    "fragment forces\")")
+                    "table**: give the function that reads it one "
+                    "parameter of a finite type — `Cyclic n`, or `lo .. "
+                    "hi` — and its body runs once per value at compile "
+                    "time, whatever it reads (`spec/liveaudio.md` "
+                    "§\"Step functions\")")
         return ""
 
     # -- signal expressions -------------------------------------------------
@@ -780,6 +855,36 @@ class _Check:
 
 
 # ── Small helpers ───────────────────────────────────────────────────────────
+
+
+def finite_domain(t: Type) -> tuple[int, int] | None:
+    """`(lo, hi)`, inclusive, when `t` is a finite type — `Cyclic n` is
+    `0 .. n-1`, `lo .. hi` is itself — and `None` otherwise.  Kovács's
+    *cofibrant* types, the ones a function out of is a product."""
+    from .types import TInt
+
+    if (isinstance(t, TApp) and isinstance(t.fn, TCon) and t.fn.name == "Cyclic"
+            and isinstance(t.arg, TInt)):
+        return (0, t.arg.n - 1) if t.arg.n > 0 else None
+    if (isinstance(t, TApp) and isinstance(t.fn, TApp)
+            and isinstance(t.fn.fn, TCon) and t.fn.fn.name == "Bounded"
+            and isinstance(t.fn.arg, TInt) and isinstance(t.arg, TInt)):
+        return (t.fn.arg.n, t.arg.n) if t.fn.arg.n <= t.arg.n else None
+    return None
+
+
+def _mentions_signal(t: Type) -> bool:
+    """Whether `Sig` or `Chan` stands anywhere in a type."""
+    stack = [t]
+    while stack:
+        x = stack.pop()
+        if isinstance(x, TCon) and x.name in ("Sig", "Chan"):
+            return True
+        if isinstance(x, TApp):
+            stack += [x.fn, x.arg]
+        elif isinstance(x, TFun):
+            stack += [x.arg, x.ret]
+    return False
 
 
 def _arrow(t: Type) -> tuple[list, Type]:

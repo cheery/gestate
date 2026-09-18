@@ -26,6 +26,10 @@ Pitfalls hit writing gestate examples (2026-08-09):
 - The audio fragment is first-order: no function-valued parameters, no
   lists at audio rate (use `case` tables), one record type per
   instantiation, `on <points>` needs the points literal at the call site.
+  **And since 2026-09-18 a scalar function of one `Cyclic n` or `lo .. hi`
+  parameter is a table**: its body runs once per value at extraction and
+  may read a list — `spec/liveaudio.md` §"Step functions"; the way in
+  from an `Int` is `fromInteger`.
 - Multiple `voices` banks must share ONE payload type (record layout is
   per-tag; two records collide in codegen).
 - Signal-level `let` and sequential non-rec `let` scoping were fixed
