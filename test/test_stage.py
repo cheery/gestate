@@ -338,3 +338,43 @@ def test_a_recursive_type_is_said_to_be_recursive_at_its_field():
     assert why_not_flat(TCon("Tree"), cons) == (
         "a data type whose field Tree is recursive, so a value of it is a "
         "chain of heap cells whose length is a run-time fact")
+
+
+# ── The calculus, `spec/types.md` §8 — stability and the phase rule ─────────
+
+
+def test_staging_swaps_the_sites_and_touches_nothing_else():
+    """Kovács's stability and strictness, for the tree: in a sited
+    program every unsited item comes out the very object it went in as,
+    and nothing else is rewritten — no inlining, no normalisation; and
+    in the staged program no site remains, which is Allais's phase rule
+    held by a refusal rather than an index."""
+    from gestate.pipeline import _analyse_module, _lower, _merge_prelude
+    from gestate.stage import _sites, staged
+    from gestate.syntax import parse
+    from gestate.syntax.ast import VModule
+
+    facts = _merge_prelude(FACTS)           # the prelude in front, as every compile has
+    program = parse("""
+pair : Type
+pair = TyTuple (TyCon "Int" :: TyCon "Text" :: Nil)
+
+type Cell = $(pair)
+
+first : Cell -> Int
+first (n, t) = n
+
+main : Int
+main = first (7, "x")
+""")
+    items = list(program.items)
+    head = list(facts.items)
+    out, _values = staged(
+        items, lambda its: _lower(_analyse_module(VModule(head + list(its)),
+                                                  typecheck=True)))
+    sited = [i for i, item in enumerate(items) if _sites(item)]
+    assert sited == [items.index(next(i for i in items if getattr(i, "name", "") == "Cell"))]
+    for i, item in enumerate(items):
+        if i not in sited:
+            assert out[i] is item, f"item {i} was rewritten though it holds no site"
+    assert not any(_sites(item) for item in out), "a site survived staging"

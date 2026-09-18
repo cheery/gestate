@@ -310,6 +310,89 @@ However higher-rank types won't be implemented in near future.
 
 ---
 
+## 8. Staging: two phases, two stages, three crossings
+
+*2026-09-18, `card:strict-forms.md` §"Read — 2026-09-18", item 7 — the
+formal statement, small.  The compiler's stage (`gestate/stage.py`,
+built 2026-09-14) written the way Allais writes his calculus, with
+Kovács's three properties each naming the test that holds it.  Guillaume
+Allais, "Scoped and Typed Staging by Evaluation", PEPM '24; András
+Kovács, "Staged Compilation with Two-Level Type Theory", ICFP 2022 —
+both read at their page, `doc/memory/the-language-goal.md` §"Read —
+2026-09-18".*
+
+**Two phases.**  `src` is the program as written: a type position may
+hold a splice `$(e)`, an expression may hold `document "k"`.  `stg` is
+the program after `stage.staged`: the same items with every site
+replaced, and **no site remains** — every later pass (classify,
+exhaustiveness, desugaring, kinds, inference, the monotone and subgrammar
+checks, both machines, the model-checker) reads `stg` only.  Allais
+gets this by indexing terms with the phase so that a `stg` term has no
+quote or splice constructor; the tree gets it by a refusal at the end of
+`staged` and a test.  `$` is `infixl 9`, the tightest infix operator, and
+a program may not redeclare it (`spec/syntax.md`).
+
+**Two stages.**  Stage one is the prelude and every item a site's
+expression needs, transitively — the cut, by name, on demand, no marker
+in the file.  It is evaluated once on the G-machine, through the running
+front end's own door: items, never text, no seam, no lock.  Stage two is
+every item that holds a site or mentions one, transitively, and `main`.
+A stage-one item may not mention a stage-two one: *a type computed from
+a value cannot be computed from itself*, refused with both names.  That
+is Kovács's stability under substitution read as a scoping rule — what
+stage one computes cannot depend on what its answer types.
+
+**One language, three crossings.**  There is no `⇑A` and no second
+universe: the same definitions serve both stages, which Allais writes as
+constructors polymorphic in phase and stage and Kovács leaves open as
+stage polymorphism.  What crosses from stage one into stage two is a
+*value*, spliced into `stg` syntax at one of three positions — each its
+own `∼`:
+
+| position | the stage-one value | how it becomes `stg` syntax | since |
+|---|---|---|---|
+| a type position: `$(e)`, `document "k"` | a `Type` — `facts.ges`' six constructors | `stage._type_val`, into the type the checker reads | 2026-09-14 |
+| a scalar definition of one finite parameter, in the audio fragment | its answer at each value of `Cyclic n` or `lo .. hi` | `audioextract._table`, into the `prim_eq_int` cascade a hand-written `case` becomes (`spec/liveaudio.md` §"Step functions") | 2026-09-18 |
+| a static position: an envelope's points | a `List Envelope`, closed over stage-one globals and static parameters | `audioextract._points`, into the tree `envexpand` builds for a literal | 2026-09-18 |
+
+The second and third are Kovács's cofibrancy and his `A ≤ ⇑A`
+coercion, and the stage of a parameter in the third is *inferred and
+never written* (`spec/liveaudio.md` §"Step functions").  The reverse
+direction — a type the checker inferred, read as a `Type` value by
+`stage.reflect` and decided over in `gestate/rules.ges` — is a compiler
+pass over types as data and stands outside this calculus: neither paper
+has it; Shields, Sheard and Peyton Jones is its reference.
+
+**Three properties, Kovács's Definition 4.2, and the test that holds
+each.**
+
+| property | what it says here | held by |
+|---|---|---|
+| **stability** — `Stage ⌜t⌝ = t` | a program with no site is untouched: `staged` answers the very list it was given, and in a sited program every unsited item is the same object | `test_stage.py::test_a_program_with_neither_form_pays_a_substring_test`, `::test_staging_swaps_the_sites_and_touches_nothing_else` |
+| **soundness** — `⌜Stage t⌝ = t` | what the stage puts in is what the author would have written | reflect then reify is the identity on twelve types, `::test_a_ground_type_reflected_then_reified_is_itself`; the table renders the golden pinned to the hand table, `test_audiograph.py::test_a_tune_written_as_a_list_over_a_finite_type_renders_the_golden`; the points render the literal, `::test_an_envelopes_points_are_a_static_position_however_they_are_spelt` |
+| **strictness** — staging computes nothing in the object theory | the stage swaps sites and performs no β, no inlining, no normalisation of stage two; a table is the *same shape* a hand `case` has, not a folded constant | the swap test above; the seven-comparison chain in the tune test |
+
+**The negative space, which is most of the calculus.**  No intensional
+analysis of a stage-two term: `rules.ges` decides over `Type` as data,
+which is the only reflection Kovács §6 admits under stability under
+substitution and the only one Jay and Palsberg leave HM-inferable.  No
+scheme in `Type`: a `TyVar` reaching a splice is refused, because nothing
+binds it; a binder is the day `deriving` moves.  No effects at stage
+one: `document` reads the program's own `model`, and the day a stage
+reads a file it asks as data and the host answers, `Act`'s factoring a
+second time.  No terms as values: no quotation, no `Decl`; the day one
+is proposed, Jay and Palsberg is the price list.  Every one of these is
+a refusal at a line, not a silent hole.
+
+**What it is not.**  Not a proof: Allais's is checked in Agda, Kovács's
+in a presheaf model, and this is a page that names which test stands
+where a lemma would.  A test is a witness, not a boundary
+(`doc/memory/declare-parity-derive.md`) — the day the language grows a
+second universe or a quote, this section is the first thing that is
+wrong.
+
+---
+
 ## 9. Error messages: treat as a first-class output of the algorithm, not an afterthought
 
 Type checker should be well-behaving were it to succeed or fail.

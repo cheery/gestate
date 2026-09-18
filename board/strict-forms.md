@@ -961,6 +961,46 @@ elsewhere in its definition is refused by the extractor unplaced
 (F156's shape), since the checker judges the static site and not the
 other uses.
 
+### Built — 2026-09-18: item 7, the formal statement, as a page
+
+**Henri:** *"sitting with reading time?  we have time now."*  Written
+while the full pass ran, applied when it landed.  `spec/types.md` §8,
+"Staging: two phases, two stages, three crossings" — the section number
+was a gap between 7 and 9, and it is one no more.  Allais's shape:
+`src` and `stg` phases, the stage rule with the cycle refusal read as
+Kovács's stability under substitution, one language at both stages,
+and the **three crossings** the day built as three rows of one table —
+a `Type` into a type position, a finite-parameter function into a
+cascade, a static position's points into a tree — each its own `∼`.
+Then Kovács's Definition 4.2 as a three-row table naming the test that
+holds each property, and the negative space: no intensional analysis
+of terms, no scheme in `Type`, no effects at stage one, no terms as
+values, every one a refusal at a line.  It closes by saying what it is
+not: a page and not a proof, its tests witnesses and not boundaries.
+
+Two things the page promised and did not have: the phase rule is now
+a refusal at the end of `stage.staged` — a site surviving staging is a
+machine complaint — and
+`test_stage.py::test_staging_swaps_the_sites_and_touches_nothing_else`
+holds stability and strictness as one test, every unsited item the
+same object out as in.
+
+### Postscript — 2026-09-18, the full pass
+
+The shift's full pass ran at 735fd68, after items 1, 4, 3 and 2:
+**six of 4,466 did not pass, and all six were the day's** — 41 m 31 s.
+Two pinned the rule an item replaced, one named a card the morning
+shelved, and three pinned a set an item widened; none was a defect in
+what landed, and each was repaired in the test with the date and the
+reason beside it, by targeted runs and not a second pass.
+
+| test | what it held | what the day did |
+|---|---|---|
+| `test_envelope.py`, the unrewritten definition | computed points are refused *as a list* | item 2 made them a static position; it now holds that they render the literal they compute to |
+| `test_manual.py` §6, the lifting mark | a named `Float` beside a signal does not lift | item 4: it lifts to the right of a signal and not to the left, and `doc/manual.md` §6 says so with the reason |
+| `test_standing.py`, the command answers for a card | asked about `online.md` by name | shelved this morning; the test asks about whichever card is live |
+| `test_transform_scope.py`, three | the exact set of `_phi`/`_delta` halves | item 3's resolver names the manufactured `Num (Cyclic 8)` methods, so δ can ask for their derivative by name — F57's own rule; the compiler's halves are set aside and asserted once |
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are
@@ -969,5 +1009,5 @@ command and the host performs it.  What remains on this card is E —
 the fourteen lines, every one of them `__x__ = chan` — which waits on
 a design for a channel that is a value, his; the card's larger
 question, how a program is composed from pieces, is his too; and
-**the seven places of §"Read — 2026-09-18"**, of which **1, 2, 3 and 4 are built** the same day; 5 and 6 wait on
-their triggers and 7 on a sitting with reading time.
+**the seven places of §"Read — 2026-09-18"**, of which **1, 2, 3, 4 and 7 are built** the same day; 5 and 6 wait on
+their triggers.

@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**550 complaints**, in 51 files.
+**551 complaints**, in 51 files.
 
 | | |
 |---|---|
 | `author` | 309 |
 | `command` | 51 |
 | `world` | 27 |
-| `machine` | 163 |
-| say where | 201 |
+| `machine` | 164 |
+| say where | 202 |
 | say `nowhere`, on purpose | 69 |
 | `unplaced`, with a defect that owns it | 62 |
 
@@ -1028,13 +1028,14 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 247 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `model : List Rel` declared in this program — the row it r… |
 | 270 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
 | 319 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `model` has ' + ', '.join((f'`{k}`' … |
-| 404 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
-| 454 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
-| 469 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
-| 478 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
-| 629 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 646 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
-| 650 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 346 | `StageError` | `machine` | `_at()` | 'a site survived staging{_at(left[0])}' |
+| 408 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
+| 458 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
+| 473 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
+| 482 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
+| 633 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 650 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
+| 654 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

@@ -3620,3 +3620,30 @@ refusals name the stage and the culprit at the line.
 minutes when he said build; it was stopped, because the tree is frozen
 under it and an hour of waiting was not what *go on* meant.  It runs
 again now, at the end, on everything the day landed.
+
+## The calculus on a page — 2026-09-18, night
+
+Item 7 had been left for a sitting with reading time, and he said we
+had it.  The full pass was running on the day's nine commits, so the
+page was drafted beside the tree and written into it when the pass
+landed — `spec/types.md` §8, into a numbering that had skipped from 7
+to 9 since the spec was written.
+
+**What the page is.**  Allais's shape with the tree's names: two
+phases, the program as written and the program after the stage, and
+no site in the second; two stages, cut by name on demand, with the
+cycle refusal read as Kovács's stability under substitution; one
+language at both stages, which Allais writes as polymorphic
+constructors and Kovács leaves as future work; and the three crossings
+the day built, in one table, each a splice of a stage-one value into a
+different position of stage two.  Then the three properties of Kovács's
+Definition 4.2, each with the test that stands where a lemma would, and
+the negative space, which is most of a calculus and all of this one's
+safety.
+
+**What writing it found.**  The phase rule — no site survives staging
+— was true and held by nothing; it is a refusal now.  Stability and
+strictness had a witness for the type fragment and none for the items
+around it; one test holds both, every unsited item the same object out
+as in.  A page that names its tests finds the ones it does not have,
+which is the reason to write it rather than the reason not to.

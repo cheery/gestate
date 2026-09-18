@@ -340,6 +340,10 @@ def staged(items: list, build) -> tuple:
                                    VApp(VConId("List", span), row, span), span), span))
         out.append(VSCDecl(chan, None,
                            [VSCEqn(chan, [], VWord("chan", span), [], span)], span))
+    left = [site for item in out for site, _kind in _sites(item)]
+    if left:
+        #: complaint  machine — the phase rule of `spec/types.md` §8: a staged program holds no site; every one was replaced above
+        raise StageError(f"a site survived staging{_at(left[0])}")
     return out, values
 
 
