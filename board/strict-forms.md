@@ -816,7 +816,7 @@ expressions as `Type` globals **with the author's own spans**
 | stage one is | the source with stage two blanked line by line, re-parsed, through the lockless door | the resolved items, through the caller's own front |
 | `_compile` entered with a text holding `__stage_` during the game's build | 1 | **0** |
 | a stage-one type error, `type T = $(kindName)` | *while checking `__stage_0__` (at 464:11)* — but 464 was a line of the appended tail, past the file's end | the same words, and 464 **is the splice's line** |
-| the game's build, `Substrate`, cold / warm (`~/…/scratchpad/stagetime.py`, two runs each) | 2.20 s / 0.24 s | 2.20 s / 0.24 s — the clock did not move; the seam did |
+| the game's build, `Substrate`, cold / warm (`tools/stagetime.py`, two runs each) | 2.20 s / 0.24 s | 2.20 s / 0.24 s — the clock did not move; the seam did |
 | the lockless door's callers | the stage and `stage.rules()` | `stage.rules()` alone — the rules machine still compiles its own file from inside a compile, and that is item 1's remainder |
 | held by | `test_stage.py` 16, `test_documents.py` 14 | the same, plus one; the test fails on the old code |
 
@@ -848,7 +848,7 @@ the words it always was.
 | `lowpass cutoff s`, `cutoff : Float` | *Type mismatch: expected Sig Float* | compiles; the core holds `constSig cutoff` |
 | `level * s`, `level : Float` | refused | **still refused** — `*`'s parameter is a variable when `level` is applied, and the mismatch is decided at `s`, where no lift helps; pinned by a test so the boundary is a fact and not a surprise |
 | `bell.ges` with `(!hz) (!seconds)` removed | refused | the same graph, sample for sample — `test_audiograph.py`, at 800 Hz over 64 samples; and 4,000 samples at 8 kHz through the native engine when measured |
-| the examples, `(!name)` stripped everywhere (`~/…/scratchpad/liftstrip.py`) | — | 27 examples analyse alone; **7** parenthesised bare lifts in 3 of them; all 3 still analyse.  The reach is modest because most hand lifts are of a *function* — `!hzOf note` is `mapSig`, 82 of them against 207 `constSig` in the same 27 — or stand under `*` |
+| the examples, `(!name)` stripped everywhere (`tools/liftcensus.py`) | — | 27 examples analyse alone; **7** parenthesised bare lifts in 3 of them; all 3 still analyse.  The reach is modest because most hand lifts are of a *function* — `!hzOf note` is `mapSig`, 82 of them against 207 `constSig` in the same 27 — or stand under `*` |
 | the examples sweep, `test_examples.py` | 107 | 107, 7 m 52 s |
 | held by | — | `test_types.py` three, `test_audiograph.py` one; `doc/ref/language.md` regenerated, the pitfall memory amended |
 

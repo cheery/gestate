@@ -84,7 +84,9 @@ still the tiebreak between two workable cards, and it is still his.
    some neat way."  Decided 2026-09-14: staging; seam 1 closed the
    same day, the grid's tables moved; seam 2 closed the same evening
    by `Act` — the picture carries the command and the host performs
-   it.  E and composition remain, his.*
+   it.  E and composition remain, his.  2026-09-18: the two-level
+   papers read, and five of the seven places they reach built the
+   same day.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
