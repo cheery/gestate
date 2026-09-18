@@ -3467,3 +3467,46 @@ the tree all along, and a grep was the whole difference between *no
 caller yet* and a card.  `doc/memory/dont-conclude-from-a-shallow-check.md`,
 again, from the other side: the shallow check this time was a sentence
 carried forward rather than a search that came back empty.
+
+## Stage one stopped reading its own source — 2026-09-18
+
+The morning began with two papers.  Henri had put Kovács's *Staged
+Compilation with Two-Level Type Theory* and Allais's *Scoped and Typed
+Staging by Evaluation* in `~/misc/papers/` and asked where they apply,
+and how the staging the tree has could go further.  Both were read at
+their page.  The answer was that the stage built on 2026-09-14 is a
+two-level type theory with one meta-level type, `Type`, and a splice
+restricted to type positions — on the sound side of every restriction
+the papers draw, and there by refusing the same things they refuse —
+and that neither paper covers the direction built two days later, a
+type read back as a value.  The reading went into
+`doc/memory/the-language-goal.md` beside the two of 2026-09-16, and
+seven places the papers reach went onto `card:strict-forms.md`, ranked
+by whether a caller exists.  *"Start with 1."*
+
+**Item 1 was the seam every later item would have inherited.**  Stage
+one blanked the source line by line, appended its splice expressions
+as text, registered a seam, and compiled the text again from inside
+the compile it was already in — through the lockless door, because the
+front end's lock is not reentrant, and that door had waited on itself
+three times.  Both papers say staging is one evaluation and not a
+second parse.  So the stage takes a *door* now: the running front end
+hands in a function from resolved items to a machine, the two
+front-end tails became functions of items, and the back half of
+`_compile` became `_lower`.  The splice expressions go in as `Type`
+globals with the author's own spans, which is why a bad splice is now
+reported at its own line and not at a line past the end of the file
+where the appended tail used to sit.
+
+**The numbers were taken twice and one of them lied the first time.**
+The first cold build read 2.98 s against 2.16 s after, and looked like
+a win; the second and third read 2.20 s both before and after.  The
+first run had paid for a cold disk cache and nothing else.  What moved
+was the count: one re-entry with stage text before, zero after; and
+the test that holds it was run against the old code first, where it
+fails on the door it was written to refuse.  `test_stage.py` has
+seventeen now.
+
+**What is left of the seam** is the rules machine, which still
+compiles its own file as text from inside the first compile that asks
+it.  The card says so, and says the remedy is the same shape.

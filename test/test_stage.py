@@ -115,6 +115,50 @@ main = map kindColumns (lineKind (markRel :: Nil) markLine :: notesKinds)
     assert said[0] == ["cell", "mark"]
 
 
+def test_stage_one_is_items_and_never_text(monkeypatch):
+    """`card:strict-forms.md` §"Read — 2026-09-18", item 1, its
+    postcondition: *a program with a splice compiles without the
+    compiler reading its own source text a second time, and the stage
+    cannot wait on the front end's lock because it never takes it.*
+    Every door that takes a text is made to refuse stage one's, and the
+    seam registry gains nothing of stage one's; and a stage-one type
+    error is reported at the splice's own line, which the appended text
+    of the old road put past the end of the file."""
+    from gestate import syntax
+
+    def refusing(door):
+        def refuse(source, *a, **k):
+            assert "__stage_" not in source, "stage one went through a text door"
+            return door(source, *a, **k)
+        return refuse
+
+    for name in ("_compile", "compile", "analyse", "_analyse"):
+        monkeypatch.setattr(pipeline, name, refusing(getattr(pipeline, name)))
+    monkeypatch.setattr(syntax, "note_seam",
+                        refusing(syntax.note_seam))
+    before = set(syntax._SEAMS)
+    program = """
+pair : Type
+pair = TyTuple (TyCon "Int" :: TyCon "Text" :: Nil)
+
+type Cell = $(pair)
+
+first : Cell -> Int
+first (n, t) = n
+
+main : Int
+main = first (7, "x")
+"""
+    assert _run(program) == 7
+    assert not [k for k in set(syntax._SEAMS) - before if "__stage_" in k]
+
+    bad = FACTS + "\n\ntype T = $(kindName)\n\nmain : Int\nmain = 0\n"
+    line = bad[:bad.index("$(kindName)")].count("\n")
+    with pytest.raises(Exception) as got:
+        pipeline.compile(bad)
+    assert f"while checking `__stage_0__` (at {line}:" in str(got.value)
+
+
 def test_a_program_with_neither_form_pays_a_substring_test():
     assert not might_stage("main : Int\nmain = 1\n")
     assert might_stage("type T = $(x)\n")

@@ -22,10 +22,14 @@ left is compiled once with the splice expressions appended as globals.
 A splice whose expression needs a stage-two item is refused with both
 names: a type computed from a value cannot be computed from itself.
 
-**What it costs.**  One more compile of a program's stage-one half, with
-the library stack answered from its cache (`pipeline._stack_front`), per
-distinct program text — the same cache every compile goes through.  A
-program with neither form pays a substring test.
+**What it costs.**  One more front end and back half over stage one's
+items — the library stack answered from its cache
+(`pipeline._stack_front`), the items never re-parsed — once per
+distinct program text, inside that text's own analysis.  Stage one is
+items and never text: it reads no source, cuts no seam and takes no
+lock, which is the postcondition of `card:strict-forms.md` §"Read —
+2026-09-18", item 1.  A program with neither form pays a substring
+test.
 """
 
 from __future__ import annotations
@@ -190,21 +194,29 @@ def might_stage(source: str) -> bool:
     return SPLICE in source or DOCUMENT in source
 
 
-def staged(items: list, source: str, cut: int | None) -> tuple:
+def staged(items: list, build) -> tuple:
     """`(items, values)` — the author's resolved items with every splice
     replaced by the type it computes, every `document "kind"` replaced by
     the read of its channel, and that channel declared after them; and
     the stage-one values a host may want without compiling again,
     `{"kinds": term}` when the program declares its kinds.
 
-    `source` is the whole assembled text the items were parsed from, at
-    their own positions; `cut` is its seam, when an assembler registered
-    one, so stage one's compile answers the library stack from cache.
+    `build` is the compiler's own door, handed in by whichever front end
+    is running: a list of resolved items in, a `GmState` out, through
+    the same front and back half the program itself goes through.
+    Stage one is **items, never text** — the sited items and everything
+    that mentions them are left out, the splice expressions are appended
+    as `Type` globals with the author's own spans, and nothing here
+    reads the source, cuts a seam or takes the front end's lock.  Allais
+    and Kovács say staging is one evaluation and not a second parse
+    (`doc/memory/the-language-goal.md` §"Read — 2026-09-18"); the
+    blank-slice-recompile this replaced re-entered the compiler through
+    the lockless door and waited on itself three times
+    (`doc/memory/a-run-silent-for-a-minute.md`).
     """
     sited = [(item, _sites(item)) for item in items]
     if not any(s for _i, s in sited):
         return items, {}
-    from .syntax import note_seam
 
     # ── Stage two: the sited items, and everything that mentions them ──
     names: set = {"main"}
@@ -220,7 +232,7 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
             if _names(item) & names:
                 names |= _defined(item)
                 changed = True
-    second = [item for item, _s in sited if _defined(item) & names]
+    second = {id(item) for item, _s in sited if _defined(item) & names}
 
     # ── The cycle: a splice needing a stage-two item ──
     mentions = {}
@@ -260,45 +272,34 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
                 "what it computes — a type computed from a value cannot be "
                 f"computed from itself{_at(site)}")
 
-    # ── Stage one's text: the second stage blanked, the splices appended ──
-    lines = source.split("\n")
-    for item in second:
-        for k in range(item.span.start.line, item.span.end.line + 1):
-            if 0 <= k < len(lines):
-                lines[k] = ""
+    # ── Stage one's program: the first stage's items, the splices as globals ──
+    first = [item for item, _s in sited if id(item) not in second]
     tail = []
     for i, (site, kind, _item) in enumerate(all_sites):
         if kind == "document":
-            tail.append(f"__stage_{i}__ : List Type\n__stage_{i}__ = "
-                        f'documentRow model "{site.arg.value}"\n')
+            tail += _global(f"__stage_{i}__", "List Type",
+                            f'documentRow model "{site.arg.value}"', site.span)
         else:
             e = _expr_of(site)
-            tail.append(f"__stage_{i}__ : Type\n__stage_{i}__ = "
-                        f"({_slice(source, e.span)})\n")
+            tail += _global(f"__stage_{i}__", "Type", e, e.span)
     if any(kind == "document" for _s, kind, _i in all_sites):
-        tail.append("__stage_names__ : List Text\n__stage_names__ = map relName model\n")
+        tail += _global("__stage_names__", "List Text", "map relName model",
+                        all_sites[0][0].span)
     if has_kinds:
         # **The model and its lines, read while the machine is warm** —
         # what `facts.Document` used to compile the whole program a
         # second time for, and now takes from the analysis
         # (`pipeline.staged_value`); and the line view the language
         # derives from them, for the host's derivation to be held to.
-        tail.append("__stage_model__ : List Rel\n__stage_model__ = model\n")
-        tail.append("__stage_lines__ : List Line\n__stage_lines__ = lines\n")
-        tail.append("__stage_kinds__ : List Kind\n__stage_kinds__ = map (lineKind model) lines\n")
-    text = "\n".join(lines).rstrip("\n") + "\n\n" + "".join(tail) + "\nmain : Int\nmain = 0\n"
-    if cut is not None:
-        note_seam(text, cut)
+        span = all_sites[0][0].span
+        tail += _global("__stage_model__", "List Rel", "model", span)
+        tail += _global("__stage_lines__", "List Line", "lines", span)
+        tail += _global("__stage_kinds__", "List Kind",
+                        "map (lineKind model) lines", span)
+    tail += _global("main", "Int", "0", all_sites[0][0].span)
 
     # ── Run it ──
-    # `_compile`, not `compile`: this runs *inside* a compile, on its
-    # deep stack and under `pipeline._FRONT_END`, which is not reentrant
-    # — `compile` would wait on the lock this very call holds
-    # (`doc/memory/a-run-silent-for-a-minute.md`).  The lockless door
-    # goes through the same cache as every other reader.
-    from .pipeline import _compile
-
-    state = _compile(text)
+    state = build(first + tail)
     values = {}
     if has_kinds:
         values["model"] = _read(state, "__stage_model__")
@@ -342,6 +343,23 @@ def staged(items: list, source: str, cut: int | None) -> tuple:
     return out, values
 
 
+def _global(name: str, type_text: str, body, span: Span) -> list:
+    """A signature and a definition, `name : type_text` and `name = body`,
+    as the two items the parser would make of them — the type and, when
+    `body` is a text, the body parsed on their own, and every span set to
+    `span`, the author's line, so a complaint lands where the splice is.
+    A `body` that is already syntax (a splice's expression) is used as it
+    stands, spans and all."""
+    from .syntax import parse
+
+    sig = parse(f"__x__ : {type_text}\n").items[0].type_
+    if isinstance(body, str):
+        body = parse(f"__x__ = {body}\n").items[0].equations[0].body
+        body = _respan(body, span)
+    return [VSig(name, _respan(sig, span), span),
+            VSCDecl(name, None, [VSCEqn(name, [], body, [], span)], span)]
+
+
 def channel_of(kind: str) -> str:
     """The channel a kind's rows arrive on — `facts.channel_of`, restated
     so the two modules need not import each other."""
@@ -357,17 +375,6 @@ def _document_read(chan: str) -> Val:
 
     module = parse(f"__x__ = map (rows => set rows) (Nil ::: mkSig (wait {chan}))\n")
     return module.items[0].equations[0].body
-
-
-def _slice(source: str, span: Span) -> str:
-    lines = source.split("\n")
-    a, b = span.start, span.end
-    if a.line == b.line:
-        return lines[a.line][a.col:b.col]
-    parts = [lines[a.line][a.col:]]
-    parts += lines[a.line + 1:b.line]
-    parts.append(lines[b.line][:b.col])
-    return "\n".join(parts)
 
 
 # ── Reading the value back ──────────────────────────────────────────────────

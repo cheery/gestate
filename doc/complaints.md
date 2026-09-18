@@ -84,7 +84,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gui.py:727` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `pipeline.py:1198` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
+| `pipeline.py:1234` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -165,10 +165,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
 | `online.py:122` | `OnlineError` | the score itself reads what a hand holds, and this page bakes its score; card:hands-in-the-tab.md is the seam that would fix it |
-| `pipeline.py:313` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:986` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:1056` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:1068` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:317` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1022` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1092` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:1104` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
 ## Every complaint
 
@@ -916,20 +916,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 313 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
-| 624 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 654 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 657 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 701 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 714 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 717 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 819 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 843 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 849 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 986 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
-| 1056 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
-| 1068 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
-| 1198 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
+| 317 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
+| 628 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 658 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 661 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 718 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 731 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 734 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 848 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 872 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 878 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 1022 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
+| 1092 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this `{expr.fn.name}` did not reach code generation; it should have been annotated… |
+| 1104 | `PipelineError` | `author` | *nowhere, on purpose* | '`{expr.name}` is a form and not a value: write `{expr.name} xs`, it cannot be passed unapplied' |
+| 1234 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
 
 ### `reactive.py`
 
@@ -1018,16 +1018,16 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 235 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `model : List Rel` declared in this program — the row it r… |
-| 258 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
-| 318 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `model` has ' + ', '.join((f'`{k}`' … |
-| 397 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
-| 447 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
-| 462 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
-| 471 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
-| 622 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
-| 639 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
-| 643 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
+| 247 | `StageError` | `author` | `_at()` | '`document "{site.arg.value}"` needs `model : List Rel` declared in this program — the row it r… |
+| 270 | `StageError` | `author` | `_at()` | '{what} needs `{cyclic[0]}`, and `{cyclic[0]}` is typed by what it computes — a type computed f… |
+| 319 | `StageError` | `author` | `_at()` | '`document "{name}"` names no kind this program declares — `model` has ' + ', '.join((f'`{k}`' … |
+| 404 | `StageError` | `machine` | — | 'a stage-one value is a {type(n).__name__}, not a value' |
+| 454 | `StageError` | `author` | handed in | 'a type with a variable in it cannot be read as a value{place}: `Type` says only closed types, … |
+| 469 | `StageError` | `author` | handed in | 'a monotone arrow `~>` cannot be read as a value{place}: `TyFun` is `->` only' |
+| 478 | `StageError` | `machine` | handed in | 'no value for a {type(t).__name__}{place}' |
+| 629 | `StageError` | `author` | written out | 'the splice is not a `Type` (at {span.start.line}:{span.start.col})' |
+| 646 | `StageError` | `author` | written out | 'the splice is a type variable `{_text(args[0])}`, and a variable cannot be a type — nothing bi… |
+| 650 | `StageError` | `author` | written out | 'the splice is a `{head}`, not a `Type` — `TyCon`, `TyApp`, `TyFun`, `TyInt` or `TyTuple` (`fac… |
 
 ### `tempo.py`
 

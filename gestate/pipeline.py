@@ -200,14 +200,18 @@ def _check_annotations(expr: Expr, kind_env: dict) -> None:
 _merge_prelude = prelude_merge
 
 
-def _staged(items: list, source: str, cut) -> tuple:
+def _staged(items: list, source: str, build) -> tuple:
     """`stage.staged`, behind its substring test — a program with no `$`
-    and no `document` pays nothing here.  `(items, values)`."""
+    and no `document` pays nothing here.  `build` is the door stage one
+    evaluates through: the caller's own front end and `_lower` over a
+    list of *items*, never a text, so the stage takes no lock and the
+    compiler never reads its own source a second time.  `(items,
+    values)`."""
     from .stage import might_stage, staged
 
     if not might_stage(source):
         return items, {}
-    return staged(items, source, cut)
+    return staged(items, build)
 
 
 
@@ -692,9 +696,22 @@ def _analyse_staged(source: str):
     rest_items = [_descend_val(i, table) for i in rest_mod.items]
     # **Stage one, once the operators are resolved and before anything
     # is classified** — a splice or a `document` is replaced by the type
-    # it computes (`gestate/stage.py`).
-    rest_items, stage_values = _staged(rest_items, source, cut)
-    module = VModule(list(sf.items) + rest_items)
+    # it computes (`gestate/stage.py`).  Its program is stage one's
+    # items through this same front, against the same stack front.
+    rest_items, stage_values = _staged(
+        rest_items, source,
+        lambda its: _lower(_analyse_staged_items(sf, its)))
+    return _analyse_staged_items(sf, rest_items, stage_values)
+
+
+def _analyse_staged_items(sf: StackFront, rest_items: list,
+                          stage_values: dict | None = None) -> Analysis:
+    """The staged front end from resolved program items on: the stack's
+    half read off `sf`, the program's inferred against its exports.
+    Stage one and the program itself both come through here."""
+    from .infer import Fresh
+
+    module = VModule(list(sf.items) + list(rest_items))
     program = classify(module)
     exhaust_errors = check_program(program)
     if exhaust_errors:
@@ -723,7 +740,7 @@ def _analyse_staged(source: str):
     scs, method_scs = resolve_static_methods(scs)
     scs = expand_envelopes(scs, program.cons)
     return Analysis(scs, program, results, method_scs, main_type,
-                    per_sc_constraints, stage=stage_values)
+                    per_sc_constraints, stage=stage_values or {})
 
 
 def _discharge(scs, program, results, per_sc_constraints, per_sc_givens):
@@ -789,9 +806,6 @@ def _discharge(scs, program, results, per_sc_constraints, per_sc_givens):
 
 def _analyse(source: str, *, typecheck: bool = True,
              prelude: bool = True) -> Analysis:
-    main_type = None
-    results: dict = {}
-    per_sc_constraints: list = []
     if typecheck and prelude:
         staged = _analyse_staged(source)
         if staged is not None:
@@ -804,11 +818,26 @@ def _analyse(source: str, *, typecheck: bool = True,
         head = 0
     # **Stage one** — the author's items, resolved, through
     # `gestate/stage.py`; the prelude's are never sited and their spans
-    # are not this text's.
-    staged_items, stage_values = _staged(module.items[head:], source, None)
+    # are not this text's.  Its program is the prelude's items and stage
+    # one's, through this same front, always typed.
+    staged_items, stage_values = _staged(
+        module.items[head:], source,
+        lambda its: _lower(_analyse_module(
+            VModule(list(module.items[:head]) + list(its)), typecheck=True)))
     if staged_items is not module.items[head:]:
         module = VModule(list(module.items[:head]) + list(staged_items),
                          comments=module.comments)
+    return _analyse_module(module, typecheck=typecheck,
+                           stage_values=stage_values)
+
+
+def _analyse_module(module: VModule, *, typecheck: bool,
+                    stage_values: dict | None = None) -> Analysis:
+    """The whole-text front end from a merged module on.  Stage one and
+    the program itself both come through here."""
+    main_type = None
+    results: dict = {}
+    per_sc_constraints: list = []
     program = classify(module)
 
     # Exhaustiveness runs on the surface patterns, before desugaring: the
@@ -868,7 +897,7 @@ def _analyse(source: str, *, typecheck: bool = True,
     # rewrite that declines to fire always has.
     scs = expand_envelopes(scs, program.cons)
     return Analysis(scs, program, results, method_scs, main_type,
-                    per_sc_constraints, stage=stage_values)
+                    per_sc_constraints, stage=stage_values or {})
 
 
 def _compile(source: str, *, typecheck: bool = True,
@@ -877,7 +906,14 @@ def _compile(source: str, *, typecheck: bool = True,
     # engine has already analysed — which is what loading a program's
     # `FromMIDI` instances does, right after building its graph — used to
     # pay for the front end twice.
-    analysis = _analysed_or_new((source, typecheck, prelude))
+    return _lower(_analysed_or_new((source, typecheck, prelude)))
+
+
+def _lower(analysis: Analysis) -> GmState:
+    """The back half, from an analysis to the machine: Datafun's helpers
+    and the seminaïve transform where a set is used, lambda lifting, the
+    G-machine program.  Stage one comes through here with an analysis
+    built from items (`_staged`), so it takes no text and no lock."""
     scs = analysis.scs
     program = analysis.program
     method_scs = analysis.method_scs

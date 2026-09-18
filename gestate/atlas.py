@@ -176,9 +176,12 @@ SPINE: list[tuple[str, str, str, object]] = [
 #: The front end, pass by pass — `(the call, what it does)`.
 #:
 #: **The order is not written here; it is checked against the code.**
-#: `pipeline._analyse` is the front end, in one function, in order, and
-#: `out_of_order()` reads the calls out of its syntax tree: these names
-#: must appear there, in this sequence.  Move a pass in the compiler and
+#: `pipeline._analyse` is the front end, in order, with its tail from
+#: the merged module on in `_analyse_module` — split 2026-09-18 so stage
+#: one can run the same tail over its own items (`card:strict-forms.md`
+#: §"Read — 2026-09-18", item 1).  `out_of_order()` reads the calls out
+#: of the two as one function, the tail's statements standing where it
+#: is returned: these names must appear there, in this sequence.  Move a pass in the compiler and
 #: the sheet fails until it is moved here — which is the difference
 #: between a diagram of the compiler and a diagram of what somebody
 #: remembered about the compiler.
@@ -553,32 +556,49 @@ def unproven(root: Path) -> list[str]:
     return out
 
 
-def _called_in(root: Path, module: str, function: str) -> list[str]:
-    """The names called inside one function, in source order, once each."""
-    tree = ast.parse((root / "gestate" / f"{module}.py").read_text())
-    fn = next((n for n in tree.body
-               if isinstance(n, ast.FunctionDef) and n.name == function), None)
-    out: list[str] = []
+#: The front end: the function every compile enters, and the tail it
+#: returns for a merged module.  The sheet reads them as one function.
+FRONT_END = ("_analyse", "_analyse_module")
 
-    def walk(node) -> None:
-        for child in ast.iter_child_nodes(node):
-            if isinstance(child, ast.Call):
-                f = child.func
-                name = f.id if isinstance(f, ast.Name) else getattr(f, "attr",
-                                                                    None)
-                if name and name not in out:
-                    out.append(name)
-            walk(child)
 
-    if fn is not None:
-        walk(fn)
-    return out
+def _front_end(root: Path) -> list:
+    """The front end's leaf statements, in the order they run: those of
+    `_analyse`, with `_analyse_module`'s standing where `_analyse`
+    returns it.  A call to the tail inside a lambda — the door stage
+    one is handed — is not the front end running and is left alone."""
+    tree = _tree(root, "pipeline")
+    fns = {n.name: n for n in getattr(tree, "body", [])
+           if isinstance(n, ast.FunctionDef)}
+
+    def body(name: str) -> list:
+        fn = fns.get(name)
+        if fn is None:
+            return []
+        out = []
+        for stmt in _statements(fn):
+            value = getattr(stmt, "value", None)
+            if (isinstance(stmt, ast.Return) and isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Name)
+                    and value.func.id in FRONT_END[1:]):
+                out += body(value.func.id)
+            else:
+                out.append(stmt)
+        return out
+
+    return body(FRONT_END[0])
 
 
 def out_of_order(root: Path) -> list[str]:
     """Passes the sheet draws that the front end does not call, or not
     in that sequence.  **The claim the language sheet lives on.**"""
-    order = _called_in(root, "pipeline", "_analyse")
+    order: list[str] = []
+    for stmt in _front_end(root):
+        for c in ast.walk(stmt):
+            if isinstance(c, ast.Call):
+                f = c.func
+                name = f.id if isinstance(f, ast.Name) else getattr(f, "attr", None)
+                if name and name not in order:
+                    order.append(name)
     at = -1
     out = []
     for name, _says in PASSES:
@@ -799,23 +819,18 @@ def refusals_for(root: Path, pass_name: str) -> list[str]:
             edge = beyond
 
     # And the front end's own `if errors: raise` on the line after.
-    front = _tree(root, "pipeline")
-    caller = next((n for n in getattr(front, "body", [])
-                   if isinstance(n, ast.FunctionDef) and n.name == "_analyse"),
-                  None)
-    if caller is not None:
-        after = False
-        for stmt in _statements(caller):
-            calls = {c.func.id for c in ast.walk(stmt)
-                     if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
-            if pass_name in calls:
-                after = True
-                found |= _raised_in(stmt)
-                continue
-            if after:
-                if calls & {n for n, _s in PASSES}:
-                    break
-                found |= _raised_in(stmt)
+    after = False
+    for stmt in _front_end(root):
+        calls = {c.func.id for c in ast.walk(stmt)
+                 if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+        if pass_name in calls:
+            after = True
+            found |= _raised_in(stmt)
+            continue
+        if after:
+            if calls & {n for n, _s in PASSES}:
+                break
+            found |= _raised_in(stmt)
     return sorted(found & known)
 
 

@@ -792,6 +792,43 @@ program with a splice compiles without the compiler reading its own
 source text a second time, and the stage cannot wait on the front
 end's lock because it never takes it.*
 
+### Built — 2026-09-18: item 1, stage one is items and never text
+
+**Henri:** *"Start with 1."*  Built the same morning; the postcondition
+holds and `test_stage.py::test_stage_one_is_items_and_never_text` says
+it in its own words — every door that takes a text refuses stage one's,
+and the seam registry gains nothing of it.
+
+**What changed.**  `stage.staged` takes a `build` door instead of the
+source and its seam: the front end that is running hands in a function
+from a list of resolved items to a `GmState`, through its own tail and
+the compiler's back half.  The two tails are functions now —
+`pipeline._analyse_staged_items` over a stack front, and
+`pipeline._analyse_module` over a merged module — and the back half of
+`_compile` is `pipeline._lower`, from an analysis to the machine.
+Stage one's program is the first stage's items plus the splice
+expressions as `Type` globals **with the author's own spans**
+(`stage._global`); the blanking of source lines, the text slice, the
+`note_seam` and the re-entrant `_compile` are gone with `_slice`.
+
+| | before | after |
+|---|---|---|
+| stage one is | the source with stage two blanked line by line, re-parsed, through the lockless door | the resolved items, through the caller's own front |
+| `_compile` entered with a text holding `__stage_` during the game's build | 1 | **0** |
+| a stage-one type error, `type T = $(kindName)` | *while checking `__stage_0__` (at 464:11)* — but 464 was a line of the appended tail, past the file's end | the same words, and 464 **is the splice's line** |
+| the game's build, `Substrate`, cold / warm (`~/…/scratchpad/stagetime.py`, two runs each) | 2.20 s / 0.24 s | 2.20 s / 0.24 s — the clock did not move; the seam did |
+| the lockless door's callers | the stage and `stage.rules()` | `stage.rules()` alone — the rules machine still compiles its own file from inside a compile, and that is item 1's remainder |
+| held by | `test_stage.py` 16, `test_documents.py` 14 | the same, plus one; the test fails on the old code |
+
+**What this does not do.**  `stage.rules()` still compiles `rules.ges`
+as text through `pipeline._compile`, from inside the first compile that
+asks it — once per process, and the same reentrancy that item 1 is
+about.  Its remedy is the same shape: a machine built from the rule
+file's *analysis*, outside any compile, or at first ask through
+`_lower` over items.  Not built this morning; the three deadlocks were
+all the stage's or the rules' first compile, and the stage's is
+closed.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are
@@ -800,5 +837,5 @@ command and the host performs it.  What remains on this card is E —
 the fourteen lines, every one of them `__x__ = chan` — which waits on
 a design for a channel that is a value, his; the card's larger
 question, how a program is composed from pieces, is his too; and
-**the seven places of §"Read — 2026-09-18"**, of which 1, 3 and 4 have
-a caller and an oracle today and 2 is the first new thing in a type.
+**the seven places of §"Read — 2026-09-18"**, of which **1 is built**, 3 and 4 have
+a caller and an oracle today, and 2 is the first new thing in a type.
