@@ -693,3 +693,74 @@ sound = map (t => gainAt (fromInteger (3 + floor t))) now
     got = run(graph, 16, block=4)
     # Four samples per second at rate 4: `floor t` is 0,0,0,0,1,1,1,1,…
     assert got[:16] == [3.0] * 4 + [5.0] * 4 + [7.0] * 4 + [9.0] * 4
+
+
+# ── A static position — `card:strict-forms.md` §"Read — 2026-09-18", item 2 ──
+
+_LITERAL_ENVELOPE = ("sound : Sig Float\n"
+                     "sound = map (t => on [ Step 0.0 110.0, Ramp 1.0 440.0 ] t) elapsed\n")
+
+_SAME_ENVELOPE_SPELT = {
+    "through a parameter": (
+        "melody : List Envelope\nmelody = [ Step 0.0 110.0, Ramp 1.0 440.0 ]\n\n"
+        "voice : List Envelope -> Sig Float\nvoice line = map (t => on line t) elapsed\n\n"
+        "sound : Sig Float\nsound = voice melody\n"),
+    "computed by a function": (
+        "rise : Float -> List Envelope\nrise top = [ Step 0.0 110.0, Ramp 1.0 top ]\n\n"
+        "sound : Sig Float\nsound = map (t => on (rise 440.0) t) elapsed\n"),
+    "named through two hops": (
+        "a : List Envelope\na = [ Step 0.0 110.0, Ramp 1.0 440.0 ]\n\n"
+        "b : List Envelope\nb = a\n\n"
+        "sound : Sig Float\nsound = map (t => on b t) elapsed\n"),
+    "through two parameters": (
+        "melody : List Envelope\nmelody = [ Step 0.0 110.0, Ramp 1.0 440.0 ]\n\n"
+        "voice : List Envelope -> Sig Float\nvoice line = map (t => on line t) elapsed\n\n"
+        "choir : List Envelope -> Sig Float\nchoir l = voice l\n\n"
+        "sound : Sig Float\nsound = choir melody\n"),
+}
+
+
+@pytest.mark.parametrize("spelling", sorted(_SAME_ENVELOPE_SPELT))
+def test_an_envelopes_points_are_a_static_position_however_they_are_spelt(spelling):
+    """Allais indexes a type by its stage; the tree infers the stage of a
+    parameter instead (`spec/liveaudio.md` §"Step functions").  A
+    parameter that reaches `on`'s points is static, the requirement
+    propagates to callers, and the points are evaluated on the machine
+    at extraction — so a parameter, a computed list and a two-hop name
+    all render what the literal renders, sample for sample."""
+    from gestate.audiograph import check
+
+    want = run(extract(_LITERAL_ENVELOPE, rate=8), 16, block=4)
+    src = _SAME_ENVELOPE_SPELT[spelling]
+    report = check(src, rate=8)
+    assert report, report.message
+    if "parameter" in spelling:
+        assert report.static.get("voice") == ["line"]
+    assert run(extract(src, rate=8), 16, block=4) == want
+
+
+def test_a_static_position_refuses_a_per_sample_value_at_its_line():
+    """The refusal names the stage and the variable, at the author's
+    line — not the extractor's unplaced *should be a constant*."""
+    from gestate.audiograph import check
+
+    report = check("sound : Sig Float\n"
+                   "sound = map (t => on [ Step 0.0 t ] t) elapsed\n", rate=8)
+    assert not report
+    assert "decides `on`'s points before the graph runs" in report.message
+    assert "depend on `t`, a value that changes per sample" in report.message
+
+
+def test_a_static_parameter_is_judged_at_the_caller_too():
+    """The requirement propagates: `voice line` makes `line` static, and
+    a caller filling it with a list that reads a signal is refused at
+    the caller, naming whose parameter it is."""
+    from gestate.audiograph import check
+
+    report = check("voice : List Envelope -> Sig Float\n"
+                   "voice line = map (t => on line t) elapsed\n\n"
+                   "pts : List Envelope\npts = [ Step 0.0 (head now) ]\n\n"
+                   "sound : Sig Float\nsound = voice pts\n", rate=8)
+    assert not report
+    assert "decides `voice`'s `line` before the graph runs" in report.message
+    assert "read `head`" in report.message

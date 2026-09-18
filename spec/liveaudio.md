@@ -366,6 +366,35 @@ recursion over `Cyclic 8`, and it renders bit-identically to the golden
 (`test/test_audiograph.py`).  What was "a convenience with no caller"
 above needed no list lifting: give the index a finite type.
 
+**A static position, and the stage a parameter is at** — *2026-09-18,
+`card:strict-forms.md` §"Read — 2026-09-18", item 2.*  Some arguments
+are decided before the graph runs: a delay line's length, a `scan`'s
+seed, and an envelope's points.  The first two the grammar already
+holds static — a per-sample value cannot stand outside a step function,
+so nothing dynamic reaches them — but the points of `on` and `beatOf`
+were held static *syntactically*: a literal list, or a name one hop
+from one, and anything else was refused as a list at audio rate.  Now
+the points are a **static position**: an expression closed over
+stage-one globals and the parameters of the definition it stands in.
+A parameter used that way is a **static parameter** of its definition,
+the requirement propagates to every caller to a fixed point, and a call
+filling a static parameter with anything else is refused at the
+caller's line, naming whose parameter it is.  The extractor binds a
+static parameter to the expression it was given, not to a value, and
+evaluates the points on the G-machine where they are read — so points
+may be passed through a parameter, computed by a function, or named
+any number of hops away, and all render what the literal renders.
+
+Allais (*Scoped and Typed Staging by Evaluation*) indexes every type by
+its stage and would write `Static (List Envelope)` in `voice`'s
+signature.  The tree's form is the one `spec/syntax.md` §"Implicits"
+chose for implicit parameters, for the same reason: a requirement
+inferred per definition and propagated, **never written in a
+signature**, so a library threading points does not change the type of
+everything above it.  `Report.static` carries what was inferred.  The
+day a refusal cannot say whose parameter is static without a written
+mark is the day the mark is worth its cost to reading.
+
 ### The fork worth deciding early
 
 Step functions are arbitrary gestate code. To run them outside the

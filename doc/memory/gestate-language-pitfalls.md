@@ -25,7 +25,10 @@ Pitfalls hit writing gestate examples (2026-08-09):
   spec/exclamation.md.
 - The audio fragment is first-order: no function-valued parameters, no
   lists at audio rate (use `case` tables), one record type per
-  instantiation, `on <points>` needs the points literal at the call site.
+  instantiation.  (`on <points>` needed the points literal at the call
+  site until 2026-09-18; the points are a static position now, evaluated
+  before the graph runs — a parameter, a computed list, a name through
+  hops all work, and a per-sample value in them is refused at the line.)
   **And since 2026-09-18 a scalar function of one `Cyclic n` or `lo .. hi`
   parameter is a table**: its body runs once per value at extraction and
   may read a list — `spec/liveaudio.md` §"Step functions"; the way in

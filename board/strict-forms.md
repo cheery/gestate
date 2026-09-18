@@ -909,6 +909,58 @@ have.  And it does not make `Cyclic` arithmetic cheaper at audio rate
 than it was: `fromInteger` is a `prim_mod_int` per sample, as `noteAt`
 already paid.
 
+### Built — 2026-09-18: item 2, a static position, the stage inferred and never written
+
+**Henri:** *"go on with 2"*, then on the measured shape, *"the defaults
+stand, stop the pass and build it."*  Built the same evening.
+
+**What the looking changed.**  The row assumed a dynamic value could
+reach a static position and be refused late.  It cannot: a delay
+line's length and a `scan`'s seed are already unreachable by a
+per-sample value, since the grammar refuses `head` outside a step
+function at the author's line, and a static expression through a
+parameter passes — probed both ways.  The one static position held
+only *syntactically* was the envelope's points: the expander read a
+literal or one named hop, so points through a parameter, points
+computed by a function, and a name two hops away were all refused as a
+list at audio rate — and, since the morning, with item 3's hint, which
+was the wrong advice for `on`.  Every example writes its envelope as a
+named literal, the one shape that worked.
+
+**The rule, `spec/liveaudio.md` §"Step functions".**  A points
+expression is a static position: closed over stage-one globals and
+the parameters of its definition.  A parameter used there is a
+**static parameter**, inferred on demand to a fixed point through
+calls (`audiograph._static_params`), judged at every static site and
+at every caller (`_static_site`, `_call`), skipped by the signature's
+flatness check, and carried on `Report.static`.  The extractor binds
+a static parameter to the *expression* it was given (`_inline`,
+`("static", closed)`), and evaluates the points on the machine where
+`on` or `beatOf` reads them (`_envelope`, `_points`) — a global by
+name through `stage._read`, anything else lowered as one more global
+beside the program through item 1's door — then builds the same tree
+`envexpand` builds for a literal.  **No `Static` in any signature**:
+the spec's own argument for implicit parameters, a requirement
+inferred and propagated rather than restated up the chain.
+
+| | before | after |
+|---|---|---|
+| points through a parameter, `voice line = map (t => on line t) elapsed` | refused as a list | renders what the literal renders, 16 of 16 samples; `report.static["voice"] == ["line"]` |
+| points computed, `on (rise 440.0) t`; a name two hops away; a parameter through two calls | refused | the same, each |
+| points that depend on the step's `t` | refused as a list | *decides `on`'s points before the graph runs, and these depend on `t`, a value that changes per sample* — at the line |
+| a caller filling a static parameter with a list that reads a signal | refused as a list, at the callee | *decides `voice`'s `line` before the graph runs, and these read `head`* — at the **caller** |
+| the examples and the courses | 107, and the courses | unchanged; every literal envelope still goes through the front end's expander |
+| held by | — | `test_audiograph.py` six: four spellings against the literal, two refusals |
+
+**What this does not do.**  It does not write the stage into a type,
+and the trigger for that is on the spec: a refusal that cannot say
+whose parameter is static without a mark.  It does not make the
+length or the seed positions "static" in the new sense, because they
+need nothing.  And a static parameter read as a per-sample value
+elsewhere in its definition is refused by the extractor unplaced
+(F156's shape), since the checker judges the static site and not the
+other uses.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are
@@ -917,5 +969,5 @@ command and the host performs it.  What remains on this card is E —
 the fourteen lines, every one of them `__x__ = chan` — which waits on
 a design for a channel that is a value, his; the card's larger
 question, how a program is composed from pieces, is his too; and
-**the seven places of §"Read — 2026-09-18"**, of which **1, 3 and 4 are built**, and 2 is the first new thing in a
-type.
+**the seven places of §"Read — 2026-09-18"**, of which **1, 2, 3 and 4 are built** the same day; 5 and 6 wait on
+their triggers and 7 on a sitting with reading time.

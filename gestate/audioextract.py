@@ -28,6 +28,7 @@ from __future__ import annotations
 from .audio import AUDIO_CLOCK
 from .audiograph import (FORMERS, PRIMITIVES, check_analysis, _arrow,
                          _signal_elem, let_inlined)
+from .envexpand import BEAT_OF, ON
 from .audioir import (SCOPE_LEN, Call, Case, Con, Const, Field, Func,
                       Graph, Let, Node,
                       Prim, Var)
@@ -135,14 +136,23 @@ def _extract_analysis(analysis, *, entry: str = "sound",
             "once at compile time (the static signal fragment, "
             "`spec/liveaudio.md`).  What stopped it:\n" + report.message)
     return _Extract(analysis, entry, rate,
-                    tables=frozenset(report.tables)).run()
+                    tables=frozenset(report.tables),
+                    static=report.static).run()
 
 
 class _Extract:
     def __init__(self, analysis, entry: str, rate: int,
-                 tables: frozenset = frozenset()):
+                 tables: frozenset = frozenset(), static: dict | None = None):
         self.entry = entry
         self.analysis = analysis
+        #: `Report.static` — definition → its static parameter names.  A
+        #: static parameter is bound to a closed *expression* when the
+        #: definition is inlined, and evaluated on the machine where it
+        #: is read (`_envelope`).
+        self.static = static or {}
+        #: Closed points expressions already evaluated, by their text.
+        self._points_memo: dict = {}
+        self._fresh = 0
         #: `Report.tables` — the finite-typed definitions the checker
         #: admitted as tables, built by `_table` and not translated.
         self.tables = tables
@@ -756,8 +766,18 @@ class _Extract:
         params, _result = _arrow(t) if t is not None else ([], None)
         inner: dict = {}
         key: list = [name]
+        static = self.static.get(name, ())
         for param_name, param_t, arg in zip(lam.params, params, args):
             param_elem = _signal_elem(param_t)
+            if param_name in static:
+                # **Bound to an expression, not a value** — decided before
+                # the graph runs, so it is never translated into a step;
+                # `_closed` makes it closed over globals here, in the
+                # caller's own environment.
+                closed = self._closed(arg, env, path)
+                inner[param_name] = ("static", closed)
+                key.append(("static", repr(closed)))
+                continue
             if param_elem is not None:
                 # **A polymorphic *parameter* is the caller's to settle,
                 # exactly as a polymorphic result is.**  The signature of
@@ -987,6 +1007,85 @@ class _Extract:
         raise ExtractError(f"`{name}` at {k}: the table answered a "
                            f"{type(out).__name__}, not a value")
 
+    # -- static positions: evaluated before the graph runs ------------------
+
+    def _closed(self, e, env: dict, where: str):
+        """`e` with every static parameter in scope substituted by the
+        expression it was bound to — closed over globals, so the machine
+        can evaluate it.  A per-sample variable in it is the checker's
+        refusal, made before extraction."""
+        from .audiograph import _free_evars, _subst_free
+
+        for v in sorted(_free_evars(e)):
+            what = env.get(v)
+            if what is not None and what[0] == "static":
+                e = _subst_free(e, v, what[1])
+            elif what is not None:
+                #: complaint  machine — the graph checker refuses a per-sample variable in a static position before extraction
+                raise ExtractError(f"{where}: `{v}` changes per sample and "
+                                   f"stands where a value decided before "
+                                   f"the graph runs is needed")
+        return e
+
+    def _envelope(self, name: str, args: list, env: dict, where: str):
+        """`on ps x` and `beatOf ps x` whose points the front end could
+        not read as a literal: the points are a **static position** —
+        `card:strict-forms.md` §"Read — 2026-09-18", item 2 — evaluated
+        on the machine now, and the same tree `envexpand` builds for a
+        literal is built from the answer and translated like any other
+        step."""
+        from .envexpand import _expanded, _expanded_beat
+
+        points = self._points(self._closed(args[0], env, where), where)
+
+        def fresh() -> str:
+            self._fresh += 1
+            return f"__pts{self._fresh}__"
+
+        if name == ON:
+            core = _expanded(points, args[1], self.cons, fresh)
+        else:
+            core = _expanded_beat(points, args[1], self.cons, fresh)
+            if core is None:
+                #: complaint  author, unplaced — fixme.md F156: a tempo envelope the schedule cannot make sense of, named by its definition path
+                raise ExtractError(f"{where}: `beatOf` was given a tempo "
+                                   f"this cannot make sense of")
+        return self._translate(core, env, where)
+
+    def _points(self, e, where: str) -> list:
+        """A closed points expression as `[(at, is_ramp, value)]`, the
+        shape `envexpand` reads off a literal — evaluated on the machine:
+        a global by name, anything else as one more global lowered
+        beside the program."""
+        from dataclasses import replace
+
+        from .expr import ELambda
+        from .stage import _read
+
+        key = repr(e)
+        if key in self._points_memo:
+            return self._points_memo[key]
+        if isinstance(e, EGlobal):
+            term = _read(self._machine(), str(e.name))
+        else:
+            from .pipeline import _lower
+
+            name = "__static_points__"
+            extra = (name, 0, ELambda([], e), None)
+            state = _lower(replace(self.analysis,
+                                   scs=list(self.analysis.scs) + [extra]))
+            term = _read(state, name)
+        out = []
+        for item in term:
+            if not (isinstance(item, tuple) and len(item) == 3
+                    and item[0] in ("Step", "Ramp")):
+                #: complaint  machine — inference types the points as `List Envelope`, whose values are `Step` and `Ramp`
+                raise ExtractError(f"{where}: a point that is not a `Step` "
+                                   f"or a `Ramp`: {item!r}")
+            out.append((float(item[1]), item[0] == "Ramp", float(item[2])))
+        self._points_memo[key] = out
+        return out
+
     # -- scalar expressions -> IR -------------------------------------------
 
     def _translate(self, e, env: dict, where: str):
@@ -1000,6 +1099,12 @@ class _Extract:
             if what is None:
                 #: complaint  machine — inference refuses a name out of scope long before extraction
                 raise ExtractError(f"{where}: `{e.name}` is not in scope")
+            if what[0] == "static":
+                #: complaint  author, unplaced — fixme.md F156: a static parameter — an envelope's points — read as a per-sample value, named by its definition path
+                raise ExtractError(f"{where}: `{e.name}` is decided before "
+                                   f"the graph runs and can only stand where "
+                                   f"such a value is read — an envelope's "
+                                   f"points")
             if what[0] != "val":
                 #: complaint  machine — inference refuses a signal used as a value long before extraction
                 raise ExtractError(f"{where}: `{e.name}` is a signal, used "
@@ -1054,6 +1159,9 @@ class _Extract:
 
         if isinstance(e, EAp):
             head, args = _spine(e)
+            if (isinstance(head, EGlobal) and str(head.name) in (ON, BEAT_OF)
+                    and len(args) == 2):
+                return self._envelope(str(head.name), args, env, where)
             if isinstance(head, EGlobal):
                 return self._global(str(head.name), args, env, where)
             if isinstance(head, EProj) and len(args) == 1:

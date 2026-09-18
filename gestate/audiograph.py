@@ -30,6 +30,7 @@ from .expr import (EAnnot, EAp, EBox, ECase, EChan, ECon, EDelay, EFix, EFor,
                    EGFix, EGlobal, EJoin, ELambda, ELet, ENever, EProj, ESet,
                    ESigCons, ESigHead, ESync, ETail, EUnbox, EVar,
                    EWait, EWatch, subexprs)
+from .envexpand import BEAT_OF, ON
 from .gmachine import MATH_FLOAT
 from .show import show_type
 from .types import (TApp, TCon, TFun, TVar, Type, is_flat,
@@ -192,6 +193,12 @@ class Report:
     #: value of the domain and emits the cascade a hand-written `case`
     #: becomes (`spec/liveaudio.md` §"Step functions").
     tables: list[str] = field(default_factory=list)
+    #: Definition → the names of its **static** parameters: those that stand
+    #: in a position decided before the graph runs — an envelope's points —
+    #: directly or through a call.  Inferred, never written in a signature
+    #: (`spec/liveaudio.md` §"Step functions"); the extractor binds them to
+    #: expressions and evaluates them on the machine.
+    static: dict = field(default_factory=dict)
 
     def __bool__(self) -> bool:
         return not self.errors
@@ -240,6 +247,9 @@ class _Check:
         self.calls: dict[str, set[str]] = {}
         #: The tables — `Report.tables`, as they are found.
         self.tables: set[str] = set()
+        #: Definition → its static parameters, computed on demand by
+        #: `_static_params` and read back as `Report.static`.
+        self._static: dict = {}
         self.here = ""
 
     # -- driving ------------------------------------------------------------
@@ -295,6 +305,8 @@ class _Check:
         self.report.scalars = sorted(n for n, k in self.seen.items()
                                      if k == "scalar")
         self.report.tables = sorted(self.tables)
+        self.report.static = {n: sorted(ps) for n, ps in self._static.items()
+                              if ps}
         self.report.errors = _dedup(self.report.errors)
         return self.report
 
@@ -329,7 +341,10 @@ class _Check:
                                   "functions the engine cannot lay out")
                 return
             before = len(self.report.errors)
-            self._check_signature(name, args, result, kind)
+            static = self._static_params(name)
+            self._check_signature(name, args, result, kind,
+                                  skip={i for i, p in enumerate(lam.params)
+                                        if p in static})
             if len(self.report.errors) > before:
                 # Its type is already the answer.  Walking the body as well
                 # reports the same fact a second time, in terms of the
@@ -400,7 +415,99 @@ class _Check:
                 stack.extend(subexprs(e))
         return None
 
-    def _check_signature(self, name, args, result, kind) -> None:
+    # -- static parameters ---------------------------------------------------
+
+    def _static_params(self, name: str) -> set:
+        """The parameters of `name` that stand in a static position —
+        an envelope's points, directly or through a call to a definition
+        whose parameter is static — to a fixed point, on demand.
+
+        **A stage in the type, inferred and never written** —
+        `card:strict-forms.md` §"Read — 2026-09-18", item 2.  Allais
+        indexes every type by its stage; the tree's honest form of that
+        is the spec's own rule for implicit parameters: a requirement
+        inferred per definition and propagated to callers, so no
+        signature says `Static`.  A parameter found here is bound to an
+        *expression* at extraction and evaluated before the graph runs."""
+        if name in self._static:
+            return self._static[name]
+        self._static[name] = set()          # the cycle guard
+        _arity, lam, _sig = self.by_name.get(name, (None, None, None))
+        if lam is None:
+            return set()
+        params = set(lam.params)
+        found: set = set()
+        stack = [lam.body]
+        while stack:
+            e = stack.pop()
+            if isinstance(e, EAnnot):
+                stack.append(e.expr)
+                continue
+            if isinstance(e, EAp):
+                head, args = _spine_ap(e)
+                if isinstance(head, EGlobal):
+                    g = str(head.name)
+                    if g in (ON, BEAT_OF) and len(args) == 2:
+                        found |= _free_evars(args[0]) & params
+                    elif g != name and g in self.by_name:
+                        callee = self._static_params(g)
+                        if callee:
+                            _a, clam, _s = self.by_name[g]
+                            for i, cp in enumerate(clam.params):
+                                if cp in callee and i < len(args):
+                                    found |= _free_evars(args[i]) & params
+            stack.extend(subexprs(e))
+        self._static[name] = found
+        return found
+
+    def _static_site(self, e, what: str) -> None:
+        """An expression in a static position is judged here, at its line:
+        its free variables are parameters of the definition being walked
+        — which makes them static in turn — and the globals it reaches
+        do not reach a signal, because nothing has a value before the
+        graph runs except what the machine can compute."""
+        _arity, lam, _sig = self.by_name.get(self.here, (None, None, None))
+        params = set(lam.params) if lam is not None else set()
+        self._static_params(self.here)
+        for v in sorted(_free_evars(e)):
+            if v not in params:
+                self._error(self.here, f"decides {what} before the graph "
+                                       f"runs, and these depend on `{v}`, "
+                                       f"a value that changes per sample")
+                return
+        stack = [e]
+        while stack:
+            x = stack.pop()
+            if isinstance(x, EAnnot):
+                stack.append(x.expr)
+                continue
+            if isinstance(x, (ESigCons, ESigHead, ETail, EDelay, EWait,
+                              EWatch, ESync, EGFix, ENever, EChan)):
+                self._error(self.here, f"decides {what} before the graph "
+                                       f"runs, and these read {_describe(x)}, "
+                                       f"which has no value until it does")
+                return
+            if isinstance(x, EGlobal):
+                g = str(x.name)
+                if g in FORMERS:
+                    self._error(self.here, f"decides {what} before the "
+                                           f"graph runs, and these build a "
+                                           f"signal with `{g}`")
+                    return
+                reached = self._reaches_a_signal(g)
+                if reached is not None:
+                    got, via = reached
+                    self._error(self.here, f"decides {what} before the "
+                                           f"graph runs, and these read "
+                                           f"{got}"
+                                           + (f" through `{via}`" if via != g
+                                              else "")
+                                           + ", which has no value until it does")
+                    return
+            stack.extend(subexprs(x))
+
+    def _check_signature(self, name, args, result, kind,
+                         skip: set = frozenset()) -> None:
         # **A signal definition may be polymorphic, and a scalar one may
         # not.**  The difference is inlining: a signal definition
         # *disappears* into the nodes it builds, at every use and at that
@@ -440,6 +547,8 @@ class _Check:
         # here exactly as before.
         free = kind == "signal"
         for i, a in enumerate(args):
+            if i in skip:
+                continue                    # static: bound before the graph runs
             elem = _signal_elem(a)
             if elem is not None:
                 if not is_flat(_settled(elem) if free else elem, self.cons):
@@ -587,8 +696,13 @@ class _Check:
             self._error(self.here, f"calls `{name}`, whose type is not known")
             return
         params, _result = _arrow(t)
-        for param, arg in zip(params, args):
-            if _signal_elem(param) is not None:
+        static = self._static_params(name)
+        _a, lam, _s = self.by_name.get(name, (None, None, None))
+        names = list(lam.params) if lam is not None else []
+        for i, (param, arg) in enumerate(zip(params, args)):
+            if i < len(names) and names[i] in static:
+                self._static_site(arg, f"`{name}`'s `{names[i]}`")
+            elif _signal_elem(param) is not None:
                 self._signal(arg)
             elif isinstance(param, TFun):
                 self._step(name, arg)
@@ -682,6 +796,16 @@ class _Check:
 
         if isinstance(e, EAp):
             head, args = _spine_ap(e)
+            if (isinstance(head, EGlobal) and str(head.name) in (ON, BEAT_OF)
+                    and len(args) == 2):
+                # **An envelope's points are a static position.**  The
+                # expander already turned a literal list into a tree in
+                # the front end; what it left is evaluated on the machine
+                # at extraction, so the points may be a parameter, a
+                # computed list, or a name any number of hops away.
+                self._static_site(args[0], f"`{head.name}`'s points")
+                self._scalar(args[1])
+                return
             if isinstance(head, EGlobal) and str(head.name) in FORMERS:
                 self._error(self.here,
                             f"calls `{head.name}` inside a step function.  "
@@ -948,6 +1072,37 @@ def _monomorphise(t: Type) -> Type:
         return TFun(_monomorphise(t.arg), _monomorphise(t.ret),
                     None, getattr(t, "mono", False))
     return t
+
+
+def _free_evars(e) -> set:
+    """The variables free in `e` — an `EVar` no lambda, `let` or `case`
+    alternative inside `e` binds."""
+    out: set = set()
+
+    def walk(x, bound: frozenset) -> None:
+        if isinstance(x, EVar):
+            if x.name not in bound:
+                out.add(x.name)
+            return
+        if isinstance(x, ELambda):
+            walk(x.body, bound | frozenset(x.params))
+            return
+        if isinstance(x, ELet):
+            inner = bound | frozenset(n for n, _v in x.defs)
+            for _n, v in x.defs:
+                walk(v, inner if x.is_rec else bound)
+            walk(x.body, inner)
+            return
+        if isinstance(x, ECase):
+            walk(x.scrut, bound)
+            for alt in x.alts:
+                walk(alt.body, bound | frozenset(alt.names))
+            return
+        for child in subexprs(x):
+            walk(child, bound)
+
+    walk(e, frozenset())
+    return out
 
 
 def _subst_free(e, name: str, value):

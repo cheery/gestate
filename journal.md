@@ -3587,3 +3587,36 @@ lift that was never built; it says the true thing now.  What it does
 not do is lift a list at an `Int` index, because `Int` is not finite
 and the default arm is the author's — which is the boundary the rule
 draws, and it is the type's.
+
+## The stage of a parameter, inferred — 2026-09-18, night
+
+Item 2 was the one the morning's card had marked as the first new
+thing in a type, and it was put to him before code because the looking
+had changed it.  The row feared a dynamic value reaching a static
+position and being refused late; probed, no such road exists — the
+grammar refuses `head` outside a step function at the line, and a
+static expression through a parameter passes.  What the looking found
+instead was one position held static by *syntax*: an envelope's
+points had to be a literal list or a name one hop from one, so passing
+a melody through a parameter, computing one, or naming it through two
+hops were all refused as a list at audio rate — and, since the morning,
+with the table hint, which was advice for the wrong function.
+
+**He chose the inferred form and stopped the pass for it.**  Allais
+would write the stage into the type; the tree already had its own
+answer to that in the spec's implicit parameters — a requirement
+inferred per definition and propagated to callers, never restated in
+signatures.  So a points expression is a static position, a parameter
+standing in one is a static parameter, the requirement propagates on
+demand to a fixed point, and a call filling a static parameter with
+anything but a stage-one expression is refused at the caller, naming
+whose parameter it is.  The extractor binds such a parameter to the
+expression rather than a value and evaluates the points on the machine
+where they are read, through the door the morning built.  Four
+spellings render what the literal renders, sample for sample; two
+refusals name the stage and the culprit at the line.
+
+**What it cost the day.**  The full pass had been running for seven
+minutes when he said build; it was stopped, because the tree is frozen
+under it and an hour of waiting was not what *go on* meant.  It runs
+again now, at the end, on everything the day landed.
