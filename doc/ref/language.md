@@ -188,7 +188,7 @@ How many instants there are in a second.  The *renderer's* answer, not the progr
 constSig : a -> Sig a
 ```
 
-The same value at every instant.  What it is constant *over* is whichever clock is running — `ticks` for a synth, the event stream for a canvas — which is why the renderer supplies it and no library can.  **Internal**: it is the node `!` builds, and the marker is the spelling — `!x`, or `!(f x)` for a computed value.  A program that names it is refused, the way a library's own machinery is.
+The same value at every instant.  What it is constant *over* is whichever clock is running — `ticks` for a synth, the event stream for a canvas — which is why the renderer supplies it and no library can.  **Internal**: it is the node `!` builds, and the marker is the spelling — `!x`, or `!(f x)` for a computed value.  A program that names it is refused, the way a library's own machinery is.  **And a named value handed to a `Sig` parameter is lifted for you** (2026-09-18): `lowpass cutoff s` with `cutoff : Float` is `lowpass (!cutoff) s`.  The lift is inserted where the checker decides the mismatch — at a call whose parameter is already a `Sig` — so `level * s` still wants its `!`, because `*`'s parameter is a variable there.
 
 ### `beat`
 

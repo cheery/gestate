@@ -244,7 +244,12 @@ PRIMITIVES = (
          "no library can.  **Internal**: it is the node `!` builds, and "
          "the marker is the spelling — `!x`, or `!(f x)` for a computed "
          "value.  A program that names it is refused, the way a library's "
-         "own machinery is."),
+         "own machinery is.  **And a named value handed to a `Sig` "
+         "parameter is lifted for you** (2026-09-18): `lowpass cutoff s` "
+         "with `cutoff : Float` is `lowpass (!cutoff) s`.  The lift is "
+         "inserted where the checker decides the mismatch — at a call "
+         "whose parameter is already a `Sig` — so `level * s` still "
+         "wants its `!`, because `*`'s parameter is a variable there."),
         ("beat", "Sig Float",
          "**What beat it is** — at audio rate, for a synth moving in time "
          "with the music rather than with the second.  In scope wherever "
@@ -668,7 +673,8 @@ def index_page() -> str:
         "| `sampleRate` | `Float` | any audio or canvas program |",
         "| `now` | `Sig Float` | any audio or canvas program |",
         "| `constSig` | `a -> Sig a` | **internal** — write `!x`, or "
-        "`!(f x)` for a computed value |",
+        "`!(f x)` for a computed value; a named value in a `Sig` "
+        "parameter's place is lifted for you |",
         "| `beat` | `Sig Float` | a **scored** synth only |",
         "",
         "`now` is **how long the program has been running, in seconds**, "

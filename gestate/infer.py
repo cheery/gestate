@@ -307,6 +307,48 @@ def _collect_adt_tvs(t: Type) -> list[TVar]:
 # Core judgments
 # ---------------------------------------------------------------------------
 
+def _lift_into_signal(env, expr, arg_t, fn_t, ret, mono, fresh):
+    """**The lift as a coercion** — `card:strict-forms.md` §"Read —
+    2026-09-18", item 4.  A function that wants a `Sig a` and is handed
+    an `a` gets `constSig a`, as if the author had written `!x`: the
+    argument node is rewritten in place, and the substitution that
+    makes the call go through is returned; `None` when the mismatch
+    is any other.
+
+    Kovács §2.3.2 inserts `A ≤ ⇑A` wherever an inferred type meets an
+    expected one during bidirectional elaboration.  This is HM, so the
+    coercion fires where the mismatch is *decided*: at an application
+    whose function already has a `Sig` parameter and whose argument
+    already has a type that is not a signal and not a variable.  A
+    literal lifted on its own through `Num (Sig a)` before this; a named
+    `Float` did not, which was the pitfall `every pulseHz` against
+    `every (!pulseHz)` (`doc/memory/gestate-language-pitfalls.md`).
+    Only where `constSig` is in scope — the renderer's own, so a
+    program with no signals is refused as before.
+    """
+    from .expr import EAp, EGlobal
+
+    if "constSig" not in env or not isinstance(fn_t, TFun):
+        return None
+    want = fn_t.arg
+    if not (isinstance(want, TApp) and isinstance(want.fn, TCon)
+            and want.fn.name == "Sig"):
+        return None
+    if isinstance(arg_t, TVar) or (isinstance(arg_t, TApp)
+                                   and isinstance(arg_t.fn, TCon)
+                                   and arg_t.fn.name == "Sig"):
+        return None
+    try:
+        s = unify(TFun(TApp(TCon("Sig"), arg_t), ret, None, mono), fn_t)
+    except UnifyError:
+        return None
+    lift = EAp(EGlobal("constSig"), expr.arg)
+    lift.discrete_arg = True
+    lift.span = getattr(expr.arg, "span", None)
+    expr.arg = lift
+    return s
+
+
 def infer(env: dict[Name, Scheme], expr: Expr, fresh: Fresh,
           cons: dict[str, ConInfo],
           classes: dict[str, ClassInfo],
@@ -439,7 +481,14 @@ def infer(env: dict[Name, Scheme], expr: Expr, fresh: Fresh,
         # `unify(actual, expected)` — the order decides which way the
         # error message reads.  The *actual* type here is the arrow the
         # call site implies; the *expected* one is the function's own.
-        s = s.compose(unify(TFun(s.apply(arg_t), ret, None, mono), known))
+        try:
+            s = s.compose(unify(TFun(s.apply(arg_t), ret, None, mono), known))
+        except UnifyError as refused:
+            lifted = _lift_into_signal(env, expr, s.apply(arg_t), known,
+                                       ret, mono, fresh)
+            if lifted is None:
+                raise refused
+            s = s.compose(lifted)
         _apply_subst_constraints(constraints_out, s)
         return s.apply(ret), s
 

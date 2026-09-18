@@ -43,7 +43,7 @@ Optional, and recognised wherever they make sense:
 |---|---|---|
 | `sampleRate` | `Float` | any audio or canvas program |
 | `now` | `Sig Float` | any audio or canvas program |
-| `constSig` | `a -> Sig a` | **internal** — write `!x`, or `!(f x)` for a computed value |
+| `constSig` | `a -> Sig a` | **internal** — write `!x`, or `!(f x)` for a computed value; a named value in a `Sig` parameter's place is lifted for you |
 | `beat` | `Sig Float` | a **scored** synth only |
 
 `now` is **how long the program has been running, in seconds**, and it means that on both sides.  In a synth it is the sample clock — the same number `elapsed` gives, under the name a reader expects.  On a canvas it is real time, written once a frame by whatever is drawing: a substrate that animates says `now` instead of counting frames and dividing by a rate it has no name for.  The editor's canvas has no fixed frame rate to divide by, so that division could not have been honest.

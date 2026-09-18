@@ -829,6 +829,37 @@ file's *analysis*, outside any compile, or at first ask through
 all the stage's or the rules' first compile, and the stage's is
 closed.
 
+### Built — 2026-09-18: item 4, the lift as a coercion
+
+**Henri:** *"go to 4."*  Built the same day.  A function that wants a
+`Sig a` and is handed an `a` gets `constSig` inserted at the argument,
+as if the author had written `!x` — `infer._lift_into_signal`, called
+from the application rule when unification refuses and only then, so
+a program that compiled before is untouched by construction.  It is
+Kovács §2.3.2's `A ≤ ⇑A`, inserted where this checker *decides* the
+mismatch rather than where a bidirectional one would meet it: the
+parameter must already be a `Sig` and the argument already a type
+that is neither a signal nor a variable.  Only where `constSig` is in
+scope, which is the renderer's programs; anything else is refused in
+the words it always was.
+
+| | before | after |
+|---|---|---|
+| `lowpass cutoff s`, `cutoff : Float` | *Type mismatch: expected Sig Float* | compiles; the core holds `constSig cutoff` |
+| `level * s`, `level : Float` | refused | **still refused** — `*`'s parameter is a variable when `level` is applied, and the mismatch is decided at `s`, where no lift helps; pinned by a test so the boundary is a fact and not a surprise |
+| `bell.ges` with `(!hz) (!seconds)` removed | refused | the same graph, sample for sample — `test_audiograph.py`, at 800 Hz over 64 samples; and 4,000 samples at 8 kHz through the native engine when measured |
+| the examples, `(!name)` stripped everywhere (`~/…/scratchpad/liftstrip.py`) | — | 27 examples analyse alone; **7** parenthesised bare lifts in 3 of them; all 3 still analyse.  The reach is modest because most hand lifts are of a *function* — `!hzOf note` is `mapSig`, 82 of them against 207 `constSig` in the same 27 — or stand under `*` |
+| the examples sweep, `test_examples.py` | 107 | 107, 7 m 52 s |
+| held by | — | `test_types.py` three, `test_audiograph.py` one; `doc/ref/language.md` regenerated, the pitfall memory amended |
+
+**What this does not do.**  It does not lift a function — `!f x` as
+`mapSig f x` is the preservation map `pres→` of Kovács §2.3, a larger
+thing and not asked for.  It does not read through a class method's
+variable, so `level * s` keeps its marker.  And it costs the reading
+goal exactly what the item said: a `constSig` an author did not write,
+now in the core and on no line — the reference page says where it
+fires and where it does not.
+
 ## What a session does now
 
 Seam 1 is closed, its second compile is gone, the grid's tables are
@@ -837,5 +868,5 @@ command and the host performs it.  What remains on this card is E —
 the fourteen lines, every one of them `__x__ = chan` — which waits on
 a design for a channel that is a value, his; the card's larger
 question, how a program is composed from pieces, is his too; and
-**the seven places of §"Read — 2026-09-18"**, of which **1 is built**, 3 and 4 have
+**the seven places of §"Read — 2026-09-18"**, of which **1 and 4 are built**, 3 has
 a caller and an oracle today, and 2 is the first new thing in a type.

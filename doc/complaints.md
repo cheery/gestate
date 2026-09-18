@@ -747,21 +747,21 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 341 | `UnresolvedName` | `author` | `at()` | 'Unbound variable: {expr.name!r}{at(expr)}' |
-| 364 | `UnresolvedName` | `author` | `at()` | "Unknown global '{expr.name}' (not defined as a supercombinator or class method){at(expr)}" |
-| 379 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {expr.tag}{at(expr)}' |
-| 384 | `InferError` | `author` | `at()` | 'Constructor {con.name}: expected {len(field_types)} args, got {len(expr.args)}{at(expr)}' |
-| 620 | `InferError` | `author` | `at()` | 'fix expects a boxed monotone set function {want}: {exc}; write `fix Box (x => ...)`{at(expr)}' |
-| 686 | `InferError` | `machine` | — | 'Unknown expression: {type(expr).__name__}' |
-| 707 | `InferError` | `author` | `at()` | 'Lambda with {len(expr.params)} params: expected function type, got {t}{at(expr)}' |
-| 872 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
-| 894 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
-| 964 | `InferError` | `author` | handed in | "'.{index}' is not a projection: fields are selected by position, and a record declares no fiel… |
-| 972 | `InferError` | `author` | handed in | "'.{index}' on a {len(parts)}-tuple — the components are 0 to {len(parts) - 1}{place}" |
-| 980 | `InferError` | `author` | handed in | "'.{index}' needs the type of what it projects from, and it is not known here. Projection is re… |
-| 997 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(fields)} field(s){place}" |
-| 1007 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(owned)} constructors — only a record (one construc… |
-| 1014 | `InferError` | `author` | handed in | "'.{index}' on {show_type(t)}, which is not a tuple or a record{place}" |
+| 383 | `UnresolvedName` | `author` | `at()` | 'Unbound variable: {expr.name!r}{at(expr)}' |
+| 406 | `UnresolvedName` | `author` | `at()` | "Unknown global '{expr.name}' (not defined as a supercombinator or class method){at(expr)}" |
+| 421 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {expr.tag}{at(expr)}' |
+| 426 | `InferError` | `author` | `at()` | 'Constructor {con.name}: expected {len(field_types)} args, got {len(expr.args)}{at(expr)}' |
+| 669 | `InferError` | `author` | `at()` | 'fix expects a boxed monotone set function {want}: {exc}; write `fix Box (x => ...)`{at(expr)}' |
+| 735 | `InferError` | `machine` | — | 'Unknown expression: {type(expr).__name__}' |
+| 756 | `InferError` | `author` | `at()` | 'Lambda with {len(expr.params)} params: expected function type, got {t}{at(expr)}' |
+| 921 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
+| 943 | `InferError` | `author` | `at()` | 'Unknown constructor tag: {alt.tag}{at(e)}' |
+| 1013 | `InferError` | `author` | handed in | "'.{index}' is not a projection: fields are selected by position, and a record declares no fiel… |
+| 1021 | `InferError` | `author` | handed in | "'.{index}' on a {len(parts)}-tuple — the components are 0 to {len(parts) - 1}{place}" |
+| 1029 | `InferError` | `author` | handed in | "'.{index}' needs the type of what it projects from, and it is not known here. Projection is re… |
+| 1046 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(fields)} field(s){place}" |
+| 1056 | `InferError` | `author` | handed in | "'.{index}' on '{head.name}', which has {len(owned)} constructors — only a record (one construc… |
+| 1063 | `InferError` | `author` | handed in | "'.{index}' on {show_type(t)}, which is not a tuple or a record{place}" |
 
 ### `internals.py`
 

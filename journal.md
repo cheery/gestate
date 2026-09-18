@@ -3510,3 +3510,34 @@ seventeen now.
 **What is left of the seam** is the rules machine, which still
 compiles its own file as text from inside the first compile that asks
 it.  The card says so, and says the remedy is the same shape.
+
+## The lift the author did not write — 2026-09-18, afternoon
+
+Item 4 of the morning's reading, and the two cards the lamp had named
+went to the shelf first, with his sentence in each.
+
+**The coercion is thirty lines and fires where HM decides.**  Kovács
+inserts `A ≤ ⇑A` during bidirectional elaboration wherever an inferred
+type meets an expected one.  The tree's checker is Hindley–Milner, so
+the same rule lands in the application case, after unification has
+refused and only then: a `Sig` parameter, an argument that is neither
+a signal nor a variable, and `constSig` in scope — then the argument
+is rewritten in place and the call goes through.  A program that
+compiled before never reaches the retry, which is the whole argument
+for its safety, and the examples sweep said so in numbers, 107 of 107.
+
+**The reach was measured before the prose was written.**  The census
+over the 27 examples that assemble alone found 207 lifts of a value
+against 82 of a function; stripping every parenthesised bare lift
+found only seven, in three files, and all three compile without them.
+Most hand lifts are `!hzOf note`, a function lifted — the preservation
+map, a different and larger rule — or stand under `*`, whose
+parameter is a variable when the constant is applied.  That boundary
+is pinned by a test rather than left to be discovered, and the
+reference page says where the lift fires and where it does not.
+
+**The oracle was already built.**  `spec/liveaudio.md` held its hand
+rewrite of a table to the golden buffers; the same comparison, turned
+on `bell.ges` with two lifts removed, was bit-identical at 8 kHz over
+four thousand samples and again in the graph test at 800 Hz.  Nothing
+about the coercion needed a new instrument.

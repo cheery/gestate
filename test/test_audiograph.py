@@ -589,3 +589,17 @@ def test_two_knobs_are_driven_independently():
     assert at(40, 10) != base, "the cutoff knob does nothing"
     # And they are not the same knob under two names.
     assert at(90, 10) != at(10, 90)
+
+
+def test_a_lift_the_author_did_not_write_renders_what_the_written_one_does():
+    """`card:strict-forms.md` §"Read — 2026-09-18", item 4: `bell.ges`
+    with two of its hand lifts removed — `resonate hz seconds s` for
+    `resonate (!hz) (!seconds) s` — is the same graph, sample for
+    sample.  The oracle the hand rewrite of `spec/liveaudio.md` was held
+    to, turned on the coercion."""
+    src = _source("bell.ges")
+    bare = src.replace("resonate (!hz) (!seconds) s", "resonate hz seconds s")
+    assert bare != src, "the example no longer writes the lifts this test removes"
+    rate, samples, block = 800, 64, 8
+    assert (run(extract(bare, rate=rate), samples, block=block)
+            == run(extract(src, rate=rate), samples, block=block))

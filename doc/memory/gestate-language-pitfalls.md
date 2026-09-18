@@ -74,7 +74,10 @@ Pitfalls hit writing gestate examples (2026-08-09):
 **`!x` lifts a value into `Sig`** (Henri, 2026-08-11). A numeric
 *literal* lifts on its own, but a named `Float` does not — `every
 pulseHz` where `pulseHz : Float` is a type error and `every (!pulseHz)`
-is right. Prefer keeping the constant a `Float` and lifting at the use
+is right.  **And since 2026-09-18 a named value is lifted for you where
+the checker decides the mismatch** — a call whose parameter is already a
+`Sig` (`card:strict-forms.md` §"Read — 2026-09-18", item 4); `level *
+s` still wants its `!`, because `*`'s parameter is a variable there. Prefer keeping the constant a `Float` and lifting at the use
 site, so arithmetic on it (`!(pulseHz / 2)`) happens once at the value
 level rather than every sample. `!` is the same operator that lifts a
 pure *function*: `triangle (!freq note)`.

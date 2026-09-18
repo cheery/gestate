@@ -159,3 +159,67 @@ def test_metavariables_are_lettered_in_messages():
     said = str(caught.value)
     assert "a3303" not in said and "a3305" not in said, said
     assert "a -> b" in said, said
+
+
+# ── The lift as a coercion — `card:strict-forms.md` §"Read — 2026-09-18", item 4 ──
+
+
+import pytest
+
+
+def _core_of(analysis, name):
+    return next(lam for n, _a, lam, _s in analysis.scs if n == name)
+
+
+def _mentions(node, global_name: str) -> bool:
+    from dataclasses import fields, is_dataclass
+
+    from gestate.expr import EGlobal
+
+    if isinstance(node, EGlobal):
+        return node.name == global_name
+    if isinstance(node, (list, tuple)):
+        return any(_mentions(x, global_name) for x in node)
+    if is_dataclass(node) and not isinstance(node, type):
+        return any(_mentions(getattr(node, f.name), global_name)
+                   for f in fields(node))
+    return False
+
+
+def test_a_named_value_in_a_sig_position_is_lifted_for_you():
+    """Kovács §2.3.2, `A ≤ ⇑A` at the point the mismatch is decided: a
+    call whose parameter is a `Sig` and whose argument is a named
+    `Float` gets `constSig` inserted, as if `!cutoff` had been written
+    — the pitfall of `doc/memory/gestate-language-pitfalls.md`."""
+    from gestate import audio, pipeline
+
+    prog = ("cutoff : Float\ncutoff = 400.0\n\n"
+            "sound : Sig Float\nsound = lowpass cutoff (lowpass (!cutoff) (!0.5))\n")
+    a = pipeline.analyse(audio.assemble(prog))
+    assert _mentions(_core_of(a, "sound"), "constSig")
+
+
+def test_the_lift_is_only_inserted_where_the_renderer_supplies_it():
+    """A program with no signals has no `constSig`, and is refused with
+    the words it always was: the coercion is the renderer's, not the
+    language's."""
+    from gestate import pipeline
+    from gestate.unify import UnifyError
+
+    prog = "x : Float\nx = 1.0\n\nf : Sig Float -> Int\nf s = 0\n\nmain : Int\nmain = f x\n"
+    with pytest.raises(UnifyError, match="expected Sig Float"):
+        pipeline.compile(prog)
+
+
+def test_the_lift_does_not_reach_a_parameter_that_is_still_a_variable():
+    """The HM boundary, pinned so a change is noticed: `level * s` with
+    `level : Float` is refused, because `*`'s first parameter is a
+    variable when `level` is applied and the mismatch is only decided at
+    `s` — where the parameter is `Float` and no lift would help.  The
+    `!` stays there, and the reference page says so."""
+    from gestate import audio, pipeline
+
+    prog = ("level : Float\nlevel = 0.5\n\n"
+            "sound : Sig Float\nsound = level * lowpass (!400.0) (!0.5)\n")
+    with pytest.raises(Exception, match="Type mismatch"):
+        pipeline.analyse(audio.assemble(prog))
