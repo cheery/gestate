@@ -100,6 +100,14 @@ cost to the three properties above, that is the tiebreak, and say so
 on the card.  When it would cost one of them, it is his to weigh, and
 this section is what to cite when putting it to him.
 
+**And a logic language, 2026-09-18, the kaizen, his words:** *"I did
+learn that maybe there's a place for generic purpose logic programming
+language in gestate.  Multi-staging proposes to that direction a little
+bit."*  Datafun is the logic fragment the tree has — sets, `fix`,
+`for` — and the day's staging pointed there because a stage is a moment
+where more is known.  A direction beside the one above, and by the same
+rule not a card: [[capacity-is-not-a-caller]].
+
 ## Read — 2026-09-16: the theory's two sources, at their page
 
 *The reading is the session's.*  Both from `~/misc/papers/`, fetched by

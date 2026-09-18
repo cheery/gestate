@@ -3647,3 +3647,47 @@ strictness had a witness for the type fragment and none for the items
 around it; one test holds both, every unsited item the same object out
 as in.  A page that names its tests finds the ones it does not have,
 which is the reason to write it rather than the reason not to.
+
+## Kaizen, 2026-09-18
+
+*Both halves, his first — `doc/memory/the-kaizen-is-asked-not-answered.md`.
+The day: the two-level papers read, seven places named, five built,
+two cards shelved, the full pass run.*
+
+**What did we learn.**  *Henri:* "I did learn that maybe there's a place
+for generic purpose logic programming language in gestate.
+Multi-staging proposes to that direction a little bit."  *The
+session:* go and look before the row — three of the five items changed
+shape once the tree was measured, and the two that did not were the
+ones whose rows already carried a defect count; and the papers' most
+useful content was their negative space, which named what the tree
+already refuses.
+
+**What did we get wrong.**  *Henri:* "I'm still pretty bad at finding
+out my own mistakes or dictating them."  *The session:* the first cold
+number, a cold disk cache read as a win; the lift's rule stated as
+symmetric when the manual's own test showed it is not; one sentence
+tripping the consent gate twice; and the item 3 hint, written in the
+morning for one case and printing wrong advice by evening for the case
+item 2 fixed — a remedy named in a refusal is a claim.
+
+**What mechanism does that earn.**  *Henri:* "I think that I remember
+one thing why this stuff works.. at all, and it's volatile.  It is to
+treat session as a party, rather than as a machine.  I think there's
+some situations where we miss that entirely, latest is perhaps graphrag
+where a session is treated as a part of a machine.  I'm not sure what
+to think about that."  *The session:* two small ones landed with the
+repairs — the standing test asks about whichever card is live, and the
+transform-scope test sets the compiler's halves aside by rule; the six
+earn no more than that, forty minutes and a reason each.  On his: the
+line this tree already draws is whether a session can raise a question
+and be answered (`doc/memory/henri-subagents.md`); GraphRAG's
+extraction runs with no cord and its sheet judges the output, so
+nothing a judge would catch is lost — where judgment is exercised, the
+cord is what makes a party.  Said as a view, with the mirror named: a
+session asked whether sessions are parties is the wrong judge.  His to
+think, and written down so it is not lost.
+
+**Tomorrow's first thing.**  *Henri:* "Tomorrow's first thing is to
+visit my dad.  It's weekend."  The next sitting opens with
+`card:notes-editor.md`, which the lamp names at seven days.
