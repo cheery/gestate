@@ -106,6 +106,26 @@ where the neighbouring ones take `Sig Float`.
 peaks at 8 when the score is dense; scale inside the voice body rather
 than in the mix, or the limiter ends up doing the mixing.
 
+**A struck note at tick 0 renders silent in the offline bake** (found
+writing `~/gestate.scratchpad/drama.ges`, measured 2026-09-20): a bell
+toll starting at the first instant gave a peak of 0.001, the same toll a
+beat later 0.080.  It is F240's shape — a note stamped into the first
+block is read a block late and a one-millisecond click is gone by then —
+which was fixed in the shell and not in the bake.  Author workaround:
+start the first struck or plucked note at least a beat in, `r ++ …`;
+sustained banks (bowed, reed, flute) are not affected.  Repro: any
+`neatness.ges` bank, `score = ('(Note 74 62) |* 4) >>= voices.bell`,
+`audioperform … -o x.wav --seconds 4 --report`.
+
+**Keep a payload's velocity as a `Float` 0..1, not an `Int`.**
+`tools/bars.py` and `audioperform --report` find the pitch by *the one
+`Int` field in 21..108*, and refuse (`cannot tell which field … is the
+pitch`) when a velocity is a second whole number in that range — which
+is why they could not read `neatness.ges`.  `Note Int Float` with
+`n k v = '(Note k (toFloat v / 127.0))` reads the same to the voice and
+lets every reader work; a `Notable` instance is still wanted by the
+score box.
+
 **OPEN (found 2026-08-14): `long n (cycle <all-rests>)` diverges the
 stream walk** — specimens/sauna_specimen.ges (AI-written for Henri's
 friend; playing version examples/long/sauna.ges) stalled on it.
