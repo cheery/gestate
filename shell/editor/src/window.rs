@@ -2528,7 +2528,23 @@ impl WindowHandler for EditorWindow {
                     if let Some(w) =
                         self.walkers.borrow_mut().get_mut("substrate")
                     {
-                        for (name, value) in w.press(px, py) {
+                        // **The press timed, when `GESTATE_EDITOR_TIME`
+                        // asks** — the walk over the picture's hit
+                        // table to what this press took hold of, and
+                        // nothing else: the model's half is stamped
+                        // on the wire (`GESTATE_WIRE`), and a frame's
+                        // paint is the report above.  One line per
+                        // press, so a driven run can read each
+                        // (`tools/presscost.py`, 2026-09-22).
+                        let timing = self.clock.borrow().on;
+                        let began = Instant::now();
+                        let writes = w.press(px, py);
+                        if timing {
+                            eprintln!("[editor] press: walk {} us, {} writes",
+                                      began.elapsed().as_micros(),
+                                      writes.len());
+                        }
+                        for (name, value) in writes {
                             self.host.gesture(
                                 Gesture::Touched(name, value).line());
                         }

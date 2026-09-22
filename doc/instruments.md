@@ -429,6 +429,22 @@ slice (a); **its first run crashed the model** on a race the headless
 tests could not see, which is the reason the driven run comes before
 *built*.
 
+### `tools/presscost.py` — what a press on a note costs the window
+
+    Xvfb :99 -screen 0 1600x1000x24 &
+    DISPLAY=:99 python tools/presscost.py                 # arc.notes, thirty presses
+    DISPLAY=:99 python tools/presscost.py --presses 60
+
+The window's own walk on a press — one line per press under
+`GESTATE_EDITOR_TIME`, `[editor] press: walk N us, M writes`, timed
+around the hit-test and nothing else — and *press → the model has it*
+off the wire's stamp, as `commitlag.py` does for a release.  Built
+2026-09-22 for `card:relational-model.md` §"Drive and probe, asked",
+where the reference's 2.8 ms walk had to be checked against the
+window's before a decision: the window's is microseconds, because it
+scans the hit table the last frame laid out rather than walking.  A
+`driven.Run`, under `test/driven/`.
+
 ### `tools/queryframe.py` — one frame of the roll as a query
 
     python tools/queryframe.py          # the page of arcnotes.ges

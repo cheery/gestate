@@ -1271,3 +1271,36 @@ press the window shows as late, or a second layout (the grid) wanting
 its inverse the same way.  What removing it would give back: 291 hit
 regions on his piece, `NOTE`, `named_note`, the note channel, and the
 `agreed`/`disagreed` counters replaced by the parity test above.
+
+**Measured in the window — the same evening.**  Henri: *"measure the
+window's press first."*  `tools/presscost.py`, built for it: a driven
+run on the bench's own display, thirty presses at the centres of
+notes found by their ink on the page of `arc.notes`, the window
+timing its own walk on each under `GESTATE_EDITOR_TIME` and the model
+stamping the gesture's arrival on the wire.
+
+    DISPLAY=:99 python tools/presscost.py
+      the window's walk on a press     3–9 µs, 30 presses
+      attachments a press took hold of median 3, most 5
+      press → the model has it         best 1 ms, median 43 ms, worst 78 ms
+
+**So the window's press costs nothing, and the reason reshapes the
+decision.**  The window does not walk on a press: it scans the hit
+table the *last frame* laid out (`shell/panel/src/canvas.rs`,
+`display.hits`), and 177 regions cost microseconds.  The per-note
+`Meaning`'s cost in the window is in the frame's walk, where the
+reference's floor is 6–14 % (`tools/pressable.py`) and the window's
+frame paints at 12 ms with the loop asking every 19.  So removing the
+`Meaning` would buy the press nothing and the frame a fraction the
+reference already priced.  *Default, revised:* **the `Meaning` stays**;
+the probe is the picture's twin on the reference side and in a headless
+press, and the hit table is the window's.  *Trigger:* a frame cost that
+has to come down, where the per-note node is one of the things on the
+list, priced then and not now.
+
+**And one number nobody asked for, said because it came out.**  A
+press reaches the model at a median of 43 ms, best 1 ms — that is the
+wire and the model's loop, not the window, and it is longer than a
+frame.  Not investigated; `card:notes-editor.md` is where the
+model's side of a gesture is being worked, and the tool leaves the
+command.
