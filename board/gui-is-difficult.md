@@ -2633,7 +2633,11 @@ each is already in the tree:
    same one.  If the walk reports the key of the fact drawn under the
    press, the lookup and the counters go — §"The name, and what falls
    out"'s claim that hard thing 4 is removed outright, built.  Empty
-   roll and drag distance stay fractions.
+   roll and drag distance stay fractions.  *2026-09-22:* the other
+   half arrived first — the picture read backwards, `scorebox.note_at`,
+   held to the `Meaning` at thirteen points a bar and seven times
+   cheaper than the walk; whether the `Meaning` then goes is shaped on
+   `card:relational-model.md` §"Drive and probe, asked".
 4. **Relations incremental at frame rate.**  The two layers recompute
    in 7 ms for 88 notes; a whole piece needs the derived sets to update
    by difference — `spec/data.md`'s seminaive evaluation, present

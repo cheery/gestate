@@ -39,7 +39,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from gestate import notes                                    # noqa: E402
-from gestate.scorebox import asks, notes_rolls               # noqa: E402
+from gestate.gui import Substrate                            # noqa: E402
+from gestate.scorebox import (asks, bars_of, note_at, notes_rolls,   # noqa: E402
+                              pad_of, page_program)
 
 #: One frame at 60 Hz.  A read that costs more than this cannot happen
 #: on a keystroke without the window missing it.
@@ -81,8 +83,36 @@ def main(argv: list[str]) -> int:
     source, origins = notes.expanded(text, path.parent)
     page = asks(source)
     print()
+    rolls = notes_rolls(source, page, origins, rels)
     took(f"the page's {len(page)} rolls",
          lambda: notes_rolls(source, page, origins, rels))
+
+    # **A press, both ways** — `card:relational-model.md` §"Drive and
+    # probe, asked", 2026-09-22.  The walk collects every attachment of
+    # the page's picture and keeps the ones holding the point
+    # (`gui._attachments`, `_grabbed`); the probe reads the rows the
+    # picture was drawn from backwards (`scorebox.note_at`).  Timed at
+    # the centre of every note of the first roll, one press each, and
+    # the walk's number is the reference machine's — the window's walk
+    # is Rust and its own.
+    roll = next((r for r in rolls if not isinstance(r, Exception)), None)
+    if roll is not None and roll.events:
+        program, _regions, entries = page_program(rolls, stacked=True, live=True)
+        views = Substrate.several(program, 22050, [e for e in entries if e] + ["substrate"])
+        view = views[0]
+        centres = [((x0 + x1) // 2, (y0 + y1) // 2) for x0, y0, x1, y1 in bars_of(roll)]
+        x0, y0, w, h = pad_of(roll)
+        fractions = [((x - x0) / w, (y - y0) / h) for x, y in centres]
+        def each(fn) -> float:
+            fn()
+            at = time.perf_counter()
+            fn()
+            return (time.perf_counter() - at) * 1000 / len(centres)
+        walked = each(lambda: [view.ask(x, y) for x, y in centres])
+        probed = each(lambda: [note_at(roll, a, d) for a, d in fractions])
+        print(f"\n  one press, the mean over the {len(centres)} notes of the first roll\n"
+              f"  walked (the hit list)   {walked:6.2f} ms\n"
+              f"  probed (note_at)        {probed:6.2f} ms")
     return 0
 
 

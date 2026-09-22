@@ -990,6 +990,12 @@ class Session:
     #: consumed by the pitch touch that follows — so it never outlives
     #: the press that set it.
     named_note: dict = field(default_factory=dict)
+    #: **Where along the rail the hand is**, per box, as the fraction the
+    #: rail's `TouchX` wrote — kept beside the chart's snapped tick so
+    #: the pitch touch that follows can probe the picture with the two
+    #: fractions as they were (`scorebox.note_at`), and not with a tick
+    #: rounded back into a pixel.
+    rail_at: dict = field(default_factory=dict)
     #: **The last click on empty roll**, per box: `(tick, key, when)`.
     #: A second one at the same place within `TWICE` seconds makes a
     #: note there — the clock a double-click is, held here because
@@ -4936,18 +4942,19 @@ class Session:
             return ""                  # the ruler has the hand
         roll = found.roll
         if getattr(found, "on_rail", False):
+            self.rail_at[found.box] = float(down)
             return self._hand_event(found, ("Rail", tick_at(roll, down)))
         key = key_at(roll, down)
-        return self._hand_event(found, ("Pitch", key, self._hit(found, key)))
+        return self._hand_event(found, ("Pitch", key, self._hit(found, key, down)))
 
-    def _hit(self, found, key: int) -> tuple:
+    def _hit(self, found, key: int, down: float) -> tuple:
         """What is under the pitch half's touch, for the chart: the note
         sounding at the rail's tick and this key, its **end** when the
         press is in its last `EDGE_PX` (for a note wider than twice
         that), or empty roll.  Read only while the chart is `Railed` —
         the one moment the answer decides anything; a drag's touches
         get `OnRoll` and the chart does not look at it."""
-        from .scorebox import EDGE_PX, RefusedError, note_under, x_of
+        from .scorebox import EDGE_PX, RefusedError, note_at, note_under, x_of
 
         state = self.hand.get(found.box, ("Free",))
         named = self.named_note.pop(found.box, None)
@@ -4958,6 +4965,17 @@ class Session:
             note = note_under(roll, tick, key)
         except RefusedError:
             note = None
+        #: **The probe, where the picture did not speak** — `note_at`,
+        #: the rows the picture is drawn from read backwards through the
+        #: two fractions the pad wrote.  It is the `Meaning`'s answer
+        #: without the walk (`card:relational-model.md` §"Drive and
+        #: probe, asked"), held equal to it on his piece; so a press that
+        #: reached here with no note named — a window that carries no
+        #: `Meaning`, or a headless press — is compared to the model on
+        #: the same footing as one that did.
+        across = self.rail_at.get(found.box)
+        if named is None and across is not None:
+            named = note_at(roll, across, down)
         #: **The picture's own answer, beside the model's** — the note
         #: whose bar was pressed wrote its number
         #: (`card:gui-is-difficult.md`, 2026-09-09).  The model still

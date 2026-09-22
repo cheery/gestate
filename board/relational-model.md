@@ -1188,3 +1188,86 @@ place item 1 would land, and a regression hunt is a different task
 from a reading.  The command is above.
 
 **Nothing built.**  Three items and one number, each his to take.
+
+### Drive and probe, asked — 2026-09-22
+
+**Henri:** *"I was informed that the specifically drive & probe would be
+interesting in the relational GUI context where we've been working in.
+Is it?"*  The session's answer, kept as its own: yes, for a reason the
+paper does not give.  The paper wants the pair for fusion, and that
+does not transfer — the G-machine is lazy and streams, a set is a
+sorted cons-list, Python does not inline, and the roll's measured cost
+was whole recomputation and never the intermediates (`card:gui-is-difficult.md`
+§"Landed — 2026-09-08, night", the layers table).  Only `crust` would
+fuse, and that is item 1 above.
+
+**The GUI reason is direction.**  The picture as a query over the model
+was built with one entrance: painting is *drive*, every row in and a
+`Sub` out.  Two things run the other way and both are *probe*.  The
+press — a point in, a key out — is today a hit list the walk records
+and a press scans innermost first (`gui.py:_walk`); the roll's layout
+is a grid over tick and key, so its inverse is arithmetic and needs no
+list, which is *identity is the model's key, never the picture's
+index* and the *touch that carries a fact's key* the GUI card lists
+unbuilt.  The damage rectangle — seminaïve says which rows changed,
+and probe on the picture by key is what finds their place on screen;
+without it the on-change layer is regenerated whole (107 ms in the
+table), and the two-layer split is a coarse probe by a merge over
+sorted keys.
+
+**What narrows it.**  Probe by point needs an invertible or indexed
+layout — the roll and the grid qualify, a free-form picture keeps its
+hit list.  In Datafun a comprehension only drives; a first-class probe
+is a lookup form on a set and a language change under the language
+goal, though a sorted set is already halfway there.  And a
+key-carrying probe changes the door — `Meaning (Chan Float) Float`
+becomes a channel of keys, the seam he called hacky on 2026-09-13 — so
+it lands with `Act` and `document`, not before.
+
+**Taken.**  Henri: *"yes, add it to the card.  Then you could implement
+it."*  The slice is the narrow one: the roll's inverse layout as a
+probe, key from point, the language untouched; built below.
+
+**Built — the same evening.**  `scorebox.note_at` is the probe: the
+rows the picture is drawn from (`rows_of`) read backwards through the
+two fractions the pad wrote, `pad_of` and `point_of` spelling the
+pad's placement and the walk's fraction once outside the generator,
+`bar_of`/`bars_of` the other direction — a row in, its drawn bar out,
+which is what a damage rectangle asks.  The press path takes it where
+the picture did not speak (`session._hit`: a window that carries no
+`Meaning`, or a headless press), so a press with no note named is
+compared to the model on the same footing as one that did; the
+picture's own answer still wins when it speaks, and nothing decided on
+2026-09-09 is undone.
+
+**Held to parity** —
+`test_drawnscores.py::test_the_probe_is_the_picture_read_backwards`:
+every bar of his piece at thirteen points each, the centre, the four
+corners, the four edge midpoints and one pixel outside each edge,
+asked of the reference walk with nothing done; the probe equals the
+first note the walk names at every one of them.  The eight cross-voice
+overlaps are where the grab carries two `Meaning`s and the session
+keeps the last it is told while the probe answers the walk's deepest;
+*which note did I press* there stays his, as the card left it.
+
+**Measured** — `python tools/notecost.py`, one press at the centre of
+every note of the first roll, the mean:
+
+    walked (the hit list)     2.77 ms
+    probed (note_at)          0.39 ms
+
+The walk is the reference machine's and the window's is Rust; what the
+number says is the shape, seven to one, not the window.  The probe's
+0.39 is `rows_of` recomputed per press and would be microseconds with
+the bars kept per build; not done, since a press is one event and not
+a motion.
+
+**What is his, shaped.**  Whether the per-note `Meaning` now goes —
+the derive step, after declare and parity.  *Default:* it stays until
+the window's walk is measured on a press, since the reference's 6–14 %
+(`tools/pressable.py`) is the floor and the window's number is not
+known; the probe is in the path either way.  *Trigger:* the first
+press the window shows as late, or a second layout (the grid) wanting
+its inverse the same way.  What removing it would give back: 291 hit
+regions on his piece, `NOTE`, `named_note`, the note channel, and the
+`agreed`/`disagreed` counters replaced by the parity test above.

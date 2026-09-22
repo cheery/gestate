@@ -595,6 +595,11 @@ rendered correctly.  Guest fable's warning the same day is the reason
 it exists — *the query-cost-under-interaction problem is the one that
 has actually killed relational-UI attempts, not the modeling.*
 
+**And a press, both ways** — 2026-09-22, `card:relational-model.md`
+§"Drive and probe, asked": the walk over the page's hit list against
+`scorebox.note_at`, the rows the picture is drawn from read backwards,
+one press at the centre of every note of the first roll, the mean.
+
 ### `tools/testimony.py` — what each memory's load-bearing claim rests on
 
     python tools/testimony.py [--kind session | --check]

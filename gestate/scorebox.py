@@ -25,7 +25,8 @@ __all__ = ["asks", "build_roll", "build_rolls", "page_program",
            "key_at", "note_of", "note_under", "pitch_atom",
            "Region",
            "reach_of", "regions_of", "roll_program", "scale_of",
-           "transposed", "y_of",
+           "transposed", "y_of", "note_at", "bar_of", "bars_of", "pad_of",
+           "point_of",
            "Roll", "RefusedError", "RollError"]
 
 
@@ -1768,6 +1769,84 @@ def across_of(roll: Roll, tick: int) -> float:
     left edge and width are the geometry's and not the roll's."""
     _lo, _hi, span = scale_of(roll)
     return tick / max(1, span)
+
+
+def pad_of(roll: Roll) -> tuple:
+    """`(x0, y0, w, h)` of the pad a hand writes its fractions of — the
+    `TouchY pitch (TouchX rail (Sized …))` the page program lays over
+    the body, placed exactly as `page_program` places it (`bcx`, `bcy`)
+    and cut to its region exactly as `gui._walk` cuts a `Sized`.  The
+    one place that placement is spelled outside the generator, so that
+    `point_of` reads a fraction back through the same numbers the walk
+    made it from."""
+    left, _top, body_w, _body_h = body_of(roll)
+    low, high = reach_of(roll)
+    reach_top, reach_bottom = y_of(roll, high), y_of(roll, low)
+    h = reach_bottom - reach_top
+    bcx, bcy = left + body_w // 2, (reach_top + reach_bottom) // 2
+    return (bcx - body_w // 2, bcy - h // 2, body_w, h)
+
+
+def point_of(roll: Roll, across: float, down: float) -> tuple:
+    """The pixel a hand is at, from the two fractions it wrote —
+    `gui._gesture_value` read backwards: `across` is 0 at the pad's
+    left edge and 1 at its right, `down` 0 at its top and 1 at its
+    bottom, and the pad is `pad_of`."""
+    x0, y0, w, h = pad_of(roll)
+    return (x0 + round(float(across) * w), y0 + round(float(down) * h))
+
+
+def bar_of(roll: Roll, i: int) -> tuple:
+    """`(x0, y0, x1, y1)` of the bar note `i` is drawn as, inclusive —
+    the region `gui._walk` records for the `Rect` of `rows_of`'s row,
+    at rest: its centre the row's `x, y`, its width the row's `w`, its
+    height the geometry's, and the edges cut as the walk cuts them
+    (`cx - w // 2`, and `x1 = x0 + w`).
+
+    **The picture's row, read as a place.**  `rows_of` is what the
+    picture is drawn from, so this is not a second spelling of where a
+    note is; it is the same row, the other way round.
+    """
+    _i, cx, cy, w, _tone, _dim, _mark = rows_of(roll)[i]
+    h = geometry_of(roll).note_h
+    x0, y0 = cx - w // 2, cy - h // 2
+    return (x0, y0, x0 + w, y0 + h)
+
+
+def note_at(roll: Roll, across: float, down: float) -> int | None:
+    """**The probe** — which note's drawn bar the hand is on, or `None`
+    for none: `rows_of` read backwards, a point in and a row out.
+
+    The picture is `rows_of` pushed into the walk, one `Rect` a row;
+    this is the same rows probed by a point.  It answers what the
+    note's own `Meaning` answers when its bar is pressed — the first
+    row in `rows_of`'s order whose bar holds the point, which is the
+    hit the walk records first (`gui._under`) — without the walk: the
+    layout is a grid over tick and key, so its inverse is arithmetic
+    and needs no hit list (`card:relational-model.md` §"Drive and
+    probe, asked", 2026-09-22).  Held to the `Meaning` on every bar of
+    his piece at thirteen points each by `test_drawnscores.py`.
+
+    **At rest, and in `rows_of`'s order.**  A carried note is drawn
+    shifted and a selected one is drawn after the rest, on top; this
+    reads the rows where the file put them.  A press lands while no
+    hand holds a note, so that is the moment it is asked about.
+    """
+    x, y = point_of(roll, across, down)
+    for i, (x0, y0, x1, y1) in enumerate(bars_of(roll)):
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            return i
+    return None
+
+
+def bars_of(roll: Roll) -> list:
+    """Every note's bar, `bar_of` over the roll in one pass."""
+    h = geometry_of(roll).note_h
+    out = []
+    for _i, cx, cy, w, _tone, _dim, _mark in rows_of(roll):
+        x0, y0 = cx - w // 2, cy - h // 2
+        out.append((x0, y0, x0 + w, y0 + h))
+    return out
 
 
 def grid_of(roll: Roll) -> int:

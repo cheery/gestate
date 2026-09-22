@@ -58,6 +58,10 @@ DELIBERATELY_FRESH = {
     "named_note": "what the picture said a press landed on, in the *old* "
                   "file's roll — it never outlives the press that set it, "
                   "let alone a file switch (`gui.ges`' `Meaning`)",
+    "rail_at": "where along the old file's rail the hand was, as the "
+               "fraction the rail wrote, kept for the pitch touch of the "
+               "same press to probe the picture with (`scorebox.note_at`); "
+               "a press does not span a file switch",
     "agreed": "a count of how often the picture and the model named one "
               "note, over the old file's presses; a measurement of this "
               "slice and not state a window needs",

@@ -3287,6 +3287,58 @@ def test_the_picture_and_the_model_name_the_same_note_under_every_press():
             "and they parted only where two notes share a pitch"
 
 
+def test_the_probe_is_the_picture_read_backwards():
+    """**`note_at` is the `Meaning` without the walk** —
+    `card:relational-model.md` §"Drive and probe, asked", 2026-09-22.
+    The picture is `rows_of` driven into the walk, a `Rect` a row, and
+    the note's own bar names it when pressed; the probe is the same rows
+    read backwards through the two fractions the pad wrote.  So the two
+    must say one thing at every point — and this asks at thirteen per
+    bar of his own piece: the centre, the four corners, the four edge
+    midpoints, and one pixel outside each edge, where the answer is
+    the neighbour or nothing.
+
+    Asked, not pressed: `Substrate.ask` is the reference walk's own
+    hit-test with nothing done, and its answer carries the note channel
+    beside the pad's two fractions, so the picture's number and the
+    probe's input come from one hit.  Where one bar encloses another
+    at one pitch (the eight cross-voice pairs `tools/pressable.py
+    --overlap` counts) the grab carries both notes' `Meaning`s and the
+    session keeps the last it is told; the probe answers the first,
+    which is the walk's deepest — so the two agree on *what is under
+    the point* and the open question of *which note did I press* at
+    an overlap stays where the card left it, his.
+    """
+    from gestate.scorebox import bar_of, note_at
+
+    _here, seat, view, roll = _page_seat()
+    checked, outside = 0, 0
+    for i in range(len(roll.events)):
+        x0, y0, x1, y1 = bar_of(roll, i)
+        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+        points = [(cx, cy), (x0, y0), (x1, y0), (x0, y1), (x1, y1),
+                  (x0, cy), (x1, cy), (cx, y0), (cx, y1),
+                  (x0 - 1, cy), (x1 + 1, cy), (cx, y0 - 1), (cx, y1 + 1)]
+        for x, y in points:
+            asked = view.ask(x, y)
+            #: The **first** note the walk names, which is `_under`'s
+            #: deepest: where one bar encloses another at one pitch the
+            #: grab carries both `Meaning`s, and the probe answers the
+            #: one the walk found first.
+            picture = next((v for n, v in asked if n == "__nb_note_0__"), None)
+            said = dict(asked)
+            across, down = said.get("__nb_rail_0__"), said.get("__nb_pitch_0__")
+            if across is None or down is None:
+                assert picture is None, "a bar outside the pad"
+                outside += 1
+                continue
+            probed = note_at(roll, across, down)
+            assert probed == (None if picture is None else int(picture)), \
+                (i, (x, y), "picture", picture, "probe", probed)
+            checked += 1
+    assert checked >= 12 * len(roll.events), (checked, outside)
+
+
 def test_a_hand_on_the_end_of_any_note_of_the_group_stretches_them_all():
     """Sweep bar 1, take the end of one of the melody's notes, carry it
     along one beat: six lines change their `len` by the same ticks,
