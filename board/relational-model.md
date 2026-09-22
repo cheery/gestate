@@ -24,6 +24,8 @@
              doc/memory/identity-is-the-models-key.md — a note's identity is
                  its content, the natural-key decision
              doc/memory/henri-prior-tools.md — mide's UI was datalog
+             ~/misc/papers/prela.pdf — Wang & Talma, *Revisiting the Algebraic
+                 Foundation of Relational Data*, arXiv 2607.26356; §"Read — 2026-09-22"
              spec/data.md — Datafun with seminaïve evaluation, the
                  incremental engine the tree already runs
              vision.md §"What gestate won't be" — *plain files you can read
@@ -1065,3 +1067,124 @@ grid over `Line` and `Rel` directly is a later cut.
 `test_documents.py` (+2); the five files 100 green; `doc/ref/facts.md`
 regenerated.
 
+
+## Read — 2026-09-22: Prela, and Tarski's algebra as the reader's layout
+
+**Henri, opening the sitting:** *"I learned about ~/misc/papers/prela.pdf
+-paper short while ago, can you consider how it would fit with our GUI &
+relational model -ideas?"*  And after the reading: *"yes, do that."*  The
+paper is Wang and Talma, *Revisiting the Algebraic Foundation of
+Relational Data*, arXiv 2607.26356, July 2026, read whole from the PDF.
+It cites Dittrich's *A Functional Data Model and Query Language is All
+You Need* (arXiv 2507.20671) as the vision it realises — that one was
+read first by mistake, the same sitting, and its reading is folded in
+below where it bears.
+
+**What the paper says.**  Every relation is binary.  A table of *k*
+columns is *k* binary relations from a hidden row number to one column
+each, plus one relation from the stored key to the row number — a
+column store, arrived at from the logic side.  The operators are
+Tarski's: composition as path traversal, so `movie.s(company).s(country)`
+reads *movie's company's country* and the foreign-key dereference is
+inserted for you; product joins two columns on the row number;
+restriction is the semijoin that plays WHERE; `gather` nests a row's
+many values into a list; `inv` flips, and group-by is `inv` and
+restrict.  A query is its own plan — no optimiser — and fusion in
+continuation-passing style (`drive`/`probe`, `#[inline]`) turns the
+joins on the row number into one loop over vectors.  The 4.5× against
+DuckDB on the Join Order Benchmark rests on one fact: with contiguous
+integer keys the key-to-row relation is the identity and every join is
+an array access.
+
+**The tree is already at this shape, unnamed.**  The reader built in
+§"Built — 2026-09-10" is Prela's architecture with a hash where Prela
+has a vector:
+
+- **`Of` is a binary relation.**  A section's key or mode is a relation
+  from the section's key to one value; a ranked `Of` is `gather`.  The
+  one non-binary remnant is a base `Rel` carrying its required scalars
+  in one heading — and `Of … Must` with no key already means *exactly
+  one per parent*, so folding those columns in would leave the model one
+  form instead of two.  Date's sixth normal form, Datomic's
+  per-attribute schema and Prela's binarisation are one thing, and
+  §"The relational model, recalled" names the first two.
+- **The `line` relation is `id2row`.**  `("kind", "key", "line")`, dropped
+  and rebuilt at every read; `notes_of` drives off `line.by("kind")` and
+  probes `note`, `note.spell` and `note.manner` by the natural key
+  through three hashes.  That is the paper's engine loop, by hand, in
+  `gestate/notes.py:486`.
+- **Every subexpression is a query** — the paper's compositionality
+  argument is `card:gui-is-difficult.md`'s: a gesture names what the
+  file and the picture agree on, and `select` is Prela's `.with`.
+
+**Three places it reaches, by weight.**
+
+1. **Row number inside, natural key at the boundary.**  §"Guest fable's
+   three" leaves *the cost at ten times the piece* unmeasured; the paper
+   hands that question a design and a number.  The line number is
+   contiguous per read, so the three key hashes in `notes_of` could be
+   vectors indexed by it, the natural key looked up once at the edge.
+   This is **not** the physical turn of §"The logical turn" — the truth
+   stays in the text; this is the reader's layout only.  It also states
+   scar 3 more cleanly than scar 3 does: **continuity is the row number,
+   held by the session; identity is the key, held by the file** — which
+   `session._settle` re-finding keys after a rebuild already does.
+2. **A set edit is one operator on one column.**  In binary form *set
+   one field of a set* is a restriction and a map on a single relation,
+   `col.with(sel).map(f)`, the shape `card:gui-is-difficult.md` §"The
+   document, decided" measured the seven verbs to be.  The act list for
+   the file is the difference of the column before and after — Q5's row
+   images, arrived at from the algebra.  A key column such as `key` is
+   no longer special inside the engine, since it hangs off the row
+   number like any other: scar 8 and scar 3 answered together.  *What a
+   pure difference loses* is *moved* against *retracted and asserted*,
+   which is scar 3's before-and-after keys — the row number carries
+   through the edit and gives them.
+3. **Path composition wants references as domains.**  Prela's automatic
+   dereference exists because a column's domain *is* another relation's
+   key.  Today the two reference rules are derived from `Among` and
+   `Along` (§"Built", slice 2), and a comprehension writes the join out
+   and pays for it unless it indexes.  A domain `KeyOf "section"` on a
+   note's `section` column is what makes `note.s(section).s(beats)` a
+   query `pastBar` and the roll could both be written as.  Q2's
+   territory, live.  It half fits: `voice` is referenced by the *value*
+   column of `section.voices`, not by a key, so that one becomes a
+   domain only when Q3 fires — a reason for Q3 the card did not list,
+   not its trigger.
+
+**What it does not give.**  No time and no signals — `document : Sig
+(Set Row)` stays the tree's own lift.  No recursion, which the notes do
+not need and Datafun has.  Fusion is not incrementality; seminaïve
+(`spec/data.md`) stays the answer to a changed file.  Composition drops
+the join key and the rules need it in the result, which the row number
+solves.  And the speedup rests on integer keys, which a `.notes` has
+only after the reader has numbered its lines.
+
+**From Dittrich, one thing Prela does not carry.**  Stored and computed
+indistinguishable to the reader: a `View` beside `Rel` in `model`,
+defined as a comprehension, so `document "refused"` or `document
+"sounding"` is the same door as `document "note"`.  It crosses no line
+here, because a view is not truth and the text stays the source.  And
+one thing neither paper answers: uniqueness *is* the function
+definition in both, and `document "note"` is typed `Set Row` with the
+key inside the tuple — two rows with one key and different `vel` are two
+elements and the type does not object.  The parser refuses it and
+nothing else does.  A map from key to rest would say it, but `fix` needs
+a semilattice and a map to a non-lattice value is not one, so the `Set`
+is the Datafun-compatible choice and the key stays a host invariant.  A
+functional-dependency rule in `refused` would make it at least a rule.
+
+**One number that moved.**  §"Guest fable's three" records the page's
+three rolls at **9.0 ms** on 2026-09-10.  Five runs today, ten rounds
+each:
+
+    python tools/notecost.py
+      the page's 3 rolls   17.9 – 19.0 ms  ← past a frame
+
+Stable, so not the machine's mood; the card's 9.0 was a different day
+and possibly a different laptop, and there have been commits to the
+measured code since.  Not investigated this sitting — it is the exact
+place item 1 would land, and a regression hunt is a different task
+from a reading.  The command is above.
+
+**Nothing built.**  Three items and one number, each his to take.

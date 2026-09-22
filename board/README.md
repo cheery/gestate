@@ -66,7 +66,8 @@ still the tiebreak between two workable cards, and it is still his.
    decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
    dialogue he said he would continue.  The logical turn built
    2026-09-14 at his word: the model first, the text its projection,
-   the kinds derived; the physical turn is his.*
+   the kinds derived; the physical turn is his.  2026-09-22: Prela
+   read at its page, three items and one moved number, nothing built.*
 4. **[graphrag-c](graphrag-c.md)** — a subject graph over the tree's
    documents, extracted by a model, in one directory nothing outside
    cites; the pilot first, ten files against two models.  *Arrived
