@@ -23,6 +23,13 @@ does for a release.  The notes are found by their ink in a photograph,
 as there: a tool that asked the model where the notes are would be a
 second reading of the picture, and the thing measured is the window.
 
+**And the model's pass beside it** — `GESTATE_LOOP_TIME`'s `[loop]`
+and `[observe]` lines are kept in the run's log and the last are
+quoted in the report, because a press waits for the pass that reads
+it: the 43 ms this tool first measured was the pass, and the pass was
+a box's preview channels re-written every instant
+(`card:notes-editor.md` §"The 43 ms, chased").
+
 A `driven.Run`: stamped, under `test/driven/`, with the library's md5.
 """
 
@@ -63,7 +70,7 @@ def main(argv=None) -> int:
     try:
         run = Run("presscost", why="what does a press on a note cost the window's "
                   "walk, and how long until the model has it?",
-                  GESTATE_WIRE="1", GESTATE_EDITOR_TIME="1")
+                  GESTATE_WIRE="1", GESTATE_EDITOR_TIME="1", GESTATE_LOOP_TIME="1")
         run.__enter__()
     except Refused as why:
         print(f"presscost: the run did not start.\n{why}", file=sys.stderr)
@@ -128,6 +135,13 @@ def main(argv=None) -> int:
                   if line.startswith("[editor]") and "paint" in line]
         if frames:
             run.note("window, last frame report: " + frames[-1])
+        # **The model's pass, from its own stopwatch** (`GESTATE_LOOP_TIME`):
+        # a press waits for the pass that reads it, so the pass is where
+        # *press → the model has it* goes.
+        loops = [line for line in log.read_text(errors="replace").splitlines()
+                 if line.startswith("[loop]")]
+        for line in loops[-3:]:
+            run.note("model, loop report: " + line)
         run.note(f"presses sent {len(picks)}, the window reported {len(walked)}, "
                  f"the model heard {len(reached)}")
         if walked:

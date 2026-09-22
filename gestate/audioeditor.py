@@ -1802,6 +1802,14 @@ class Workbench:
         from . import scorebox
 
         told = []
+        #: **Split on the loop's stopwatch** (`GESTATE_LOOP_TIME`) — the
+        #: queue, the previews, the transport's readings and the write
+        #: into the page, because this call was 50 ms of a 60 ms pass on
+        #: `arc.notes` and its headless twin 4 ms (2026-09-22,
+        #: `tools/presscost.py`); a call that fat has to say which
+        #: quarter of it is fat.
+        timing = os.environ.get("GESTATE_LOOP_TIME")
+        marks = [time.monotonic()] if timing else None
         # **Every canvas in the house** — the file's own and each
         # `canvas <expr>` box's (B2): one reading, written to all of
         # them, because they are readings of one instrument.
@@ -1855,8 +1863,26 @@ class Workbench:
                 break
             _write_page(views, rest, readings)
             told.extend(rest)
+        if marks is not None:
+            marks.append(time.monotonic())
+        # **A preview the page already holds is not written again.**
+        # `previewing` keeps a box's eight channels at rest from the
+        # first press to the end of the sitting, and every one written
+        # here is its own reactive instant — `reactive.react` delivers
+        # one channel per step, Rizzo's rule — at 3.6 ms each on the
+        # reference machine: one box's rest beside the playhead made a
+        # pass 35 ms and two boxes' 60, and a press waits for the pass
+        # that reads it (2026-09-22, `tools/presscost.py`; the number
+        # was 43 ms to the model, median).  A view records what was
+        # written (`Substrate.values`), so a value it already has ticks
+        # nothing; a hand that moved it in the window is a recorded
+        # value too, and differs, so the session's preview still wins
+        # as before.  A rebuilt page's views start empty and are told
+        # once.
         for name, value in (self.previewing or {}).items():
-            if name in wanted:
+            if name in wanted and any(
+                    name in t.by_name and t.values.get(name) != value
+                    for t in targets):
                 put(name, value)
         if self.transport is None:
             flush()
@@ -1891,8 +1917,35 @@ class Workbench:
             for k, name in enumerate(self.PROBES):
                 if name in wanted:
                     put(name, ages[k] if k < len(ages) else 0)
+        if marks is not None:
+            marks.append(time.monotonic())
         flush()
+        if marks is not None:
+            marks.append(time.monotonic())
+            self._observe_split(marks)
         return told
+
+    def _observe_split(self, marks: list) -> None:
+        """Accumulate one `observe`'s four stretches and say them every
+        hundred calls — `[observe] …` on stderr, beside `[loop]`."""
+        import sys
+
+        acc = getattr(self, "_observe_acc", None)
+        if acc is None or len(marks) != 4:
+            acc = self._observe_acc = [0, 0.0, 0.0, 0.0]
+            if len(marks) != 4:
+                return
+        acc[0] += 1
+        acc[1] += marks[1] - marks[0]
+        acc[2] += marks[2] - marks[1]
+        acc[3] += marks[3] - marks[2]
+        if acc[0] >= 100:
+            n = acc[0]
+            print(f"[observe] {n} calls | queue {acc[1] / n * 1000:.2f}ms  "
+                  f"transport {acc[2] / n * 1000:.2f}ms  "
+                  f"write {acc[3] / n * 1000:.2f}ms per call",
+                  file=sys.stderr, flush=True)
+            self._observe_acc = None
 
     #: How many points a scope's trace crosses as: the window
     #: downsampled by **max-absolute per bucket**, because a scope that

@@ -1303,4 +1303,6 @@ press reaches the model at a median of 43 ms, best 1 ms — that is the
 wire and the model's loop, not the window, and it is longer than a
 frame.  Not investigated; `card:notes-editor.md` is where the
 model's side of a gesture is being worked, and the tool leaves the
-command.
+command.  *Chased the same evening at his word* — `card:notes-editor.md`
+§"The 43 ms, chased": a box's eight preview channels re-written every
+pass, one reactive instant each; 12 ms median after.

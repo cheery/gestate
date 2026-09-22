@@ -79,9 +79,13 @@ the event that changed something to the `present` that showed it.
   detectable autorepeat, which is the difference between a held key and
   a hundred presses.
 * `GESTATE_LOOP_TIME=1` is the *model's* half of the same question —
-  `[loop]` lines every five seconds: what a pass spends answering
-  gestures, deriving the furniture and walking the canvas, and how far
-  apart canvas frames actually land.
+  `[loop]` lines every five seconds: the whole of a pass in five
+  stretches (head, act, furniture, tail, sleep — since 2026-09-22,
+  when three of them summed to 3 ms of a 60 ms pass), the tail split
+  into the instrument read, the scopes and the readings, and how far
+  apart canvas frames actually land; and `[observe]` lines every
+  hundred calls, the instrument read split into its queue, the
+  transport and the write into the page.
 * `GESTATE_CANVAS_SHARE=<fraction>` (default `1.0`) overrides how much
   of the loop a watched canvas may have.  For measuring: the default
   was itself chosen by measurement, and lowering it is how that was

@@ -983,7 +983,14 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
     seat.touched(chan, max(0.0, aim - 0.4))   # carried well up the box
     told = dict(bench.observe())
     where = bench.note_regions[chan]
-    assert told[where.held] == float(seat.holding[1]), told
+    # **Only what moved crosses this frame** (2026-09-22,
+    # `tools/presscost.py`): the note's number was told at the press
+    # and the page holds it; a preview the page already has is not
+    # written again, because each write is a reactive instant and a
+    # box's eight at rest made every pass 35 ms.  The lift is this
+    # frame's own.
+    assert box.values[where.held] == float(seat.holding[1]), box.values
+    assert where.held not in told, "the held note was told once, at the press"
     assert told[where.lift] < 0, "up the picture is a smaller y"
 
     during = list(box.picture())

@@ -792,3 +792,63 @@ band read.
 Nothing draws a transport position today, and it is the first thing
 here that needs a number crossing the wire every frame rather than one
 per rebuild.
+
+
+## The 43 ms, chased — 2026-09-22
+
+**Henri:** *"chase the 43 ms."*  The number was `tools/presscost.py`'s,
+built the same evening on `card:relational-model.md` §"Drive and
+probe, asked": a press on a note reaches the model at a median of
+43 ms, best 1, worst 78 — longer than a frame, and not the window,
+whose own walk on a press is microseconds.
+
+**Where it went, stretch by stretch.**  A press waits for the pass
+that reads it, so the pass is the wait.  `GESTATE_LOOP_TIME`'s
+stopwatch said a pass was 3 ms — act, furniture, canvas — and the
+passes were 60 ms apart: the stopwatch timed three stretches of five
+and printed the canvas one only when a frame was drawn.  Extended to
+the whole pass (head, act, furniture, tail, sleep), the tail was
+50 ms, and split, the tail was `Workbench.observe`, and inside
+`observe` the write into the page's machine.  Headless the same write
+was 3.6 ms, with the instrument playing and with the rows in the
+machine, and it did not grow over 400 steps — so the window's process
+was doing something the headless twin never did.  The timeline said
+what: the tail jumped from 5 ms to 50 on the pass the presses began.
+
+**The mechanism, reproduced.**  A press leaves `previewing` holding
+the box's eight preview channels — `held`, `lift`, `sel`, `slide`,
+`sels`, `band`, `grow`, `endx` — at their rest values, for the rest of
+the sitting; `observe` wrote every one of them beside the playhead on
+every pass; and `reactive.react` delivers **one channel per instant**,
+Rizzo's rule, at 3.6 ms an instant on the reference machine.  Headless
+on `arc.notes`, the playhead alone 3.7 ms a pass, the playhead with
+one box's rest 35 ms, each channel alone +3.5; two boxes pressed on
+the page, 60.  A tick that changes nothing costs a whole instant.
+
+**The fix — a preview the page already holds is not written again.**
+`Workbench.observe` writes a preview only where a view that declares
+it recorded a different value (`Substrate.values`); a hand that moved
+it in the window is a recorded value too and differs, so the session's
+preview still wins, and a rebuilt page's views start empty and are
+told once.  `test_scorebox.py::test_the_note_follows_the_hand_before_anything_is_rebuilt`
+read the held note off the drag frame's `told` and now reads it off
+the page, with a line saying why.
+
+**Measured after, in the window** — the same driven run:
+
+    DISPLAY=:99 python tools/presscost.py
+      press → the model has it    before  best 1  median 43  worst 78 ms
+                                  after   best 1  median 12  worst 24 ms
+      the model's pass            before  60 ms apart, tail 50 ms
+                                  after   14 ms apart, tail 2.3 ms
+
+    DISPLAY=:99 python tools/commitlag.py        (six drags, a release)
+      release → the model has it  2026-09-13: 35 ms     today: 18 ms
+      its command                 66 ms                 62 ms
+      answered → rows sent        206 ms                169 ms
+
+So the press is under a frame now, a drag's release reaches the model
+in half the time, and the commit's own cost — the command and the
+rows — is where the rest of this card's wait still is.  `[observe]`
+lines join `[loop]` under `GESTATE_LOOP_TIME` so the next fat tail says
+which quarter of it is fat.

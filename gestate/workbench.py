@@ -525,17 +525,37 @@ class _LoopClock:
     def reset(self):
         self.passes = 0
         self.act_s = self.furn_s = self.canvas_s = 0.0
+        self.head_s = self.tail_s = self.sleep_s = 0.0
+        #: Inside the tail: the instrument read, the scopes read, and
+        #: the readings handed across the ABI — the three calls the
+        #: tail is made of, so a fat tail says which.
+        self.observe_s = self.scopes_s = self.readings_s = 0.0
+        self.tail_worst = 0.0
         self.canvas_worst = 0.0
         self.frames = 0
         self.gap_s = 0.0
         self.since = time.monotonic()
 
     def lap(self, acted: float, furnished: float, canvased: float,
-            drew: bool) -> None:
+            drew: bool, head: float = 0.0, slept: float = 0.0) -> None:
+        """One pass, in five stretches that together are the whole of it
+        — **because three were not** (2026-09-22, `tools/presscost.py`):
+        the pass was 60 ms apart and act, furniture and canvas summed to
+        3, and the canvas stretch was printed only when a frame was
+        drawn.  A press waits for the pass that reads it, so a stretch
+        this clock cannot see is where a press's wait goes unexplained.
+        `head` is the top of the loop to the gestures — the walk file,
+        the follow, the ABI call that fetches them; `canvased` is the
+        stretch after the furniture, printed whether or not a frame was
+        drawn (as `tail`); `slept` is the pace."""
         self.passes += 1
+        self.head_s += head
         self.act_s += acted
         self.furn_s += furnished
         self.canvas_s += canvased
+        self.tail_s += canvased
+        self.tail_worst = max(self.tail_worst, canvased)
+        self.sleep_s += slept
         if drew:
             self.frames += 1
             self.canvas_worst = max(self.canvas_worst, canvased)
@@ -548,8 +568,15 @@ class _LoopClock:
             return
         n = max(self.passes, 1)
         line = (f"[loop] {self.passes} passes"
-                f" | act {self.act_s / n * 1000:.2f}ms"
-                f"  furniture {self.furn_s / n * 1000:.2f}ms per pass")
+                f" | head {self.head_s / n * 1000:.2f}ms"
+                f"  act {self.act_s / n * 1000:.2f}ms"
+                f"  furniture {self.furn_s / n * 1000:.2f}ms"
+                f"  tail {self.tail_s / n * 1000:.2f}ms"
+                f" ({self.tail_worst * 1000:.1f} worst;"
+                f" observe {self.observe_s / n * 1000:.2f}"
+                f" scopes {self.scopes_s / n * 1000:.2f}"
+                f" readings {self.readings_s / n * 1000:.2f})"
+                f"  sleep {self.sleep_s / n * 1000:.2f}ms per pass")
         if self.frames:
             line += (f" | canvas {self.canvas_s / self.frames * 1000:.2f}ms"
                      f" avg {self.canvas_worst * 1000:.2f}ms worst,"
@@ -936,6 +963,7 @@ def run(path, rate: int = 44100, block: int = 512,
     putting = remembered
     try:
         while editor.is_open:
+            t_top = time.monotonic()
             if putting is not None and getattr(session.view, "zoom_rungs", 1) > 1:
                 putting, said_back = None, _put_back(
                     remembered, session, path, nth)
@@ -1136,6 +1164,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 if time.monotonic() >= next_frame:
                     next_frame = time.monotonic() + READ_EVERY
                     lines_out = []
+                    t_obs = time.monotonic()
                     if told:
                         # **A list-valued reading crosses as a trace**
                         # — a score box's group, or the band a hand is
@@ -1148,16 +1177,22 @@ def run(path, rate: int = 44100, block: int = 512,
                                     + "\t".join(f"{p:.5g}" for p in v))
                             else:
                                 lines_out.append(f"reading\t{n}\t{v}")
+                    t_sc = time.monotonic()
                     for label, points in bench.scope_traces():
                         lines_out.append(
                             "trace\t" + label + "\t"
                             + "\t".join(f"{p:.5g}" for p in points))
                     heard = "\n".join(lines_out)
+                    t_rd = time.monotonic()
                     if lines_out and heard != drawn:
                         editor.readings(heard)
                         drawn = heard
                         _tap("observed", [l.split("\t")[1]
                                           for l in lines_out])
+                    if clock is not None:
+                        clock.observe_s += t_sc - t_obs
+                        clock.scopes_s += t_rd - t_sc
+                        clock.readings_s += time.monotonic() - t_rd
             elif showing and time.monotonic() >= next_frame:
                 drew = True
                 began = time.monotonic()
@@ -1167,9 +1202,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 if drawing != drawn:
                     editor.draw(drawing)
                     drawn = drawing
-            if clock is not None:
-                t3 = time.monotonic()
-                clock.lap(t1 - t0, t2 - t1, t3 - t2, drew)
+            t3 = time.monotonic()
             # **A canvas this loop animates keeps the fast pace.**
             # `pace`'s rule — a changed description does not count —
             # stands for the transport readout, where haste would spin a
@@ -1187,6 +1220,9 @@ def run(path, rate: int = 44100, block: int = 512,
             # `spec/performance.md` §4 — but the EPP holds the clock
             # now, and the walk left the loop besides.)
             wait = pace(stirred or (showing and not crossed), wait)
+            if clock is not None:
+                clock.lap(t1 - t0, t2 - t1, t3 - t2, drew,
+                          head=t0 - t_top, slept=wait)
             time.sleep(wait)
     finally:
         # **Where the window was, read before it is shut.**  The caret is
