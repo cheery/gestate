@@ -1,6 +1,7 @@
 # graphrag-c — a subject graph over the tree, self-referential until it earns a citer
 
-    status   open — 2026-09-11
+    status   shelved — 2026-09-23, until 2026-10-13, §"Shelved — 2026-09-23";
+             open from 2026-09-11
     because  a global question about the tree — what has been found, what
              does the journal say about X — is answered by a session reading
              fifteen files chosen by hooks, a map-reduce done by hand; and
@@ -963,3 +964,18 @@ The backlinks lamp's own measure, applied here: if no session follows a
 `doc/graph/` page in a month of the pages existing, the layer is a
 document alive once and comes out.  The `--check` of `tools/graphrag.py`
 will print that count when there are pages to count.
+
+## Shelved — 2026-09-23
+
+The flow lamp named this card at seven days untouched, the day
+`board/README.md` took *one card is `doing` at a time*.  **Henri,
+2026-09-23:** *"siirrä graphrag-c odottamaan 20 päivän päähän."*
+
+**It waits on a date, 2026-10-13** — sediment, not debt: the event is
+the month §"How the graph proves its value" named, whose verdict day
+`tools/graphrag.py` keeps as `VERDICT_DAY`, 2026-10-12.  The freshness
+line at every commit counts down to it and, past it, names the three
+counts and this card, so nothing has to remember to look.  What runs
+meanwhile is what was already built — the cue, the lamp, `extract` by
+hand — and nothing new is built on it while it sits here.  It comes
+back the way every card does: by him saying so, with the counts read.

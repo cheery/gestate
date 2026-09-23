@@ -151,5 +151,14 @@ def test_this_tree_answers(tmp_path):
     """Whatever the numbers are today, the walk over the real board
     returns every card on every shelf exactly once."""
     rows = flow.cards(ROOT)
-    on_disk = {p.name for s in flow.SHELVES for p in (ROOT / s).glob("*.md")} - {"README.md"}
+    on_disk = {p.name for s in flow.SHELVES for p in (ROOT / s).glob("*.md")} - {"README.md", "standing.md"}
     assert sorted(r["name"] for r in rows) == sorted(on_disk)
+
+
+def test_the_standing_questions_are_not_a_card(repo):
+    """`board/standing.md` sits on the live shelf and is not work — it is
+    what a session is asked when it opens work (`test_board.py`'s
+    `NOT_A_CARD`).  Henri, 2026-09-23: *"korjaa standing.md käsittely
+    siten ettei sitä katsota kortiksi."*  The lamp named it at ten days."""
+    repo.commit(T0 - 30 * DAY, **{B + "standing.md": "questions\n", B + "a.md": "# a\n"})
+    assert [r["name"] for r in flow.cards(repo.path, now=T0)] == ["a.md"]

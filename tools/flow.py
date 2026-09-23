@@ -52,6 +52,11 @@ STALE_DAYS = 7
 DAY = 86400
 SHELVES = ("board", "board/done", "board/later", "board/refused")
 
+#: Files on a shelf that are not cards — the contract, and the standing
+#: questions, which are not work (`test/test_board.py`'s `NOT_A_CARD`).
+#: Henri, 2026-09-23, after the lamp named `standing.md` at ten days.
+NOT_A_CARD = {"README.md", "standing.md"}
+
 
 def _log(root: Path) -> list[tuple[int, list[tuple[str, str, str]]]]:
     """[(epoch, [(status, path, new_path_or_empty)…])…], oldest first."""
@@ -79,7 +84,7 @@ def _log(root: Path) -> list[tuple[int, list[tuple[str, str, str]]]]:
 
 def _shelf_of(path: str) -> str | None:
     parent, _, name = path.rpartition("/")
-    if parent in SHELVES and name.endswith(".md") and name != "README.md":
+    if parent in SHELVES and name.endswith(".md") and name not in NOT_A_CARD:
         return parent
     return None
 
@@ -112,7 +117,7 @@ def cards(root: Path = ROOT, now: float | None = None) -> list[dict]:
         if not d.is_dir():
             continue
         for p in sorted(d.glob("*.md")):
-            if p.name == "README.md":
+            if p.name in NOT_A_CARD:
                 continue
             path = f"{shelf}/{p.name}"
             out.append({

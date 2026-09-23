@@ -79,16 +79,11 @@ in its `blocked` line, not by preference — and a card does not become
    2026-09-14 at his word: the model first, the text its projection,
    the kinds derived; the physical turn is his.  2026-09-22: Prela
    read at its page, three items and one moved number, nothing built.*
-4. **[graphrag-c](graphrag-c.md)** — a subject graph over the tree's
-   documents, extracted by a model, in one directory nothing outside
-   cites; the pilot first, ten files against two models.  *Arrived
-   unplaced, 2026-09-11, his decision after `card:GraphRAG.md`
-   closed.*
-5. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
+4. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
    are gestate expressions, and `.notes` as the first grid; the textbox
    is the window's own line editor.  *Off the shelf 2026-09-12,
    unplaced.*
-6. **[strict-forms](strict-forms.md)** — the language refuses what
+5. **[strict-forms](strict-forms.md)** — the language refuses what
    Python allows and the cost is paid in Python: three seams measured
    on one slice, eight families of typed languages that attack the
    shape, each priced against the language goal.  *Arrived unplaced,
