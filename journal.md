@@ -43,6 +43,15 @@ resolves a `journal.md §"…"` against the archive too.
 |---|---|---|
 | [2026-08](journal/2026-08.md) | 13,091 | the language built out to a running query; the editor and canvas rebuilt in Rust; the compile, save cycle and audio measured; the instruments — gemba, the andon, the gates, the atlas; the method itself capped, given a memory in the tree, and met by its first outside readers; and then the method's second half — the fire adopted and the journal rotating, fourteen sections moved out of the rules, the third stranger run, the sitting and the leash, four seeded agents and a stranger's AI building a host around it, the conditioning trials, gestate in a browser tab, and the ungated sweep's batches 6-9 |
 
+**The weekly account** — *adopted 2026-09-23, at Henri's ask:* *"jatketaan
+notes-editoria, mutta ensin me tarvitaan se kronologinen kertomus joka
+kirjoitetaan journaliin sitä mukaan kun edetään.  Viikko kerrallaan."*
+One `## Week NN` section per ISO week, at the bottom of the open month,
+written as the work goes and not after it: the week's goal first, then
+the days in order, a few lines each, pointing at the commit or the card
+section that holds the detail.  The entries named for what they taught
+stay beside it; the weekly account is what happened, in order.
+
 *The open month is 2026-09.*  `python tools/journalroll.py` says where the
 lines are and whether the rotation is due; `spec/rules.md` §"The journal
 rotates" is the contract, and the rotation is an act of the fire, not of a
@@ -3734,3 +3743,39 @@ and today's tables are that search at size one.
 language-goal memory holds his sentence and points here; a note of its
 own the day it gets a second conversation, the roadmap's backlog the
 day it gets a caller.  A direction, not a card.
+
+## Week 39 — 2026-09-21 to 2026-09-27
+
+**The goal**, *the session's proposal, his to correct:* one card,
+`card:notes-editor.md`, and its postcondition measured the way a
+person meets it — a note moved on his piece, the time until it is heard
+and until the picture has followed — so that what stands between the
+card and done is a number, not a reading of old sections.
+
+**Monday 21.9.**  No work.
+
+**Tuesday 22.9, evening.**  `card:relational-model.md` read Prela at
+its page: Tarski's binary relations are the reader's own layout, three
+items left his to take, and the rolls' read cost corrected from 9 to
+18 ms (`eda7b0c`).  From the same card's *drive and probe*, the probe
+was built: the picture read backwards, a point in and the note's bar
+out, seven times cheaper than the walk (`7526823`).  Then the press
+measured — the window's own part 3–9 µs, press to model 43 ms median
+(`3e3b374`) — and at his word *"chase the 43 ms"*, chased the same hour:
+a box's eight preview channels were written every pass at one reactive
+instant each, and a press now reaches the model in 12 ms
+(`92990a2`, `card:notes-editor.md` §"The 43 ms, chased").
+
+**Wednesday 23.9.**  He brought advice from outside the tree: work
+packages follow each other in time, because started together they all
+finish late, and a goal is set at the start of each.  Measured against
+the board it held — six live cards arrived within one week, three
+`doing` at once, four touched in one day.  So one card is `doing` at a
+time, `test_board.py` holds the limit, and `card:notes-editor.md` is
+the one (`b6bf62a`).  Asked what gestate already is and where the cards
+lead, the session's answer — *like Emacs for music and data* — went
+into `vision.md` beside his own: *a kind of fine (spread)sheet
+calculator, still music too* (`e3b0986`).  `card:graphrag-c.md` shelved
+until 2026-10-13, the day after its verdict, and the flow lamp stopped
+counting `board/standing.md` as a card (`4092f77`).  Then this account,
+before the card is picked up again.
