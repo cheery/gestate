@@ -1005,3 +1005,24 @@ after `play` — and no apply with every phase kept.  Release to heard
 **117 ms** median playing, **131 ms** stopped.  One carry of eight took
 406 ms, all of it in the command (262 ms to answer, a note in the
 second box); not reproduced in the other seven, not chased.
+
+## A press in the middle of a note — found by his hand, 2026-09-23
+
+**Henri,** trying the card by hand: *"kun painan keskelle nuottia, se
+antaa selektion visuaalina, ja tuottaa siirron"* —
+`~/misc/fail-2026-09-23.webm`, 6 s: a press on the middle of the first
+of four notes at one pitch draws a **band** from the press point that
+grows with the hand, and after the release the four notes have moved up
+and are drawn selected.
+
+**Reproduced in part**, on `arc.notes`, driven on `:99`
+(`test/driven/20260923-181138-midpress`): a press at the left edge and
+one at the middle of three notes, each carried up-right.  Five of six
+took the note's own channel first (`__nb_note_0__`, then the pad); the
+middle of the second note (the bar at x 662) went **straight to the
+pad** — the note's own hit missed — and the pad still took the note by
+aim, so it moved as a carry should and no band was drawn.  So the hit
+on a note's middle can miss, which is the half the video begins with;
+the band and the four-note move were not seen.  What his run had that
+this one lacked is not known yet: the file, the transport's state, the
+zoom, or a unison doubling under the press — `arc.notes` has seven.
