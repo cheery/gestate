@@ -149,3 +149,43 @@ def test_the_lamp_works():
         "the calendar trigger does not fire on a journal half a century "
         "stale.  The rotation would then rest on somebody remembering, "
         "which is the thing spec/rules.md says forgetting is not fixed by.")
+
+
+#: The weekly account's shape — `journal.md`'s head, §"The weekly
+#: account".  Henri, 2026-09-23: *"Jokaisella viikolla tästä lähtien
+#: kuuluisi olla rakenne, joka mm. alkaa tavoitteella ja teemalla."*
+WEEK = re.compile(r"^## Week (\d+) — (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})$", re.M)
+OPENS = ("**Theme.**", "**Goal.**")
+
+
+def weeks():
+    for path in [ROOT / "journal.md", *sorted((ROOT / "journal").glob("*.md"))]:
+        text = path.read_text(encoding="utf-8")
+        heads = list(WEEK.finditer(text))
+        for n, head in enumerate(heads):
+            end = text.find("\n## ", head.end())
+            body = text[head.end(): end if end >= 0 else len(text)]
+            yield path.name, head, body
+
+
+def test_the_weekly_account_has_weeks():
+    assert list(weeks()), "journal.md §\"The weekly account\" and no `## Week` section"
+
+
+def test_a_week_opens_with_its_theme_and_goal_and_a_closed_week_says_how_it_went():
+    """The theme and the goal come before any day, because a goal written
+    after the work is a description of what was done — the same rule as a
+    card's postcondition.  And a week whose Sunday has passed says
+    **Outcome.**: the goal met or not, and what carries over; without it
+    the goal is never read against anything."""
+    today = _dt.date.today()
+    for name, head, body in weeks():
+        labels = re.findall(r"^\*\*[A-Z][\w ]*\.\*\*", body, re.M)
+        where = f"{name} §\"Week {head.group(1)}\""
+        assert tuple(labels[:2]) == OPENS, (
+            f"{where} opens with {labels[:2]}; a week opens with "
+            "**Theme.** then **Goal.**, before any day")
+        if _dt.date.fromisoformat(head.group(3)) < today:
+            assert "**Outcome.**" in labels, (
+                f"{where} is over and has no **Outcome.** — the goal met or "
+                "not, and what carries over")

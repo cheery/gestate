@@ -46,11 +46,22 @@ resolves a `journal.md §"…"` against the archive too.
 **The weekly account** — *adopted 2026-09-23, at Henri's ask:* *"jatketaan
 notes-editoria, mutta ensin me tarvitaan se kronologinen kertomus joka
 kirjoitetaan journaliin sitä mukaan kun edetään.  Viikko kerrallaan."*
-One `## Week NN` section per ISO week, at the bottom of the open month,
-written as the work goes and not after it: the week's goal first, then
-the days in order, a few lines each, pointing at the commit or the card
-section that holds the detail.  The entries named for what they taught
-stay beside it; the weekly account is what happened, in order.
+One `## Week NN — <monday> to <sunday>` section per ISO week, at the
+bottom of the open month, written as the work goes and not after it.
+*His, the same day:* *"Jokaisella viikolla tästä lähtien kuuluisi olla
+rakenne, joka mm. alkaa tavoitteella ja teemalla."*  So:
+
+* **Theme.** — what the week is about, one line.
+* **Goal.** — one sentence, written before the work, that the week's
+  end can be read against.  His to set or correct.
+* **The days**, in order, a few lines each, pointing at the commit or
+  the card section that holds the detail.
+* **Outcome.** — once the week is over: the goal met or not, with the
+  number where there is one, and what carries into the next week.
+
+`test/test_journal.py` holds the shape: theme and goal before any day,
+and a finished week has its outcome.  The entries named for what they
+taught stay beside it; the weekly account is what happened, in order.
 
 *The open month is 2026-09.*  `python tools/journalroll.py` says where the
 lines are and whether the rotation is due; `spec/rules.md` §"The journal
@@ -3746,7 +3757,10 @@ day it gets a caller.  A direction, not a card.
 
 ## Week 39 — 2026-09-21 to 2026-09-27
 
-**The goal**, *the session's proposal, his to correct:* one card,
+**Theme.**  One thing at a time — the week the board narrowed to one
+card.  *The session's proposal, his to correct.*
+
+**Goal.**  *The session's proposal, his to correct:* one card,
 `card:notes-editor.md`, and its postcondition measured the way a
 person meets it — a note moved on his piece, the time until it is heard
 and until the picture has followed — so that what stands between the
@@ -3778,4 +3792,6 @@ into `vision.md` beside his own: *a kind of fine (spread)sheet
 calculator, still music too* (`e3b0986`).  `card:graphrag-c.md` shelved
 until 2026-10-13, the day after its verdict, and the flow lamp stopped
 counting `board/standing.md` as a card (`4092f77`).  Then this account,
-before the card is picked up again.
+before the card is picked up again (`2904493`), and at his word its
+shape: theme and goal first, outcome at the week's end, held by
+`test_journal.py`.
