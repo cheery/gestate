@@ -3847,3 +3847,5 @@ for carrying and so lies over its neighbour — one box carried the note,
 the other swept a band.  A press is now the box's whose music it lands
 in, and at his word a note is taken within a row of its centre, not
 three (`card:notes-editor.md` §"A press in the middle of a note").
+
+He tried it: *"nyt toimii. aika hyvinkin. Keskelle painaminenkin toimii."*

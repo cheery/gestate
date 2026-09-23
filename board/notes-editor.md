@@ -1056,3 +1056,6 @@ made a note there — and aim inside the music now (`_empty_key`).
 Band answers in a run of eight carries: 2–3 before, **0** after, with
 box 1 still touched twelve times and declining each; release to heard
 unchanged, 128 and 131 ms.
+
+**His hands on it — Henri, 2026-09-23:** *"kokeilin, nyt toimii. aika
+hyvinkin. Keskelle painaminenkin toimii."*
