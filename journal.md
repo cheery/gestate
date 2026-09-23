@@ -3804,3 +3804,12 @@ heard until the rebuild lands, a second after the release, because
 the preview layer is closed there by his sentence 9.  The second is the
 score's, and has doubled since 2026-09-06
 (`card:notes-editor.md` §"The postcondition, measured").
+
+He kept sentence 9 — *"Käden alla oleva nuotti ei tarvitse soida kun
+kappale soi"* — and asked for the second.  It was not the score: a CPU
+column beside the build timer's wall said the window was computing,
+and the headless run had been loading the same program three times.
+The records' road was re-parsing the whole program on every release
+to ask two questions the unchanged engine answers.  Asked of the
+engine, the moved note is in the piece 164–200 ms after the release
+instead of a second (`card:notes-editor.md` §"The score's second").

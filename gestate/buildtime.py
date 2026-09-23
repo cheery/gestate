@@ -86,7 +86,7 @@ class _Build:
     def __init__(self, label: str):
         self.label = label
         self.began = time.perf_counter()
-        #: name → [own seconds, how many times]
+        #: name → [own seconds, how many times, own CPU seconds]
         self.phases: dict[str, list] = {}
         #: (name, start, end, self, caller) per phase run — kept because
         #: `‖` is a claim about *time*, and neither the clock nor the
@@ -97,11 +97,12 @@ class _Build:
         #: other — which is what the caller column is for.
         self.spans: list = []
 
-    def add(self, name, took, began, ended, who, caller) -> None:
+    def add(self, name, took, began, ended, who, caller, cpu=0.0) -> None:
         with _lock:
-            row = self.phases.setdefault(name, [0.0, 0])
+            row = self.phases.setdefault(name, [0.0, 0, 0.0])
             row[0] += took
             row[1] += 1
+            row[2] += cpu
             self.spans.append((name, began, ended, who, caller))
 
     def _parallel(self) -> set:
@@ -130,13 +131,16 @@ class _Build:
         total = time.perf_counter() - self.began
         beside = self._parallel()
         lines = [f"[build] {self.label} {total:.2f}s"]
-        for name, (took, count) in sorted(self.phases.items(),
-                                          key=lambda kv: -kv[1][0]):
+        for name, (took, count, cpu) in sorted(self.phases.items(),
+                                               key=lambda kv: -kv[1][0]):
             if took < 0.005:
                 continue
             shown = f"‖ {name}" if name in beside else name
             times = f"  ×{count}" if count > 1 else ""
-            lines.append(f"  {shown:>22s}   {took:5.2f}s{times}")
+            # **Beside the wall, the thread's own CPU** — the wall alone
+            # cannot tell a slow phase from a starved one (2026-09-23:
+            # `score` 1.0 s in the window, 70 ms of it computing).
+            lines.append(f"  {shown:>22s}   {took:5.2f}s  cpu {cpu:5.2f}s{times}")
         return "\n".join(lines)
 
 
@@ -149,11 +153,12 @@ _open = threading.local()
 
 
 class _Phase:
-    __slots__ = ("name", "began", "build", "children", "caller")
+    __slots__ = ("name", "began", "began_cpu", "build", "children",
+                 "children_cpu", "caller", "thread")
 
     def __init__(self, name: str, build: _Build):
         self.name, self.build = name, build
-        self.children = 0.0
+        self.children = self.children_cpu = 0.0
         self.caller = None
 
     def __enter__(self):
@@ -163,17 +168,25 @@ class _Phase:
         self.caller = stack[-1] if stack else None
         stack.append(self)
         self.began = time.perf_counter()
+        self.began_cpu = time.thread_time()
+        self.thread = threading.get_ident()
         return self
 
     def __exit__(self, *_exc):
         ended = time.perf_counter()
         took = ended - self.began
+        cpu = time.thread_time() - self.began_cpu
         stack = _open.stack
         stack.pop()
         if stack:
             stack[-1].children += took
+            # A borrowed stack's child ran on another thread, and its
+            # CPU was never the waiting caller's to give back.
+            if stack[-1].thread == self.thread:
+                stack[-1].children_cpu += cpu
         self.build.add(self.name, took - self.children, self.began, ended,
-                       id(self), id(self.caller) if self.caller else None)
+                       id(self), id(self.caller) if self.caller else None,
+                       cpu - self.children_cpu)
         return False
 
 

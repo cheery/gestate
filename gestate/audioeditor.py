@@ -3225,7 +3225,17 @@ class Workbench:
 
         from .audioperform import has_score
 
-        if not has_score(text):
+        # **The records' road asks the engine, never the program**
+        # (2026-09-23, `card:notes-editor.md` §"The score's second").  A
+        # moved note changes the program's text, so every question asked
+        # of it is a fresh parse of nine hundred generated lines — three
+        # a release, 0.3 s headless and a second in the window, which is
+        # what `score` was.  The engine's text does not move, its parse
+        # is remembered, and the answers read here are the same off it:
+        # it declares the same banks, and its score rests on every one.
+        player = getattr(self.kind, "events", None)
+        asked = (getattr(self, "_engine", None) or text) if player is not None else text
+        if not has_score(asked):
             self.schedule = None
             self.performer = None
             return
@@ -3234,7 +3244,9 @@ class Workbench:
             from .audioscore import assigned_banks, unfolding_names
             from .audiovoices import banks_of, channels_of
 
-            self._score_banks = assigned_banks(text)
+            # Read only by the performer's road (`scored_banks`); the
+            # records' road answers from its schedule's channels.
+            self._score_banks = assigned_banks(text) if player is None else set()
             # The session's seed, drawn the first time a piece can tell
             # the difference and **said** — the renderer records what it
             # supplied — then held, so a rebuild replays the same take.
@@ -3244,7 +3256,6 @@ class Workbench:
 
                 self.seed = int.from_bytes(os.urandom(8), "big")
                 self.say(f"seed {self.seed} — this session's take")
-            player = getattr(self.kind, "events", None)
             if player is not None:
                 # **The piece as records** (`card:notes-editor.md` slice
                 # 2): no front end runs over the notes — the banks come

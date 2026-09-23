@@ -901,3 +901,42 @@ using) and one this measures: *"a moved note is already heard in place
 by the audition"* — a second after the hand has let go.  The score's
 second is the session's to chase whichever way he answers, because it
 is the wait on every release in both states.
+
+**Answered — Henri, 2026-09-23:** *"Pidetään lause 9, jahtaa
+partituurin sekunti.  Käden alla oleva nuotti ei tarvitse soida kun
+kappale soi."*  Sentence 9 stands; the second is chased next.
+
+## The score's second — 2026-09-23
+
+**It was not the score.**  `score` read 0.8–1.3 s in the window and
+70 ms headless, and a CPU column added to `GESTATE_BUILD_TIME` for the
+question (`buildtime.py`: the thread's own CPU beside each phase's
+wall) said the window's second was *computing*, 0.4–0.6 s of it — so
+the two runs were doing different work.  The headless run had loaded
+the **same** program three times, and the parse cache answered.  With a
+note moved each time, headless read 300 ms, and the profile said why:
+the records' road asked `has_score` and `assigned_banks` of the
+*program*, whose text a moved note changes — four fresh parses of nine
+hundred generated lines a release, and enough churn in the 16-entry
+parse cache to push the engine's own parse out too.
+
+**The fix** — the records' road asks the engine's text, which a note
+edit leaves byte-identical; `assigned_banks` is not asked there at all,
+because only the performer's road reads it.
+`test_audioeditor.py::test_a_moved_note_loads_its_score_without_parsing_the_program`
+holds it (seen failing on the old code: *parsed 4 new text(s)*), and
+`test_the_engine_answers_has_score_as_the_program_does` holds the
+premise on every `.notes` shipped.
+
+    DISPLAY=:99 python tools/handlag.py        test/driven/20260923-171205-handlag
+
+| | before | after |
+|---|---|---|
+| `_load_score`, a note moved, headless | 300 ms | **8–13 ms** |
+| release → the moved note in the piece, playing | 0.98 s | **200 ms** median |
+| release → the moved note in the piece, stopped | 1.03 s | **164 ms** median |
+| the note under the hand, stopped | 20 ms | 25 ms — unchanged road |
+
+What is left of the release is the command (~60 ms,
+`tools/commitlag.py`) and the rest of the apply, 0.15–0.3 s, now with
+no phase over the report's threshold — the next number to split.

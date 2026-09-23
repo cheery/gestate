@@ -135,13 +135,36 @@ def _sleep_in(name: str, seconds: float) -> None:
         time.sleep(seconds)
 
 
-def _rows(said: str) -> dict:
-    """`name → seconds`, read back off the report's own lines."""
+def _rows(said: str, cpu: bool = False) -> dict:
+    """`name → seconds`, read back off the report's own lines — the
+    wall column, or with `cpu` the thread's own."""
     out = {}
     for line in said.splitlines()[1:]:
         parts = line.split()
         if parts[-1].startswith("×"):
             parts.pop()
+        spent = float(parts.pop().rstrip("s"))
+        assert parts.pop() == "cpu", line
         took = float(parts.pop().rstrip("s"))
-        out[" ".join(p for p in parts if p != "‖")] = took
+        out[" ".join(p for p in parts if p != "‖")] = spent if cpu else took
     return out
+
+
+def test_a_phase_says_whether_it_computed_or_waited(capsys, monkeypatch):
+    """Wall time alone could not tell a slow phase from a starved one.
+    2026-09-23, `card:notes-editor.md` §"The postcondition, measured":
+    `score` read 1.0 s in the window and 70 ms headless — the same code,
+    so the second was spent waiting, and the column could not say so.
+    The thread's own CPU beside the wall says it."""
+    monkeypatch.setenv("GESTATE_BUILD_TIME", "1")
+    with building("waits.ges"):
+        with phase("asleep"):
+            time.sleep(0.06)
+        with phase("busy"):
+            end = time.perf_counter() + 0.06
+            while time.perf_counter() < end:
+                pass
+    said = _report(capsys)
+    cpu = _rows(said, cpu=True)
+    assert cpu["asleep"] < 0.02, said
+    assert cpu["busy"] > 0.04, said

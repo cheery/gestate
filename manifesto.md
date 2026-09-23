@@ -69,7 +69,7 @@ reference is not looked at, and the docstring says so.
 |---|---|---|
 | `GESTATE_EDITOR_TIME` | where a frame goes, key→pixels | anything below the window |
 | `tools/lagcheck.py`, `tools/dialoglag.py` | the real window, real X events, read off the screen | correctness of what is drawn |
-| `GESTATE_BUILD_TIME` (`gestate/buildtime.py`) | where a rebuild's seconds go, per phase, own time | work no phase is named for |
+| `GESTATE_BUILD_TIME` (`gestate/buildtime.py`) | where a rebuild's seconds go, per phase, own time, and the thread's CPU beside it — computing or waiting | work no phase is named for |
 | `audioperform --report` | peak and per-bar RMS of a render | which notes they were |
 | `audioperform.heard_note` | which note came out, against A440 | timbre, level, timing |
 | the golden `.samples` | that a render has not moved | that it was ever right |

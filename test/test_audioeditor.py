@@ -171,6 +171,52 @@ def test_applying_an_edit_reaches_the_running_instrument(tmp_path):
 
 
 @needs_clang
+def test_a_moved_note_loads_its_score_without_parsing_the_program(tmp_path):
+    """**The score's second** — 2026-09-23, `card:notes-editor.md`
+    §"The score's second".  `score` was a second of every release in
+    the window: the records' road asked `has_score` and
+    `assigned_banks` of the *program*, whose text a moved note changes,
+    so each release re-parsed nine hundred generated lines and churned
+    the parse cache until the engine's own parse fell out of it too.
+    The records' road asks the engine, whose text a note edit leaves
+    byte-identical — so a release parses nothing new."""
+    import re
+
+    from gestate.prelude import _parsed
+
+    bench = _bench(tmp_path, "arc.notes")
+    bench.start(seconds=30.0)
+    try:
+        assert _wait(lambda: any("playing" in m for m in bench.messages), 60.0), \
+            bench.messages
+        text = bench.path.read_text()
+        for k in (1, 2, 3):
+            m = re.search(r"\bat (\d+)", text)
+            program = bench.program(text[:m.start()] + f"at {int(m.group(1)) + 48 * k}"
+                                    + text[m.end():])
+            misses = _parsed.cache_info().misses
+            bench._load_score(program)
+            assert _parsed.cache_info().misses == misses, (
+                f"move {k}: the score's load parsed "
+                f"{_parsed.cache_info().misses - misses} new text(s)")
+            assert bench.schedule is not None
+    finally:
+        bench.stop()
+
+
+@pytest.mark.parametrize("name", sorted(p.name for p in AUDIO_DIR.glob("*.notes")))
+def test_the_engine_answers_has_score_as_the_program_does(name):
+    """What makes asking the engine safe: on every `.notes` shipped, the
+    engine's half and the whole program agree on whether there is a
+    score to load."""
+    from gestate.audioperform import has_score
+    from gestate.notes import expanded, wrapper
+
+    path = AUDIO_DIR / name
+    program, _origins = expanded(wrapper(path), path.parent)
+    assert has_score(wrapper(path, notes=False)) == has_score(program)
+
+
 def test_a_moved_note_is_drawn_before_its_score_is_loaded(tmp_path):
     """**The picture before the score** — Henri, 2026-09-13: *"yes.
     picture first."*  The rows cross to the window when the page is
