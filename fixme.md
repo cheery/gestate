@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 241 entries, **191 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 241 entries, **192 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |

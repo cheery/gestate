@@ -2973,7 +2973,12 @@ class Workbench:
         from .audioalloc import AllocError, Allocator
         from .audiovoices import banks_of, channels_of
 
-        text = self.program(text)
+        # **Expanded only when nobody handed a program** — `fixme.md`
+        # F212.  Every caller passes the engine it compiled, and running
+        # that back through `program()` found no `include` in it and left
+        # `origins` empty, so a note from an included `.notes` was named
+        # by a line of the expanded program and the caret went nowhere.
+        text = self.program() if text is None else text
         out = {}
         for bank in banks_of(text):
             try:

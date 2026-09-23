@@ -204,6 +204,31 @@ def test_a_moved_note_loads_its_score_without_parsing_the_program(tmp_path):
         bench.stop()
 
 
+def test_a_running_bench_knows_which_file_wrote_an_included_note(tmp_path):
+    """`fixme.md` F212: a press on a note of `arcnotes.ges`'s roll said
+    *line 246* of a 158-line file, because the running bench's `origins`
+    was empty — `_start_notes` handed `_allocators` the expanded program
+    and `_allocators` expanded it again through `program()`, which found
+    no `include` in it and recorded no origins."""
+    from gestate.scorebox import pitch_atom
+
+    for name in ("arcnotes.ges", "arc.notes"):
+        shutil.copy(AUDIO_DIR / name, tmp_path / name)
+    bench = Workbench(tmp_path / "arcnotes.ges", rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=30.0)
+    try:
+        assert _wait(lambda: any("playing" in m for m in bench.messages), 60.0), \
+            bench.messages
+        roll = next(iter(bench.note_regions.values())).roll
+        line = pitch_atom(roll, 0)[0]
+        where = bench.origins.get(line)
+        assert where is not None and where[0] == "arc.notes", \
+            f"leaf line {line} → {where}; origins holds {len(bench.origins)}"
+    finally:
+        bench.stop()
+
+
 def test_a_moved_note_keeps_the_engines_placement(tmp_path):
     """**An engine that did not move keeps its placement** — 2026-09-23,
     `card:notes-editor.md` §"The rest of the release".  Knobs, banks,
