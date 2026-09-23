@@ -21,6 +21,14 @@ score has no section record to declare a subdivision in.  So a piece
 written in quarters snaps in quarters, and a note made by two clicks is
 one grid step long: there is no way to reach an eighth on it.
 
+## Where it goes — Henri, 2026-09-23, evening
+
+*"Se saisi olla vasemmassa yläkulmassa oleva työkalupalkki, mutta en ole
+varma minkälainen sen pitäisi olla."*  So: a toolbar at the top left of
+the page; its form is open and his.  What the session owes before
+anything is built is a few shapes of it to choose between — drawn, not
+described — since the choice is a feel and a feel is judged by eye.
+
 ## The postcondition
 
 Not written yet — it is the first thing the card's day owes, before
