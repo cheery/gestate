@@ -1016,8 +1016,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 3063 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
 | 3207 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
 | 5507 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5977 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5983 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 5982 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 5988 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `stage.py`
 

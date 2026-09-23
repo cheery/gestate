@@ -5685,6 +5685,11 @@ class Session:
             self.sounding.pop(box, None)
             if notes.sound(bank, int(key), payload):
                 self.sounding[box] = (bank, int(key), note, payload, notes)
+                # The note under the hand, sounding — the other half of
+                # `card:notes-editor.md`'s postcondition (`tools/handlag.py`).
+                from .workbench import _tap
+
+                _tap("sounded", f"{bank} {int(key)}")
         except Exception:                                 # noqa: BLE001
             self.sounding.pop(box, None)
 

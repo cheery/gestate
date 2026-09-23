@@ -852,3 +852,52 @@ in half the time, and the commit's own cost — the command and the
 rows — is where the rest of this card's wait still is.  `[observe]`
 lines join `[loop]` under `GESTATE_LOOP_TIME` so the next fat tail says
 which quarter of it is fat.
+
+## The postcondition, measured — 2026-09-23
+
+**Henri:** *"voimme aloittaa mittauksella"* — the week's goal
+(`journal.md` §"Week 39"): the postcondition measured the way a person
+meets it, so that what stands between this card and done is a number.
+`tools/handlag.py`, built for it: on `arc.notes`, a note pressed, taken
+up a row at a time, let go; two stamps added on the wire for it —
+`sounded` where the preview reaches the allocator, `scored` where the
+rebuild has loaded the new score.
+
+    DISPLAY=:99 python tools/handlag.py        test/driven/20260923-165155-handlag
+
+| | transport stopped, instrument up | transport playing |
+|---|---|---|
+| press → the model has the hand | 7 ms median | 9 ms median |
+| press → the note sounds under the hand | **20 ms** median, 4 of 4 | **not heard**, 0 of 4 |
+| a new semitone → it sounds again | **10 ms** median, 8 of 8 changes | not heard |
+| release → the moved note is in the piece | 1.03 s median | 0.98 s median |
+
+Plus one audio block, 11.6 ms, on anything sounded.  So:
+
+* **Stopped, the postcondition holds for the hand**: the note is heard
+  some 30 ms after the press and after each semitone — under a frame
+  and a block — and the picture's side is the model's 7 ms and a frame.
+* **Playing, it does not**, and by design, not by cost: `session.py`
+  opens no preview while the transport plays — *"a moved note is
+  already heard in place by the audition"* — and the audition lands a
+  second after the hand has let go.  Where the playhead is far from
+  the note, nothing of the move is heard until it gets there.
+* **The second is the score**, `score` 0.8–1.3 s of a 1.1–1.7 s
+  apply (`tools/commitlag.py` the same hour); the engine is kept.
+  §"What is left of the second" said 0.4–0.6 s on 2026-09-06, so it has
+  roughly doubled since; not investigated yet.
+
+**Not reproduced:** the tool's first run saw `score` at 3.0–3.6 s and
+one release at 4.5 s, with carries overlapping rebuilds because it
+waited only 3 s.  The second run, waiting for the stamp, did not; the
+first carry of the first run, overlapping nothing, is unexplained.
+
+**What this leaves**, shaped for him: whether a note under the hand
+should sound **while the piece plays** is his — `spec/transport.md`
+sentence 9, his, 2026-09-11, closes the preview layer in *playing*,
+for a reason that still stands (the allocator and the schedule assign
+voices independently, so a preview would shadow a voice the score is
+using) and one this measures: *"a moved note is already heard in place
+by the audition"* — a second after the hand has let go.  The score's
+second is the session's to chase whichever way he answers, because it
+is the wait on every release in both states.

@@ -3795,3 +3795,12 @@ counting `board/standing.md` as a card (`4092f77`).  Then this account,
 before the card is picked up again (`2904493`), and at his word its
 shape: theme and goal first, outcome at the week's end, held by
 `test_journal.py`.
+
+Then the measurement, at his word — `tools/handlag.py`, and two
+stamps on the wire for it.  Transport stopped, the note under the hand
+sounds 20 ms after the press and 10 ms after each new semitone:
+the postcondition holds for the hand.  Playing, nothing of the move is
+heard until the rebuild lands, a second after the release, because
+the preview layer is closed there by his sentence 9.  The second is the
+score's, and has doubled since 2026-09-06
+(`card:notes-editor.md` §"The postcondition, measured").

@@ -3736,6 +3736,12 @@ class Workbench:
             self._skipped("score")
         else:
             self._load_score(program)
+            # The moved note is in the piece from here, audible on the
+            # next block — the half of `card:notes-editor.md`'s
+            # postcondition a release waits for (`tools/handlag.py`).
+            from .workbench import _tap
+
+            _tap("scored", self.path.name)
         self._place(engine)
         # **The strictest question, because its inputs cannot be bounded
         # honestly.**  A `FromMIDI` instance body reaches whatever it

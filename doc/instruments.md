@@ -429,6 +429,20 @@ slice (a); **its first run crashed the model** on a race the headless
 tests could not see, which is the reason the driven run comes before
 *built*.
 
+### `tools/handlag.py` — a moved note, heard
+
+    Xvfb :99 -screen 0 1600x1000x24 &
+    DISPLAY=:99 python tools/handlag.py                 # arc.notes, four carries in each state
+
+`card:notes-editor.md`'s postcondition, driven: a note pressed, taken
+up a row at a time, let go — in the state the window opens in and
+again after `play`.  Three stamps on the wire's clock: `gesture` (the
+model has the hand), `sounded` (the preview reached the allocator,
+`session.py`) and `scored` (the rebuild loaded the new score,
+`audioeditor.py`).  A stretch with no stamp is reported *not heard*.
+Built 2026-09-23; its first run credited one carry's score to the next,
+because it waited three seconds for a rebuild that can take four.
+
 ### `tools/presscost.py` — what a press on a note costs the window
 
     Xvfb :99 -screen 0 1600x1000x24 &
