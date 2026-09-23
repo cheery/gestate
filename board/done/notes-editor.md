@@ -1,6 +1,6 @@
 # notes-editor — a note moves, and you hear it before the hand has left the mouse
 
-    status   doing — 2026-09-06
+    status   done — 2026-09-23
     because  "Reaper note movement reacts immediately and I can hear the
              change immediately.  Also there's richer set of tools.  The
              reaper midi interface is not perfect either, but it's what
@@ -1059,3 +1059,20 @@ unchanged, 128 and 131 ms.
 
 **His hands on it — Henri, 2026-09-23:** *"kokeilin, nyt toimii. aika
 hyvinkin. Keskelle painaminenkin toimii."*
+
+## Done — 2026-09-23
+
+**Henri:** *"siirrä kortti done/:iin."*  The postcondition held by the
+harness and by his hands the same evening: a moved note is under the
+hand in about 13 ms with the transport stopped, and in the piece
+120–130 ms after the release, from a second that morning
+(`tools/handlag.py`); and a press takes what it is aimed at.  The
+preview stays closed while the piece plays, at his word (sentence 9).
+
+Left, and where it lives now: `fixme.md` F206 (the compiled road reads
+a `.notes` note as velocity 64, no manner) and F208 (the status row's
+fields painted over each other), both in the ledger; the bars tool's
+degrees beside the notes, which §"What this is" named and nothing
+built — a card of its own the day he asks for it; and one middle-of-a-
+note press of three whose own hit missed and the pad took, harmless
+since the pad's aim decides, cause not found.

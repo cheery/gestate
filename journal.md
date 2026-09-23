@@ -3849,3 +3849,6 @@ in, and at his word a note is taken within a row of its centre, not
 three (`card:notes-editor.md` §"A press in the middle of a note").
 
 He tried it: *"nyt toimii. aika hyvinkin. Keskelle painaminenkin toimii."*
+`card:notes-editor.md` to `done/` at his word, and his next ask
+written as `card:snap-grid.md` for the morning: a control for the grid a
+note snaps to, since a piece in quarters can never be given an eighth.

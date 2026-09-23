@@ -63,10 +63,11 @@ day's commits touched four.  So the filter above chooses the next card
 in its `blocked` line, not by preference — and a card does not become
 `doing` before its postcondition is written (§"The postcondition").
 
-1. **[notes-editor](notes-editor.md)** — a note moves and you hear it
-   before the hand has left the mouse; today it is 5 s to redraw and
-   5 s to hear, against Reaper's next block.  His list of tools, and
-   the data path first.  *Arrived unplaced, 2026-09-06.*
+1. **[snap-grid](snap-grid.md)** — a control for the grid a note
+   snaps to; today it is read off the roll's own notes, so a piece in
+   quarters can never be given an eighth.  *Arrived on 2026-09-23, his ask
+   for the next day; placed first because he named it next — his to
+   move.*
 2. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
