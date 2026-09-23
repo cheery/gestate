@@ -57,6 +57,14 @@ Broad platforms are historically terrible at the stranger test.
 In case that this will conflict with the ease of use.
 Then the ease of use is preferred.
 
+2026-09-23: Gestate is like Emacs for music and data: a program, its data
+and its picture are edited while they are alive, and music is the first
+kind of document. It is moving from music toward a language for handling
+data in general, a kind of fine (spread)sheet calculator — the brackets
+because it is still the original aim too.
+(The first sentence a session's reading of where the cards lead, taken:
+"Kyllä voimme kirjata tuon.")
+
 ## What gestate won't be
 
 2026-08-16: Gestate won't ever be untested.
