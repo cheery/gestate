@@ -2906,6 +2906,18 @@ def test_a_drag_previews_both_axes_at_once():
         seat.released("__nb_rail_0__")
 
 
+def _empty_key(roll, tick: int) -> int:
+    """A key inside the box's own music with nothing sounding within two
+    rows of it at `tick` — empty roll a person can see.  Not the reach
+    above the music, which since 2026-09-23 is the neighbour's
+    (`card:notes-editor.md` §"A press in the middle of a note")."""
+    from gestate.scorebox import scale_of
+
+    lo, hi, _span = scale_of(roll)
+    near = [e[3] for e in roll.events if e[0] <= tick < e[1]]
+    return next(k for k in range(hi, lo - 1, -1) if all(abs(k - n) > 2 for n in near))
+
+
 def test_a_press_on_nothing_selects_nothing_and_the_body_carries_nothing():
     """A press on an empty column, with a note selected earlier, must
     not let the body drag that old selection off in time."""
@@ -2917,8 +2929,9 @@ def test_a_press_on_nothing_selects_nothing_and_the_body_carries_nothing():
         seat.released(chan)
         assert 0 in seat.selected.values()
         low, high = reach_of(roll)
+        key = _empty_key(roll, 0)
         assert seat.touched("__nb_rail_0__", across_of(roll, 0)) == ""
-        said = seat.touched("__nb_pitch_0__", (high - min(high, 110)) / (high - low))
+        said = seat.touched("__nb_pitch_0__", (high - key) / (high - low))
         assert said.startswith("sweep a band"), said
         assert 0 not in seat.selected, "a press on nothing selects nothing"
         seat.released("__nb_rail_0__")
@@ -4565,9 +4578,9 @@ def test_two_clicks_on_empty_roll_make_a_note_there():
     with _copied() as here:
         roll, seat = _rolled_page(here, page=True)
         low, high = reach_of(roll)
-        # A place with nothing in it: bar 2's second beat, high above.
+        # A place with nothing in it, inside the box's own music: bar 2.
         tick = roll.bars[1] if roll.bars else 384
-        key = min(high, max(low, high - 1))
+        key = _empty_key(roll, tick)
         where = (high - key) / (high - low)
         was = len(here.parent.joinpath("arc.notes").read_text().splitlines())
 

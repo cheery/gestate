@@ -1182,3 +1182,90 @@ def test_a_file_with_boxes_and_no_substrate_is_still_told_things():
     assert worth_telling(_Bench(_Walked(), {}))
     assert not worth_telling(_Bench(None, {"__notes_0__": _Drawn()}))
     assert not worth_telling(_Bench(None, {}))
+
+
+def _arc_page(tmp_path):
+    """`arc.notes`' page, built headless, with a seat on it — three
+    boxes stacked, which is what the two tests below are about."""
+    from gestate.audioeditor import Workbench
+
+    from test_session import session
+
+    source = (AUDIO / "arc.notes").read_text()
+    path = tmp_path / "arc.notes"
+    path.write_text(source)
+    bench = Workbench(path, rate=RATE, block=256)
+    bench._load_substrate(bench.program(source))
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text = text
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            return True
+
+    seat = session()
+    seat.bench, seat.view = bench, _View(source)
+    return bench, seat
+
+
+def _down(roll, key: float) -> float:
+    """The pad fraction a hand at this (unrounded) key writes."""
+    from gestate.scorebox import reach_of
+
+    low, high = reach_of(roll)
+    return (high - key) / (high - low)
+
+
+def test_a_press_on_one_box_is_not_a_band_in_the_box_below(tmp_path):
+    """Henri, 2026-09-23, `~/misc/fail-2026-09-23.webm`: *"kun painan
+    keskelle nuottia, se antaa selektion visuaalina, ja tuottaa
+    siirron."*  Each box's pad reaches `DRAG_REACH` past its music so a
+    carry can leave the box — and so the pad of the box below lay over
+    the bottom of the one above: one press took a note there and swept a
+    band here, on a third of the day's driven presses.  A press is the
+    box's whose own music it lands in; the reach is for carrying."""
+    from gestate.scorebox import across_of, scale_of
+
+    bench, seat = _arc_page(tmp_path)
+    roll = bench.note_regions["__nb_rail_1__"].roll
+    _lo, hi, _span = scale_of(roll)
+    on = roll.events[0][0]
+    seat.touched("__nb_rail_1__", across_of(roll, on))
+    seat.touched("__nb_pitch_1__", _down(roll, hi + 6))
+    assert seat.hand.get(1, ("Free",))[0] == "Free", seat.hand.get(1)
+    seat.touched("__nb_rail_1__", across_of(roll, on + 96))
+    seat.touched("__nb_pitch_1__", _down(roll, hi + 8))
+    assert seat.hand.get(1, ("Free",))[0] == "Free", "a declined press took hold mid-drag"
+    assert "select" not in seat.released("__nb_pitch_1__")
+
+
+def test_a_press_takes_a_note_within_a_row_of_it_and_no_farther(tmp_path):
+    """Henri, 2026-09-23, trying it by hand: *"alue jolla nuottiin
+    napataan kiinni saisi olla pienempi, vaikka 2 kertaa nuotin itsensä
+    korkeus."*  A row is a semitone and a note is drawn a row tall, so
+    the reach is one row from the note's centre either way — measured
+    on where the hand is, not on the semitone it rounds to."""
+    from gestate.scorebox import across_of
+
+    bench, seat = _arc_page(tmp_path)
+    roll = bench.note_regions["__nb_rail_0__"].roll
+    alone = next(j for j, (on, off, _l, key, _v, _m) in enumerate(roll.events)
+                 if not any(k != j and e[0] <= on < e[1] and abs(e[3] - key) <= 4
+                            for k, e in enumerate(roll.events)))
+    on, _off, _leaf, key, _v, _m = roll.events[alone]
+    for off_by, held in ((0.0, True), (0.8, True), (-0.8, True), (1.3, False), (-1.3, False)):
+        seat.touched("__nb_rail_0__", across_of(roll, on))
+        seat.touched("__nb_pitch_0__", _down(roll, key + off_by))
+        state = seat.hand.get(0, ("Free",))[0]
+        assert (state == "Held") == held, f"{off_by:+} rows from the note: {state}"
+        seat.hand[0] = ("Free",)

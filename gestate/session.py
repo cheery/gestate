@@ -996,6 +996,12 @@ class Session:
     #: fractions as they were (`scorebox.note_at`), and not with a tick
     #: rounded back into a pixel.
     rail_at: dict = field(default_factory=dict)
+    #: **The boxes a press landed in only by reach**, until it lets go —
+    #: a pad is `DRAG_REACH` taller than its music so a carry can leave
+    #: the box, which lays it over its neighbours; a press there is the
+    #: neighbour's, and this box hears nothing more of it
+    #: (Henri, 2026-09-23, `card:notes-editor.md`).
+    declined: set = field(default_factory=set)
     #: **The last click on empty roll**, per box: `(tick, key, when)`.
     #: A second one at the same place within `TWICE` seconds makes a
     #: note there — the clock a double-click is, held here because
@@ -4920,7 +4926,7 @@ class Session:
         touch means after that is the chart's to say.  The ruler is its
         own hand above (`gestate/gesture.ges`).
         """
-        from .scorebox import key_at, tick_at
+        from .scorebox import key_at, owns, tick_at
 
         found = (getattr(self.bench, "note_regions", None) or {}).get(name)
         if found is None:
@@ -4940,11 +4946,19 @@ class Session:
             return self._ruler_touched(found, name, down)
         if self.sizing is not None:
             return ""                  # the ruler has the hand
+        if found.box in self.declined:
+            return ""                  # a press that was never this box's
         roll = found.roll
         if getattr(found, "on_rail", False):
             self.rail_at[found.box] = float(down)
             return self._hand_event(found, ("Rail", tick_at(roll, down)))
         key = key_at(roll, down)
+        # **The press decides whose it is**, at the pitch touch that ends
+        # `Railed`: a hand outside this box's own music is in its reach
+        # only, over a neighbour — declined, and the chart let go.
+        if self.hand.get(found.box, ("Free",))[0] == "Railed" and not owns(roll, down):
+            self.declined.add(found.box)
+            return self._hand_event(found, ("Abort",))
         return self._hand_event(found, ("Pitch", key, self._hit(found, key, down)))
 
     def _hit(self, found, key: int, down: float) -> tuple:
@@ -4954,7 +4968,8 @@ class Session:
         that), or empty roll.  Read only while the chart is `Railed` —
         the one moment the answer decides anything; a drag's touches
         get `OnRoll` and the chart does not look at it."""
-        from .scorebox import EDGE_PX, RefusedError, note_at, note_under, x_of
+        from .scorebox import (EDGE_PX, GRAB_ROWS, RefusedError, key_exact,
+                               note_at, note_under, x_of)
 
         state = self.hand.get(found.box, ("Free",))
         named = self.named_note.pop(found.box, None)
@@ -4964,6 +4979,12 @@ class Session:
         try:
             note = note_under(roll, tick, key)
         except RefusedError:
+            note = None
+        # **Within a row of the note, on where the hand is** — Henri,
+        # 2026-09-23: *"alue jolla nuottiin napataan kiinni saisi olla
+        # pienempi, vaikka 2 kertaa nuotin itsensä korkeus."*  A row is a
+        # note's height; the rounded key would make it three.
+        if note is not None and abs(roll.events[note][3] - key_exact(roll, down)) > GRAB_ROWS:
             note = None
         #: **The probe, where the picture did not speak** — `note_at`,
         #: the rows the picture is drawn from read backwards through the
@@ -5433,6 +5454,9 @@ class Session:
             # go at the first `released` — the window says it for each,
             # and the second arrives to a free hand and says nothing.
             self._journal().add("released", (name,), "")
+            if found.box in self.declined:
+                self.declined.discard(found.box)
+                return ""
             if found.box in self.hand:
                 return self._hand_event(found, ("Lift",))
             return ""

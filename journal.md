@@ -3838,3 +3838,12 @@ twelve runs today.  Driving the middle-of-a-note press to reproduce
 his, the session's window started beside his own, and the laptop froze
 and was restarted (F241, cause not known).  A driven run now refuses
 while any editor is open on the machine.
+
+F212 fixed — `_allocators` re-expanded the engine and emptied the
+running bench's origins.  Then his fault, found in the day's own logs
+once he said *arc.notes, playing, one note*: a third of all presses
+reached two boxes, because each pad reaches two octaves past its music
+for carrying and so lies over its neighbour — one box carried the note,
+the other swept a band.  A press is now the box's whose music it lands
+in, and at his word a note is taken within a row of its centre, not
+three (`card:notes-editor.md` §"A press in the middle of a note").

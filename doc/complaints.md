@@ -1004,20 +1004,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2761 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2768 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
-| 2782 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2896 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2902 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2908 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
-| 2927 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2991 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 3059 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 3063 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 3207 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 5507 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 5982 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 5988 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 2767 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2774 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
+| 2788 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2902 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2908 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2914 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
+| 2933 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 2997 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 3065 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 3069 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 3213 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 5531 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 6006 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 6012 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `stage.py`
 

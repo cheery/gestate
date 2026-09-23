@@ -1732,6 +1732,29 @@ def reach_of(roll: Roll) -> tuple:
     return (max(0, lo - DRAG_REACH), min(127, hi + DRAG_REACH))
 
 
+#: How far, in rows, a press may be from a note's centre and still take
+#: it — a row is a semitone and a note is drawn a row tall, so this is
+#: a reach twice the note's height.  Henri, 2026-09-23.  `BAND_REACH`
+#: stays the typed commands' and the inspector's word for *near*.
+GRAB_ROWS = 1.0
+
+
+def key_exact(roll: Roll, down: float) -> float:
+    """`key_at` before it snaps — where between the semitones the hand
+    is, which is what a reach measured in rows needs."""
+    low, high = reach_of(roll)
+    return high - float(down) * (high - low)
+
+
+def owns(roll: Roll, down: float) -> bool:
+    """Whether a hand at this height is over the box's own music — its
+    drawn keys and their half-row edges — and not only in the
+    `DRAG_REACH` a carry is given past them, which lies over the boxes
+    either side."""
+    lo, hi, _span = scale_of(roll)
+    return lo - 0.5 <= key_exact(roll, down) <= hi + 0.5
+
+
 def key_at(roll: Roll, down: float) -> int:
     """Which key a hand at this height means — `y_of` inverted.
 

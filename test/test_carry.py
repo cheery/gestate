@@ -55,6 +55,9 @@ from gestate.workbench import _carry                             # noqa: E402
 #: field whose reason cannot be written is a field somebody has to look
 #: at, which is the whole point of being made to write one.
 DELIBERATELY_FRESH = {
+    "declined": "the boxes the current press landed in only by reach — "
+                "it never outlives the press, and the old file's boxes are "
+                "not the new one's",
     "named_note": "what the picture said a press landed on, in the *old* "
                   "file's roll — it never outlives the press that set it, "
                   "let alone a file switch (`gui.ges`' `Meaning`)",

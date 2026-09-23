@@ -1026,3 +1026,33 @@ on a note's middle can miss, which is the half the video begins with;
 the band and the four-note move were not seen.  What his run had that
 this one lacked is not known yet: the file, the transport's state, the
 zoom, or a unison doubling under the press — `arc.notes` has seven.
+
+**Found, 2026-09-23, the same evening.**  *Henri:* arc.notes, the piece
+playing, the zoom it opened at, a single note.  The day's own driven
+logs already held it and no tool had read it: on **about a third** of
+all presses a single press touched **two boxes' pads** — box 0 took the
+note and carried it, box 1 saw empty roll and swept a band.  Each pad
+is `DRAG_REACH` (24 semitones) taller than its music on both sides so a
+carry can leave the box, which lays box 1's pad over the lower third of
+box 0.  `scorebox.owns`: a press is the box's whose own music it lands
+in; one that lands only in its reach is **declined** — the chart
+aborted, and nothing more of that press heard until the release.
+
+**And the reach of a press, at his word:** *"alue jolla nuottiin
+napataan kiinni saisi olla pienempi, vaikka 2 kertaa nuotin itsensä
+korkeus."*  `GRAB_ROWS = 1.0`, measured on the unrounded height
+(`key_exact`) — a row either side of the note's centre, a zone twice a
+note tall; it was three semitones, seven rows.  `BAND_REACH` stays the
+typed commands' and the inspector's.
+
+`test_scorebox.py::test_a_press_on_one_box_is_not_a_band_in_the_box_below`
+and `::test_a_press_takes_a_note_within_a_row_of_it_and_no_farther`,
+both seen failing first.  Two older tests had pressed *empty roll*
+twenty-three semitones above the music, where nothing is drawn — one
+made a note there — and aim inside the music now (`_empty_key`).
+
+    DISPLAY=:99 python tools/handlag.py        test/driven/20260923-182713-handlag
+
+Band answers in a run of eight carries: 2–3 before, **0** after, with
+box 1 still touched twelve times and declining each; release to heard
+unchanged, 128 and 131 ms.
