@@ -2560,6 +2560,7 @@ class Workbench:
             self._rebind_midi()
         self._find_loose_knobs(text)
         self._find_holes(text)
+        self._placed_engine = text
 
     def _find_loose_knobs(self, text: str) -> None:
         """Knobs the file declares that the sound never reaches.
@@ -3753,7 +3754,20 @@ class Workbench:
             from .workbench import _tap
 
             _tap("scored", self.path.name)
-        self._place(engine)
+        # **An engine that did not move keeps its placement** (2026-09-23,
+        # `card:notes-editor.md` §"The rest of the release").  Every
+        # knob, bank, loose knob and hole is read off the engine's text,
+        # and a `.notes` edit leaves it byte-identical — yet each release
+        # re-extracted and re-typechecked it, 0.2 s after the note was
+        # already heard, holding the worker from the next release.  The
+        # MIDI bindings are carried by name and cost nothing, so they
+        # are carried anyway.
+        if engine == getattr(self, "_placed_engine", None):
+            self._skipped("knobs")
+            if self.midi is not None:
+                self._rebind_midi()
+        else:
+            self._place(engine)
         # **The strictest question, because its inputs cannot be bounded
         # honestly.**  A `FromMIDI` instance body reaches whatever it
         # names, and an instance is chosen by *type* rather than by a

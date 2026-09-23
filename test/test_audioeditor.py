@@ -204,6 +204,33 @@ def test_a_moved_note_loads_its_score_without_parsing_the_program(tmp_path):
         bench.stop()
 
 
+def test_a_moved_note_keeps_the_engines_placement(tmp_path):
+    """**An engine that did not move keeps its placement** — 2026-09-23,
+    `card:notes-editor.md` §"The rest of the release".  Knobs, banks,
+    loose knobs and holes are all read off the engine's text, which a
+    `.notes` edit leaves byte-identical; re-extracting and
+    re-typechecking it cost 0.2 s of every release."""
+    import re
+
+    bench = _bench(tmp_path, "arc.notes")
+    bench.start(seconds=30.0)
+    try:
+        assert _wait(lambda: any("playing" in m for m in bench.messages), 60.0), \
+            bench.messages
+        placed = []
+        real = bench._place
+        bench._place = lambda text: (placed.append(text), real(text))[1]
+        sites = list(bench.sites or [])
+        text = bench.path.read_text()
+        m = re.search(r"\bat (\d+)", text)
+        bench._built(text[:m.start()] + f"at {int(m.group(1)) + 48}" + text[m.end():],
+                     save=False, quiet=True)
+        assert placed == [], "a note edit re-placed an engine that had not moved"
+        assert list(bench.sites or []) == sites
+    finally:
+        bench.stop()
+
+
 @pytest.mark.parametrize("name", sorted(p.name for p in AUDIO_DIR.glob("*.notes")))
 def test_the_engine_answers_has_score_as_the_program_does(name):
     """What makes asking the engine safe: on every `.notes` shipped, the

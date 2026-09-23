@@ -278,3 +278,34 @@ def test_the_record_classes_are_gone():
 def test_the_closing_prose_is_a_relation_too():
     rels = notes.relations_of("section A  bars 1  beats 4  voices a\n# the end\n# of it\n")
     assert rels["closing"].rows == {(1, "# the end"), (2, "# of it")}
+
+
+def test_a_text_read_twice_is_parsed_once_and_a_new_declaration_reparses(monkeypatch):
+    """`notes.parse` remembers — 2026-09-23, `card:notes-editor.md`
+    §"The rest of the release": one release read his piece seven times.
+    What must not happen is a hit read by a declaration that has since
+    changed, and a caller's dict reaching the next caller."""
+    from gestate import notes
+
+    text = PIECE.read_text()
+    calls = []
+    real = notes._parse
+    monkeypatch.setattr(notes, "_parse", lambda *a: (calls.append(1), real(*a))[1])
+    notes._PARSED.clear()
+
+    first = notes.parse(text, PIECE.name, where=PIECE)
+    first["scribbled"] = "by the first caller"
+    second = notes.parse(text, PIECE.name, where=PIECE)
+    second["scribbled"] = "by the second, off a hit"
+    third = notes.parse(text, PIECE.name, where=PIECE)
+    assert len(calls) == 1, "the same text was parsed twice"
+    assert "scribbled" not in third, "one caller's dict reached the next"
+
+    document = notes._kinds(PIECE)
+    monkeypatch.setattr(notes, "_kinds", lambda where=None: type(document).__new__(type(document))
+                        if where is not None else document)
+    try:
+        notes.parse(text, PIECE.name, where=PIECE)
+    except Exception:                                     # noqa: BLE001
+        pass                        # a bare Document cannot read; it was asked, which is the point
+    assert len(calls) == 2, "a hit was served under a declaration that changed"

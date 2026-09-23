@@ -3813,3 +3813,12 @@ The records' road was re-parsing the whole program on every release
 to ask two questions the unchanged engine answers.  Asked of the
 engine, the moved note is in the piece 164–200 ms after the release
 instead of a second (`card:notes-editor.md` §"The score's second").
+
+Then the rest of it, at his word — *"jaa se loppu … ja jahtaa se"*.
+Split on the wire, a command of 60 ms and a rebuild of 120; profiled
+headless with a note moved each time, three things: a placement redone
+on an engine that had not moved, the `.notes` parsed seven times per
+release, and a kind looked up per note.  The placement is kept, the
+parse remembered, the lookup hoisted, each with a test seen failing.
+Release to heard is 129–141 ms, from a second in the morning
+(`card:notes-editor.md` §"The rest of the release").

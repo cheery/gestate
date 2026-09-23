@@ -940,3 +940,46 @@ premise on every `.notes` shipped.
 What is left of the release is the command (~60 ms,
 `tools/commitlag.py`) and the rest of the apply, 0.15–0.3 s, now with
 no phase over the report's threshold — the next number to split.
+
+## The rest of the release — 2026-09-23
+
+**Henri:** *"jaa se loppu 0,15–0,3 s ja jahtaa se."*  Split on the
+wire's clock, a release was two stretches: the command, ~60 ms from
+release to its answer, and the rebuild after it to `scored`, ~120 ms.
+Profiled headless on the real `_built` and `released` with a note
+moved each time (the lesson of §"The score's second": the same text
+twice is a cache talking):
+
+* **The placement re-ran on an engine that had not moved** — knobs,
+  banks, holes, all read off the engine's text, 0.2 s of every apply
+  after the note was already heard, holding the worker.  Kept now when
+  the engine is byte-identical;
+  `test_audioeditor.py::test_a_moved_note_keeps_the_engines_placement`
+  (seen failing with the skip off).
+* **One release parsed the `.notes` seven times** — four in the
+  command (`_retune_included`, `_voice_of` twice, `_write_included`),
+  three in the rebuild's `program` — 10 ms each on his piece.
+  `notes.parse` remembers now, keyed by the text and holding the
+  declaration it was read by, so a changed `.ges` beside the file is a
+  miss; a hit hands back a copy of the dict, the relations being
+  frozen.  `test_notes_relations.py::test_a_text_read_twice_is_parsed_once_and_a_new_declaration_reparses`,
+  seen failing on both guards removed in turn.
+* **`doubled` looked the kind up once per note** — two `stat`s each,
+  six hundred a parse; once per call now.
+
+    DISPLAY=:99 python tools/handlag.py        test/driven/20260923-173306-handlag
+
+| | before | after |
+|---|---|---|
+| release → the command answered | 60–70 ms | **30–40 ms** |
+| the apply, in the window | 0.15–0.37 s | **0.07–0.11 s** |
+| release → the moved note in the piece, playing | 194 ms | **129 ms** median |
+| release → the moved note in the piece, stopped | 182 ms | **141 ms** median |
+| press → the note under the hand, stopped | 25 ms | **13 ms** — the parse again |
+
+From a second this morning to an eighth of one.  What is left, said and
+not chased: the apply is 50 ms headless and ~100 in the window, the
+difference being the window's own passes on the same GIL; the picture
+comes before the score by his decision of 2026-09-13; and each release
+is followed by **a second apply** in which every phase is kept,
+20–30 ms, whose caller is not found yet.

@@ -214,8 +214,37 @@ def parse(text: str, name: str = "<notes>", where=None) -> dict:
     relations; this one is the gate, and it says what is wrong in the
     author's terms and at a line — which `refused` cannot, because a
     set of keys is not a sentence.
+
+    **Remembered, by the text and the declaration it was read by**
+    (2026-09-23, `card:notes-editor.md` §"The rest of the release").
+    One release read the same file seven times — the command four, the
+    rebuild three — at 10 ms each on his piece.  The relations are
+    frozen, so a hit hands back a copy of the dict and nothing else; a
+    declaration beside the file that changes is a new `Document` from
+    `facts`, and a hit read by the old one is not a hit.
     """
     document = _kinds(where)
+    key = (text, name, None if where is None else str(where))
+    hit = _PARSED.get(key)
+    if hit is not None and hit[0] is document:
+        return dict(hit[1])
+    out = _parse(text, name, document)
+    _PARSED[key] = (document, out)
+    while len(_PARSED) > _PARSED_KEPT:
+        try:
+            del _PARSED[next(iter(_PARSED))]
+        except (StopIteration, KeyError, RuntimeError):
+            break
+    return dict(out)
+
+
+#: `parse`'s memory — a few texts, oldest out first: the text before a
+#: release and the one after it, and whatever the window reads beside.
+_PARSED: dict = {}
+_PARSED_KEPT = 8
+
+
+def _parse(text: str, name: str, document) -> dict:
     entries, closing = _lines(text, name, document)
     sections: list[dict] = []
     by_name: dict = {}
@@ -766,8 +795,9 @@ def doubled(rels: dict) -> list:
     """
     seen: dict = {}
     pairs = []
+    key = _kinds()["note"].key
     for one in notes_of(rels):
-        spot = tuple(one[c] for c in _kinds()["note"].key)
+        spot = tuple(one[c] for c in key)
         if spot in seen:
             pairs.append((seen[spot], one))
         else:
