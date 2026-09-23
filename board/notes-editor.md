@@ -983,3 +983,25 @@ difference being the window's own passes on the same GIL; the picture
 comes before the score by his decision of 2026-09-13; and each release
 is followed by **a second apply** in which every phase is kept,
 20–30 ms, whose caller is not found yet.
+
+## The second apply — 2026-09-23
+
+**Henri:** *"etsi se toinen apply ja jahtaa se."*  A stack printed at
+each `apply` in the window named it: the first from the commit
+(`_retune_included` → `audition`), the second from the audition queue's
+worker — `typed`, the automatic audition of F151.  The commit writes
+the buffer, the window reports the buffer as typed, and when that
+report arrived before the commit's build ended, `_built_from` still
+named the old text, so the same text was queued and rebuilt with every
+phase kept.  `typed` now passes over the text being built as well as
+the one built (`_applying`, which `apply` records as it begins).
+`test_autoaudition.py::test_the_text_already_being_built_is_not_queued_again`,
+seen failing first.
+
+    DISPLAY=:99 python tools/handlag.py        test/driven/20260923-174257-handlag
+
+Nine releases, eight applies — the ninth release is the tool's own,
+after `play` — and no apply with every phase kept.  Release to heard
+**117 ms** median playing, **131 ms** stopped.  One carry of eight took
+406 ms, all of it in the command (262 ms to answer, a note in the
+second box); not reproduced in the other seven, not chased.

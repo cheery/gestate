@@ -140,6 +140,26 @@ def test_a_cheap_file_auditions_itself(bench):
         "typing did not reach the sound on a file cheap enough for it"
 
 
+def test_the_text_already_being_built_is_not_queued_again(bench):
+    """2026-09-23, `card:notes-editor.md` §"The second apply": a drag's
+    commit writes the buffer and asks its own audition; the window then
+    reports the buffer as typed, and when that report beat the build,
+    `_built_from` still named the old text — so the same text was queued
+    and rebuilt a second time with every phase kept, 20–30 ms after
+    each release.  What is being built is not behind."""
+    bench.audition(_edit(bench, "   "))
+    assert _wait(lambda: bench.last_audition is not None), "nothing timed"
+    if bench.last_audition >= AUTO_AUDITION:
+        pytest.skip(f"this machine builds twoknobs in "
+                    f"{bench.last_audition:.2f}s, over the gate")
+    text = _edit(bench, "    ")
+    asked = []
+    bench._auditions.ask = lambda *a: asked.append(a)
+    bench._applying = text            # what `apply` records as it begins
+    bench.typed(text)
+    assert asked == [], "the text being built was queued again"
+
+
 def test_an_expensive_file_is_left_alone(bench):
     """The other half of his sentence — *"not the case with every
     program"*.  A file whose last audition ran long is not auditioned

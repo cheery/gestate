@@ -3822,3 +3822,9 @@ release, and a kind looked up per note.  The placement is kept, the
 parse remembered, the lookup hoisted, each with a test seen failing.
 Release to heard is 129–141 ms, from a second in the morning
 (`card:notes-editor.md` §"The rest of the release").
+
+And the second apply, at his word: a stack at each `apply` named the
+automatic audition — the window reporting the buffer the commit had
+just written as typed, before the commit's build had ended.  `typed`
+passes over the text being built now; one apply per release, heard in
+117–131 ms (`card:notes-editor.md` §"The second apply").

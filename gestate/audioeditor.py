@@ -3835,7 +3835,11 @@ class Workbench:
         """
         if self.inert or not self.playing or self.live is None:
             return
-        if text == self._built_from:
+        # **Nor the text being built** (2026-09-23, `card:notes-editor.md`
+        # §"The second apply"): a drag's commit asks its own audition and
+        # then the window reports the buffer it wrote as typed — which,
+        # arriving before the build ended, queued the same text again.
+        if text == self._built_from or text == getattr(self, "_applying", None):
             return
         cost = self.last_audition
         if cost is None:
