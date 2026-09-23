@@ -203,3 +203,18 @@ def test_the_board_lists_every_open_card_in_order():
     assert listed - on_disk == set(), (
         "the priority names cards that are not there (moved to done/?):\n  "
         + "\n  ".join(sorted(listed - on_disk)))
+
+
+def test_one_card_is_doing_at_a_time():
+    """`board/README.md` §"The priority": one card is `doing` at a time.
+
+    Henri, 2026-09-23, from advice he brought in: work packages follow
+    each other in time, because started together they all finish late.
+    That day three cards stood `doing` at once and none of them was
+    finishing — so the limit is the suite's, not a session's memory.
+    """
+    doing = [p.name for p in BOARD.glob("*.md") if p.name not in NOT_A_CARD
+             and header(p).get("status", "").startswith("doing")]
+    assert len(doing) <= 1, (
+        "more than one card is `doing` — finish, shelve or block one "
+        "before taking the next:\n  " + "\n  ".join(sorted(doing)))

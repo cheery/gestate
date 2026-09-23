@@ -1,6 +1,6 @@
 # gex-sheet — gestate's own spreadsheet, and the sequencer that is one
 
-    status   doing — 2026-09-12.  Off the shelf the same day, the
+    status   open — 2026-09-23, one card at a time; `doing` from 2026-09-12.  Off the shelf the same day, the
              textbox decided and `.notes` the first grid
     because  "I'd like to implement excel and markdown reader to gestate
              some day.  I wonder if that's crazy talk or whether it

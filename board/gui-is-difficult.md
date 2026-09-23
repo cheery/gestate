@@ -1,6 +1,6 @@
 # gui-is-difficult — the ideas a GUI framework for gestate is built from, and the one that comes first
 
-    status   doing
+    status   open — 2026-09-23, one card at a time; it was `doing`
     because  "I think that GUI programming is extremely difficult.  For
              several reasons and one of them is that it's very visual.  I
              think I haven't solved it satisfactorily and it shows up

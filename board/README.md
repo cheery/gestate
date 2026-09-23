@@ -52,6 +52,17 @@ drops out of today regardless of where it stands here.
 That is not a licence to skip down the list on preference.  Priority is
 still the tiebreak between two workable cards, and it is still his.
 
+**One card is `doing` at a time.**  *Henri, 2026-09-23:* *"Kirjoita se
+README:hen, yksi kortti kerrallaan.  Ja notes-editor ensimmäiseksi."*
+The advice he brought from outside the tree: work packages follow each
+other in time, because started together they all finish late; and a
+goal is set at the start of each.  That day six live cards had all
+arrived within one week, three stood `doing` at once, and a single
+day's commits touched four.  So the filter above chooses the next card
+**only when the `doing` one is done, shelved, or blocked** — blocked
+in its `blocked` line, not by preference — and a card does not become
+`doing` before its postcondition is written (§"The postcondition").
+
 1. **[notes-editor](notes-editor.md)** — a note moves and you hear it
    before the hand has left the mouse; today it is 5 s to redraw and
    5 s to hear, against Reaper's next block.  His list of tools, and
