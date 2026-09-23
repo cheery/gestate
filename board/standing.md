@@ -136,3 +136,5 @@ seven were written by a session on 2026-09-06 and not chosen that
 morning; the other four were harvested at cards' closes.  Anything
 harvested at a card's close goes here, dated, with the card it came
 from, and waits for him.*
+
+- What has the harness already logged that no tool reads? — on 2026-09-23, from `card:notes-editor.md`: a third of the day's driven presses had reached two boxes, in logs written all afternoon, and only his video made anyone look.
