@@ -3828,3 +3828,13 @@ automatic audition — the window reporting the buffer the commit had
 just written as typed, before the commit's build had ended.  `typed`
 passes over the text being built now; one apply per release, heard in
 117–131 ms (`card:notes-editor.md` §"The second apply").
+
+He tried it by hand and found one: a press in the middle of a note
+drew a selection band and then moved the notes (`~/misc/fail-2026-09-23.webm`).
+Of the card's four old defects, F206 and F212 still hold — F212's
+cause found on the way, `_allocators` handing an expanded program back
+through `program()`, which empties `origins` — and F205 did not show in
+twelve runs today.  Driving the middle-of-a-note press to reproduce
+his, the session's window started beside his own, and the laptop froze
+and was restarted (F241, cause not known).  A driven run now refuses
+while any editor is open on the machine.

@@ -330,6 +330,37 @@ def _a_free_display(monkeypatch):
     monkeypatch.setattr(driven.shutil, "which", lambda b: f"/usr/bin/{b}")
     monkeypatch.setenv("DISPLAY", ":0")
     monkeypatch.setattr(driven, "windows", lambda title="gestate": [])
+    monkeypatch.setattr(driven, "editors_running", lambda proc="/proc": [])
+
+
+def _proc(tmp_path, **cmdlines):
+    """A `/proc` with these processes in it, `pid=argv` — NUL-separated,
+    as the kernel writes `cmdline`."""
+    for pid, argv in cmdlines.items():
+        d = tmp_path / pid.lstrip("p")
+        d.mkdir()
+        (d / "cmdline").write_bytes(b"\0".join(a.encode() for a in argv) + b"\0")
+    return str(tmp_path)
+
+
+def test_an_editor_open_anywhere_on_the_machine_refuses_the_run(tmp_path, monkeypatch):
+    """**Another display is not another machine.**  2026-09-23: a driven
+    run on `Xvfb :99` started its window while Henri's own was open on
+    his desktop — the display check saw nothing, since his window was not
+    on `:99` — and within a minute the sound card was dropping blocks,
+    the journal said *under memory pressure*, and the laptop froze and
+    had to be restarted.  Two editors share the sound card and the
+    machine whatever display each draws on, so a run is refused while
+    any other editor lives."""
+    proc = _proc(tmp_path, p101=["python", "-m", "gestate.workbench", "arc.notes"],
+                 p102=["bash"], p103=["python", "tools/handlag.py"])
+    assert [pid for pid, _argv in driven.editors_running(proc)] == [101]
+    _a_free_display(monkeypatch)
+    monkeypatch.setattr(driven, "editors_running",
+                        lambda proc="/proc": [(101, "python -m gestate.workbench arc.notes")])
+    with pytest.raises(driven.Refused) as caught:
+        driven.refuse_if_the_run_cannot_happen(lib=_facts(), other=[])
+    assert "101" in str(caught.value) and "sound card" in str(caught.value)
 
 
 def test_a_tool_with_no_run_is_still_refused_a_stale_library(monkeypatch):

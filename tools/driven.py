@@ -313,9 +313,43 @@ def refuse_if_the_run_cannot_happen(
             "  Either close it, or drive somewhere else:\n"
             "      Xvfb :99 -screen 0 1600x1000x24 &\n"
             f"      DISPLAY=:99 {invocation}")
+    # **And one open anywhere else on the machine.**  2026-09-23: a run
+    # on `:99` started beside Henri's editor on his own desktop — the
+    # check above saw nothing there — and within a minute the sound card
+    # was dropping blocks, the journal said *under memory pressure*, and
+    # the laptop froze and was restarted.  Whatever display they draw
+    # on, two editors share one sound card and one machine.
+    alive = editors_running()
+    if alive:
+        raise Refused(
+            "another gestate editor is running on this machine:\n    "
+            + "\n    ".join(f"pid {pid}: {argv}" for pid, argv in alive)
+            + "\n  Another display does not separate them: both play the "
+              "one sound card, on one machine's memory,\n"
+              "  and on 2026-09-23 the two together froze the laptop.  "
+              "Close it first, or ask whoever has it open.")
     _refuse_if_the_result_would_not_be_about_this_code(
         library() if lib is None else lib,
         strays() if other is None else other)
+
+
+def editors_running(proc: str = "/proc") -> list:
+    """`[(pid, argv as one line)]` for every gestate editor alive —
+    read from `proc` rather than `pgrep -f`, which matches the shell
+    that runs it (`doc/memory/a-driven-wait-that-watches-itself.md`)."""
+    me = os.getpid()
+    out = []
+    for d in Path(proc).iterdir():
+        if not d.name.isdigit() or int(d.name) == me:
+            continue
+        try:
+            argv = (d / "cmdline").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        words = [a.decode(errors="replace") for a in argv if a]
+        if "gestate.workbench" in words or any(w.endswith("gestate/workbench.py") for w in words):
+            out.append((int(d.name), " ".join(words)))
+    return sorted(out)
 
 
 # ── the run ──────────────────────────────────────────────────────────────
