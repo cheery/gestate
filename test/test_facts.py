@@ -44,8 +44,10 @@ def parsed():
     return notes.parse(PIECE.read_text(), PIECE.name)
 
 
-def test_the_kinds_are_the_three_a_line_may_be(declared):
-    assert set(declared.names) == {"bpm", "section", "note"}
+def test_the_kinds_are_the_four_a_line_may_be(declared):
+    """Three until 2026-09-24, when a bar could be told its grid —
+    `card:snap-grid.md`, `test_snapgrid.py`."""
+    assert set(declared.names) == {"bpm", "section", "bar", "note"}
 
 
 def test_an_unknown_record_is_refused_naming_the_declared_kinds():
@@ -235,7 +237,10 @@ def test_the_line_view_derived_from_the_model_is_the_declaration_it_replaced(tmp
     old.write_text(OLD_DECLARATION)
     terms = facts.Terms(old, facts.LIBRARY, None)
     witness = tuple(facts._kind(k) for k in terms.read(terms.declared("kinds")))
-    assert declared.kinds == witness
+    #: The witness is the three kinds that were written by hand; `bar`
+    #: came after it, derived from the first day, and is held by
+    #: `test_snapgrid.py` instead.
+    assert tuple(k for k in declared.kinds if k.name != "bar") == witness
 
 
 def test_the_model_is_the_relations_the_reader_derives(declared):

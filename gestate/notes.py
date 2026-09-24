@@ -54,6 +54,12 @@ LEVELS = ("ppp", "pp", "p", "mp", "mf", "f", "ff", "fff")
 #: exactly what `spec/annotations.md` was written to stop.
 MANNERS = {"staccato": 1, "accent": 2, "portamento": 4}
 
+#: **The grids a bar may be told**, as fractions of a whole note, and
+#: the ticks each is — `card:snap-grid.md`, Henri, 2026-09-24.  The
+#: straight four, then the two triplets, in `notes.ges`' order, which
+#: `test_snapgrid.py` holds this to.
+GRIDS = {"1/4": 96, "1/8": 48, "1/16": 24, "1/32": 12, "1/12": 32, "1/24": 16}
+
 #: A beat, in ticks — `music.ges`' `ticksPerBeat`, and `spec/music.md`
 #: chose 96 because it divides by 2, 3, 4, 6, 8, 12, 16, 24, 32 and 48.
 #: So a triplet eighth is 32 and a sixteenth is 24, both whole numbers,
@@ -249,6 +255,7 @@ def _parse(text: str, name: str, document) -> dict:
     sections: list[dict] = []
     by_name: dict = {}
     note_lines: list = []
+    bar_lines: list = []
     kept: list = []
 
     for number, declared, tokens, above, beside in entries:
@@ -264,6 +271,8 @@ def _parse(text: str, name: str, document) -> dict:
             kept.append((number, declared, one, above, beside))
         elif word == "note":
             note_lines.append((number, declared, tokens, above, beside))
+        elif word == "bar":
+            bar_lines.append((number, declared, tokens, above, beside))
         elif word == "bpm":
             got = _int(tokens[0], "bpm", place)
             if got < 1:
@@ -279,6 +288,21 @@ def _parse(text: str, name: str, document) -> dict:
 
     for number, declared, tokens, above, beside in note_lines:
         one = _note(tokens, declared, f"{name}:{number}", by_name, sections)
+        kept.append((number, declared, one, above, beside))
+
+    told: dict = {}
+    for number, declared, tokens, above, beside in bar_lines:
+        place = f"{name}:{number}"
+        one = _bar(tokens, declared, place, by_name, sections)
+        at = (one["section"], one["bar"])
+        if at in told:
+            #: Not a doubled note, which is one fact said twice: two
+            #: grids for one bar are two facts, and the file cannot say
+            #: which it meant.
+            raise NotesError(
+                f"{place}: bar {one['bar']} of section `{one['section']}` "
+                f"is already told its grid, on line {told[at]}")
+        told[at] = number
         kept.append((number, declared, one, above, beside))
 
     return _with_index(document, kept, closing)
@@ -570,8 +594,8 @@ def refused(rels: dict, where=None) -> set:
     `card:relational-model.md` §"The sketch": the two references come
     from the declaration (`facts.dangling`), and the three below are
     what SQL called assertions and never implemented — a bar past its
-    section's end, a tick past its bar, a spelling that names another
-    key.  Empty on a file the parser accepts; every fixture the parser
+    section's end (a note's, and since 2026-09-24 a bar record's), a
+    tick past its bar, a spelling that names another key.  Empty on a file the parser accepts; every fixture the parser
     refuses for one of these reasons lands its key here, which is the
     parity `test_relations.py` holds while both exist.
     """
@@ -591,12 +615,62 @@ def refused(rels: dict, where=None) -> set:
             continue
         if bar > bars[s][0] or at >= bars[s][1] * TICKS_PER_BEAT:
             out.add(("note", tuple(row[i] for i in key_at)))
+    told = rels["bar"]
+    for row in told.rows:
+        s, bar = row[told.column("section")], row[told.column("bar")]
+        if s in bars and bar > bars[s][0]:
+            out.add(("bar", (s, bar)))
     spell = rels["note.spell"]
     for row in spell.rows:
         k = row[:spell.column("value")]
         if key_of(row[spell.column("value")]) != k[spell.column("key")]:
             out.add(("note", k))
     return out
+
+
+def _bar(tokens: list[str], kind, place: str, by_name: dict,
+         sections: list) -> dict:
+    """One `bar` record — a bar's own grid, checked where a note's
+    section and bar are checked, and in the same words."""
+    got = _fields(tokens, kind, place)
+    section = by_name.get(got["section"])
+    if section is None:
+        raise NotesError(
+            f"{place}: no section `{got['section']}`; this file has "
+            + (", ".join(f"`{s['name']}`" for s in sections) or "none"))
+    bar = _int(got["bar"], "bar", place)
+    if not 1 <= bar <= section["bars"]:
+        raise NotesError(
+            f"{place}: `bar {bar}` — section `{section['name']}` has "
+            f"{section['bars']} bars")
+    if got["grid"] not in GRIDS:
+        raise NotesError(
+            f"{place}: `grid {got['grid']}` is not a grid; " + " ".join(GRIDS))
+    return {"section": section["name"], "bar": bar, "grid": got["grid"]}
+
+
+def bars_of(rels: dict) -> list[dict]:
+    """Every bar told its grid, with its prose, in the file's order —
+    its sections', then by bar.  A bar not here is `auto`."""
+    order = {one["name"]: i for i, one in enumerate(sections_of(rels))}
+    at = {row["key"]: row["line"]
+          for row in rels["line"].by("kind").get(("bar",), ())}
+    prose = _prose_of(rels)
+    out = []
+    for row in rels["bar"].rows:
+        one = dict(zip(rels["bar"].heading, row))
+        line = at.get((one["section"], one["bar"]), 0)
+        one["line"] = line
+        one["above"], one["beside"] = prose(line)
+        out.append(one)
+    out.sort(key=lambda o: (order.get(o["section"], len(order)), o["bar"]))
+    return out
+
+
+def grid_told(rels: dict, section: str, bar: int) -> str | None:
+    """The grid bar `bar` of `section` is told, or `None` for `auto`."""
+    return next((one["grid"] for one in bars_of(rels)
+                 if one["section"] == section and one["bar"] == bar), None)
 
 
 def _section(tokens: list[str], kind, place: str) -> dict:
@@ -824,7 +898,8 @@ def write(rels: dict) -> str:
     """
     return _rendered(sections_of(rels), notes_of(rels), _bpm_line(rels),
                      tuple(one["text"] for one in
-                           sorted(rels["closing"].where(), key=lambda o: o["rank"])))
+                           sorted(rels["closing"].where(), key=lambda o: o["rank"])),
+                     bars_of(rels))
 
 
 def _bpm_line(rels: dict) -> dict | None:
@@ -840,7 +915,7 @@ def _bpm_line(rels: dict) -> dict | None:
 
 
 def _rendered(sections: list, notes_: list, bpm: dict | None,
-              closing: tuple) -> str:
+              closing: tuple, bars: list = ()) -> str:
     """The file those records make — the one writer, so that `write`
     and the two primitive edits put a line together once."""
     lines: list[str] = []
@@ -861,14 +936,27 @@ def _rendered(sections: list, notes_: list, bpm: dict | None,
                  "voices " + ",".join(one["voices"])]
         lines.append("  ".join(head) + (f"  {one['beside']}" if one["beside"] else ""))
     lines.append("")
-    at_bar = None
+    #: A bar told its grid is written **at the head of its bar**, above
+    #: its notes — where a reader looks for what a bar is — and a bar
+    #: told one with no notes still gets its own paragraph.
+    order = {one["name"]: i for i, one in enumerate(sections)}
+    told = {(one["section"], one["bar"]): one for one in bars}
+    heads = sorted(set(told) | {(one["section"], one["bar"]) for one in notes_},
+                   key=lambda at: (order.get(at[0], len(order)), at[1]))
+    by_bar: dict = {}
     for one in notes_:
-        if (one["section"], one["bar"]) != at_bar:
-            if at_bar is not None:
-                lines.append("")
-            at_bar = (one["section"], one["bar"])
-        lines += list(one["above"])
-        lines.append(_line(one))
+        by_bar.setdefault((one["section"], one["bar"]), []).append(one)
+    for i, at in enumerate(heads):
+        if i:
+            lines.append("")
+        if at in told:
+            one = told[at]
+            lines += list(one["above"])
+            lines.append(f"bar  section {one['section']}  bar {one['bar']}  grid {one['grid']}"
+                         + (f"  {one['beside']}" if one["beside"] else ""))
+        for one in by_bar.get(at, ()):
+            lines += list(one["above"])
+            lines.append(_line(one))
     lines += list(closing)
     return "\n".join(lines) + "\n"
 
@@ -945,7 +1033,7 @@ def asserted(text: str, written: str, name: str = "<notes>",
         notes_ = _in_order(sections, notes_)
         said = (f"note {one['key']} at {one['at']} in bar {one['bar']}, "
                 f"voice {one['voice']}")
-    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels)),
+    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels), bars_of(rels)),
             f"asserted {said}")
 
 
@@ -1000,7 +1088,7 @@ def retracted(text: str, key: str, name: str = "<notes>",
             "retracts a note or a section")
     if not gone:
         raise NotesError(f"{place}: no `{word}` here says that")
-    made = _rendered(sections, notes_, _bpm_line(rels), _closing(rels))
+    made = _rendered(sections, notes_, _bpm_line(rels), _closing(rels), bars_of(rels))
     try:
         parse(made, name, where=where)
     except NotesError as why:
@@ -1096,7 +1184,7 @@ def assigned(text: str, key: str, field: str, value: str,
     was = ",".join(was) if isinstance(was, tuple) else was
     said = (f"{field} {was if was not in (None, '') else '-'} → "
             f"{value} on line {one['line']}{dropped}")
-    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels)),
+    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels), bars_of(rels)),
             f"set {said}")
 
 

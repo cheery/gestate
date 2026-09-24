@@ -335,7 +335,9 @@ above the first note of a *bar* belongs to that note, and a drag takes
 it along.  There is no bar record for it to belong to and this spec
 refuses to invent one — §"What is deliberately not here" — so the
 honest thing is to say where prose about a bar goes: on the section, or
-beside the note it is really about.
+beside the note it is really about.  *A bar may carry one sparse record
+since 2026-09-24, its grid (§"A bar's grid"), and prose above that
+record is the bar's; a bar without one is as this paragraph says.*
 
 **And a blank line inside a run of prose is not kept, nor is a
 comment's indentation.**  The house spelling for a blank row is a bare
@@ -1855,6 +1857,22 @@ rather than guessed at, with a default:
 **Trigger:** if undecided, 1 with 2 as it falls out, and the first
 slice is the roll's `selected` channel and `onTouchX` in the box that
 exists, because those are the same code under every reading.
+
+## A bar's grid
+
+    bar  section A  bar 3  grid 1/8
+
+*Henri, 2026-09-24, `card:snap-grid.md`:* *"Maybe the grid should be a
+property of the bars themselves"* — and, of three readings, *"sparse
+bar record."*  The tick making, moving and lengthening a note in that
+bar snaps to, as a fraction of a whole note: `1/4 1/8 1/16 1/32`, and
+the triplets `1/12 1/24`, each dividing a beat.  **A bar with no record
+is `auto`** — the roll's grid read off its notes, as before.  One
+record per bar; two are two facts that disagree, and refused.  The
+writer puts it at the head of its bar, above the bar's notes.
+
+It is a property a bar carries, not the bar line as a musical object —
+the next section still refuses those.
 
 ## What is deliberately not here
 

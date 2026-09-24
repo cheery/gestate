@@ -23,7 +23,7 @@ from gestate import facts, notes
 PIECE = Path(__file__).resolve().parent.parent / "examples" / "audio" / "arc.notes"
 
 #: The relations that are the model, and the three that are not.
-MODEL = {"bpm", "section", "section.key", "section.mode", "section.voices",
+MODEL = {"bpm", "section", "section.key", "section.mode", "section.voices", "bar",
          "note", "note.spell", "note.manner"}
 INDEX = {"line", "above", "beside", "closing"}
 
@@ -222,6 +222,7 @@ def test_the_parser_refuses_what_the_domain_refuses(kind, field):
     bad = _boundary(declared)
     good = ("section A  bars 2  beats 4  voices lead\n"
             "note  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf  manner accent\n"
+            "bar  section A  bar 2  grid 1/8\n"
             "bpm 96\n")
     text = re.sub(rf"\b{field} \S+", f"{field} {bad}", good, count=1)
     assert f"{field} {bad}" in text

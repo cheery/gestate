@@ -63,17 +63,34 @@ noteSpell = Of "note" "spell" (Col "value" Word :: Nil) Nil May
 noteManner : Rel
 noteManner = Of "note" "manner" (Col "rank" (AtLeast 1) :: Col "value" (OneOf manners) :: Nil) ("rank" :: Nil) May
 
+#: A bar's own grid — the tick its notes snap to, as a fraction of a
+#: whole note, so an eighth triplet is `1/12` and needs no sign.
+#: **Sparse**: a bar with no row snaps to the roll's grid, read off its
+#: notes as before.  Henri, 2026-09-24, `card:snap-grid.md`: *"sparse
+#: bar record."*  A property a bar carries — not the bar line as a
+#: musical object, which `spec/drawnscores.md` still refuses.
+bar : Rel
+bar = Rel "bar"
+    (Col "section" Word :: Col "bar" (AtLeast 1) :: Col "grid" (OneOf grids) :: Nil)
+    ("section" :: "bar" :: Nil)
+
 #: **The domains, said once** — `card:relational-model.md` Q2, decided
 #: 2026-09-10.  The eight dynamics are in the order the roll ranks
 #: them, softest first, and that order is what `vel` sorts by.
 levels : List Text
 levels = "ppp" :: "pp" :: "p" :: "mp" :: "mf" :: "f" :: "ff" :: "fff" :: Nil
 
+#: The grids a bar may be told, coarsest first within each family —
+#: the straight four, then the two triplets.  A beat is 96 ticks and
+#: each of these divides it.
+grids : List Text
+grids = "1/4" :: "1/8" :: "1/16" :: "1/32" :: "1/12" :: "1/24" :: Nil
+
 manners : List Text
 manners = "staccato" :: "accent" :: "portamento" :: Nil
 
 notesModel : List Rel
-notesModel = bpm :: section :: sectionKey :: sectionMode :: sectionVoices :: note :: noteSpell :: noteManner :: Nil
+notesModel = bpm :: section :: sectionKey :: sectionMode :: sectionVoices :: bar :: note :: noteSpell :: noteManner :: Nil
 
 # ── The lines ────────────────────────────────────────────────────────────
 #
@@ -92,6 +109,12 @@ bpmLine = Line "bpm" (Bare "bpm") ("bpm" :: Nil) Nil
 #: about.
 sectionLine : Line
 sectionLine = Line "section" (Headed "name") ("key" :: "mode" :: "bars" :: "beats" :: "voices" :: Nil) Nil
+
+#: `bar  section A  bar 1  grid 1/8` — written at the head of its bar,
+#: above the bar's notes, by the writer and not by an order here.
+barLine : Line
+barLine = Line "bar" Named ("section" :: "bar" :: "grid" :: Nil)
+    (Among "section" "section" :: By "bar" :: Nil)
 
 #: `note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff`.
 noteLine : Line
@@ -114,7 +137,7 @@ noteOrder = Among "section" "section"
     :: Nil
 
 notesLines : List Line
-notesLines = bpmLine :: sectionLine :: noteLine :: Nil
+notesLines = bpmLine :: sectionLine :: barLine :: noteLine :: Nil
 
 # ── The document ─────────────────────────────────────────────────────────
 
@@ -134,6 +157,9 @@ bpmKind = lineKind model bpmLine
 
 sectionKind : Kind
 sectionKind = lineKind model sectionLine
+
+barKind : Kind
+barKind = lineKind model barLine
 
 noteKind : Kind
 noteKind = lineKind model noteLine
