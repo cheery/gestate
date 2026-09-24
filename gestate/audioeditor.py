@@ -920,6 +920,11 @@ class Workbench:
         #: `_load_substrate`, because a picture built from the file
         #: needs no help to say where the note is.
         self.previewing: dict = {}
+        #: `{channel: value}` the **page's toolbar** shows — which grid
+        #: button is lit (`card:snap-grid.md`).  Not a gesture's, so a
+        #: rebuild keeps it: it was read off the file the rebuild is
+        #: of, and a new page's views are told it once like the rest.
+        self.toolbar: dict = {}
         #: What the card's dry count was when it was last mentioned, and
         #: when that was — see `_say_dry`.
         self._dry_said, self._dry_when = 0, 0.0
@@ -1879,7 +1884,8 @@ class Workbench:
         # value too, and differs, so the session's preview still wins
         # as before.  A rebuilt page's views start empty and are told
         # once.
-        for name, value in (self.previewing or {}).items():
+        for name, value in [*(self.previewing or {}).items(),
+                            *(self.toolbar or {}).items()]:
             if name in wanted and any(
                     name in t.by_name and t.values.get(name) != value
                     for t in targets):

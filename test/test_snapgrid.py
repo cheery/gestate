@@ -266,3 +266,89 @@ def test_a_press_on_the_roll_is_the_bar_the_toolbar_tells():
     _feed(seat, view, "press", x, y)
     _feed(seat, view, "release", x, y)
     assert seat.bar_at == ("A", 3)
+
+
+# ── Slice 4: toolbar C — the rhythm drawn ──────────────────────────────────
+#
+# *"C is appearing neatest there"* — each button a beat, cut the way its
+# grid cuts it, at the top left of the page.  A press writes the button's
+# number to one channel and the session runs `snap` on the bar last
+# pressed, so the transcript holds the verb; the lit button is read off
+# a channel the session writes.
+
+
+def test_the_page_draws_the_toolbar_above_its_sections():
+    from gestate import scorebox
+
+    _here, _seat, _view, roll = _page()
+    program, _regions, _entries = scorebox.page_program([roll, roll], stacked=True, live=True)
+    assert f"{scorebox.SNAP} : Chan Float" in program
+    for i in range(len(scorebox.SNAPS)):
+        assert f"Meaning {scorebox.SNAP} {i}.0 " in program, i
+    assert "substrate = !__nb_toolbar_page__" in program
+
+
+def test_a_button_tells_the_bar_last_pressed():
+    from gestate import scorebox
+    from gestate.scorebox import x_of, y_of
+    from test_drawnscores import _empty_key, _feed
+
+    _here, seat, view, roll = _page()
+    assert seat.touched(scorebox.SNAP, 2.0) == "snap: press a bar first — the toolbar tells the bar last pressed"
+    tick = roll.bars[2] + 10
+    x, y = x_of(roll, tick), y_of(roll, _empty_key(roll, tick))
+    _feed(seat, view, "press", x, y)
+    _feed(seat, view, "release", x, y)
+    assert seat.bench.toolbar[scorebox.SNAP_LIT] == 0.0, "bar 3 is auto"
+    said = seat.touched(scorebox.SNAP, float(scorebox.SNAPS.index("1/8")))
+    assert said.startswith("snap: arc.notes — section A bar 3 grid 1/8"), said
+    assert "bar  section A  bar 3  grid 1/8" in seat.view.text()
+    assert any(step.verb == "snap" for step in seat.log.steps), "the verb is what records"
+    assert seat.bench.toolbar[scorebox.SNAP_LIT] == float(scorebox.SNAPS.index("1/8"))
+    said = seat.touched(scorebox.SNAP, 0.0)
+    assert said.endswith("grid 1/8 → auto"), said
+
+
+def test_the_buttons_are_auto_then_the_grids_in_the_file_s_order():
+    from gestate import scorebox
+    assert scorebox.SNAPS == ("auto",) + tuple(notes.GRIDS)
+
+
+def _toolbar_press(seat, i: int) -> list:
+    """Press button `i` on the page as the window walks it — the whole
+    page, toolbar and boxes, where a pad's reach lies under the bar."""
+    from gestate.scorebox import SNAPS, geometry_of
+
+    page = seat.bench.substrate
+    roll = seat.bench.note_regions["__nb_rail_0__"].roll
+    g = geometry_of(roll)
+    boxes = len({n for n in seat.bench.note_regions if n.startswith("__nb_rail_")})
+    top, left = -(26 + boxes * g.h) // 2, -g.w // 2
+    x, y = left + 6 + 4 + i * 50 + 23, top + 13
+    out = []
+    for kind in ("press", "release"):
+        for meant in page.touch_all(kind, x, y):
+            out.append(seat.touched(meant[1], meant[2]) if meant[0] == "touched"
+                       else seat.released(meant[1]))
+    assert len(SNAPS) == 7
+    return out
+
+
+def test_a_press_on_the_toolbar_is_not_a_press_on_the_bar_beneath_it():
+    """A pad reaches two octaves past its music, so the first section's
+    lies under the toolbar: the press reaches both, and the box must
+    decline it — else the bar the toolbar tells moves to wherever the
+    button happened to sit."""
+    from gestate.scorebox import x_of, y_of
+    from test_drawnscores import _empty_key, _feed
+
+    _here, seat, view, roll = _page()
+    tick = roll.bars[5] + 10
+    x, y = x_of(roll, tick), y_of(roll, _empty_key(roll, tick))
+    _feed(seat, view, "press", x, y)
+    _feed(seat, view, "release", x, y)
+    assert seat.bar_at == ("A", 6)
+    said = _toolbar_press(seat, 2)
+    assert said[0].startswith("snap: arc.notes — section A bar 6 grid 1/8"), said
+    assert seat.bar_at == ("A", 6), "the button's press is not a bar's"
+    assert "bar  section A  bar 6  grid 1/8" in seat.view.text()

@@ -1874,6 +1874,14 @@ writer puts it at the head of its bar, above the bar's notes.
 It is a property a bar carries, not the bar line as a musical object —
 the next section still refuses those.
 
+**Told by the verb or by toolbar C.**  `snap A 2 1/8` names its bar,
+so a transcript replays the same edit.  Above a page's sections sits a
+row of buttons, each a beat cut the way its grid cuts it, `auto` drawn
+hollow; a press runs `snap` on the bar last pressed or moved into, and
+the lit button is that bar's grid, read off the file.  A press on a
+button is not a press on the bar beneath it, though the first box's
+reach lies there.
+
 ## What is deliberately not here
 
 * **Everything that generates.**  No loops, no chance, no branches, no

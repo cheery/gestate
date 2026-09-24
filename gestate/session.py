@@ -4880,6 +4880,10 @@ class Session:
         transcript can hold and replay.
         """
         value = float(value)
+        from .scorebox import SNAP
+
+        if name == SNAP:
+            return self._snap_pressed(value)
         # **A press on a note is a jump, and holding it is a drag.**
         # The score box's channels carry no sound — they exist so the
         # walk has a hand over each column of the picture — and the
@@ -4979,15 +4983,20 @@ class Session:
         roll = found.roll
         if getattr(found, "on_rail", False):
             self.rail_at[found.box] = float(down)
-            self._bar_pressed(roll, tick_at(roll, down))
             return self._hand_event(found, ("Rail", tick_at(roll, down)))
         key = key_at(roll, down)
         # **The press decides whose it is**, at the pitch touch that ends
         # `Railed`: a hand outside this box's own music is in its reach
         # only, over a neighbour — declined, and the chart let go.
-        if self.hand.get(found.box, ("Free",))[0] == "Railed" and not owns(roll, down):
-            self.declined.add(found.box)
-            return self._hand_event(found, ("Abort",))
+        if self.hand.get(found.box, ("Free",))[0] == "Railed":
+            if not owns(roll, down):
+                self.declined.add(found.box)
+                return self._hand_event(found, ("Abort",))
+            # **And only then is it a press on a bar** — the toolbar lies
+            # over the first box's reach, and a button's press reaching
+            # the rail beneath it must not move the bar it tells
+            # (`card:snap-grid.md`).
+            self._bar_pressed(roll, tick_at(roll, self.rail_at.get(found.box, 0.0)))
         return self._hand_event(found, ("Pitch", key, self._hit(found, key, down)))
 
     def _hit(self, found, key: int, down: float) -> tuple:
@@ -5217,6 +5226,41 @@ class Session:
         i = bar_index(roll, tick)
         if i is not None and i < len(roll.grids):
             self.bar_at = tuple(roll.grids[i][:2])
+            self._snap_lit()
+
+    def _snap_pressed(self, value: float) -> str:
+        """A press on toolbar C: `snap` on the bar last pressed, with the
+        button's grid — the verb, so the transcript holds the edit and
+        not the press (`card:snap-grid.md`)."""
+        from .scorebox import SNAPS
+
+        i = int(value)
+        if not 0 <= i < len(SNAPS):
+            return ""
+        if self.bar_at is None:
+            return "snap: press a bar first — the toolbar tells the bar last pressed"
+        section, bar = self.bar_at
+        said = self.run("snap", section, bar, SNAPS[i])
+        self._snap_lit()
+        return said
+
+    def _snap_lit(self) -> None:
+        """Light the button of the grid the bar last pressed is told —
+        read off the file, so it is what is written and not what was
+        drawn before the last edit's rebuild arrives."""
+        from .notes import grid_told, parse
+        from .scorebox import SNAP_LIT, SNAPS
+
+        if self.bar_at is None:
+            return
+        try:
+            rels = parse(self.view.text())
+        except Exception:                                 # noqa: BLE001
+            return
+        grid = grid_told(rels, *self.bar_at) or "auto"
+        shown = dict(getattr(self.bench, "toolbar", None) or {})
+        shown[SNAP_LIT] = float(SNAPS.index(grid))
+        self.bench.toolbar = shown
 
     def _commit_move(self, found, note: int, key: int, at: int) -> str:
         """**The commit, and the only place a drag writes.**  One command

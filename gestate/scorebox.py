@@ -1601,6 +1601,65 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
     return out
 
 
+#: **Toolbar C — the rhythm drawn.**  `card:snap-grid.md`, Henri,
+#: 2026-09-24: *"C is appearing neatest there"* — a button per grid,
+#: each a beat cut the way its grid cuts it, no numbers; `auto` first,
+#: drawn hollow, since a bar told nothing is told nothing.  A press
+#: writes the button's number to `SNAP`, which the session hears and
+#: answers with `snap` on the bar last pressed; the lit one is read off
+#: `SNAP_LIT`, which the session writes.  At the top left of a page —
+#: *"vasemmassa yläkulmassa oleva työkalupalkki"* (2026-09-23).
+SNAP = "__nb_snap__"
+SNAP_LIT = "__nb_snaplit__"
+SNAPS = ("auto", "1/4", "1/8", "1/16", "1/32", "1/12", "1/24")
+_SNAP_W, _SNAP_H, _BAR_H = 46, 20, 26
+_SNAP_BEAT = 36
+
+
+def _snap_segments(n: int, colour: str) -> str:
+    """One beat cut into `n`, as a `Row` of bars with two pixels between."""
+    seg = max(1, (_SNAP_BEAT - 2 * (n - 1)) // n)
+    out = f"Rect {seg} 5 {colour}"
+    for _ in range(n - 1):
+        out = f"Row (Row ({out}) (Gap 2 5)) (Rect {seg} 5 {colour})"
+    return out
+
+
+def toolbar_program(width: int) -> str:
+    """The toolbar's declarations — `__nb_toolbar__ : Float -> Sub`, over
+    the lit button's number, `width` wide so a `Column` puts it left."""
+    from .notes import GRIDS
+
+    ground, frame, lit = "RGB 37 40 49", "RGB 52 57 70", "RGB 236 200 120"
+    ink = "RGB 122 200 235"
+    out = [f"{SNAP} : Chan Float\n{SNAP} = chan\n",
+           f"{SNAP_LIT} : Chan Float\n{SNAP_LIT} = chan\n",
+           f"__nb_snaplit_sig__ : Sig Float\n"
+           f"__nb_snaplit_sig__ = (0.0 - 1.0) ::: mkSig (wait {SNAP_LIT})\n",
+           "__nb_snapc__ : Float -> Int -> Colour -> Colour -> Colour\n"
+           "__nb_snapc__ s k on off = case floor s == k of\n"
+           "    True -> on\n    False -> off\n"]
+    row = f"Gap 6 {_BAR_H}"
+    for i, name in enumerate(SNAPS):
+        c = f"(__nb_snapc__ s {i} ({lit}) ({ink}))"
+        if name == "auto":
+            beat = (f"Over (Rect {_SNAP_BEAT} 7 (__nb_snapc__ s {i} ({lit}) ({frame}))) "
+                    f"(Rect {_SNAP_BEAT - 2} 5 ({ground}))")
+        else:
+            beat = _snap_segments(96 // GRIDS[name], c)
+        out.append(
+            f"__nb_snapbtn_{i}__ : Float -> Sub\n"
+            f"__nb_snapbtn_{i}__ s = Meaning {SNAP} {i}.0 (Over (Rect {_SNAP_W} {_SNAP_H} "
+            f"(__nb_snapc__ s {i} ({lit}) ({ground}))) (Over (Rect {_SNAP_W - 2} {_SNAP_H - 2} "
+            f"({ground})) ({beat})))\n")
+        row = f"Row ({row}) (Row (Gap 4 {_BAR_H}) (__nb_snapbtn_{i}__ s))"
+    used = 6 + len(SNAPS) * (_SNAP_W + 4)
+    out.append(f"__nb_toolbar__ : Float -> Sub\n"
+               f"__nb_toolbar__ s = Over (Rect {width} {_BAR_H} ({ground})) "
+               f"(Row ({row}) (Gap {max(0, width - used)} {_BAR_H}))\n")
+    return "\n".join(out)
+
+
 def page_program(rolls: list, *, stacked: bool = False,
                  live: bool = False) -> tuple:
     """Every box of a page in **one** program, and where its hands are.
@@ -1655,19 +1714,27 @@ def page_program(rolls: list, *, stacked: bool = False,
                         f"{PLAYHEAD_SIG} : Sig Float\n"
                         f"{PLAYHEAD_SIG} = (0.0 - 1.0) ::: mkSig (wait {PLAYHEAD})\n\n")
     drawn = [e for e in entries if e is not None]
-    if drawn and stacked and len(drawn) > 1:
+    if drawn and stacked:
         # **The page is the file's own picture** — rung 5, for a
         # `.notes` opened alone (`audioeditor.KINDS`): every box in one
         # column, so `Ctrl-Tab` shows the sections stacked and a hand on
         # any of them writes that box's own channels.  `Column` is the
         # vocabulary's; the lift is over every entry at once.
+        #
+        # **And the toolbar above them** — `card:snap-grid.md`.  One
+        # page, one toolbar, as wide as the widest box so it sits left;
+        # a page of one section gets it too, which is why this no longer
+        # waits for two.
+        width = max(geometry_of(r).w for r in rolls if not isinstance(r, Exception))
+        texts.append(toolbar_program(width))
         args = " ".join(f"a{i}" for i in range(len(drawn)))
         body = "a0"
         for i in range(1, len(drawn)):
             body = f"Column ({body}) a{i}"
-        texts.append(f"__nb_stack__ : {' -> '.join(['Sub'] * (len(drawn) + 1))}\n"
-                     f"__nb_stack__ {args} = {body}\n\n"
-                     f"substrate : Sig Sub\nsubstrate = !__nb_stack__ {' '.join(drawn)}\n")
+        texts.append(f"__nb_toolbar_page__ : Float -> {' -> '.join(['Sub'] * (len(drawn) + 1))}\n"
+                     f"__nb_toolbar_page__ s {args} = Column (__nb_toolbar__ s) ({body})\n\n"
+                     f"substrate : Sig Sub\n"
+                     f"substrate = !__nb_toolbar_page__ __nb_snaplit_sig__ {' '.join(drawn)}\n")
     elif drawn:
         # **A page still declares a `substrate`**, and it is not
         # decoration: `audio.preludes` reads that word to decide that

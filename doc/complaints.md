@@ -1022,9 +1022,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 3070 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
 | 3074 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
 | 3218 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 5573 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 6048 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 6054 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 5617 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 6092 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 6098 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `stage.py`
 
