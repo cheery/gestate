@@ -55,6 +55,10 @@ from gestate.workbench import _carry                             # noqa: E402
 #: field whose reason cannot be written is a field somebody has to look
 #: at, which is the whole point of being made to write one.
 DELIBERATELY_FRESH = {
+    "bar_at": "the bar the toolbar tells, `(section, bar)` of the old "
+              "file — a bar of one document names nothing in another, and "
+              "`None` asks for a press before the toolbar tells anything "
+              "(`card:snap-grid.md`)",
     "declined": "the boxes the current press landed in only by reach — "
                 "it never outlives the press, and the old file's boxes are "
                 "not the new one's",

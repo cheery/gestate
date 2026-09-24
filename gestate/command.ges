@@ -344,6 +344,16 @@ field region key name value = Stated
 bars : Text -> Int -> Int -> Command
 bars region was now = Stated
 
+#: Tell one bar the grid its notes snap to — `snap A 2 1/8` — or
+#: `auto` to take it back to the roll's own.  The grids are `1/4 1/8
+#: 1/16 1/32` and the triplets `1/12 1/24` (`card:snap-grid.md`, Henri:
+#: *"sparse bar record"*).  Named for the act it governs, since `grid`
+#: is the sheet view's.  Names its bar, so a replayed line means the
+#: same edit; the toolbar fills in the bar last pressed or edited.  In
+#: a `.notes` opened alone.
+snap : Text -> Int -> Text -> Command
+snap section bar value = Stated
+
 #: Tap a tempo — this tap and the ones before it, in time.  Two or more
 #: taps within two seconds of each other are a tempo, the mean of their
 #: gaps, the last eight counting; it is then written by `tempo`, which

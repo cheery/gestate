@@ -192,3 +192,77 @@ def test_a_bar_told_a_triplet_makes_a_triplet():
 
     with _told_page("1/12") as (_here, roll, _seat):
         assert grid_at(roll, roll.bars[1]) == 32
+
+
+# ── Slice 3: the verb, and the bar it lands on ──────────────────────────────
+#
+# `snap A 2 1/8` names its bar, so a transcript replays the same edit;
+# which bar the toolbar fills in is the session's to remember — *"the
+# last clicked/edited bar would be what is modified."*
+
+
+def test_telling_a_bar_writes_one_record_and_auto_takes_it_back():
+    text = HEAD + "# the head\n" + ONE
+    told, said = notes.told(text, "A", 2, "1/8", "t.notes")
+    assert "bar  section A  bar 2  grid 1/8\n" in told
+    assert said == "section A bar 2 grid 1/8"
+    again, said = notes.told(told, "A", 2, "1/16", "t.notes")
+    assert "grid 1/16" in again and "grid 1/8" not in again
+    assert said == "section A bar 2 grid 1/8 → 1/16"
+    back, said = notes.told(again, "A", 2, "auto", "t.notes")
+    assert back == notes.write(notes.parse(text, "t.notes"))
+    assert said == "section A bar 2 grid 1/16 → auto"
+
+
+@pytest.mark.parametrize("section, bar, grid, says", [
+    ("A", 2, "1/7", "`grid 1/7` is not a grid"),
+    ("A", 3, "1/8", "section `A` has 2 bars"),
+    ("B", 1, "1/8", "no section `B`"),
+])
+def test_telling_a_bar_refuses_in_the_file_s_own_words(section, bar, grid, says):
+    with pytest.raises(notes.NotesError, match=says):
+        notes.told(HEAD + ONE, section, bar, grid, "t.notes")
+
+
+def test_telling_a_bar_what_it_is_already_told_has_nothing_to_do():
+    assert notes.told(HEAD + ONE, "A", 2, "auto", "t.notes") == (
+        None, "nothing to do — section A bar 2 is auto")
+
+
+def test_a_record_s_prose_stays_when_its_grid_changes():
+    text = HEAD + "# a fill, faster\nbar  section A  bar 2  grid 1/8\n" + ONE
+    told, _ = notes.told(text, "A", 2, "1/16", "t.notes")
+    assert "# a fill, faster\nbar  section A  bar 2  grid 1/16\n" in told
+
+
+def _page():
+    from test_drawnscores import _page_seat
+    return _page_seat()
+
+
+def test_the_verb_tells_the_bar_on_his_page_and_the_roll_follows():
+    from gestate.scorebox import grid_at
+
+    _here, seat, _view, roll = _page()
+    said = seat.run("snap", "A", 2, "1/8")
+    assert said.startswith("snap: arc.notes — section A bar 2 grid 1/8"), said
+    assert "bar  section A  bar 2  grid 1/8" in seat.view.text()
+    assert any(step.verb == "snap" for step in seat.log.steps)
+    assert seat.run("snap", "A", 2, "1/8").startswith("snap: nothing to do")
+    assert seat.run("snap", "A", 9, "1/8") == "snap: arc.notes:5: `bar 9` — section `A` has 8 bars"
+    assert seat.run("snap", "A", 2, "auto").startswith("snap: arc.notes — section A bar 2 grid 1/8 → auto")
+    assert "grid" not in seat.view.text()
+
+
+def test_a_press_on_the_roll_is_the_bar_the_toolbar_tells():
+    """*"the last clicked/edited bar would be what is modified."*"""
+    from gestate.scorebox import x_of, y_of
+    from test_drawnscores import _empty_key, _feed
+
+    _here, seat, view, roll = _page()
+    assert seat.bar_at is None, "nothing pressed, nothing to tell"
+    tick = roll.bars[2] + 10
+    x, y = x_of(roll, tick), y_of(roll, _empty_key(roll, tick))
+    _feed(seat, view, "press", x, y)
+    _feed(seat, view, "release", x, y)
+    assert seat.bar_at == ("A", 3)

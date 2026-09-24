@@ -1008,6 +1008,11 @@ class Session:
     #: `hand.ges` is a chart over touches and a chart never asks the
     #: world (`gestate/transport.ges`).
     clicked: dict = field(default_factory=dict)
+    #: **The bar the toolbar tells** — `(section, bar)` of the last press
+    #: on a roll or the last note moved, `None` before either.  Henri,
+    #: 2026-09-24: *"the last clicked/edited bar would be what is
+    #: modified"* (`card:snap-grid.md`).
+    bar_at: tuple | None = None
     #: **What a hand is sounding**, per box:
     #: `(bank, key, note, payload, notes)` — the note under the hand,
     #: previewing in its own voice, so a drag can stop the old pitch
@@ -3226,6 +3231,29 @@ class Session:
         self.bench.audition(self.view.text())
         return f"bars: {name} — section {section_name} {said}"
 
+    def do_snap(self, section: str, bar: int, value: str) -> str:
+        """Tell one bar its grid, or take it back to `auto` — one `bar`
+        record in the `.notes` opened alone (`card:snap-grid.md`).  The
+        file's own words refuse a bar it does not have."""
+        from pathlib import Path
+
+        from .notes import NotesError, told
+
+        name = Path(getattr(self.bench, "path", "untitled.notes")).name
+        if not self._is_document(name):
+            return "snap: a bar's grid is told in its own `.notes` file, opened alone"
+        try:
+            out, said = told(self.view.text(), section, int(bar), value, name)
+            if out is None:
+                return f"snap: {said}"
+            self._write_included(Path(getattr(self.bench, "path", ".")), out, True)
+        except NotesError as exc:
+            return f"snap: {exc}"
+        except OSError as exc:
+            return f"snap: {exc}"
+        self.bench.audition(self.view.text())
+        return f"snap: {name} — {said}"
+
     def do_mark(self, region: str, voice: str, tick: int, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
 
@@ -4951,6 +4979,7 @@ class Session:
         roll = found.roll
         if getattr(found, "on_rail", False):
             self.rail_at[found.box] = float(down)
+            self._bar_pressed(roll, tick_at(roll, down))
             return self._hand_event(found, ("Rail", tick_at(roll, down)))
         key = key_at(roll, down)
         # **The press decides whose it is**, at the pitch touch that ends
@@ -5180,6 +5209,15 @@ class Session:
             return f"line {where[1]}{tail}"
         return f"line {where[1]} of {where[0]}{tail}"
 
+    def _bar_pressed(self, roll, tick: int) -> None:
+        """Remember the bar under `tick` as the one the toolbar tells —
+        a `.notes` roll only, whose bars know their section."""
+        from .scorebox import bar_index
+
+        i = bar_index(roll, tick)
+        if i is not None and i < len(roll.grids):
+            self.bar_at = tuple(roll.grids[i][:2])
+
     def _commit_move(self, found, note: int, key: int, at: int) -> str:
         """**The commit, and the only place a drag writes.**  One command
         line, one rewrite, one undo entry, one rebuild — and it goes
@@ -5194,6 +5232,8 @@ class Session:
         roll, box = found.roll, found.box
         on, was = roll.events[note][0], roll.events[note][3]
         dkey, dt = key - was, at - on
+        if dt:
+            self._bar_pressed(roll, at)      # the bar it was edited into
         if dkey == 0 and dt == 0:
             self._unpreview(found)
             return self._reveal(found, note)

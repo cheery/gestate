@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**555 complaints**, in 51 files.
+**558 complaints**, in 51 files.
 
 | | |
 |---|---|
-| `author` | 313 |
+| `author` | 316 |
 | `command` | 51 |
 | `world` | 27 |
 | `machine` | 164 |
-| say where | 206 |
+| say where | 209 |
 | say `nowhere`, on purpose | 69 |
 | `unplaced`, with a defect that owns it | 62 |
 
@@ -896,13 +896,16 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1212 | `NotesError` | `author` | handed in | '{place}: name one `{kind.name}` — its key is its `{kind.shape[1]}`' |
 | 1221 | `NotesError` | `author` | handed in | '{place}: `{field}` has no value' |
 | 1224 | `NotesError` | `author` | handed in | '{place}: a `{kind.name}` is named by ' + ', '.join((f'`{f}`' for f in kind.key)) + ' and this … |
-| 1299 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
-| 1305 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
-| 1313 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
-| 1315 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1817 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1833 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1889 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 1296 | `NotesError` | `author` | handed in | '{place}: no section `{section}`; this file has ' + (', '.join((f'`{s['name']}`' for s in secti… |
+| 1301 | `NotesError` | `author` | handed in | '{place}: `bar {bar}` — section `{section}` has {one['bars']} bars' |
+| 1304 | `NotesError` | `author` | handed in | '{place}: `grid {grid}` is not a grid; auto ' + ' '.join(GRIDS) |
+| 1340 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
+| 1346 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
+| 1354 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
+| 1356 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
+| 1858 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1874 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1930 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -1008,20 +1011,20 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2767 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2774 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
-| 2788 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2902 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2908 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2914 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
-| 2933 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2997 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 3065 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 3069 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 3213 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 5533 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 6008 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 6014 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 2772 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2779 | `NotesError` | `author` | handed in | '{place} would leave section {section['name']} — a note does not leave its section by dragging' |
+| 2793 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2907 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2913 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2919 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section['name']} — a note does not leave its section by dra… |
+| 2938 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 3002 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 3070 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 3074 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 3218 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 5573 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 6048 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 6054 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `stage.py`
 

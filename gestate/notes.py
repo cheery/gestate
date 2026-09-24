@@ -1276,6 +1276,47 @@ def _line(one: dict) -> str:
 _FIELD = r"(\b{0} )(\S+)"
 
 
+def told(text: str, section: str, bar: int, grid: str,
+         name: str = "<notes>", where=None) -> tuple:
+    """`(text, said)` — bar `bar` of `section` told `grid`, or taken back
+    to `auto`; `(None, said)` when it is told that already.
+
+    **One fact per bar, so this is assert, set or retract by what is
+    there** — `card:snap-grid.md`, the record Henri chose on 2026-09-24.
+    Through `parse` and the writer, so the record lands at the head of
+    its bar and keeps its prose when only its grid changes; refused in
+    the file's own words for a bar the file does not have.
+    """
+    rels = parse(text, name, where=where)
+    sections, notes_ = sections_of(rels), notes_of(rels)
+    by_name = {one["name"]: one for one in sections}
+    place = f"{name}: the told bar"
+    one = by_name.get(section)
+    if one is None:
+        raise NotesError(
+            f"{place}: no section `{section}`; this file has "
+            + (", ".join(f"`{s['name']}`" for s in sections) or "none"))
+    if not 1 <= bar <= one["bars"]:
+        place = f"{name}:{one['line']}"
+        raise NotesError(f"{place}: `bar {bar}` — section `{section}` has {one['bars']} bars")
+    if grid != "auto" and grid not in GRIDS:
+        place = f"{name}:{one['line']}"
+        raise NotesError(f"{place}: `grid {grid}` is not a grid; auto " + " ".join(GRIDS))
+    bars = bars_of(rels)
+    was = next((b for b in bars if (b["section"], b["bar"]) == (section, bar)), None)
+    now = "auto" if was is None else was["grid"]
+    if now == grid:
+        return None, f"nothing to do — section {section} bar {bar} is {grid}"
+    kept = [b for b in bars if b is not was]
+    if grid != "auto":
+        prose = ({"above": was["above"], "beside": was["beside"], "line": was["line"]}
+                 if was is not None else {"above": (), "beside": None, "line": 0})
+        kept.append({"section": section, "bar": bar, "grid": grid, **prose})
+    said = (f"section {section} bar {bar} grid {grid}" if was is None
+            else f"section {section} bar {bar} grid {now} → {grid}")
+    return (_rendered(sections, notes_, _bpm_line(rels), _closing(rels), kept), said)
+
+
 def retune(text: str, line: int, field: str, was, now) -> tuple:
     """`(text, said)` — one field of one line, rewritten byte-exactly.
 
