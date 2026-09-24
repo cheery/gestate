@@ -1161,7 +1161,7 @@ class Session:
         if state[0] in ("Ending", "Ended"):
             note, t = state[1], state[2]
             on, off = roll.events[note][:2]
-            length = self._length_of(roll, off - on, state[3] - t) if state[0] == "Ended" else off - on
+            length = self._length_of(roll, on, off - on, state[3] - t) if state[0] == "Ended" else off - on
             return (rail, note, off - on, t, length)
         return None
 
@@ -5078,7 +5078,7 @@ class Session:
         if head == "Grow":
             _h, note, t, u = act
             on, off = roll.events[note][:2]
-            length = self._length_of(roll, off - on, u - t)
+            length = self._length_of(roll, on, off - on, u - t)
             self._grow(found, note, off - on, length)
             if length == off - on:
                 return ""
@@ -5087,7 +5087,7 @@ class Session:
         if head == "Resize":
             _h, note, t, u = act
             on, off = roll.events[note][:2]
-            return self._commit_length(found, note, self._length_of(roll, off - on, u - t))
+            return self._commit_length(found, note, self._length_of(roll, on, off - on, u - t))
         if head == "Sweep":
             _h, t, k, u, q = act
             self._show_band(found, t, k, u, q)
@@ -5126,19 +5126,21 @@ class Session:
 
     @staticmethod
     def _snapped(roll, on: int, by: int) -> int:
-        """`on` moved by `by` ticks, by whole grid steps, never before 0."""
-        from .scorebox import grid_of
+        """`on` moved by `by` ticks, by whole grid steps, never before 0 —
+        **the steps of the bar the note is heading into**, which is its
+        own grid when told one (`card:snap-grid.md`)."""
+        from .scorebox import grid_at
 
-        grid = grid_of(roll)
+        grid = grid_at(roll, on + by)
         return max(0, on + int(round(by / grid)) * grid)
 
     @staticmethod
-    def _length_of(roll, was: int, by: int) -> int:
+    def _length_of(roll, on: int, was: int, by: int) -> int:
         """A length changed by `by` ticks, by whole grid steps, never
-        under one."""
-        from .scorebox import grid_of
+        under one — the steps of the bar the note begins in."""
+        from .scorebox import grid_at
 
-        grid = grid_of(roll)
+        grid = grid_at(roll, on)
         return max(grid, was + int(round(by / grid)) * grid)
 
     def _carried(self, found, note: int, t: int, k: int, u: int, q: int) -> tuple:
@@ -5845,10 +5847,10 @@ class Session:
         # amount is nothing.  A note made at tick 123 rather than 96 is
         # the first thing a person would notice, and every other gesture
         # here snaps.
-        from .scorebox import grid_of
+        from .scorebox import grid_at
 
         span = bar_ticks(section)
-        grid = grid_of(roll)
+        grid = grid_at(roll, tick)
         at = max(0, int(round(tick / grid)) * grid)
         bar, within = divmod(at, span)
         if bar + 1 > section["bars"]:

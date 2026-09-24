@@ -970,27 +970,27 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 911 | `RefusedError` | `command` | — | 'that note has no source region' |
-| 913 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and moving it is prog… |
-| 918 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
-| 924 | `RefusedError` | `command` | — | 'the pitch is not written on line {leaf.line} — it comes from somewhere the box cannot point at' |
-| 928 | `RefusedError` | `command` | — | 'line {leaf.line} writes {key} more than once, so the box cannot tell which one is this note' |
-| 959 | `RefusedError` | `command` | — | 'that note has no source region' |
-| 961 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and marking it is pro… |
-| 966 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
-| 972 | `RefusedError` | `command` | — | "this note's manner is not written on line {leaf.line} — a mark is written into the payload, an… |
-| 977 | `RefusedError` | `command` | — | 'line {leaf.line} writes {mark} more than once, so the box cannot tell the manner from the rest… |
-| 998 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 1001 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 1005 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
-| 1058 | `RefusedError` | `command` | — | 'that note is written in {where[0]}:{where[1]}, not in this file — editing an included `.notes`… |
-| 1087 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 1090 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 1094 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1408 | `RefusedError` | `command` | — | 'nothing sounds at that tick' |
-| 1412 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
-| 1428 | `RefusedError` | `command` | — | 'nothing sounds {key} at tick {tick}' |
-| 1430 | `RefusedError` | `command` | — | '{key} sounds {len(found)} times at tick {tick}, so which note is meant is not written down any… |
+| 917 | `RefusedError` | `command` | — | 'that note has no source region' |
+| 919 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and moving it is prog… |
+| 924 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
+| 930 | `RefusedError` | `command` | — | 'the pitch is not written on line {leaf.line} — it comes from somewhere the box cannot point at' |
+| 934 | `RefusedError` | `command` | — | 'line {leaf.line} writes {key} more than once, so the box cannot tell which one is this note' |
+| 965 | `RefusedError` | `command` | — | 'that note has no source region' |
+| 967 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and marking it is pro… |
+| 972 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
+| 978 | `RefusedError` | `command` | — | "this note's manner is not written on line {leaf.line} — a mark is written into the payload, an… |
+| 983 | `RefusedError` | `command` | — | 'line {leaf.line} writes {mark} more than once, so the box cannot tell the manner from the rest… |
+| 1004 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 1007 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 1011 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
+| 1064 | `RefusedError` | `command` | — | 'that note is written in {where[0]}:{where[1]}, not in this file — editing an included `.notes`… |
+| 1093 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 1096 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 1100 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
+| 1414 | `RefusedError` | `command` | — | 'nothing sounds at that tick' |
+| 1418 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
+| 1434 | `RefusedError` | `command` | — | 'nothing sounds {key} at tick {tick}' |
+| 1436 | `RefusedError` | `command` | — | '{key} sounds {len(found)} times at tick {tick}, so which note is meant is not written down any… |
 
 ### `seminaive.py`
 
@@ -1019,9 +1019,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 3065 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
 | 3069 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
 | 3213 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 5531 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
-| 6006 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
-| 6012 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
+| 5533 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 6008 | `RefusedError` | `command` | — | 'no {voice} sounds {key} at tick {tick} — {' and '.join(who)} do' |
+| 6014 | `RefusedError` | `command` | carried from `exc` | '{exc} — say the voice, or press the one you mean first' |
 
 ### `stage.py`
 

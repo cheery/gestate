@@ -101,3 +101,94 @@ def test_both_roads_agree_on_a_file_with_a_bar_record():
     for name in a:
         assert a[name] == b[name], name
     assert notes.refused(a) == set()
+
+
+# ── Slice 2: the snap reads it ──────────────────────────────────────────────
+#
+# His piece, `arc.notes`, is written in quarters: its roll's own grid is
+# 96 ticks, so an eighth could not be reached — the `because`.  Bar 2 of
+# section A is told `1/8` here, and bar 1 is told nothing.
+
+
+def _told_page(grid: str = "1/8"):
+    """A copied `arc.notes` with bar 2 of section A told `grid`, rolled
+    the way the window draws it."""
+    import contextlib
+
+    from test_drawnscores import _copied, _rolled_page
+
+    @contextlib.contextmanager
+    def opened():
+        with _copied() as here:
+            path = here.parent / "arc.notes"
+            text = path.read_text()
+            path.write_text(text.replace(
+                "\nnote  section A  bar 2 ",
+                f"\nbar  section A  bar 2  grid {grid}\nnote  section A  bar 2 ", 1))
+            yield (here, *_rolled_page(here, page=True))
+    return opened()
+
+
+def test_the_roll_knows_each_bar_s_grid_and_a_bar_told_nothing_is_auto():
+    from gestate.scorebox import grid_at, grid_of
+
+    with _told_page() as (_here, roll, _seat):
+        assert grid_of(roll) == 96, "his piece is in quarters"
+        assert grid_at(roll, roll.bars[1]) == 48
+        assert grid_at(roll, roll.bars[1] + 300) == 48
+        assert grid_at(roll, roll.bars[0]) == 96, "bar 1 is told nothing"
+        assert grid_at(roll, roll.bars[2]) == 96
+
+
+def test_two_clicks_in_a_bar_told_an_eighth_make_an_eighth_on_an_eighth():
+    """The postcondition's first verb, the way a person does it."""
+    from gestate.scorebox import across_of, reach_of
+    from test_drawnscores import _empty_key
+
+    with _told_page() as (here, roll, seat):
+        low, high = reach_of(roll)
+        tick = roll.bars[1] + 48 + 5          # a hand is never exact
+        key = _empty_key(roll, tick)
+        where = (high - key) / (high - low)
+        before = (here.parent / "arc.notes").read_text().splitlines()
+
+        def click():
+            seat.touched("__nb_rail_0__", across_of(roll, tick))
+            seat.touched("__nb_pitch_0__", where)
+            seat.released("__nb_pitch_0__")
+            return seat.released("__nb_rail_0__")
+
+        click()
+        said = click()
+        now = (here.parent / "arc.notes").read_text().splitlines()
+        made = [l for l in now if l not in before]
+        assert len(made) == 1, said
+        assert "bar 2  at 48  len 48" in made[0], made[0]
+
+
+def test_a_move_in_a_bar_told_an_eighth_steps_by_an_eighth():
+    from gestate.session import Session
+
+    with _told_page() as (_here, roll, _seat):
+        on = roll.bars[1]
+        assert Session._snapped(roll, on, 50) == on + 48
+        assert Session._snapped(roll, on, 0) == on, "let go unmoved: a click"
+        assert Session._snapped(roll, roll.bars[0], 50) == roll.bars[0] + 96, \
+            "bar 1 is told nothing, and snaps as before"
+
+
+def test_a_note_in_a_bar_told_an_eighth_lengthens_by_an_eighth():
+    from gestate.session import Session
+
+    with _told_page() as (_here, roll, _seat):
+        on = roll.bars[1]
+        assert Session._length_of(roll, on, 96, 50) == 144
+        assert Session._length_of(roll, on, 96, -60) == 48, "an eighth is the least"
+        assert Session._length_of(roll, roll.bars[0], 96, 50) == 192
+
+
+def test_a_bar_told_a_triplet_makes_a_triplet():
+    from gestate.scorebox import grid_at
+
+    with _told_page("1/12") as (_here, roll, _seat):
+        assert grid_at(roll, roll.bars[1]) == 32

@@ -223,6 +223,12 @@ class Roll:
     #: `.ges` take and for a section that declares no key or no mode,
     #: which is the same silence `notes.outside` keeps.
     harmony: tuple = ()
+    #: **Each bar's own grid**, beside `bars` and in its order — the
+    #: ticks a bar told one snaps to, or `0` for a bar told nothing,
+    #: which snaps to `grid_of`.  `(section, bar, ticks)`, so a verb
+    #: can say which record a bar is.  Empty for a `.ges` take.
+    #: `card:snap-grid.md`, Henri, 2026-09-24: *"sparse bar record."*
+    grids: tuple = ()
 
 
 # ── The descent ─────────────────────────────────────────────────────────────
@@ -1485,8 +1491,9 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
     answers per ask.
     """
     from .midi import TICKS_PER_BEAT
-    from .notes import (bits_of, bound, harmony as notes_harmony,
-                        level_of, notes_of, sections_of, tone_of)
+    from .notes import (GRIDS, bars_of, bits_of, bound,
+                        harmony as notes_harmony, level_of, notes_of,
+                        sections_of, tone_of)
 
     lines = program.splitlines()
     # The line each note's generated line is: `origins` runs the other
@@ -1519,10 +1526,15 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
         drawn = dict.fromkeys(bounds[w][0]["name"] for w in terms)
         by_name = {s["name"]: s for s in sections}
         starts, bars, at = {}, [], 0
+        told = {(one["section"], one["bar"]): GRIDS[one["grid"]]
+                for one in bars_of(rels)}
+        grids = []
         for name in drawn:
             starts[name] = at
             one_bar = by_name[name]["beats"] * TICKS_PER_BEAT
             bars.extend(at + b * one_bar for b in range(by_name[name]["bars"]))
+            grids.extend((name, b + 1, told.get((name, b + 1), 0))
+                         for b in range(by_name[name]["bars"]))
             at += by_name[name]["bars"] * one_bar
         for term in terms:
             section, voice = bounds[term]
@@ -1585,7 +1597,7 @@ def notes_rolls(program: str, asks_: list, origins: dict, rels: dict) -> list:
                         geometry=editing(*scale), title=title,
                         bars=tuple(bars), beat=TICKS_PER_BEAT,
                         sections=tuple(drawn), harmony=tuple(band),
-                        tones=tuple(tones)))
+                        tones=tuple(tones), grids=tuple(grids)))
     return out
 
 
@@ -1884,6 +1896,26 @@ def grid_of(roll: Roll) -> int:
         from .midi import TICKS_PER_BEAT
         return TICKS_PER_BEAT
     return max(GRID_MIN, g)
+
+
+def bar_index(roll: Roll, tick: int) -> int | None:
+    """Which of the roll's bars `tick` falls in, or `None` for a roll
+    with no bars — a `.ges` take — or a tick before the first."""
+    from bisect import bisect_right
+
+    if not roll.bars:
+        return None
+    i = bisect_right(roll.bars, tick) - 1
+    return i if i >= 0 else None
+
+
+def grid_at(roll: Roll, tick: int) -> int:
+    """The tick a gesture at `tick` snaps to: **the bar's own grid** when
+    the bar is told one, else the roll's (`grid_of`) — `card:snap-grid.md`."""
+    i = bar_index(roll, tick)
+    if i is not None and i < len(roll.grids) and roll.grids[i][2]:
+        return roll.grids[i][2]
+    return grid_of(roll)
 
 
 def rows_of(roll: Roll) -> list:
