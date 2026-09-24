@@ -14,7 +14,7 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 90 rows — 30 harness, 40 henri, 14 session, 6 argument
+    testimony: 91 rows — 30 harness, 41 henri, 14 session, 6 argument
 
 *The line counts the table and nothing else, and a gate holds this
 page to it: a row added or re-kinded without the line cannot land.
@@ -88,6 +88,7 @@ sentence that was taken to be.
 | discovered-not-designed | henri | his words, 2026-09-01; the ingredient list is checkable and the origin is marked not checkable |
 | do-not-overclaim | session | a rule a session wrote from what he said; the reasoning that testimony is flattering and uncheckable is the session's |
 | dont-conclude-from-a-shallow-check | henri | his words, 2026-08-15; the file in `~/Videot/` is the case |
+| expectations-dug-up | henri | his words, 2026-09-24, and his verdict on #10; the thirteen expectations are a session's wording around his quotes, marked so |
 | finnish-in-the-room | henri | his words, 2026-08-21, in Finnish |
 | ges-is-not-music-notation-yet | henri | his words, 2026-08-29, in Finnish |
 | gestate-andon | henri | *"It works."*, 2026-08-17, and his rule for when to ring |
