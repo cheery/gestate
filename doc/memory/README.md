@@ -178,3 +178,4 @@ session inferred.
 - [Headless claude inherits the hooks](headless-claude-inherits-the-hooks.md) — a batch `claude -p` in the checkout is stopped by the sitting limit; cwd outside the project, write your own pid
 - [A shipped document gets played](a-shipped-document-gets-played.md) — an example whose state is a file beside it is written by whoever runs it; `git diff` the document before committing
 - [A capitalised word before a date is a person](a-capitalised-word-before-a-date-is-a-person.md) — the consent gate's dated pattern refused a commit twice; put a lowercase word before the date
+- [Expectations, dug up](expectations-dug-up.md) — week 39: his expectations for `vision.md`, dug from the tree; bring one or two per conversation, never the list

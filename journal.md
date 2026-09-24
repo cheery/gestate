@@ -3852,3 +3852,19 @@ He tried it: *"nyt toimii. aika hyvinkin. Keskelle painaminenkin toimii."*
 `card:notes-editor.md` to `done/` at his word, and his next ask
 written as `card:snap-grid.md` for the morning: a control for the grid a
 note snaps to, since a piece in quarters can never be given an eighth.
+
+**Thursday 24.9.**  He asked for PDCA on three levels — card, week,
+vision — and then put it plainer: *"We need to pre-register what we
+expect, and then start checking/studying whether our expectations
+meeted the reality."*  Looked at first, the card and the week close
+their loops already, a postcondition and a **Goal.** before the work;
+the vision has dated wishes and not one expectation.  He held few he
+was aware of, so they were dug for — his surprises read backwards, his
+decisions read for what they bet on — and thirteen came up, the
+session's wording around his quotes.  One he settled: the models are
+good enough, *"Opus 5.5… shows mainly better performance at writing
+text, but otherwise is not more powerful.  I find it good enough."*
+And one new, his own: gestate as a common platform for small models
+and GUIs above LLM-editable material.  The rest at his pace — *"slowly
+as part of every conversation"* — held in
+`doc/memory/expectations-dug-up.md`, and `vision.md` stays his hand.
