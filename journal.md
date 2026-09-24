@@ -3868,3 +3868,13 @@ And one new, his own: gestate as a common platform for small models
 and GUIs above LLM-editable material.  The rest at his pace — *"slowly
 as part of every conversation"* — held in
 `doc/memory/expectations-dug-up.md`, and `vision.md` stays his hand.
+
+Then `card:snap-grid.md`, taken up.  Four shapes drawn over the real
+page and he chose C, the rhythm drawn — and then moved the question:
+*"Maybe the grid should be a property of the bars themselves"*, a
+sparse bar record, the bar last clicked or edited the one a press
+tells.  Built in four slices the same day: the record, the snap
+reading it, the verb `snap`, and the toolbar.  The page's own walk
+found what the session's tests could not — the toolbar sits over the
+first box's reach, and a button's press moved the bar it was meant to
+tell.  The picture waits for his eyes.

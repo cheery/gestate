@@ -61,3 +61,28 @@ one word that opens a list.
 in that bar snaps to it; a bar told nothing snaps as it did before.**
 Written 2026-09-24 before anything was built, from the `because`: a
 piece in quarters can be given an eighth.
+
+## Built — 2026-09-24
+
+Four slices, each with its tests seen failing first; `test/test_snapgrid.py`,
+30 tests.
+
+1. **The record** (`e9acb50`) — `bar  section A  bar 2  grid 1/8`,
+   declared in `notes.ges`, refused where a note would be, written at
+   the head of its bar; `spec/drawnscores.md` §"A bar's grid".
+2. **The snap reads it** (`aae9cb8`) — making, moving and lengthening a
+   note in that bar go by its grid; a bar told nothing snaps as before.
+   On his piece, two clicks aimed at an eighth had made `at 96 len 96`.
+3. **The verb** (`e74a86b`) — `snap A 2 1/8`, `auto` to take it back;
+   named `snap` because `grid` is the sheet view's.  The session keeps
+   the bar last pressed or moved into.
+4. **Toolbar C** (`4cb9136`) — above the page's sections, a press runs
+   `snap` on that bar, the lit button is read off the file.  The page's
+   own walk found a defect the session tests could not: the first box's
+   reach lies under the toolbar, so a button's press also landed on a
+   bar and moved the one it tells.  A bar is now remembered only once a
+   press is the box's own.
+
+**Not seen yet: the picture.**  No driven window was started (F241);
+the toolbar's look and feel is his hands' — the check notes-editor
+closed on.
