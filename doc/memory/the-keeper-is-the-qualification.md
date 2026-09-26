@@ -8,6 +8,15 @@ metadata:
 **His words, 2026-08:** *"Could the tree teach me on this?  I am really
 uncertain that I am up for this task."*
 
+**And his answer to it, 2026-09-26**, a month on, the morning a goal in
+`vision.md` refused a date and the project's purpose was questioned
+instead: *"I am not longer as uncertain as I was before.  I think I've
+learned..  The lesson was that uncertainty was really needed.  And
+another lesson was that I should really think.. what makes me tick,
+what inside me pulls me to do these things?  And what even is the
+"master program" I am running myself, since it's not what I always
+claim."*  Added beside the old quote at his word.
+
 *Written here with his consent, given 2026-08-21 when the question was
 put to him: "my uncertainty feels like important there.  I consent to
 them being written there."*  `doc/consent.md` carries him as named and

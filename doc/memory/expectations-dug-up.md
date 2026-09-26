@@ -33,6 +33,28 @@ Stated as expectations:
    material, allowing both to work through small, or large, datasets
    available at each moment."*  Open — wants a date and what would show
    it wrong.
+   *2026-09-26:* no date — *"I don't know by when we get there"* —
+   and he wants **the bounds instead**: what stands as *achieved*.  A
+   table of five tests and one witness (a tool nobody planned, built in
+   a day as one file, no core change) was offered; his view was that
+   **one sentence** should carry the bounds, **with expectations set
+   beside it**, and that the morning was too early to decide.  Open;
+   his to write, later.
+   *Later the same morning*, asked whether the goal suits at all —
+   *"There is no pre-existing pull on the data-based gestate, other
+   than the music one can do with it"* — and then: *"I've been using
+   reaper to make music lately.  Notes editor addresses the right
+   thing, but maybe too loosely.  What we are doing right now is
+   learning to utilise AI well.. I'm thinking this all what we've been
+   doing right now is getting help to define what the project itself
+   is about."*  Not settled; the sentence is still his.
+   And on the reading that he explores *"a way for minds to work
+   together"*: *"The "minds to work together" might also mean for
+   human minds, not just human+session.  A team is forming where the
+   context of that sentence changes that way."*  The vision line of
+   2026-08-16 — *"We are missing a way to work with each other"* — was
+   offered as a candidate for the one sentence; his to take or leave.
+   Team members named in the tree go through `doc/consent.md` first.
 2. **The language, noted 2026-08-20** (`[[the-language-goal]]`):
    *"Tavoite lyhyellä ajalla… kieli joka kääntyy wasmiin"* — "short
    term", undated; nothing compiles to wasm five weeks on.  Open.
