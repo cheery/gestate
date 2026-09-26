@@ -352,3 +352,72 @@ def test_a_press_on_the_toolbar_is_not_a_press_on_the_bar_beneath_it():
     assert said[0].startswith("snap: arc.notes — section A bar 6 grid 1/8"), said
     assert seat.bar_at == ("A", 6), "the button's press is not a bar's"
     assert "bar  section A  bar 6  grid 1/8" in seat.view.text()
+
+
+# ── An eighth's end, reachable ──────────────────────────────────────────────
+#
+# Henri, 2026-09-24, his hands on the toolbar: *"The thing works, but the
+# boundary to resizing the note becomes so small I can't hit it."*  At 32
+# pixels a beat an eighth is 16 wide, and a note's end was its last 8
+# pixels only on a note wider than 16 — an eighth had none.  His choice
+# of four: *"do 1 now"* — the end reaches past the note, onto empty roll.
+
+
+def _eighth_page():
+    """His page with bar 2's first melody note an eighth (key 71, 48
+    ticks), the eighth after it empty, and bar 2 told `1/8`."""
+    import tempfile
+    from pathlib import Path
+
+    from gestate.audioeditor import Workbench
+    from test_drawnscores import NOTES, _seated_on
+
+    text = NOTES.read_text().replace(
+        "note  section A  bar 2  at 0  len 96  voice melody  key 71  vel f",
+        "bar  section A  bar 2  grid 1/8\n"
+        "note  section A  bar 2  at 0  len 48  voice melody  key 71  vel f", 1)
+    here = Path(tempfile.mkdtemp()) / "arc.notes"
+    here.write_text(text)
+    bench = Workbench(here, rate=22050, block=256)
+    bench._load_substrate(bench.program())
+    seat = _seated_on(bench, here.read_text())
+    return here, seat, bench.canvases["__notes_0__"], bench.note_regions["__nb_rail_0__"].roll
+
+
+def _drag(seat, view, x0, y, x1):
+    from test_drawnscores import _feed
+    _feed(seat, view, "press", x0, y)
+    _feed(seat, view, "drag", (x0 + x1) // 2, y)
+    _feed(seat, view, "drag", x1, y)
+    return _feed(seat, view, "release", x1, y)
+
+
+def test_an_eighth_s_end_is_taken_just_past_it():
+    from gestate.scorebox import x_of, y_of
+
+    _here, seat, view, roll = _eighth_page()
+    end = roll.bars[1] + 48
+    x = x_of(roll, end) + 4                     # four pixels onto empty roll
+    said = _drag(seat, view, x, y_of(roll, 71), x + 16)
+    assert "note  section A  bar 2  at 0  len 96  voice melody  key 71" in seat.view.text(), said
+
+
+def test_the_middle_of_an_eighth_is_still_the_note():
+    from gestate.scorebox import x_of, y_of
+
+    _here, seat, view, roll = _eighth_page()
+    x = x_of(roll, roll.bars[1] + 24)
+    _drag(seat, view, x, y_of(roll, 71), x + 16)
+    assert "note  section A  bar 2  at 48  len 48  voice melody  key 71" in seat.view.text(), \
+        "a drag from inside moves it by an eighth"
+
+
+def test_past_the_reach_is_empty_roll():
+    from gestate.scorebox import EDGE_PX, x_of, y_of
+
+    _here, seat, view, roll = _eighth_page()
+    before = seat.view.text()
+    x = x_of(roll, roll.bars[1] + 48) + EDGE_PX + 3
+    _drag(seat, view, x, y_of(roll, 71), x + 16)
+    assert "at 0  len 48  voice melody  key 71" in seat.view.text()
+    assert seat.view.text() == before, "a sweep writes nothing"

@@ -86,3 +86,22 @@ Four slices, each with its tests seen failing first; `test/test_snapgrid.py`,
 **Not seen yet: the picture.**  No driven window was started (F241);
 the toolbar's look and feel is his hands' — the check notes-editor
 closed on.
+
+## His hands on it — 2026-09-24
+
+*"The thing works, but the boundary to resizing the note becomes so
+small I can't hit it."*  Measured: 32 px a beat, and a note's end was
+its last 8 px only on a note wider than 16 — an eighth had none.  Four
+readings; *"do 1 now"*: **the end reaches 8 px past the note**, on its
+row, on empty roll.  Three tests on his piece with an eighth in it.
+
+And an answer that outlives the card, on reading 4 (a modifier):
+*"held key is not a mode in sense of where the "won't grow modes"
+comes from.  It requires modes to be visually distinct and
+disappearing."*
+
+**Open, not yet chased:** `test_audioeditor.py` went 2 failed of 101
+on a whole-file run after this change; the one named in the run before
+(`test_an_edit_that_misses_the_score_keeps_it`) passes alone and is a
+rebuild-timing test, not a press.  Unknown whether it is load or this
+change — the next sitting's first thing.

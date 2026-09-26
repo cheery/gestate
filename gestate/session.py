@@ -5049,6 +5049,20 @@ class Session:
             if named != note:
                 self.disagreed.append((found.box, tick, key, named, note))
         if note is None:
+            #: **A note's end reaches past it**, `EDGE_PX` onto the empty
+            #: roll after it, on its own row — Henri, 2026-09-24, once a
+            #: bar could be told an eighth: *"the boundary to resizing the
+            #: note becomes so small I can't hit it."*  At 32 pixels a beat
+            #: an eighth is 16 wide, and the end inside it (below) needs
+            #: more than 16; of four readings, *"do 1 now"*.  A note
+            #: starting right there is found above first, so this is
+            #: only ever empty roll.
+            at = x_of(roll, tick)
+            ended = [j for j, e in enumerate(roll.events)
+                     if 0 <= at - x_of(roll, e[1]) <= EDGE_PX
+                     and abs(e[3] - key_exact(roll, down)) <= GRAB_ROWS]
+            if ended:
+                return ("OnEnd", max(ended, key=lambda j: roll.events[j][1]))
             return ("OnRoll",)
         on, off = roll.events[note][:2]
         edge = (x_of(roll, off) - x_of(roll, tick) <= EDGE_PX
