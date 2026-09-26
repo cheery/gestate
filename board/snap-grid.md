@@ -100,8 +100,8 @@ And an answer that outlives the card, on reading 4 (a modifier):
 comes from.  It requires modes to be visually distinct and
 disappearing."*
 
-**Open, not yet chased:** `test_audioeditor.py` went 2 failed of 101
-on a whole-file run after this change; the one named in the run before
-(`test_an_edit_that_misses_the_score_keeps_it`) passes alone and is a
-rebuild-timing test, not a press.  Unknown whether it is load or this
-change — the next sitting's first thing.
+**Did not reproduce, chased on 2026-09-26.**  `test_audioeditor.py` had
+gone 2 failed of 101 on a whole-file run after this change; with
+`test_snapgrid.py` beside it, 134 passed, and the full suite at
+`c0d9c9f` passed both files whole — its one red was
+`tools/presscost.py`'s lost mode, not this.  Load, most likely.
