@@ -4597,11 +4597,10 @@ paper's defaults differ.
 
 **Henri:** *"I wonder, how would the statecharts fit into here?  We
 have disregarded them for now."*  Then: *"yes, record it on the card..
-modal reactors: https://arxiv.org/pdf/2301.09597v1"* — Schulz-Rosengarten
-et al., *Modal Reactors*, arXiv 2301.09597.  **Unread**: the session's
-fetch was refused by the harness; the paper waits in
-`~/misc/papers/` for his hand, and nothing below leans on it.  *The
-reading is the session's.*
+modal reactors: https://arxiv.org/pdf/2301.09597v1"* — the session's
+fetch was refused by the harness, and he put it in `~/misc/papers/`;
+it is read in §"Modal reactors, read at the page" below, which
+corrects this section in two places.  *The reading is the session's.*
 
 **Charts are what a reactor's transient state is written in.**  The
 strawman above had reactions that fire whenever their port has a value,
@@ -4651,6 +4650,65 @@ stay out of it.  **His to decide**, and it is the select-then-drag
 example of §"The reactor model, sketched before it is built" in another
 form: the selection is exactly the state that example asks *when* the
 drag sees.
+
+## Modal reactors, read at the page — 2026-10-02
+
+*Alexander Schulz-Rosengarten, Reinhard von Hanxleden, Marten Lohstroh,
+Soroush Bateni and Edward A. Lee.  "Modal Reactors."  arXiv
+2301.09597v1, January 2023; 13 pages.*  Read whole.
+
+**What it is.**  A reactor's contents — reactions, state, timers,
+actions, *contained reactor instances and connections* — partitioned
+into mutually exclusive **modes** (§IV-A).  One is `initial`; one is
+active at a time.  A reaction declares a transition as an effect,
+`reset(Catch)` or `history(Catch)`, and sets it in its body; the switch
+happens **after the reactor's reactions finish, one microstep later**
+(§IV-C), so no two modes of a reactor are ever active at one tag, and
+two reactions setting different modes resolve like ports — the last in
+declared order wins.  An inactive mode's time stands still: `history`
+resumes its timers where they were, `reset` restarts them (§IV-D).
+Hierarchy is not nested modes but **modal reactors instantiated inside
+modes**.  Transitions are *weak* — the leaving mode's reactions still
+run at that tick (§VI-A).  Implemented for C and Python (§V).
+
+### Two corrections to the section above
+
+1. **A mode is structural, not a value.**  §"Where the statecharts go,
+   now" put a chart *inside* a reactor as the value of its transient
+   state — which is what `chart.ges` is: `s -> e -> Step s a`.  LF's
+   modes partition the reactor's *structure*: a mode can contain its
+   own reactor instances and its own connections, so the wiring itself
+   differs by mode, statically present and only active or not.  The
+   two are different things, and gestate may want both: a mode for
+   *which reactions and wiring are live*, a chart value for the finer
+   state a mode carries.
+2. **Modes answer Q8 a third way, and it fits `two-hands` exactly.**
+   §VI-C: *"an output port must not be fed by multiple connections …
+   Modes allow such configurations provided that each writer is located
+   in a separate mode to ensure mutual exclusivity"* — and a causality
+   cycle through two modes is not a cycle.  So the cell of `two-hands`
+   is **one reactor with modes `Empty` and `Occupied`**: in `Empty` a
+   press asserts, in `Occupied` a press retracts.  Two writers of one
+   key, legal because never active together — the same thing the
+   lens said (one lens, `put True` and `put False`) said a second way,
+   and both say what `Takes` only approximated.
+
+### Where gestate would go further than LF
+
+**§VI-E names the limit:** transitions are set inside target code, so
+*"there is no real static estimation for active modes without target
+code execution."*  In gestate the target *is* gestate: a transition is
+a total function over a finite type, which is what made
+`test/test_transport_model.py` able to enumerate the transport's
+reachable states.  So the modes' reachability — the thing LF cannot
+estimate — is checkable here.  That is his *predictable or
+model-checkable* criterion, and the one place the polyglot design costs
+LF something gestate does not have to pay.
+
+**And §VI-D separates modes from mutations,** which the strawman's
+finding 3 needs: modes are *always statically present*, activity
+switched; mutations *change the topology*.  Notes coming and going is
+still a mutation; a cell being empty or occupied is a mode.
 
 ## What a session does now
 
