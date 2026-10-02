@@ -189,3 +189,46 @@ def test_a_week_opens_with_its_theme_and_goal_and_a_closed_week_says_how_it_went
             assert "**Outcome.**" in labels, (
                 f"{where} is over and has no **Outcome.** — the goal met or "
                 "not, and what carries over")
+
+
+def test_a_rotation_keeps_every_earlier_months_themes(tmp_path, monkeypatch):
+    """2026-10-02, the first rotation after a month was already in the
+    archive: `roll` cut `journal.md` down to its prose and only then
+    redrew the index, from a file that no longer had one — so August's
+    line came back as *open*, and every rotation would have done the same
+    to every month before it.  `test_a_closed_month_was_actually_skimmed`
+    caught it at the commit; this catches it in the roller."""
+    journal, archive = tmp_path / "journal.md", tmp_path / "journal"
+    archive.mkdir()
+    (archive / "2000-01.md").write_text("# journal/2000-01.md\n\nold\n", encoding="utf-8")
+    monkeypatch.setattr(journalroll, "JOURNAL", journal)
+    monkeypatch.setattr(journalroll, "ARCHIVE", archive)
+    journal.write_text("# journal.md\n\nprose\n\n---\n\n## An entry — 2000-02-03\n\nwork\n",
+                       encoding="utf-8")
+    journalroll.write_index({"2000-01": "the first month"})
+    text = journal.read_text(encoding="utf-8")
+    journal.write_text(journalroll.STAMP.sub("*The open month is 2000-02.*", text, count=1),
+                       encoding="utf-8")
+
+    journalroll.roll("the second month")
+
+    themes = {m: t for m, _n, t in journalroll.index_rows()}
+    assert themes == {"2000-01": "the first month", "2000-02": "the second month"}
+
+
+def test_redrawing_the_index_changes_nothing():
+    """The block from §"The archive" to the stamp is generated, and a
+    redraw writes it from scratch — so a paragraph written by hand inside
+    it is lost at the next rotation.  The weekly account's contract sat
+    there until 2026-10-02 and went with September's cut.  A redraw that
+    changes the file is a hand edit in the generated block: move it above
+    the heading."""
+    before = journalroll.JOURNAL.read_text(encoding="utf-8")
+    try:
+        journalroll.write_index()
+        after = journalroll.JOURNAL.read_text(encoding="utf-8")
+    finally:
+        journalroll.JOURNAL.write_text(before, encoding="utf-8")
+    assert after == before, (
+        "tools/journalroll.py --index would change journal.md: something in "
+        "the generated block was written by hand, or the block is stale")

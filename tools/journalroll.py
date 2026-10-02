@@ -279,8 +279,15 @@ def roll(themes: str | None = None) -> tuple[Path, int]:
         ])
     target.write_text(out, encoding="utf-8")
 
+    # The themes already written are read **before** the restart: once
+    # `journal.md` is cut down to its prose the index is gone from it,
+    # and `write_index` reading the file then finds no theme for any
+    # earlier month — 2026-10-02, August's line came back as "open".
+    kept = {m: t for m, _n, t in index_rows(text)}
+    if themes:
+        kept[open_] = themes
     JOURNAL.write_text("\n".join(_prose(head)) + "\n", encoding="utf-8")
-    write_index({open_: themes} if themes else None)
+    write_index(kept)
     # The stamp follows the calendar: an early cut leaves the month open.
     if closing:
         text = JOURNAL.read_text(encoding="utf-8")
