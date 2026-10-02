@@ -279,7 +279,10 @@ _SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
              # the list's two, because *on the end* means the end of
              # the table and not of `Sub`: every raw index a shell
              # already reads stays where it was.
-             "Does")
+             "Does",
+             # `Takes`, 2026-10-02 (`card:gui-is-difficult.md` Q8): a
+             # `Does` that nothing around it hears pressed.  On the end.
+             "Takes")
 
 
 def substrate_of(source: str, rate: int, graph, knobs: frozenset):

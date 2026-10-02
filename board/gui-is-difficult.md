@@ -4052,6 +4052,63 @@ reactors *"each port can have at most one incoming connection.  This
 requirement has to be strictly enforced"* (§2.1).  Three answers, then,
 and the choice is his — §"Questions", the batch of 2026-10-02.
 
+## Built — 2026-10-02: two things one press reaches, refused at the press
+
+**Henri:** *"take the defaults, build the small program"*, and on where
+the refusal fires: *"Do at the press now, and prepare for doing it at
+compile time later."*  Q8 answered (a) refuse, answered by (c) the inner
+one takes it; Q9 a small program.
+
+* **`examples/gui/two-hands.ges`** — a roll of eight steps by four
+  keys over `two-hands.dots`.  A cell asserts a `note`; the note drawn
+  inside it retracts its own, and is a `Takes`.
+* **`Takes acts s`** in `gui.ges`, with `takes` and `onTake` — a `Does`
+  that keeps the press: `gui._grabbed` stops at it, and so does
+  `Display::grabbed` in `shell/panel` (both walkers, the four shells'
+  tables, the fixtures regenerated).
+* **The refusal**, `gui.two_writers`: a press whose grabbed attachments
+  include two that write one fact kind performs none of them and says
+  *"this press reaches two things that write `note`, and neither takes
+  it — say `onTake` (or `Takes`) on the one the press is for"*, through
+  the host's `Refuse`.
+* **What the press did before**, measured on the same program with the
+  refusal switched off: *retracted, then asserted* — the note stayed,
+  the file was written twice, and nothing was said.
+
+`test/test_two_hands.py`; the Rust half in `list::grab_tests`.
+
+**His two minutes:** `python -m gestate.workbench
+examples/gui/two-hands.ges`, canvas tab — press empty cells, press a
+note; then change `Takes` to `Does` in `notePic`, save, press a note,
+and read the status line.
+
+### Prepared — the refusal at compile time
+
+*The session's sketch, for the slice after this; his to take.*  Why it
+is not built: whether two attachments overlap is layout, so the check
+has to be over the *structure* that makes overlap possible, carried as a
+grade on `Sub`'s type — `Sub ⟨K⟩`, `K` the fact kinds a press inside it
+can reach.
+
+| form | grade | refused when |
+|---|---|---|
+| `Does a s` | `kinds a ∪ K s` | `kinds a ∩ K s ≠ ∅` |
+| `Takes a s` | `∅` — nothing outside hears a press inside | `kinds a ∩ K s ≠ ∅` |
+| `Over a b` | `K a ∪ K b` | `K a ∩ K b ≠ ∅` — conservative: layers *may* overlap |
+| `Row`, `Column` | `K a ∪ K b` | never — their regions are disjoint |
+| `Shift`, `Sized`, `Pad`, `Meaning`, `TouchX/Y` | `K s` | never |
+
+**Where the kinds come from** is the part the tree already has: a kind
+is a stage-one value (`model : List Rel`, `$(rowType markRel)`), so
+`asserting noteRel …` can be typed `Act ⟨"note"⟩` from the splice the
+program already writes — a set grade at stage two, ground when it
+arrives, no solver (`doc/trial/signals.md` §"Case 5 graded by hand").
+
+**The oracle it must agree with:** every refusal in
+`test_two_hands.py` refused at compile time; every example that loads
+today still loads.  The trigger to revisit Q8's (a): `Over`'s
+conservative row refusing a program that is correct.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

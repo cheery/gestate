@@ -165,7 +165,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
         park_opening("web: open without a program");
         return std::ptr::null_mut();
     }
-    let t = std::slice::from_raw_parts(tags, 16);
+    let t = std::slice::from_raw_parts(tags, 17);
     let program = CanvasProgram {
         text: text_at(text, text_len),
         entry: {
@@ -177,6 +177,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
             row: t[4], column: t[5], shift: t[6], sized: t[7],
             pad: t[8], touch_x: t[9], touch_y: t[10], label: t[11],
             meaning: t[12], cons: t[13], nil: t[14], does: t[15],
+            takes: t[16],
         },
         chans: text_at(chans, chans_len)
             .split('\0')
@@ -372,6 +373,9 @@ pub unsafe extern "C" fn web_display(w: *mut Web) -> *const i32 {
             // A thing that does: the page draws it and a press on it
             // is the reference machine's to perform — no channel.
             Kind::Does => (5, 0, 0),
+            // A `Takes` is a `Does` to the page: the shell grabs, and
+            // stops at it (`Display::grabbed`).
+            Kind::Takes => (5, 0, 0),
         };
         let (x0, y0, x1, y1) = hit.region;
         let means = (hit.means as f32).to_bits() as i32;

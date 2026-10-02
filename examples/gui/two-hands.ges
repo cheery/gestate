@@ -1,0 +1,79 @@
+# examples/gui/two-hands.ges — two things one press reaches, and which
+# one it is for.  `card:gui-is-difficult.md` §"The batch of 2026-10-02",
+# the slice his hands decide: *two charts on one press*.
+#
+#   python -m gestate.workbench examples/gui/two-hands.ges
+#
+# A small roll: eight steps across, four keys up.  The notes are facts
+# in `two-hands.dots`, one a line, written by the presses and readable by
+# you.  **Press an empty cell and a note appears; press a note and it
+# goes.**
+#
+# A press reaches the deepest thing it lands on *and every attachment
+# around it*.  A note is drawn inside its cell, so a press on the note
+# reaches the cell too — and both write `note`: the cell asserts one,
+# the note retracts its own.  Which should run?  That is the 2026-09-23
+# band that moved the notes, two receivers of one press, here in eight
+# lines.  The host does not guess: two writers of one kind on one press
+# is refused, and the note says the press is its own with `Takes`.
+#
+# **Try it:** change `Takes` to `Does` in `notePic` below, save, and
+# press a note.  Nothing is written, and the status line says why.
+
+include "two-hands.dots"
+
+noteRel : Rel
+noteRel = Rel "note" (Col "step" (Range 0 7) :: Col "key" (Range 0 3) :: Nil) ("step" :: "key" :: Nil)
+
+noteLine : Line
+noteLine = Line "note" Named ("step" :: "key" :: Nil) (By "step" :: By "key" :: Nil)
+
+model : List Rel
+model = noteRel :: Nil
+
+lines : List Line
+lines = noteLine :: Nil
+
+type Note = $(rowType noteRel)
+type Notes = Set Note
+
+notes : Sig Notes
+notes = document "note"
+
+has : Notes -> Int -> Int -> Bool
+has ns s k = length (elems (for ((t, j) in ns, t == s, j == k) {t})) > 0
+
+cellSide : Int
+cellSide = 34
+
+laneInk : Colour
+laneInk = RGB 38 42 52
+
+noteInk : Colour
+noteInk = RGB 235 178 110
+
+#: **The cell asks for a note; the note inside it asks to go — and takes
+#: the press for itself.**  Without `Takes` a press on the note would
+#: reach both, and both write `note`.
+cellPic : Notes -> Int -> Int -> Sub
+cellPic ns s k = Does (asserting noteRel (s, k) :: Nil)
+    (Sized cellSide cellSide
+        (Over (Rect (cellSide - 4) (cellSide - 4) laneInk) (notePic ns s k)))
+
+notePic : Notes -> Int -> Int -> Sub
+notePic ns s k = case has ns s k of
+    True -> Takes (retracting noteRel (s, k) :: Nil) (Circle 11 noteInk)
+    False -> Gap 0 0
+
+strip : Notes -> Int -> Int -> Sub
+strip ns k s = case s == 7 of
+    True -> cellPic ns s k
+    False -> Row (cellPic ns s k) (strip ns k (s + 1))
+
+roll : Notes -> Int -> Sub
+roll ns k = case k == 0 of
+    True -> strip ns 0 0
+    False -> Column (strip ns k 0) (roll ns (k - 1))
+
+substrate : Sig Sub
+substrate = map (ns => roll ns 3) notes

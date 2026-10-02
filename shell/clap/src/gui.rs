@@ -299,6 +299,7 @@ fn canvas_of(sub: &'static engine::Substrate)
             // a table's length is copied into more places than anybody
             // remembers — is why this line names the index out loud.
             meaning: t[12], cons: t[13], nil: t[14], does: t[15],
+            takes: t[16],
         },
         chans: sub.chans.iter().map(|c| c.to_string()).collect(),
         bridge: sub.bridge.iter()

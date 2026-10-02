@@ -1,0 +1,7 @@
+# The notes of two-hands.ges — one a line, written by the presses and
+# readable by you.  `note  step 2  key 1` is a note on the third step,
+# second key from the bottom; steps run 0 to 7, keys 0 to 3.
+
+note  step 0  key 0
+note  step 2  key 1
+note  step 4  key 2

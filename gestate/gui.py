@@ -406,7 +406,7 @@ def _extent(node, state) -> tuple[int, int]:
         # The child's, like every other attachment: saying what a thing
         # *is* does not change how much room it takes.
         return _extent(args[2], state)
-    if tag == cons["Does"].tag:
+    if tag in (cons["Does"].tag, cons["Takes"].tag):
         return _extent(args[1], state)
     raise GuiError(f"unknown substrate tag {tag}")
 
@@ -527,17 +527,20 @@ def _walk(node, state, cx: int, cy: int, out: list, hits: list) -> None:
             "region": (x0, y0, x0 + w, y0 + h),
         })
         return
-    if tag == cons["Does"].tag:
+    if tag in (cons["Does"].tag, cons["Takes"].tag):
         # **What pressing it does** — `gui.ges`' `onDo`.  No channel:
         # the acts are a value the host performs, read off this node on
         # the press and not before, so the ones performed are the ones
         # the picture holds at that instant (`card:strict-forms.md` Q9).
+        # A `Takes` is the same and keeps the press from everything
+        # around it (`_grabbed`).
         w, h = _extent(node, state)
         x0, y0 = cx - w // 2, cy - h // 2
         _walk(args[1], state, cx, cy, out, hits)
         hits.append({
             "axis": None,
             "does": args[0],
+            "takes": tag == cons["Takes"].tag,
             "chan": None,
             "region": (x0, y0, x0 + w, y0 + h),
         })
@@ -622,12 +625,54 @@ def _grabbed(hits: list, x: int, y: int) -> list:
     out = [deepest]
     past = False
     for hit in hits:
+        if out[-1].get("takes"):
+            # **A `Takes` keeps the press**: what is around it is not
+            # grabbed (`card:gui-is-difficult.md` Q8, answer (c)).
+            break
         if hit is deepest:
             past = True
             continue
         if past and _encloses(hit["region"], deepest["region"]):
             out.append(hit)
     return out
+
+
+def _kinds(acts) -> set[str]:
+    """The fact kinds a list of acts writes — the first field of each
+    `Assert` and `Retract`, as the host reads it (`audioeditor`)."""
+    out = set()
+    for act in acts:
+        if isinstance(act, tuple) and act[0] in ("Assert", "Retract"):
+            out.add("".join(chr(c) for c in act[1]))
+    return out
+
+
+def two_writers(grabbed: list) -> str | None:
+    """**The refusal at the press** — `card:gui-is-difficult.md` Q8,
+    answer (a), 2026-10-02: two things one press reaches that write the
+    same kind of fact, with nothing saying which one the press is for.
+
+    Performing both would run them in the walk's order, which is an
+    order nobody chose — the 2026-09-23 band that moved the notes was
+    two receivers of one press, both writing notes.  So the press
+    performs nothing and says why; `onTake` on the inner one is the
+    answer.  Returns the sentence, or `None` when the press is clear.
+
+    *At the press, not at the compile:* whether two attachments overlap
+    is layout, which is known only once the picture is drawn.  The
+    compile-time form is a grade on `Sub`'s type — the kinds a picture's
+    attachments write, which `Over` and nesting must keep disjoint — and
+    this is the oracle it must agree with.
+    """
+    seen: dict[str, int] = {}
+    for i, acts in enumerate(grabbed):
+        for kind in _kinds(acts):
+            if kind in seen and seen[kind] != i:
+                return (f"this press reaches two things that write `{kind}`, "
+                        f"and neither takes it — say `onTake` (or `Takes`) "
+                        f"on the one the press is for")
+            seen.setdefault(kind, i)
+    return None
 
 
 # ── Driving it ──────────────────────────────────────────────────────────────
@@ -1266,12 +1311,21 @@ class Substrate:
             return [("released", self._named(t["chan"])) for t in targets
                     if t["chan"] is not None and self._named(t["chan"])]
         out = []
+        refused = None
+        if kind == "press":
+            doing = [_term(t["does"], self.state) for t in targets if "does" in t]
+            refused = two_writers(doing)
+            if refused is not None:
+                # The press performs **none** of them, and the host says
+                # why, the way it says any `Refuse`.
+                self._pressed.append(("Refuse", [ord(c) for c in refused]))
+                out.append(("refused", refused))
         for target in targets:
             if "does" in target:
                 # **A thing that does** writes no channel: its acts are
                 # read off the node the walk recorded, on the press and
                 # on nothing else, and `acts` hands them to the host.
-                if kind == "press":
+                if kind == "press" and refused is None:
                     acts = _term(target["does"], self.state)
                     self._pressed.extend(acts)
                     out.append(("does", acts))

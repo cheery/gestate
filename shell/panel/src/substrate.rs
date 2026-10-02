@@ -52,6 +52,10 @@ pub struct SubTags {
     /// `cons` and `nil` in the table (`export._SUB_CONS`): *on the
     /// end* is the end of the table, so every index before it stays.
     pub does: i64,
+    /// `Takes` — a `Does` that keeps the press: nothing around it is
+    /// grabbed (`card:gui-is-difficult.md` Q8, 2026-10-02).  On the end
+    /// of the table, after `Does`.
+    pub takes: i64,
     /// `Cons` and `Nil` — **not `Sub` constructors**, and they are here
     /// because a `Label` carries a `String` and a `String` is
     /// `List Char`.  That is the whole cost of text crossing: no new
@@ -241,7 +245,7 @@ pub fn extent(m: &mut Machine, t: &SubTags, node: usize) -> R<(i32, i32)> {
         // The child's, like every other attachment: saying what a thing
         // *is* does not change how much room it takes.
         extent(m, t, args[2])
-    } else if tag == t.does {
+    } else if tag == t.does || tag == t.takes {
         extent(m, t, args[1])
     } else {
         err(format!("unknown substrate tag {tag}"))
@@ -349,6 +353,13 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
         let (x0, y0) = (cx - half(w), cy - half(h));
         walk(m, t, args[1], cx, cy, d)?;
         d.does(args[0], (x0, y0, x0 + w, y0 + h));
+    } else if tag == t.takes {
+        // **A `Does` that keeps the press** — recorded the same way,
+        // and `Display::grabbed` stops at it.
+        let (w, h) = extent(m, t, node)?;
+        let (x0, y0) = (cx - half(w), cy - half(h));
+        walk(m, t, args[1], cx, cy, d)?;
+        d.takes(args[0], (x0, y0, x0 + w, y0 + h));
     } else {
         return err(format!("unknown substrate tag {tag}"));
     }
@@ -388,7 +399,7 @@ mod tests {
     const T: SubTags = SubTags {
         rect: 10, circle: 11, gap: 12, over: 13, row: 14, column: 15,
         shift: 16, sized: 17, pad: 18, touch_x: 19, touch_y: 20,
-        label: 21, meaning: 22, cons: 1, nil: 0, does: 23,
+        label: 21, meaning: 22, cons: 1, nil: 0, does: 23, takes: 24,
     };
 
     fn machine() -> Machine {

@@ -91,6 +91,7 @@ fn main() {
                     sized: raw[7], pad: raw[8], touch_x: raw[9],
                     touch_y: raw[10], label: raw[11],
                     meaning: raw[12], cons: raw[13], nil: raw[14], does: raw[15],
+                    takes: raw[16],
                 },
                 chans, bridge,
             }).expect("the canvas opened");

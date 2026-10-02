@@ -75,6 +75,7 @@ Sub := Rect Int Int Colour
      | Label Int Int String Colour
      | Meaning (Chan Float) Float Sub
      | Does (List Act) Sub
+     | Takes (List Act) Sub
 
 # ── What can arrive ──────────────────────────────────────────────────────
 #
@@ -357,6 +358,16 @@ onPress c v s = !(meaning c) v s
 onDo : Sig (List Act) -> Sig Sub -> Sig Sub
 onDo a s = !does a s
 
+#: **`onDo` that takes the press for itself** — nothing around it hears
+#: it.  A press reaches the deepest thing it lands on *and every
+#: attachment around it*, so a note drawn inside a lane is pressed
+#: together with the lane; when both write the same kind of fact the
+#: host refuses the press, because which runs first would be a choice
+#: nobody wrote down (`card:gui-is-difficult.md` Q8, 2026-10-02).  This
+#: is the written choice: the inner one takes it.
+onTake : Sig (List Act) -> Sig Sub -> Sig Sub
+onTake a s = !takes a s
+
 # ── Numbers beside a substrate ───────────────────────────────────────────
 
 #: What a bare number means beside a substrate: the same number, always —
@@ -393,3 +404,8 @@ meaning c v s = Meaning c v s
 #: writes the constructor.
 does : List Act -> Sub -> Sub
 does a s = Does a s
+
+#: `Takes`, for `onTake` to lift.  A program building a `Sub` by hand
+#: writes the constructor.
+takes : List Act -> Sub -> Sub
+takes a s = Takes a s

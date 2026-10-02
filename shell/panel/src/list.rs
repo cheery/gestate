@@ -124,6 +124,10 @@ pub enum Kind {
     /// takes the element and writes nothing — the reference machine
     /// is the host that performs.
     Does,
+    /// **A `Does` that keeps the press** — `gui.ges`' `Takes`: nothing
+    /// around it is grabbed, here or in `gui.py`'s `_grabbed`
+    /// (`card:gui-is-difficult.md` Q8, 2026-10-02).
+    Takes,
 }
 
 /// A region that listens, and what it writes to.
@@ -195,7 +199,7 @@ impl Hit {
             // be wrong for it: a cell number is not a fraction.
             Kind::Means(_) => return self.means,
             // A thing that does answers with its acts, not a number.
-            Kind::Does => return 0.0,
+            Kind::Does | Kind::Takes => return 0.0,
         };
         f.clamp(0.0, 1.0)
     }
@@ -249,6 +253,12 @@ impl Display {
                              region, means: 0.0, does: node });
     }
 
+    /// A `Does` that keeps the press — `gui.ges`' `Takes`.
+    pub fn takes(&mut self, node: usize, region: (i32, i32, i32, i32)) {
+        self.hits.push(Hit { kind: Kind::Takes, param: NO_PARAM,
+                             region, means: 0.0, does: node });
+    }
+
     /// The deepest region containing a point, or nothing.
     pub fn pick(&self, x: i32, y: i32) -> Option<Hit> {
         self.hits.iter().copied().find(|h| h.contains(x, y))
@@ -280,10 +290,17 @@ impl Display {
             return Vec::new();
         }
         let (dx0, dy0, dx1, dy1) = self.hits[at].region;
-        self.hits.iter().enumerate().filter_map(|(i, h)| {
+        let encloses = |h: &Hit| {
             let (x0, y0, x1, y1) = h.region;
-            let around = i > at && attaches(h.kind)
-                && x0 <= dx0 && y0 <= dy0 && x1 >= dx1 && y1 >= dy1;
+            x0 <= dx0 && y0 <= dy0 && x1 >= dx1 && y1 >= dy1
+        };
+        // **A `Takes` around the press keeps it**: nothing past it is
+        // grabbed — `gui.py`'s `_grabbed`, to the letter.
+        let stop = self.hits.iter().enumerate()
+            .find(|(i, h)| *i > at && h.kind == Kind::Takes && encloses(h))
+            .map(|(i, _)| i).unwrap_or(self.hits.len());
+        self.hits.iter().enumerate().filter_map(|(i, h)| {
+            let around = i > at && i < stop && attaches(h.kind) && encloses(h);
             (i == at || around).then_some(*h)
         }).collect()
     }
@@ -310,6 +327,21 @@ mod grab_tests {
         assert_eq!(took[0].kind, Kind::Means(9));
         assert_eq!(took[0].fraction(20, 15), 4.0, "what it is, not where");
         assert_eq!(took[1].kind, Kind::Chan(Axis::X, 3));
+    }
+
+    #[test]
+    fn a_takes_around_the_press_keeps_it_from_what_is_past_it() {
+        // `gui.ges`' `Takes` (`card:gui-is-difficult.md` Q8): a thing
+        // inside a `Takes`, inside a pad.  The press takes the thing
+        // and stops at the `Takes` — the pad past it hears nothing,
+        // which is `gui.py`'s `_grabbed` to the letter.
+        let mut d = Display::new();
+        d.hits.push(means(9, 4.0, (10, 0, 40, 30)));
+        d.takes(7, (5, 0, 50, 30));
+        d.hits.push(chan(Axis::X, 3, (0, 0, 100, 30)));
+        let took = d.grabbed(20, 15);
+        assert_eq!(took.len(), 1, "the thing, and nothing past the Takes");
+        assert_eq!(took[0].kind, Kind::Means(9));
     }
 
     fn chan(axis: Axis, id: i64, r: (i32, i32, i32, i32)) -> Hit {
