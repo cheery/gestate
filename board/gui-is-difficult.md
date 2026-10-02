@@ -4710,6 +4710,60 @@ finding 3 needs: modes are *always statically present*, activity
 switched; mutations *change the topology*.  Notes coming and going is
 still a mutation; a cell being empty or occupied is a mode.
 
+## The next slice: two checkboxes, as reactors — written 2026-10-02
+
+**Henri:** *"Would we be ready to implement this?"* — answered: ready for
+a first slice, not for the whole; and on Q3, *"picture region names an
+instance's port sound like right decision.  and yeah, write this slice
+on the card."*
+
+**Decided, and what the slice stands on.**  Reactor blocks are new
+syntax, wiring declared in the block; signatures declared and checked
+(his answers 1 and 2, §"Lingua Franca, read at its page"); persistent
+state behind lenses, transient state in modes (§"A checkbox, and the
+lens it should be given", §"Modal reactors, read at the page"); and
+**Q3, his: a picture region names an instance's port**, the way
+`Meaning` names a channel today — so a child's picture carries its own
+press, and a parent lays it out blind.
+
+**What the slice is.**  Two checkboxes, *mute* and *solo*, each over a
+fact of a small document, composed by a parent reactor.  The smallest
+thing that uses every new piece once:
+
+* a `reactor` block, parsed and checked — a body that reads or writes
+  outside its declared signature is refused;
+* **modes** `Off` and `On`, a press in each `put`ting the other — two
+  writers of one key, legal because their modes exclude each other
+  (Modal Reactors §VI-C);
+* a **boolean lens** over the fact — the checkbox holds no copy;
+* **composition** — the parent instantiates two, wires nothing to
+  their presses, and lays out their pictures.
+
+**How, and the hypothesis it tests.**  Desugared into the signals the
+tree already has, as he guessed (*"the implementation may indeed fall
+out from the signals"*): a static `new` gives each instance's input
+ports their own channels at compile time, a reaction becomes a `scanE`,
+a mode is the fold's state.  **Static instances can have channels of
+their own; that is why the desugaring should work, and why the wall it
+meets will be mutation** — components that come and go, the FRP limit
+§"A checkbox" named.  Finding that wall exactly is part of the slice.
+
+**Left out on purpose:** mutations, banks and multiports, the audio
+clock and quantising onto it, the scheduler replacing the host's
+threads, the third tier of state, and per-layer commit.  Each is on
+this card as open; none is needed for two checkboxes.
+
+**The postcondition** — the card's own (§"The postcondition"): **his
+two minutes with the two checkboxes**, pressing each, the document
+changing under them and the boxes following an edit made to the file.
+Beside it, the ceremony measure of expectation 14
+(`doc/memory/expectations-dug-up.md`): **places touched to add a third
+checkbox**, the `.ges` of today against the reactor version, counted
+the same way for both.
+
+**What it is not:** the notes editor.  Expectation 14 is read at the
+first real port of a piece of it; this slice is the one before that.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
