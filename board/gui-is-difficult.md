@@ -4188,8 +4188,8 @@ written against.  So **signals already chose per microstep**, and the
 choice may be per layer — signals and cells per microstep, facts per
 tag — which is a question the sketch can state and not answer.
 
-**The example that would split them** (§"What the slice did not
-test", the session's reply to *"what did we test with this again?"*):
+**The example that would split them** — the session's answer, in
+conversation, to his *"what did we test with this again?"*:
 a press that selects a note and starts dragging it, two charts.  Per
 microstep, the drag sees the selection the same press made; per tag, it
 sees it at the next event.  Worked both ways on paper first.
