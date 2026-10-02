@@ -4220,6 +4220,31 @@ one.
    frame clock, the audio clock, or none: a reactor with no events
    does not advance, and a picture that animates needs something to.
 
+**His answer to 3, the same evening:** *"ticks could happen on
+animation frame.. bit like how javascript has it.  It would be a
+distinct input a reactor can react to.. Doesn't reactor -paper describe
+some primitive that captures this kind of thing already?"*  It does:
+the **action** (§2.1, §3.2, Definition 6) — scheduled by a reaction
+with a delay, its origin *logical* or *physical*.  The display's frame
+is a **physical action**, and `requestAnimationFrame`'s shape is the
+paper's own advice: §2.2 calls regularly spaced actions *naive* and
+schedules the next one only when it is needed.  So a reaction that
+wants another frame asks for it, and **a picture at rest asks for
+nothing and nothing ticks.**  *Not in this paper: a declared periodic
+`timer`, which Lingua Franca has as far as the session remembers —
+unread.*
+
+**And Lingua Franca, his ask:** *"reactors come with that neat
+language, lingua franca, that I'd like to include in gestate, using
+gestate's own syntax in same manner."*  This paper names LF once — a
+meta-language *"for declaring and composing reactors"*, its specifics
+*"outside the scope of this paper"* (§2) — so what it would take is
+not in anything read here.  The paper to read is the LF one itself
+(Lohstroh et al., *Toward a Lingua Franca for Deterministic Concurrent
+Systems*, ACM TECS, about 2021 — named from memory), or LF's own
+documentation; fetched into `~/misc/papers/`, it is read at its page
+before any syntax is proposed.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
