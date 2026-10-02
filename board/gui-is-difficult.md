@@ -3967,6 +3967,41 @@ scratch, and the two shelved clients, for the reasons §"The first
 slice" gave and the notes page's warning against building for the
 queue.
 
+## The reactor model, and graded reads — 2026-10-02, waiting for this card's turn
+
+*Henri, looking at Lohstroh et al., "Reactors: A Deterministic Model for
+Composable Reactive Systems" (`~/misc/papers/reactor-model.pdf`): "I was
+thinking of the GUI when I was looking at the reactor model"* — and,
+asked where it changes things: *"the GUI card"*, and the vision
+sentence.  His order: `card:snap-grid.md` closes first, then this.
+
+**What it offers this card, the session's reading.**  The four forms of
+§"Where the statecharts fit" — facts, charts, queries, signals — each
+found on its own, joined informally.  A reactor gives them one notion of
+time: a chart's step is a *reaction*, its actions the reaction's writes;
+a commit is visible one microstep later; a query reads the facts as they
+stand this instant; a signal is a reaction on every tick.  That is a
+candidate answer to the seam this card left open — *where a chart's
+actions go when it runs inside a program* — and to expectation 8 of
+`doc/memory/expectations-dug-up.md`, *"jokainen GUI-asia tuntuu
+vaativan samat asiat, mutta eri muodoissa."*
+
+**His hunch, and what was measured of it.**  Graded modal types — reads
+as coeffects, writes as effects (Gaboardi et al., ICFP 2016; Orchard,
+Liepelt and Eades, ICFP 2019) — giving the reactor's guarantees inside
+an effect monad.  `doc/trial/signals.md` §"Case 5 graded by hand" and
+§"The grader, built": one synchronous rule — within an instant every
+write precedes every read, the old value only through `pre` — flags
+both of twoknobs' silent wrong drafts and nothing in the committed arm;
+`python tools/grades.py` makes it re-runnable and found bounce's
+explicit Euler as a choice made silently.  **The weak part stands:**
+the rows where two messages arrive in one instant are tested on
+twoknobs alone.  This card is where the next such program comes from —
+two charts writing one fact kind on one press.
+
+*Not a design, and nothing built for it.  The critical parts are his
+(§"What this is").*
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

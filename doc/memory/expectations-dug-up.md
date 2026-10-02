@@ -55,6 +55,12 @@ Stated as expectations:
    2026-08-16 — *"We are missing a way to work with each other"* — was
    offered as a candidate for the one sentence; his to take or leave.
    Team members named in the tree go through `doc/consent.md` first.
+   *2026-10-02,* after reading the reactor paper: *"finding out about
+   the reactor model probably changes things here"* — "here" being, at
+   his word, the vision sentence and `card:gui-is-difficult.md`.  The
+   session's reading: the reactor's one notion of time is a candidate
+   for the "same things" of expectation 8, which is the root of this
+   one.  Still his sentence to write.
 2. **The language, noted 2026-08-20** (`[[the-language-goal]]`):
    *"Tavoite lyhyellä ajalla… kieli joka kääntyy wasmiin"* — "short
    term", undated; nothing compiles to wasm five weeks on.  Open.
