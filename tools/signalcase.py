@@ -3,6 +3,7 @@
 
     python tools/signalcase.py             # all five: agreement, lines, a step's cost
     python tools/signalcase.py twoknobs    # one case
+    python tools/signalcase.py drafts      # case 5's two wrong drafts, rebuilt
 
 For each case, the signal arm is the tree's program and the message arm is
 `doc/trial/signals/<name>`.  Three things are printed, in the sheet's
@@ -172,10 +173,57 @@ def ttt_case(tree: Path, arm: Path) -> dict:
     return out
 
 
+# ── case 5's two wrong drafts ──────────────────────────────────────────────
+#
+# Never committed; rebuilt from the committed arm by one substitution each,
+# as `doc/trial/signals.md` §"Case 5's arm, written" describes them, so a
+# draft cannot drift from the arm it was a draft of.  The record says 1 and
+# 64 of 800; `python tools/signalcase.py drafts` says whether these are they.
+
+_PHASE = "Tick n -> voiced (wrap (p + hzOf pk / sampleRate)) y pk ck"
+_ORDER = ("arrivals = sync (wait pitchChan) (sync (wait cutoffChan) (wait clock))",
+          "merge3 Pitch Cutoff Tick s")
+
+DRAFTS = [
+    ("draft 1, the filter hears the phase before the step",
+     [(_PHASE, "Tick n -> heardFirst p y pk ck")],
+     "\nheardFirst : Float -> Float -> Int -> Int -> Model\n"
+     "heardFirst p y pk ck = case voiced p y pk ck of\n"
+     "    Model q y2 a b -> Model (wrap (p + hzOf pk / sampleRate)) y2 a b\n"),
+    ("draft 2, the clock before the knobs",
+     [(_ORDER[0], "arrivals = sync (wait clock) (sync (wait pitchChan) (wait cutoffChan))"),
+      (_ORDER[1], "merge3 Tick Pitch Cutoff s")],
+     ""),
+]
+
+
+def drafts_case() -> int:
+    from gestate import audio
+
+    tree = ROOT / "examples/audio/twoknobs.ges"
+    header, gold = _golden(tree)
+    rate = int(header["rate"])
+    kw = dict(rate=rate, control_every=int(header["control_every"])) \
+        if "control_every" in header else dict(rate=rate)
+    arm = (ARMS / "twoknobs.ges").read_text()
+    for label, subs, extra in [("the committed arm", [], "")] + DRAFTS:
+        src = arm
+        for old, new in subs:
+            if old not in src:
+                print(f"{label}: the arm no longer has {old!r} — the draft cannot be rebuilt")
+                return 1
+            src = src.replace(old, new)
+        got = audio.render(src + extra, seconds=float(header["seconds"]), **kw)
+        print(f"  {label:<55} {sum(x == y for x, y in zip(got, gold))}/{len(gold)} of the golden")
+    return 0
+
+
 def main(argv=None) -> int:
     from gestate.pipeline import _deep_stack  # noqa: F401  (the renders take it themselves)
 
     args = list(argv if argv is not None else sys.argv[1:])
+    if args == ["drafts"]:
+        return drafts_case()
     run = {"audio": audio_case, "bounce": bounce_case, "ttt": ttt_case}
     for name, tree, kind in CASES:
         if args and name not in args:

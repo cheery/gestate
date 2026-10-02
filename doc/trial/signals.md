@@ -284,3 +284,115 @@ refused, for its list fold and its `sync`.  *Not acted on.*
 **Held by** `test/test_audiollvm.py` §"`scanE`": a fold counting a knob's
 turns and the clock's ticks, oracle against engine and against native,
 which went red in both when the fold was made to step on every sample.
+
+## Case 5 graded by hand, and the four arms out of sample — 2026-10-02
+
+**Henri:** *"try the twoknobs grades by hand"*, then *"run the
+out-of-sample check first"*, then *"record it in signals.md, weak part
+included."*  His hunch, the same morning: graded modal types would give
+gestate the reactor model's guarantees (Lohstroh et al., *Reactors: A
+Deterministic Model for Composable Reactive Systems*) inside an effect
+monad.  *The grading is the session's, by hand; nothing below is
+built.*
+
+**The two wrong drafts, rebuilt.**  Neither was committed.
+`python tools/signalcase.py drafts` rebuilds each from the committed arm
+by one substitution and prints **1/800** and **64/800** — the record's
+numbers, so these are the two programs §"Case 5's arm, written" means.
+
+### The grades, and the one rule
+
+The arm's state as four cells — `p` the phase, `y` the filter's memory,
+`pk` `ck` the knobs — and one reaction per message.  Reads are
+**coeffects** and writes **effects**, the split of Gaboardi, Katsumata,
+Orchard, Breuvart and Uustalu, *Combining Effects and Coeffects via
+Grading* (ICFP 2016): one calculus carrying both, which is the reactor
+paper's dependencies and antidependencies as a type.
+
+    pitchR  : React ⟨reads pitchChan⟩ ⟨writes pk⟩ ()
+    cutoffR : React ⟨reads cutoffChan⟩ ⟨writes ck⟩ ()
+    tickR   : React ⟨reads clock, pk, ck, p, pre p, pre y⟩ ⟨writes p, y⟩ ()
+    tickR = do
+      set p (wrap (pre p + hzOf pk / sampleRate))
+      set y (pre y + coeff ck * (saw p * 0.5 - pre y))
+
+**The rule:** within one instant every write of a cell precedes every
+read of it; the previous instant's value is read through `pre`, the
+delay modality at grade 1.  It is the synchronous languages' rule
+(Lustre's `pre`, Esterel's write-before-test), not one made for this
+case — but it was *chosen* knowing both defects, which is the weakness
+§"The weak part" names.
+
+- **Draft 2 is refused.**  `tickR` reads `pk` at grade 0 and `pitchR`
+  writes it, so *pitch before tick* is derived from the grades — the
+  reactor paper's precedence graph, Algorithm 3 — and the draft's order
+  contradicts it.  The line that went wrong does not exist: the arm's
+  *"the order of simultaneous arrivals is decided here, and nowhere
+  else"* is a line the grades make unnecessary.
+- **Draft 1 is not refused; it cannot be written by accident.**  `saw p`
+  is the new phase, the right one.  The old phase needs `saw (pre p)`
+  said out loud, and a read of `p` before `set p` in the same instant is
+  refused.
+
+No solver: the grades are finite sets of named cells and the literal
+delays 0 and 1 — HM with set constraints.  Granule (Orchard, Liepelt and
+Eades, *Quantitative Program Reasoning with Graded Modal Types*, ICFP
+2019) needs an SMT solver in general and a signature on every top-level
+definition, inference being its further work (§2); this is a smaller
+fragment than Granule's.
+
+**What it says, if it holds:** the rule is what signals already are —
+`zip` reads at grade 0, `scan`'s state is `pre` — which is why the
+signal arm made neither mistake.  Graded, the message arm keeps its 40 %
+fewer lines and gets the signal arm's guarantees.
+
+### Out of sample — the four other arms, the rule unchanged
+
+All four are correct, so a refusal is a false positive.
+
+| arm | cells ← the reaction writing them | `pre` reads | grade-0 reads | verdict |
+|---|---|---|---|---|
+| blip | `p`, `n` ← clock | `pre p`, the phase step | `voiceOut`: new `p`, `n` | accepted |
+| knob | `k` ← knobChan; `p` ← clock | `pre p`, the phase step | the step reads new `k`; `raw` new `p` | accepted; knob before tick, derived |
+| bounce | `x y dx dy` ← input | the four, in `advance` and `reflect` | `reflect` new `x`, `y`; `draw` all four | accepted |
+| tic-tac-toe | `board` ← pressing | `play`, three reads of `pre board` | the picture, new board | accepted |
+
+**No false positives.**  And the sharper measure: the rule refuses a
+correct program only through a cycle — every other reading is writable
+with or without `pre` — so what it really stakes is its **default**.
+In all five arms every `pre` is a cell's own previous value, the
+accumulator thinking about its past; **no arm needs a cross-cell
+`pre`**, a stale read of a cell another reaction writes.  Draft 1 was
+exactly that read, unwritten.
+
+### The weak part
+
+1. **The half that refused draft 2 is barely sampled.**  It orders
+   reactions that arrive in the same instant.  Of the four, only knob
+   has two channels, and its order comes from a signal `zip`, not from
+   anything its author stated; blip, bounce and tic-tac-toe have one
+   channel each and test only the `pre` half.  No other program in the
+   tree has messages arriving together: `grep -rlw sync --include=*.ges .`
+   finds it in code only in `signal.ges`, which defines it, and in
+   twoknobs' own arm — the two `knob.ges` mention it in comments.  So the ordering half has **no
+   test outside the program it was designed on.**
+2. **Graded by hand, by the session, knowing every arm is correct.**
+   Each read was classified by the rule's own question — written this
+   instant or not — but nothing mechanical checked the reading, and the
+   table above is a claim, not a measurement.
+3. **Untested:** usage grades (Kude's linearity), delays above one,
+   and mutation — the reactor's live topology change.
+4. **The grades bite only if state is cells read through the monad.**
+   The arms' `update : Model -> Msg -> Model` is a pure fold, where the
+   old `p` is the only `p` in scope; nothing in the tree today could be
+   graded without that change.
+
+**What would make it stronger, either of:** a two-channel program whose
+channels collide in one instant, written by someone who has not seen
+the rule, with a golden to judge it — the GUI's first two charts
+writing one fact kind on a press is where one will come from; or a
+mechanical grader over `scanE` arms that classifies each read and prints
+the precedence graph, so this table can be re-run rather than taken on
+the session's word.
+
+*Not acted on.  Whether the hunch is worth a slice is his.*
