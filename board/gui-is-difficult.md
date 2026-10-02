@@ -4455,6 +4455,51 @@ or sugar over `Sig`, `ExL` and `sync` (§"Lingua Franca, read at its
 page" — LF's semantics is signals); and finding 2, which says declared
 wiring is not the whole of Q8.
 
+## Mutations, read — and his view of the ceremony — 2026-10-02
+
+**Henri:** *"read chapter 2's mutation algorithms.. I think reactor
+block is new syntax, but the implementation may indeed fall out from
+the signals. I'm also curious whether the reactors can be compiled into
+machine code. But this stuff you wrote.. I think it's really lot of
+ceremony. I believe reactors themselves would reduce the amount of
+ceremony we need for a GUI, by an order of magnitude."*
+
+**Mutations, at the page** (Lohstroh 2020, §2.5, Algorithms 4–8, 13;
+Algorithm 9 line 7; §6.1).  A mutation is a reaction with four more
+verbs — `create`, `delete`, `connect`, `disconnect`.  A reactor's
+mutations run before its reactions at a tag, and every contained
+reaction depends on the nearest mutation above it, so nothing reacts
+while its wiring moves.  A created reactor starts at the same tag; a
+deleted one runs its shutdown reactions there and is freed at the end
+of the step.  `connect` checks at run time what the compiler checks for
+a static topology: a second writer into an input is refused (Alg. 7
+line 13), and a connection that makes a causality loop is undone.
+**Status, §6.1: *"Support for mutations in our runtime implementations
+is still under development"*** — TypeScript furthest; in C it means
+*"reaching deep into the internals of the runtime library."*
+
+**For the strawman above:** notes coming and going is a mutation in the
+roll — a `Note` created when a note is asserted, deleted when it is
+retracted — and the 32 slots go.  The price: with a moving topology
+the single-writer check moves from the compile to `connect`.
+
+**On machine code** — the session's reading: LF's C target is native,
+bodies in C and a small runtime.  In gestate a reaction is a step from
+inputs and state to outputs and state, which is the audio fragment's
+step function, already compiled through LLVM; reactions over flat
+values would compile the same way, reactions over facts would run on
+`crust`, and the scheduler (Algorithms 11–16) is small in either Rust
+or C.
+
+**On the ceremony, his point taken.**  The strawman is as long as
+`two-hands.ges` and shows no reduction, and the ceremony in it is the
+session's: the canvas's routing and the merge written by hand, bank
+arithmetic, the 32-slot cheat.  What would remove it: a canvas the
+framework supplies, the picture naming the port a region feeds, so
+routing is written once; mutations, so a note is an instance; and
+composition at the size where it pays — the notes editor's Python
+boxes, charts and threads, not a sixty-line toy.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
