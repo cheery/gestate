@@ -103,4 +103,10 @@ and the weekly account's contract inside the generated block — both
 fixed and held (`9bfcfeb`).  And his remark at the end: *"finding out
 about the reactor model probably changes things here."*  Then his hands on
 `card:snap-grid.md` — *"it holds, close snap-grid"* — and the card to
-`done/`; the week's goal met the same day it was written.
+`done/`; the week's goal met the same day it was written.  Then, at his word, the reading behind the GUI card: Lingua Franca
+(Lohstroh's thesis), relational lenses, modal reactors — and the first
+slice built from it, two checkboxes as `reactor` blocks desugared into
+signals (`e5cd33e`, `card:gui-is-difficult.md` §"Built — two checkboxes
+as reactors").  It works, every check refuses what it should, and the
+measure is honest: no reduction for checkboxes, which the tree's facts
+and `Does` already composed.
