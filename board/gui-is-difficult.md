@@ -4764,6 +4764,75 @@ the same way for both.
 **What it is not:** the notes editor.  Expectation 14 is read at the
 first real port of a piece of it; this slice is the one before that.
 
+## Built — two checkboxes as reactors — 2026-10-02
+
+**Henri:** *"I'd like you to start now, because you've got all the
+information in the context right now."*
+
+* **`gestate/reactors.py`** — `reactor` blocks desugared into the
+  signals the tree has, at the door every reader goes through
+  (`notes.expanded`): the block is blanked in place and its desugaring
+  appended, so no line of the author's file moves.  A reactor becomes
+  `name__picture params… model`; a region that `feeds` a port becomes a
+  `Does` carrying that port's reactions in the live mode; `get l` and
+  `put l` are the lens's two halves; an instance is a helper applied to
+  its arguments.
+* **The checks, before anything compiles**, each seen refusing
+  (`test/test_reactors.py`): a body `put`s only into a declared effect;
+  an effect is a lens the reactor was given; `get` reads only a
+  parameter; a region feeds only a port some reaction hears in that
+  mode; **two reactions on one port writing one lens are refused when
+  they can be live together** and allowed in separate modes — with the
+  check broken, its two tests go red.
+* **Lenses** in `facts.ges`: `Lens m a`, `lensGet`, `lensPut`, and
+  `member` — a row's membership as a boolean lens.
+* **`examples/gui/checkboxes.ges`** — mute and solo over
+  `checkboxes.flags`, composed blind by `Panel`.  Pressed through the
+  workbench, each box flips its own fact, and an edit to the file by
+  hand is followed.
+* **A host defect, fixed:** `facts.rows_of` fed a one-column row as a
+  1-tuple while `relRow` types it as the bare value — no document had
+  one column before this one (`CaseJump: no alt for tag 201`).
+* **Two found and ledgered, not fixed:** F243, a press on the edge
+  between two regions goes to different elements in the two walkers;
+  F244, a one-line `case … of A -> a; B -> b` swallows the next
+  definition.
+
+**Modes here are derived, not set** — a mode is live when its `when`
+holds of the model, the first that holds — so the checkbox's mode is a
+view of its lens and holds no copy.  LF's modes are stored and switched
+by transitions; a mode that must be stored — a drag under way — is the
+next slice's.
+
+### The measure, and what it says
+
+The control is `doc/trial/reactors/checkboxes-today.ges`: the same two
+checkboxes the best way the tree had before reactor blocks — facts and
+`Does`, no lens — driven by the same test and behaving the same.
+
+| | reactor blocks | today |
+|---|---|---|
+| places touched to add a third checkbox | 2 | 2 |
+| the component's code lines | 12 | 15 |
+
+**For checkboxes, no reduction.**  With documents and `Does`, the
+tree's best way already holds no state and composes checkboxes; what
+the reactor version adds here is not brevity but **the checks** — the
+declared signature, the two-writers rule that modes make legal — and a
+parent that composes children blind.  Where reactors should pay is
+transient state and composition together — a drag inside a composed
+editor — and this slice does not reach it.  Expectation 14 is read at
+the notes editor, not here; this is a data point, recorded as one.
+
+**What the slice did not reach**, as written above: mutations, banks,
+audio, the scheduler, the selection tier, and a stored mode.  And the
+formatter does not know `reactor` blocks: `checkboxes.ges` is not on
+`test/fmt/test_roundtrip.py`'s readable list.
+
+**His two minutes:** `python -m gestate.workbench
+examples/gui/checkboxes.ges`, canvas tab — press each box; open
+`checkboxes.flags` and add or delete a line.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

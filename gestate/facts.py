@@ -757,9 +757,15 @@ def rows_of(document: Document, rels: dict, name: str) -> list:
     """The rows a program's `document "name"` receives: that relation's
     — a base one or an `Of`, `section.voices` included — each a tuple
     in heading order, sorted so a feed is the same list for the same
-    file."""
+    file.
+
+    **A one-column relation's row is its value, not a 1-tuple** —
+    `facts.ges`' `relRow` types it so (`t :: Nil -> t`), and a feed of
+    `("mute",)` reached a program typed `Set Text` as a tuple it had no
+    case for: 2026-10-02, the first document with one column
+    (`examples/gui/checkboxes.ges`), `CaseJump: no alt for tag 201`."""
     document.relation(name)
-    return sorted(rels[name].rows)
+    return sorted(r[0] if len(r) == 1 else r for r in rels[name].rows)
 
 
 def fact_of(document: Document, kind_text, atoms) -> tuple:

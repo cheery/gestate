@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**558 complaints**, in 51 files.
+**571 complaints**, in 52 files.
 
 | | |
 |---|---|
-| `author` | 316 |
+| `author` | 329 |
 | `command` | 51 |
 | `world` | 27 |
 | `machine` | 164 |
-| say where | 209 |
+| say where | 218 |
 | say `nowhere`, on purpose | 69 |
-| `unplaced`, with a defect that owns it | 62 |
+| `unplaced`, with a defect that owns it | 75 |
 
 ## A place that could exist, and does not
 
@@ -88,6 +88,10 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1234` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
+| `reactors.py:248` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:257` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:277` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:282` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:174` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -154,10 +158,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:610` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:649` | `DeclarationCycle` | the program's own include line and its own model need each other first; the fault is the pairing of a suffix and a declaration, which no one line holds |
 | `facts.py:697` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:777` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:783` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:792` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:795` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:789` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:798` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:801` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:696` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
@@ -661,10 +665,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 610 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no relation `{name}`; it has ' + ', '.join((f'`{r.name}`' for r in s… |
 | 649 | `DeclarationCycle` | `author` | *nowhere, on purpose* | '{path.name} declares the model of a `.notes` it includes as a score, and each needs the other … |
 | 697 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the model of {Path(path).name} and will not load: {why}' |
-| 777 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
-| 783 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
-| 792 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
-| 795 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
+| 783 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
+| 789 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
+| 798 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
+| 801 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
 
 ### `gmachine.py`
 
@@ -903,9 +907,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1346 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
 | 1354 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
 | 1356 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1858 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1874 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1930 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 1863 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1879 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1935 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -966,6 +970,26 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 482 | `ReactiveError` | `machine` | — | 'channel {k} given two values in one instant: an instant is at most one arrival per channel, so… |
 | 490 | `ReactiveError` | `machine` | — | 'channel {k} : Chan Int given a non-integer input: {node!r}' |
 | 495 | `ReactiveError` | `machine` | — | 'an instant with no arrivals: nothing would be ticked, so the sweep would rewrite every signal … |
+
+### `reactors.py`
+
+*fixme.md F245: a reactor block refused before it compiles, its line said in words*
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 179 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 183 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 199 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
+| 207 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
+| 212 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
+| 215 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …`, `on <port> -> <lens> = …`, `picture = …` and `<name>… |
+| 229 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
+| 236 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
+| 248 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
+| 257 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
+| 269 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
+| 277 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
+| 282 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
 
 ### `scorebox.py`
 

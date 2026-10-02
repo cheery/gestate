@@ -1841,6 +1841,11 @@ def expanded(source: str, base: Path | None = None,
     the `))` that closes it were written by nobody, and answering for
     them would be inventing a provenance.
     """
+    #: **`reactor` blocks first** — blanked in place and their desugaring
+    #: appended, this function's own rule, so no line of the author's
+    #: file moves (`gestate/reactors.py`).
+    from .reactors import desugar
+    source = desugar(source)
     found = [(_line_of(source, m.start()), m.group(2))
              for m in _INCLUDE.finditer(source)]
     if not found:

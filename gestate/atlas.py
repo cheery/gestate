@@ -146,6 +146,7 @@ WHERE: dict[str, str] = {
     # compile a library in front of one file and hand the value over
     # as plain Python (`card:gui-is-difficult.md`).
     "charts": "window", "facts": "window", "documents": "window",
+    "reactors": "window",
     # The three that arrived on 2026-08-18, all of them state the
     # *window* owns rather than the instrument under it: where the desk
     # was left, where a session is standing, and what the repository

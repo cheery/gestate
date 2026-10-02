@@ -1,0 +1,75 @@
+# examples/gui/checkboxes.ges — two checkboxes as reactors, composed.
+# `card:gui-is-difficult.md` §"The next slice: two checkboxes, as reactors".
+#
+#   python -m gestate.workbench examples/gui/checkboxes.ges
+#
+# **A checkbox holds no copy of what it shows.**  It is handed a lens on
+# a fact of `checkboxes.flags` — `flag  name mute` while mute is on — and
+# reads its mode off it.  A press asks the lens for the opposite; the
+# host writes the file, and the box follows the file, including an edit
+# made to it by hand.
+#
+# **Two reactions write the one lens**, and that is allowed because they
+# sit in modes that are never live together (Modal Reactors §VI-C).  Put
+# both under one mode, or outside the modes, and the program is refused
+# before it compiles.
+#
+# **The panel composes them blind**: it lays out `mute.picture` and
+# `solo.picture` and wires nothing to their presses — each picture
+# carries its own, because a region names the port it feeds.
+
+include "checkboxes.flags"
+
+names : List Text
+names = "mute" :: "solo" :: Nil
+
+flagRel : Rel
+flagRel = Rel "flag" (Col "name" (OneOf names) :: Nil) ("name" :: Nil)
+
+flagLine : Line
+flagLine = Line "flag" Named ("name" :: Nil) (By "name" :: Nil)
+
+model : List Rel
+model = flagRel :: Nil
+
+lines : List Line
+lines = flagLine :: Nil
+
+type Flag = $(rowType flagRel)
+type Flags = Set Flag
+
+flags : Sig Flags
+flags = document "flag"
+
+onInk : Colour
+onInk = RGB 240 184 72
+
+offInk : Colour
+offInk = RGB 38 42 52
+
+textInk : Colour
+textInk = RGB 200 204 214
+
+#: A box and its word, drawn — nothing in it knows it can be pressed.
+box : Text -> Colour -> Sub
+box label ink = Row (Rect 20 20 ink) (Label 60 14 label textInk)
+
+reactor Checkbox (label : Text) (at : Lens Flags Bool)
+  mode Off when not (get at)
+    on press -> at = put at True
+    picture = feeds press (box label offInk)
+  mode On when get at
+    on press -> at = put at False
+    picture = feeds press (box label onInk)
+
+reactor Panel
+  mute = new Checkbox "mute" (member flagRel "mute")
+  solo = new Checkbox "solo" (member flagRel "solo")
+  picture = Column mute.picture solo.picture
+
+substrate : Sig Sub
+substrate = map Panel.picture flags
+
+#: Silence — the window plays every file it opens.
+sound : Sig Float
+sound = 0.0

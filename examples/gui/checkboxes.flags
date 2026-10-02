@@ -1,0 +1,4 @@
+# The flags of checkboxes.ges — `flag  name mute` while mute is on.
+# Press a box, or write or delete the line here; the box follows.
+
+flag  name mute

@@ -1,0 +1,66 @@
+# doc/trial/reactors/checkboxes-today.ges — the same two checkboxes as
+# `examples/gui/checkboxes.ges`, written the best way the tree had
+# before reactor blocks: facts, `Does`, no lens.  The control for the
+# places-touched count, `card:gui-is-difficult.md` §"Built — two
+# checkboxes as reactors".
+
+include "checkboxes-today.flags"
+
+names : List Text
+names = "mute" :: "solo" :: Nil
+
+flagRel : Rel
+flagRel = Rel "flag" (Col "name" (OneOf names) :: Nil) ("name" :: Nil)
+
+flagLine : Line
+flagLine = Line "flag" Named ("name" :: Nil) (By "name" :: Nil)
+
+model : List Rel
+model = flagRel :: Nil
+
+lines : List Line
+lines = flagLine :: Nil
+
+type Flag = $(rowType flagRel)
+type Flags = Set Flag
+
+flags : Sig Flags
+flags = document "flag"
+
+onInk : Colour
+onInk = RGB 240 184 72
+
+offInk : Colour
+offInk = RGB 38 42 52
+
+textInk : Colour
+textInk = RGB 200 204 214
+
+#: A box and its word, drawn — nothing in it knows it can be pressed.
+box : Text -> Colour -> Sub
+box label ink = Row (Rect 20 20 ink) (Label 60 14 label textInk)
+
+isOn : Flags -> Text -> Bool
+isOn fs n = elem n (elems fs)
+
+toggle : Flags -> Text -> List Act
+toggle fs n = case isOn fs n of
+    True -> retracting flagRel n :: Nil
+    False -> asserting flagRel n :: Nil
+
+inkOf : Flags -> Text -> Colour
+inkOf fs n = case isOn fs n of
+    True -> onInk
+    False -> offInk
+
+checkbox : Flags -> Text -> Sub
+checkbox fs n = Does (toggle fs n) (box n (inkOf fs n))
+
+panel : Flags -> Sub
+panel fs = Column (checkbox fs "mute") (checkbox fs "solo")
+
+substrate : Sig Sub
+substrate = map panel flags
+
+sound : Sig Float
+sound = 0.0

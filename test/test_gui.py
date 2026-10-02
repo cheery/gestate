@@ -179,7 +179,9 @@ def test_every_gui_example_is_exercised_here():
         # `test_documents.py` drives this one: its board is a file.
         "tic-tac-toe-facts.ges",
         # `test_two_hands.py` drives this one: two things one press reaches.
-        "two-hands.ges"}
+        "two-hands.ges",
+        # `test_reactors.py` drives this one: two checkboxes as reactors.
+        "checkboxes.ges"}
 
 
 # ── `patchbay.ges` — a Datafun query behind a picture ───────────────────────

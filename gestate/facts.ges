@@ -457,3 +457,36 @@ asserting k r = Assert (relName k) (atoms r)
 #: the rest of the row is what the file says.
 retracting : (Atoms r) => Rel -> r -> Act
 retracting k r = Retract (relName k) (atoms r)
+
+# ── Lenses — a component's way to the model, with no copy of it ──────────
+#
+# `card:gui-is-difficult.md` §"A checkbox, and the lens it should be
+# given", 2026-10-02.  A component that keeps its own `checked` holds a
+# copy of a truth the document holds, and keeping the two in step is the
+# data-binding problem.  A lens is the pair a component is handed
+# instead: what it sees of the model, and the acts that make the model
+# say what it is told.  Bohannon, Pierce and Vaughan's `get` and `put`
+# (PODS '06, Def. 3.1), with `put` answering *acts* — the delta form
+# they leave as future work, and the one the host performs.
+
+#: What a component is handed: how to read its value off the model, and
+#: what to ask so that the model says a new one.
+Lens m a := Lens (m -> a) (a -> List Act)
+
+#: What the lens sees of the model.
+lensGet : Lens m a -> m -> a
+lensGet l m = case l of
+    Lens g p -> g m
+
+#: The acts that make the model say `a` — the host performs them.
+lensPut : Lens m a -> a -> List Act
+lensPut l a = case l of
+    Lens g p -> p a
+
+#: **A row's membership, as a boolean lens** — true while the document
+#: holds the row; `True` asserts it, `False` retracts it.  The row's key
+#: is what makes the put well defined: a retraction names the key.
+member : (Atoms r, Eq r) => Rel -> r -> Lens (Set r) Bool
+member k r = Lens (s => elem r (elems s)) (b => case b of
+    True -> asserting k r :: Nil
+    False -> retracting k r :: Nil)
