@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 241 entries, **192 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 242 entries, **192 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -128,6 +128,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F239 | bug | The formatter wraps a tuple pattern at the head of a cons pattern in brackets, and again on every pass |
 | F240 | resolved | The first note played into a fresh plugin was silent on every plucked and struck bank, because a note stamped into the state's first block is read a block late |
 | F241 | bug | Two gestate editors open at once froze the laptop, and the cause is not known |
+| F242 | bug | A canvas with no `sound` is told it declares no `ticks` — a word its author never typed |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.

@@ -77,3 +77,8 @@ roll ns k = case k == 0 of
 
 substrate : Sig Sub
 substrate = map (ns => roll ns 3) notes
+
+#: Silence — the window plays every file it opens, and a canvas with
+#: nothing to say still says it.
+sound : Sig Float
+sound = 0.0

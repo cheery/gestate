@@ -53,6 +53,17 @@ def _notes(dots) -> list:
     return [l for l in dots.read_text().splitlines() if l.startswith("note")]
 
 
+def test_it_opens_the_way_the_window_opens_it():
+    """The window builds every file as a synth as well as a canvas, and
+    the tests below load only the canvas (`_load_substrate`) — which is
+    how this example first shipped without a `sound`, and his launch was
+    the first thing to read it the way a person does: *"this file
+    declares no `ticks`, and the player's generated entry needs it."*"""
+    from gestate import audio, notes
+
+    audio.render(notes.read(GAME), seconds=0.01)
+
+
 def test_an_empty_cell_asks_for_a_note():
     game, dots = _copy()
     bench = _bench(game)
