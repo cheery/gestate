@@ -363,7 +363,8 @@ with or without `pre` — so what it really stakes is its **default**.
 In all five arms every `pre` is a cell's own previous value, the
 accumulator thinking about its past; **no arm needs a cross-cell
 `pre`**, a stale read of a cell another reaction writes.  Draft 1 was
-exactly that read, unwritten.
+exactly that read, unwritten.  *Wrong for bounce — the grader found it
+the same day, §"The grader, built" below.*
 
 ### The weak part
 
@@ -396,3 +397,54 @@ the precedence graph, so this table can be re-run rather than taken on
 the session's word.
 
 *Not acted on.  Whether the hunch is worth a slice is his.*
+
+### The grader, built — 2026-10-02
+
+**Henri:** *"build the mechanical grader over the scanE arms."*
+`python tools/grades.py` runs every `scanE` step symbolically — each
+old cell an atom, each message every shape its channel can arrive in, a
+`sync` giving each alone and each together — and classifies every read
+of an old cell as **own**, **plain** or **stale** by the rule above.
+`test/test_grades.py` holds the five verdicts; with the grader broken so
+that no read of a new value is recognised, three of its five go red.
+
+| arm | stale reads | |
+|---|---|---|
+| blip | 0 | |
+| knob | 0 | its phase is a signal `scan`, passed over and named |
+| bounce | **2** — `x` reads the old `dx`, `y` the old `dy` | |
+| tic-tac-toe | 0 | one cell, the board |
+| twoknobs | 0 | edges derived: `pk`, `ck` before `p`; `p` before `y` |
+| draft 1 | 4 — `y` reads the old `p` | at every shape the clock is in |
+| draft 2 | 4 — `p` reads the old `pk`, `y` the old `ck` | only when they arrive *together*; alone, nothing |
+
+**Two corrections to the hand grading above, both found by the grader.**
+
+1. **Bounce reads a stale velocity.**  `advance` moves the ball by the
+   old `dx` while the same instant writes `dx` — explicit Euler.  The
+   hand table filed `pre dx` among the accumulator's own reads, and the
+   claim *no arm needs a cross-cell `pre`* was false by this one arm.
+   Not a defect in bounce: it is a decision about **when a value is
+   read**, the same kind as draft 1's, and the rule's answer is that it
+   must be written `pre dx`.  So the out-of-sample check's honest
+   result is **no refusal of a correct program, and one correct
+   program that would have to say a choice it makes silently.**
+2. **Draft 2 is not *refused* while draft 1 is *unwritable*; both are
+   stale reads.**  The hand section drew that distinction from how a
+   graded program would be written.  Mechanically there is one class —
+   a read of another cell's old value, in an instant that writes it —
+   and draft 2 shows it only when the clock and a knob arrive in the
+   same instant, which is exactly where the golden diverged: 64 of 800,
+   matching until the first turn.
+
+**What the grader cannot see, said in its docstring:** only `scanE` — a
+`scan` over a `zip` is a signal and passed over; a reader of the
+`scanE`'s output is not graded, as it reads the new value by
+construction; and a call past the inlining depth stays an opaque
+application whose arguments are still walked, so a read is never lost,
+only possibly counted where an inlined body would have shown it unused.
+
+**The weak part, re-read.**  Item 2 is answered: the table is now a
+measurement.  Item 1 stands as written: the ordering half — the
+`+` rows — has still been tested only on twoknobs and its two drafts.
+
