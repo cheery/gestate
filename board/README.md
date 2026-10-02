@@ -63,16 +63,11 @@ day's commits touched four.  So the filter above chooses the next card
 in its `blocked` line, not by preference — and a card does not become
 `doing` before its postcondition is written (§"The postcondition").
 
-1. **[snap-grid](snap-grid.md)** — a control for the grid a note
-   snaps to; today it is read off the roll's own notes, so a piece in
-   quarters can never be given an eighth.  *Arrived on 2026-09-23, his ask
-   for the next day; placed first because he named it next — his to
-   move.*
-2. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
+1. **[gui-is-difficult](gui-is-difficult.md)** — the ideas a GUI
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
    dialogue.  *Arrived unplaced, 2026-09-07.*
-3. **[relational-model](relational-model.md)** — the `.notes` format is
+2. **[relational-model](relational-model.md)** — the `.notes` format is
    a relation, and this holds it to what relational practice paid to
    learn: eight scars, each to be paid, refused or built, and the
    decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
@@ -80,11 +75,11 @@ in its `blocked` line, not by preference — and a card does not become
    2026-09-14 at his word: the model first, the text its projection,
    the kinds derived; the physical turn is his.  2026-09-22: Prela
    read at its page, three items and one moved number, nothing built.*
-4. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
+3. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
    are gestate expressions, and `.notes` as the first grid; the textbox
    is the window's own line editor.  *Off the shelf 2026-09-12,
    unplaced.*
-5. **[strict-forms](strict-forms.md)** — the language refuses what
+4. **[strict-forms](strict-forms.md)** — the language refuses what
    Python allows and the cost is paid in Python: three seams measured
    on one slice, eight families of typed languages that attack the
    shape, each priced against the language goal.  *Arrived unplaced,

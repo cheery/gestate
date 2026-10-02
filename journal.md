@@ -101,4 +101,6 @@ class (`b38fb8f`, `doc/trial/signals.md` §"The grader, built").  Week
 two defects in `tools/journalroll.py` — earlier months' themes lost,
 and the weekly account's contract inside the generated block — both
 fixed and held (`9bfcfeb`).  And his remark at the end: *"finding out
-about the reactor model probably changes things here."*
+about the reactor model probably changes things here."*  Then his hands on
+`card:snap-grid.md` — *"it holds, close snap-grid"* — and the card to
+`done/`; the week's goal met the same day it was written.

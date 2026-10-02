@@ -1,6 +1,6 @@
 # snap-grid — a control for the grid a note snaps to
 
-    status   doing — 2026-09-24
+    status   done — 2026-10-02
     because  "itseasiassa mitä haluaisin olisi jokin nappi jolla ohjata
              ruudukon snap-väliä.  Esim. nyt kaikki on
              neljäsosanuotteja, jos haluaisin luoda
@@ -105,3 +105,17 @@ gone 2 failed of 101 on a whole-file run after this change; with
 `test_snapgrid.py` beside it, 134 passed, and the full suite at
 `c0d9c9f` passed both files whole — its one red was
 `tools/presscost.py`'s lost mode, not this.  Load, most likely.
+
+## Done — 2026-10-02
+
+**Henri:** *"it holds, close snap-grid."*  The postcondition held at
+his hands: a bar told its grid by toolbar C makes, moves and lengthens
+its notes on that grid — an eighth's end now caught 8 px past the note
+(`c0d9c9f`) — and a bar told nothing snaps as before.  Built in four
+slices on 2026-09-24, `test/test_snapgrid.py`; the story is in
+`journal.md` §"Week 39" and §"Week 40".
+
+Left: nothing on this card.  The two-failure run of `test_audioeditor.py`
+did not reproduce (§"His hands on it"), and reading 4 — a held key —
+stays answered rather than built: *"It requires modes to be visually
+distinct and disappearing."*
