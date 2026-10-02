@@ -4167,7 +4167,11 @@ order inside an instant is ever needed.
 
 * **Per microstep.**  A reaction sees what an earlier reaction of the
   same tag wrote.  The order inside an instant is real and derived from
-  the precedence graph; a cycle is refused.
+  the precedence graph; a cycle is refused.  *Misnamed — corrected by
+  §"Lingua Franca, read at its page" below: in the paper a port set at
+  tag g is seen downstream **at g itself**, in dependency order; the
+  microstep is only for an action scheduled with zero delay.  "Same
+  tag, in dependency order" is the right name for this option.*
 * **Per tag.**  Every reaction of a tag reads the world as it stood when
   the tag began, and all writes land together at its end — Dedalus's
   `next`.  Nothing inside an instant needs an order; two writers of one
@@ -4244,6 +4248,90 @@ not in anything read here.  The paper to read is the LF one itself
 Systems*, ACM TECS, about 2021 — named from memory), or LF's own
 documentation; fetched into `~/misc/papers/`, it is read at its page
 before any syntax is proposed.
+
+## Lingua Franca, read at its page — 2026-10-02
+
+**Henri:** *"~/misc/papers/reactors.pdf is in, but it's hundred pages
+or so.  It's like you remember, but worthwhile to check."*  Marten
+Lohstroh, *Reactors: A Deterministic Model of Concurrent Computation for
+Reactive Systems*, PhD thesis, UC Berkeley, Technical Report
+UCB/EECS-2020-235, December 2020; 169 pages.  Read: chapter 3 whole
+(pp. 54–82), §2.3, Remark 4.  *The reading is the session's.*
+
+**What LF is, in its own words (§3.1):** *"a polyglot coordination
+language"* — it defines and composes reactors and leaves reaction
+bodies to a target language, spliced verbatim between `{=` and `=}`.
+It does no type checking (*"LF generally does not do any type
+checking"*, §3.1) and cannot enforce that a body touches only what it
+declared, *"in C there is little that can be enforced"*.  **In gestate
+the target would be gestate**, so both of those holes close: the
+bodies are typed, and what a body reads and writes is inferable.
+
+### The grammar, against what the tree has
+
+| LF (§3.5–3.7) | what it says | in gestate |
+|---|---|---|
+| `reactor Name(p: T(default))` | a class; parameters immutable after instantiation | a definition with arguments |
+| `input x: T`, `output y: T` | ports; *"always absent by default"* | a channel; `ExL` is a value present at some instants |
+| `state count: T(0)` | carried from one logical time to the next, private to the instance | a `scanE` accumulator; a chart's `s` |
+| `logical action a(minDelay, minSpacing, policy)` / `physical action` | scheduled by the reactor itself; physical ones tag external events | nothing yet; his *animation frame* is a physical action |
+| `timer t(offset, period)` | **syntactic sugar** for a self-rescheduling logical action (Listings 3.10–3.11) | — |
+| `reaction (triggers) sources -> effects {= … =}` | the signature lists what triggers it, what it may read, what it may write; *"if a reaction sets a port … that is not among its effects, the compilation error will result"* (§3.6) | the grades of `doc/trial/signals.md` — reads as coeffects, writes as effects — **declared** in LF, **inferred** by `tools/grades.py` |
+| `deadline(2 msec) {= … =}` | an alternative body run when the reaction starts too late | the audio callback's own constraint, unnamed |
+| `x = new Foo(p = 1)` | instantiation; a containment hierarchy | — |
+| `a.out -> b.in` / `a.out ~> b.in` | a logical connection, or a **physical** one: *"handled later, in some arbitrary order"*, compared to JavaScript's event queue — *"intentionally introducing nondeterminism"* (§3.5) | — |
+| `new [n] Foo`, `input [n] x` | banks and multiports, `bank_index` | *"one of three hundred notes"* — a note per instance |
+
+### What changes in the sketch above
+
+1. **Visibility is "same tag, in dependency order", not "the next
+   microstep"** — corrected in place above.  A microstep separates only
+   what an action scheduled with zero delay.
+2. **Two writers already have LF's answer, and it is both of Q8's
+   (a) and (b).**  Across reactors, an input has one source — the
+   connection is declared, so two writers into one input is a
+   *compile-time* error.  Inside one reactor, *"reactions … overwrite
+   an output produced by a previous reaction"* (§3.8), in the
+   reactor's declared priority (Remark 4) — which is answer (b), the
+   order being the order they are written in.
+
+### The finding for composing a GUI
+
+**What made the compile-time refusal of §"Prepared" hard was that who
+hears a press is decided by layout.**  Overlap is geometry, so the grade
+on `Sub` had to approximate it — `Over` conservative, nesting refused.
+**LF does not have the problem, because who hears what is a declared
+connection** (§2.3: *"the causality interface of a reaction is always
+complete … a programmer cannot forget to declare a dependency without
+breaking the program"*).  A GUI written this way declares its wiring —
+the cell's press goes to the cell, the note's press to the note — and
+the picture only *draws*.  Two writers into one input are then refused
+by a check over declarations, with no layout in it.  That is a reading,
+not a measurement: what a press *lands on* is still geometry, and a
+`press -> note.press` connection has to say which instance a point
+means; banks (`new [n]`) and `bank_index` are the paper's tool for it,
+and how they meet a hit test is the open part.
+
+**And the semantics is signals (§3.8).**  A reactor is modelled as a
+function from tuples of signals to tuples of signals — a signal being
+*"a partial function s : T ⇀ V"* over tags — and a program as the
+unique fixed point of their composition.  gestate's `Sig` and `ExL`
+are signals already, and `sync`/`scanE` compose them; *whether* LF in
+gestate's syntax is mostly surface over that machinery is the question
+worth testing first, and nothing here measures it.
+
+### Open, and his
+
+1. **Declared or inferred signatures.**  LF requires the signature and
+   refuses a body that strays; gestate can infer it.  Both: write it,
+   and check the body against it — the grader as the checker.
+2. **Where the wiring lives.**  In a `reactor` block as LF does, or as
+   facts — `connection` records in a document — which would make the
+   topology itself editable while it runs (§3.8: a mutation is *"the
+   termination of one deterministic program … and starting a new one"*
+   between time steps).
+3. **What a press is wired to.**  A hit test names an instance; LF's
+   connections name ports.  The meeting point is the open design.
 
 ## What a session does now
 
