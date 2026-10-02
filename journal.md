@@ -70,3 +70,35 @@ rotates" is the contract, and the rotation is an act of the fire, not of a
 gate.
 
 ---
+
+## Week 40 — 2026-09-28 to 2026-10-04
+
+**Theme.**  When a value is read — the reactor model and graded types
+read against the tree, and `card:snap-grid.md` brought to its close.
+*The session's proposal, his to correct.*
+
+**Goal.**  *The session's proposal, written Friday with the week half
+gone:* `card:snap-grid.md` closed against its postcondition at his
+word, or its remaining gap named as a number — so that the next card is
+chosen by the board's filter and not by the morning's conversation.
+
+**Monday 28.9 to Thursday 1.10.**  No work.
+
+**Friday 2.10.**  He brought the reactor paper (Lohstroh et al.) and
+asked two things: where it would shine here, and whether gestate could
+already be tend's systems language.  The place he had in mind was the
+GUI.  Then his hunch — graded modal types giving the reactor's
+guarantees inside an effect monad — and the two grading papers fetched
+(Orchard, Liepelt and Eades; Gaboardi et al.).  Twoknobs graded by
+hand: reads as coeffects, writes as effects, one synchronous rule; both
+wrong drafts rebuilt from the record, 1 and 64 of 800
+(`python tools/signalcase.py drafts`, `5833b59`).  Then, at his word,
+the grader — `tools/grades.py`, every `scanE` step run symbolically —
+which found bounce's explicit Euler as a stale read the hand grading
+had missed, and merged the hand's *refused* and *unwritable* into one
+class (`b38fb8f`, `doc/trial/signals.md` §"The grader, built").  Week
+39 closed *met* at his word and September rotated; the rotation found
+two defects in `tools/journalroll.py` — earlier months' themes lost,
+and the weekly account's contract inside the generated block — both
+fixed and held (`9bfcfeb`).  And his remark at the end: *"finding out
+about the reactor model probably changes things here."*
