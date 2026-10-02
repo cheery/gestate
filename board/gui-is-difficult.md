@@ -4333,6 +4333,26 @@ worth testing first, and nothing here measures it.
 3. **What a press is wired to.**  A hit test names an instance; LF's
    connections name ports.  The meeting point is the open design.
 
+**His answers, the same evening:** 1 — *"declared and checked sounds
+better."*  2 — *"in a reactor block as LF has it."*  3 — *"I'm not
+sure.."*
+
+**The session's reading of 3, offered and not decided.**  Split the
+press in two.  *Where it goes* is fan-out, which LF allows — one output
+to many inputs: the window is a reactor with one physical action,
+`press`, and its hit test is a reaction that forwards it to the
+instance under the point — in a bank, `new [n] Note`, the hit test picks
+the `bank_index`; two banks may both receive it.  *Where the writes
+meet* is where the conflict lives, and that is wiring: the document is
+a reactor with an input `acts`, and `cells.acts -> doc.acts` beside
+`notes.acts -> doc.acts` is two sources into one input — refused at
+compile time.  The program then merges them in a reactor that states
+the order (Q8's (b)) or leaves one unconnected (Q8's (c)).  **So
+geometry decides only who receives, which is harmless, and who may
+write is declared** — and §"Prepared"'s grade on `Sub` would not be
+needed.  Whether that reading holds is a strawman away: `two-hands`
+written as reactors, on paper.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
