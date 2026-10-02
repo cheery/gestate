@@ -4109,6 +4109,117 @@ arrives, no solver (`doc/trial/signals.md` §"Case 5 graded by hand").
 today still loads.  The trigger to revisit Q8's (a): `Over`'s
 conservative row refusing a program that is correct.
 
+## The reactor model, sketched before it is built — 2026-10-02
+
+**Henri:** *"I wonder where are we going to here right now?  Could it be
+just easier to sketch what the reactor model would be? instead of
+implementing it straight away."*  Then, on the three questions the
+first outline put to him — *"Isn't it a logical time + real time -sort
+of a thing?"*; on when a fact commits, *"I don't know to answer right
+away before I see what the consequences are"*, and later *"should be
+decided by what is predictable or model-checkable?"*; and on the
+threads, *"I'd guess the scheduler would replace them, unless there's a
+reason to sit beside them."*  *The sketch is the session's; nothing in
+it is decided.*
+
+**What it is for.**  Expectation 8 — *every GUI thing seems to need the
+same things, in different forms* — and this card's open seam, *where a
+chart's actions go*.  The question the sketch answers on paper: is a
+reactor the one form the four forms of §"Where the statecharts fit"
+live in?  §"Built — 2026-10-02" tested one corner of it, the single
+writer, and **not** what the paper is distinctive for: logical time and
+a fixed order inside an instant.
+
+### What gestate already has, in the paper's words
+
+Each row checked against the code it names, 2026-10-02.
+
+| the paper | in the tree |
+|---|---|
+| a **tag** `(t, μ)` — logical time, jumping to the next event's | nothing yet: the host's instants are untagged |
+| an **input port** | a channel — `gui.ges`' `input : Chan Event`, a knob, `clock` |
+| **state** | a document's relations (`document "kind"`, `gestate/stage.py`), and a chart's own `s` |
+| a **reaction** | a chart's step `s -> e -> Step s a` (`chart.ges`), a `scanE` step (`signal.ges`), a `Does` on a press |
+| an **output** | `Act := Assert … \| Retract … \| Refuse …` (`prelude.ges`) |
+| **dependencies and antidependencies** | the grades of `doc/trial/signals.md` §"Case 5 graded by hand": reads as coeffects, writes as effects; `tools/grades.py` derives them for `scanE` |
+| the **precedence graph** | derived from the grades; a cycle refused — the paper's *algebraic loop* |
+| one port, one writer | `gui.two_writers`, at the press (§"Built — 2026-10-02") |
+| a **physical action** | a press, a key, a MIDI message — stamped with its arrival, so a recorded session replays to the same tags |
+| a **mutation** | a live edit: a rebuild lands between tags, never inside one |
+
+**What would be new: the scheduler that owns the tags, and the rule
+for when a write is seen.**  Everything else is a renaming of something
+built, which is the reason to take it seriously.
+
+### Simultaneity is made, not found
+
+Logical time follows the events, so there is no grid to choose — his
+correction of the outline.  **Two physical events almost never share a
+tag.**  What makes things simultaneous is *quantising*: twoknobs' knob
+turn and its sample were one instant only because the control is read
+once a block (`control_every`), which put the turn on a sample's tag.
+So the decision under the old *how fine* is **which inputs are put on
+another input's clock** — a knob onto the audio block, a press onto
+the frame — and it matters because simultaneity is the only place an
+order inside an instant is ever needed.
+
+### When a write is seen — the two, and what each costs
+
+* **Per microstep.**  A reaction sees what an earlier reaction of the
+  same tag wrote.  The order inside an instant is real and derived from
+  the precedence graph; a cycle is refused.
+* **Per tag.**  Every reaction of a tag reads the world as it stood when
+  the tag began, and all writes land together at its end — Dedalus's
+  `next`.  Nothing inside an instant needs an order; two writers of one
+  kind are a conflict at the commit, which is what was built today.
+
+**Against his criterion — predictable, model-checkable — both are
+deterministic**, so both give a model checker one step function a tag.
+What differs is what must be checked: per microstep, that the graph is
+acyclic; per tag, that conflicting writes merge or are refused.  For a
+reader, per tag is local — each reaction reads alone — and per
+microstep needs the graph in view.
+
+**And the tree has already measured one of them.**  Twoknobs' draft 2
+*is* per-tag commit: the tick read the knob as the tag began, and
+scored **64 of 800**.  The signal arm, `zip` reading the instant's
+value, is per microstep, and its golden is the one the piece was
+written against.  So **signals already chose per microstep**, and the
+choice may be per layer — signals and cells per microstep, facts per
+tag — which is a question the sketch can state and not answer.
+
+**The example that would split them** (§"What the slice did not
+test", the session's reply to *"what did we test with this again?"*):
+a press that selects a note and starts dragging it, two charts.  Per
+microstep, the drag sees the selection the same press made; per tag, it
+sees it at the next event.  Worked both ways on paper first.
+
+### The scheduler, and the one thread that stays beside it
+
+The host today, `gestate/audioeditor.py` and `gestate/workbench.py`: a
+rebuild worker, the audio loop, a housekeeper copying the clock across,
+a starter and a restart, a reaper at shutdown, and the MIDI reader
+(`audiomidi.py`).  **The scheduler replaces the coordination.**  A long
+compile becomes a worker whose result *arrives* as a physical action;
+MIDI and the window's events become physical actions stamped at the
+door; the housekeeper's copying becomes reactions on the clock's tags.
+
+**The one reason to sit beside: the audio deadline.**  The callback
+answers every block in compiled code, and a Python scheduler cannot be
+on that path.  So audio is its own domain on its own clock, and the
+scheduler meets it at block boundaries in tagged messages — which is
+also where the quantising above happens, and why the two questions are
+one.
+
+### Open, and his
+
+1. **Which inputs are quantised onto which clock.**
+2. **When a write is seen, per layer** — after the select-and-drag
+   example is worked both ways.
+3. **Where the scheduler's tags come from when nothing arrives** — the
+   frame clock, the audio clock, or none: a reactor with no events
+   does not advance, and a picture that animates needs something to.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
