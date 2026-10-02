@@ -4593,6 +4593,65 @@ ever do anything unexpected silently*.  So a lens here would refuse
 such a revision, or say it — the first place this tree's rules and the
 paper's defaults differ.
 
+## Where the statecharts go, now — 2026-10-02
+
+**Henri:** *"I wonder, how would the statecharts fit into here?  We
+have disregarded them for now."*  Then: *"yes, record it on the card..
+modal reactors: https://arxiv.org/pdf/2301.09597v1"* — Schulz-Rosengarten
+et al., *Modal Reactors*, arXiv 2301.09597.  **Unread**: the session's
+fetch was refused by the harness; the paper waits in
+`~/misc/papers/` for his hand, and nothing below leans on it.  *The
+reading is the session's.*
+
+**Charts are what a reactor's transient state is written in.**  The
+strawman above had reactions that fire whenever their port has a value,
+whatever the gesture is doing — which is why no drag appeared in it.
+§"Where the statecharts fit" already has the chart:
+`Chart s (s -> e -> Step s a) (s -> List a)`, hierarchy as a nested
+constructor, `beside` for orthogonal regions.  Against the last
+sections:
+
+| piece | its part |
+|---|---|
+| the model, behind a **lens** | persistent state — the document, the truth |
+| the **reactor** | the container — ports, wiring, logical time, who hears what |
+| the **chart** | the behaviour of the reactor's transient state — what an event means in which state |
+| the chart's **actions** | lens `put`s — the one way out to the model |
+
+A drag with all three, a strawman and strikeable:
+
+    reactor NoteHand (at : Lens Position)
+      input press, move, release : Point
+      output preview : Sub
+      chart Idle
+        Idle      on press p    -> Dragging (get at) p
+        Dragging  on move q     -> Dragging from q        # a preview, nothing put
+        Dragging  on release q  -> Idle  [put at (moved from q)]
+
+Nothing reaches the model until the release — idea 3, *a gesture writes
+nothing until it commits*, now held by the shape rather than by care.
+
+**What the chart brings that the reactor and the lens do not:**
+finite states, so reachability and the unhandled (state, event) pairs
+can be listed — `test/test_transport_model.py` did it for the
+transport, and it is his *predictable or model-checkable* criterion
+applied to a gesture; hierarchy, which stays inside one reactor; and
+orthogonal regions, `beside`, which may become **sibling reactors** —
+they already cannot read each other, which is what two unconnected
+reactors are.
+
+### A third tier of state, not named until now
+
+The snap-grid's *bar last pressed*, a selection: they outlive a gesture
+and are not in the document, so they are neither a lens's model nor a
+chart's transient state.  Today they are session state held in Python
+(`session.py`, the bench).  Either they become a model of their own — a
+session document behind lenses, inspectable and replayable — or they
+stay out of it.  **His to decide**, and it is the select-then-drag
+example of §"The reactor model, sketched before it is built" in another
+form: the selection is exactly the state that example asks *when* the
+drag sees.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
