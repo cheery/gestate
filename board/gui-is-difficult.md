@@ -4353,6 +4353,108 @@ write is declared** — and §"Prepared"'s grade on `Sub` would not be
 needed.  Whether that reading holds is a strawman away: `two-hands`
 written as reactors, on paper.
 
+## `two-hands` as reactors, on paper — 2026-10-02
+
+**Henri:** *"write two-hands as reactors on paper."*  A strawman: LF's
+structure (§"Lingua Franca, read at its page") in gestate's layout,
+signatures declared and checked, wiring in a reactor block — his
+answers 1 and 2.  *Every spelling below is the session's and
+strikeable; nothing parses it.*
+
+    # The document: the one place notes are written.
+    reactor Dots
+      input [2] acts : List Act         # a multiport — see finding 1
+      output notes : Notes
+      state ns : Notes = file "two-hands.dots"
+      reaction (acts) -> notes =
+        performed ns (acts[0] ++ acts[1])   # note's first: the order, written
+
+    # One cell of the roll; a bank of 32 knows its step and key.
+    reactor Cell
+      input press : Unit
+      output acts : List Act
+      reaction (press) -> acts =
+        asserting noteRel (bank_index % 8, bank_index / 8) :: Nil
+
+    # One note slot — see finding 2 for why a slot and not a note.
+    reactor Note
+      input press : Unit
+      input notes : Notes                # a source: read, never a trigger
+      output acts : List Act
+      reaction (press) notes -> acts =
+        case has notes (bank_index % 8) (bank_index / 8) of
+          True -> retracting noteRel (bank_index % 8, bank_index / 8) :: Nil
+          False -> Nil
+
+    # The window: one physical action, and the picture says who hears it.
+    reactor Canvas
+      physical action press : (Int, Int)
+      input notes : Notes
+      output [32] toCell : Unit
+      output [32] toNote : Unit
+      output picture : Sub
+      reaction (notes) -> picture = roll notes
+      reaction (press) notes -> toCell, toNote = routed (roll notes) press
+
+    main reactor TwoHands
+      dots = new Dots
+      cells = new [32] Cell
+      slots = new [32] Note
+      canvas = new Canvas
+      canvas.toCell -> cells.press
+      canvas.toNote -> slots.press
+      dots.notes -> canvas.notes, slots.notes
+      slots.acts, cells.acts -> dots.acts       # see finding 1
+
+### What writing it found
+
+1. **The static check holds, and is conservative, and the cure is
+   declared.**  `cells.acts -> dots.acts` beside `slots.acts ->
+   dots.acts` into a single-width input is two sources — refused at
+   compile time, *whatever the geometry*, even for a press that misses
+   every dot.  So the check did move from layout to wiring, as the
+   reading of Q3 said.  The program answers it by making the input a
+   **multiport** (LF Listing 3.18: a list on the left, a multiport on
+   the right), and then `Dots` says the order in its own body —
+   `acts[0] ++ acts[1]`, note's first.  **That line is the 23rd's
+   choice, written.**  Q8's (b) is the multiport; (c) is the next
+   finding.
+2. **"The inner one takes it" moves into the hit test, and is not
+   checked.**  `routed` decides whether a press on a dot goes to the
+   note only, or to both.  If it sends to both, `Dots` performs a
+   retract then an assert — **the silent no-op of today, now legal,
+   because the order is declared.**  So declared wiring catches *two
+   writers* and cannot catch *a declared order that undoes itself*;
+   that is a property of the acts, not of the wiring, and today's
+   `two_writers` at the press is still the only thing that sees it.
+3. **Dynamic membership breaks the bank.**  LF's banks have a width
+   fixed at instantiation; notes come and go.  The strawman cheats with
+   32 *slots*, each asking `has` — which works for a roll of 32 and not
+   for *"one of three hundred notes"*.  LF's own answer is a mutation,
+   between time steps (§3.8): adding a `Note` when a note is asserted.
+   Unread past §3.8; Chapter 2's mutation algorithms (4–8) are where to
+   look.
+4. **The picture and the routing must agree, and here they are two
+   things.**  `roll notes` draws; `routed (roll notes) press` hit-tests
+   the same picture — so they agree only because `routed` reads the
+   drawn `Sub`.  That is what `Meaning` and `Does` are today: **a
+   region of the picture naming what it feeds.**  The meeting point Q3
+   asked for is then this: **the picture names the port and the bank
+   index; the reactor block declares the connection; the hit test only
+   reads the one against the other.**  `Takes` becomes the picture
+   saying *this region feeds one port and nothing around it*.
+5. **What is gone compared to the `.ges` today:** `Does` carrying acts
+   in the picture.  Here a picture region names a *port*, and acts are
+   produced by the reaction behind it — so the picture holds no
+   behaviour, which is what the card's first rule asks of a GUI
+   (§"The one that comes first": the model and its commands first,
+   the picture what falls out).
+
+**What it does not settle:** whether a `reactor` block is new syntax
+or sugar over `Sig`, `ExL` and `sync` (§"Lingua Franca, read at its
+page" — LF's semantics is signals); and finding 2, which says declared
+wiring is not the whole of Q8.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
