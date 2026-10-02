@@ -12,7 +12,6 @@ notes was the same shape in the editor's own boxes.
 """
 from __future__ import annotations
 
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -21,6 +20,13 @@ GAME = ROOT / "examples" / "gui" / "two-hands.ges"
 DOTS = GAME.with_suffix(".dots")
 TAKES = "    True -> Takes ("
 
+#: **The tests' own document, not the example's.**  `two-hands.dots` is
+#: written by whoever plays the example — Henri's first session removed
+#: `step 0 key 0` from it, and the full run of 2026-10-02 went red on two
+#: of these for a note that was no longer there
+#: (`doc/memory/a-shipped-document-gets-played.md`).
+NOTES = "note  step 0  key 0\nnote  step 2  key 1\nnote  step 4  key 2\n"
+
 
 def _copy(word: str = "Takes"):
     tmp = Path(tempfile.mkdtemp())
@@ -28,7 +34,7 @@ def _copy(word: str = "Takes"):
     text = GAME.read_text()
     assert TAKES in text, "the example no longer says `Takes` where the test edits it"
     game.write_text(text.replace(TAKES, f"    True -> {word} ("))
-    shutil.copy(DOTS, dots)
+    dots.write_text(NOTES)
     return game, dots
 
 
