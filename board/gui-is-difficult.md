@@ -4833,6 +4833,9 @@ formatter does not know `reactor` blocks: `checkboxes.ges` is not on
 examples/gui/checkboxes.ges`, canvas tab — press each box; open
 `checkboxes.flags` and add or delete a line.
 
+**His hands on it, the same evening:** *"the checkboxes work."*  The
+slice's postcondition held.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
