@@ -1127,6 +1127,36 @@ his words.*
    calls gained an argument and `doc/ref/commands.md` regenerated.
    **Question 3 is closed.**
 
+**The batch of 2026-10-02 — the slice of two charts on one press.**
+*Shaped by the session: each with a default and what would revisit it;
+his to answer.*
+
+8. **Two writers of one fact kind on one press — what decides?**  Three
+   answers, from the reactor paper at its page:
+   * **(a) refuse.**  Two charts that can write `note` on one press
+     with no order between them is a compile-time refusal — the paper's
+     *at most one incoming connection, strictly enforced*.  The
+     2026-09-23 defect would have been an error message before it was
+     a band.
+   * **(b) a declared order.**  Both run, in a priority the program
+     states; the second sees the first's write a microstep later.
+   * **(c) containment.**  The innermost receiver takes the press and
+     the outer one never fires — the hand rule of 2026-09-23, made the
+     semantics' rule.
+
+   *Default: (a)*, because it is the one that makes the silent case
+   loud — `vision.md`, *"won't ever do anything unexpected silently"* —
+   and (b) and (c) are then the two ways a program answers the refusal.
+   *Revisit if* (a) refuses a program he would call correct.
+9. **Where is it tried?**  In the real editor on `arc.notes`, where the
+   boxes are Python; or in a small `.ges` program with two charts over
+   one fact kind, where `tools/grades.py` can read it.  *Default: the
+   small program*, because the rule has to live in the language to be
+   checked, and the editor's boxes are host code.  His two minutes:
+   press where the two overlap and see one outcome, then take the order
+   away and read the refusal.  *Revisit if* a toy cannot reproduce what
+   the 23rd's presses did — then it is `arc.notes` or nothing.
+
 ## The first slice — proposed 2026-09-07, evening; his to take or strike
 
 Henri: *"what should be the first slice here?  Are we ready to decide
@@ -4001,6 +4031,26 @@ two charts writing one fact kind on one press.
 
 *Not a design, and nothing built for it.  The critical parts are his
 (§"What this is").*
+
+**The postcondition kept, and the slice named — Henri, 2026-10-02:**
+*"keep it, two charts on one press as the slice."*  So the reactor
+reading has to arrive as something his hands can try in two minutes,
+not as a second measure beside it.
+
+**The instance the tree already paid for.**  2026-09-23, a third of all
+presses on `arc.notes` reached two boxes — each pad reaches past its
+music and lies over its neighbour — and one moved the note while the
+other swept a band: two receivers of one press, both writing notes
+(`card:notes-editor.md` §"A press in the middle of a note").  It was
+fixed by hand, in Python: *a press is the box's whose music it lands
+in.*  The slice is that rule, or its refusal, coming out of the
+semantics rather than out of a sentence someone remembered to write.
+
+**What the reactor paper says about it, at its page:** two writers of
+one port inside one reactor run in a declared priority order; across
+reactors *"each port can have at most one incoming connection.  This
+requirement has to be strictly enforced"* (§2.1).  Three answers, then,
+and the choice is his — §"Questions", the batch of 2026-10-02.
 
 ## What a session does now
 
