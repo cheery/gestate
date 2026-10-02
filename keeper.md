@@ -160,16 +160,27 @@ and the full contract is `spec/rules.md` §"The rotation is an act of the
 fire":
 
 1. **Skim the closing month once.**  At heading level.  Not a read.
-2. **Promote the two or three lines that pass the earning test** into
+2. **Read the vision against the month** — *the vision's Check and
+   Act, adopted 2026-10-02: "It'd be useful to connect monthly journal
+   rotation to the vision check. I think lets take that in and see how
+   things go."*  Take one or two of the expectations in
+   `doc/memory/expectations-dug-up.md` and read each against what the
+   closing month did: met, broken, or not yet tested — and if not yet,
+   whether its trigger came.  Write the answer under the expectation,
+   dated, and what it changes: a line of `vision.md` to write or strike
+   (yours), a card that follows from it, or nothing.  A month that tests
+   no expectation is a finding too — the vision and the work have
+   drifted apart, and that is worth one sentence.
+3. **Promote the two or three lines that pass the earning test** into
    the method files.  The test: would a stranger who never saw the
    incident need this sentence in order to *follow* the rule?  If they
    only need it to *believe* the rule, it stays journal.  **Most months
    promote nothing, and that is the expected result.**
-3. **Write the index line** — one line naming the month's themes, so a
+4. **Write the index line** — one line naming the month's themes, so a
    session looking for June's audio work opens June and nothing else.
    Leave the heat out; a month is not owed a theme it would rather not
    have.
-4. **Close the file:**
+5. **Close the file:**
 
 ```sh
 python3 tools/journalroll.py --roll --themes "…"
@@ -179,7 +190,8 @@ Nothing is rewritten.  Git already remembers, and a journal that is
 retroactively edited becomes a second source of truth about the past —
 `spec/rules.md` §"Archive, don't airbrush".
 
-**Steps 1, 3 and 4 a session may draft for you.  Step 2 is yours**, and
+**Steps 1, 4 and 5 a session may draft for you, and step 2's reading.
+Step 3 is yours, and step 2's verdict**, and
 not out of ceremony: it edits the five documents, and `spec/author.md`
 is the author's.
 
