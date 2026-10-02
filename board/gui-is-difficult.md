@@ -4500,6 +4500,99 @@ routing is written once; mutations, so a note is an instance; and
 composition at the size where it pays — the notes editor's Python
 boxes, charts and threads, not a sixty-line toy.
 
+## A checkbox, and the lens it should be given — 2026-10-02
+
+**Henri,** on the reactor checkbox's `state checked` and `output on`:
+*"It shows a data binding issue.  Though, we do have a solution for this
+already: the relation model and command language.  But it needs a
+different shape than what we have had so far.  In ideal situation, the
+checkbox would get something like a boolean-shaped lens."*  Then:
+*"~/misc/papers/prela.pdf and ~/misc/papers/relational-lenses.pdf are
+probably both relevant here."*
+
+**The pitfall he named:** a component that keeps `state checked` holds a
+*copy* of a truth that lives in the model, and `output on` is the job of
+keeping the two in step.  Reactors give the copy a tidy home and do not
+remove it.  **A lens removes it:** the component holds no state; it is
+given `get` (a query of the model) and `put` (a command against it).
+
+**Where state lives, then — the session's reading.**  *Persistent* state
+is the model's, reached through a lens; a checkbox has nothing else, so
+a checkbox is a lens and a picture — no reactor, no state.  *Transient*
+state — a drag under way, a hover, a half-typed field — is a reactor's.
+A drag handle is a reactor *with* a lens: it holds the drag and `put`s
+once, at the release.  This is §"Where the statecharts fit"'s facts and
+charts, with a rule for which is which.
+
+### Bohannon, Pierce and Vaughan, read at its page
+
+*Aaron Bohannon, Benjamin C. Pierce and Jeffrey A. Vaughan.  "Relational
+Lenses: A Language for Updatable Views."  PODS '06, Chicago, pages
+338–347.  ACM, 2006.*  Read whole.
+
+* **A lens is `get : Σ → Δ` and `put : Δ × Σ → Σ`** (Def. 3.1) — `put`
+  takes the *original* concrete state too, which is how what the view
+  does not show is restored.  **Well-behaved** is two laws (Def. 3.2):
+  *GetPut* — putting back what you got changes nothing; *PutGet* —
+  what you put is what you then get.
+* **The update policy is part of the expression.**  `join_dl` deletes
+  from the left table (§5.2); `drop A determined by (X, a)` supplies
+  `a` for a row the view adds (§5.3).  *Every expression read left to
+  right is a view and right to left is an update policy* — the order
+  written in the program again, as in the strawman's multiport.
+* **Functional dependencies are what make `put` decidable** — keys,
+  and FDs in *tree form* (§4.2); relation *revision* (§4.3) makes
+  records agree with the view on them, and *never makes up a value*
+  (Lemma 4.3.4).
+* **Lenses compose** (§5.4, T-Compose): `(v; w)` gets left to right and
+  puts back right to left.
+* **Limits it states itself (§7):** whole database states, not deltas
+  — *"it would be interesting to study whether we can preserve lens
+  semantics while only working with small 'deltas'"*; and only total
+  lenses — partial ones *"that can fail during putback"* are future
+  work.
+
+### What it gives gestate
+
+1. **The boolean lens is two of their primitives composed.**  For a
+   cell of `two-hands`: `select from note where step = s ∧ key = k`,
+   then drop every non-key field with its default — the declared key
+   `("step" :: "key" :: Nil)` being the FD that makes it total.  `get`
+   is *the view is not empty*; `put True` into an empty view is `drop`'s
+   default row; `put False` empties it.  **`two-hands`' cell and note
+   are `put True` and `put False` of one lens** — written today as two
+   writers because nothing could say they were one thing.
+2. **Gestate already has the delta form they leave as future work.**
+   `put` here returns `List Act` — assert and retract — not a new
+   database: the command language *is* the delta.  Prela's note on the
+   relational card says the same from the other side: *the act list
+   for the file is the difference of the column before and after*.
+3. **Gestate already has the partial lens they leave as future work:**
+   `Refuse`.  Their totality is a typing guarantee; a `put` that
+   refuses is a runtime answer.  Which one a lens here should be is a
+   choice to make per primitive, and theirs is the stronger default.
+4. **A finer single-writer rule.**  A lens's footprint is its `select`
+   predicate: two lenses conflict only where their footprints meet,
+   and for key-equality predicates that is decidable statically — Q8
+   asked per *kind*, the lens answers per *key*.
+5. **Prela makes the machinery small.**  In Prela's binary form every
+   relation is a function from key to one value, so its one FD is in
+   tree form trivially and revision is an overwrite at a key — the
+   paper's hardest part (§4) collapses to `col.at(key)`.  *A reading,
+   not checked against a case the paper finds hard.*
+
+### The caution it raises
+
+**`select`'s `put` may change rows the view does not show**, to keep an
+FD (§5.1: the record `(a1, b1, c1)` *"replaced with … (a1, b2, c1) to
+preserve the functional dependency A → B, even though this record was
+not visible in the abstract view"*), and may delete conflicting ones —
+*"safe, if somewhat counter-intuitive."*  For a GUI that is a press
+changing something the person cannot see, which is `vision.md`'s *won't
+ever do anything unexpected silently*.  So a lens here would refuse
+such a revision, or say it — the first place this tree's rules and the
+paper's defaults differ.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
