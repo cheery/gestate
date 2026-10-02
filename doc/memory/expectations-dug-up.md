@@ -1,6 +1,6 @@
 ---
 name: expectations-dug-up
-description: "Week 39: Henri's expectations are being dug up for vision.md, one or two per conversation and slowly; thirteen candidates from the tree, one met at his word, the rest open"
+description: "Week 39: Henri's expectations are being dug up for vision.md, one or two per conversation and slowly; thirteen candidates from the tree, one met at his word, the rest open — and a fourteenth pre-registered 2026-10-02, reactors cutting GUI ceremony tenfold, with its baseline"
 metadata:
   type: project
 ---
@@ -70,6 +70,29 @@ Stated as expectations:
 4. **One card at a time, decided 2026-09-23:** packages worked in
    sequence finish sooner than ones started together.  Open;
    `tools/flow.py` lead times before and after, read in about a month.
+
+14. **Reactors and the GUI's ceremony, his, 2026-10-02:** *"I believe
+    reactors themselves would reduce the amount of ceremony we need for
+    a GUI, by an order of magnitude."*  Measured on *"all GUI code, but
+    mainly the notes editor"*; by when — *"we will figure it out as soon
+    as we try this out for real"*: a trigger, not a date — the first
+    real port of a piece of the notes editor to reactors.  **What would
+    show it wrong:** the ported part under a tenth of what it replaces
+    is the claim; a ratio nearer one is the claim failing.  **Baseline,
+    taken before anything is ported** — code lines, non-blank and not a
+    comment, Python docstrings counted:
+
+        f() { for x in "$@"; do grep -v '^\s*$' "$x" | grep -v '^\s*#' | grep -v '^\s*//' | wc -l; done | paste -sd+ | bc; }
+        f gestate/scorebox.py gestate/roll.ges gestate/hand.ges gestate/hands.ges gestate/gesture.ges gestate/grid.ges gestate/gridbox.py gestate/charts.py gestate/chart.ges   # 2776
+        f gestate/gui.py gestate/gui.ges shell/panel/src/list.rs shell/panel/src/substrate.rs shell/editor/src/walk.rs                                                   # 2329
+        f gestate/audioeditor.py gestate/workbench.py                                                                                                              # 3919
+
+    The notes editor's own picture, hands and gestures are the first
+    line — `scorebox.py` 1832 of it; the second is the canvas machinery
+    under every GUI; the third is the host, which also holds the
+    instrument and is an upper bound.  The file set is the session's,
+    his to correct.  Context: `card:gui-is-difficult.md` §"Mutations,
+    read — and his view of the ceremony".
 
 Broken already — each written down with what happened:
 
