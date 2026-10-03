@@ -17,6 +17,12 @@
 # **Pull a note's end** to change its length, a sixteenth at a time and
 # never under one — the end is a part of the note's picture of its own,
 # `hold end`, so where it is is said once, where the note is drawn.
+#
+# **Sweep a band over empty roll** and every note it touches is
+# selected; a press on empty roll clears it.  The selection is a
+# **session document** — `selected`, held by the window in memory beside
+# the piece and never saved into `tune.notes` — read and written through
+# a lens like any document.
 
 include "tune.notes"
 
@@ -29,17 +35,43 @@ noteRel = Rel "note"
      :: Col "key" (Range 0 127) :: Col "len" (AtLeast 1) :: Col "vel" (OneOf levels) :: Nil)
     ("section" :: "bar" :: "voice" :: "at" :: "key" :: Nil)
 
+#: A note selected, named by its place — the note's own key.
+selRel : Rel
+selRel = Rel "selected"
+    (Col "section" Word :: Col "bar" (AtLeast 1) :: Col "voice" Word :: Col "at" (AtLeast 0)
+     :: Col "key" (Range 0 127) :: Nil)
+    ("section" :: "bar" :: "voice" :: "at" :: "key" :: Nil)
+
 model : List Rel
-model = noteRel :: Nil
+model = noteRel :: selRel :: Nil
 
 lines : List Line
-lines = Line "note" Named ("section" :: "bar" :: "at" :: "len" :: "voice" :: "key" :: "vel" :: Nil) Nil :: Nil
+lines = Line "note" Named ("section" :: "bar" :: "at" :: "len" :: "voice" :: "key" :: "vel" :: Nil) Nil
+    :: Line "selected" Named ("section" :: "bar" :: "at" :: "voice" :: "key" :: Nil) Nil :: Nil
+
+#: The kinds the window holds in memory, not in a file.
+session : List Text
+session = "selected" :: Nil
 
 type NoteRow = $(rowType noteRel)
 type Tune = Set NoteRow
+type Pick = $(rowType selRel)
+type Picks = Set Pick
 
 tune : Sig Tune
 tune = document "note"
+
+picks : Sig Picks
+picks = document "selected"
+
+#: What the roll is handed: the notes and the selection, as one model.
+type Model = (Tune, Picks)
+
+both : Sig Model
+both = !pairUp tune picks
+
+pairUp : Tune -> Picks -> Model
+pairUp t p = (t, p)
 
 #: A bar of four beats, ninety-six ticks a beat, as `tune.notes` says.
 span : Int
@@ -74,8 +106,8 @@ sized n dx = case n of
 #: What the note is, and the acts that put it somewhere else — its line
 #: told the new place or length, or, where it was let go as it was
 #: taken, its place said.
-moving : NoteRow -> Lens Tune NoteRow
-moving n = Lens (s => n) (r => case (noteKey r, lenOf r) == (noteKey n, lenOf n) of
+moving : NoteRow -> Lens Model NoteRow
+moving n = Lens (s => n) (s r => case (noteKey r, lenOf r) == (noteKey n, lenOf n) of
     True -> Reveal "note" (keyAtoms n) :: Nil
     False -> MoveTo "note" (keyAtoms n) (rowAtoms r) :: Nil)
 
@@ -91,8 +123,76 @@ rowAtoms : NoteRow -> List Atom
 rowAtoms n = case n of
     (s, b, v, a, k, l, e) -> atoms ((s, b, v, a, k), (l, e))
 
-whole : Lens Tune Tune
-whole = Lens (s => s) (s => Nil)
+whole : Lens Model Tune
+whole = Lens (m => fst m) (m t => Nil)
+
+pickOf : NoteRow -> Pick
+pickOf n = case n of
+    (s, b, v, a, k, l, e) -> (s, b, v, a, k)
+
+#: Two picks the same note — by pairs, the tuples `Eq` has.
+same : Pick -> Pick -> Bool
+same p q = case (p, q) of
+    ((s, b, v, a, k), (t, c, w, d, j)) -> ((s, b), ((v, a), k)) == ((t, c), ((w, d), j))
+
+has : Pick -> List Pick -> Bool
+has p ps = any (q => same p q) ps
+
+#: Whether a note is selected — read, never written, by the note.
+marked : NoteRow -> Lens Model Bool
+marked n = Lens (m => has (pickOf n) (elems (snd m))) (m b => Nil)
+
+#: The selection as a list, and the acts that make it say another one:
+#: what it had and the new one has not, retracted; what the new one has
+#: and it had not, asserted.  `put` sees the model for exactly this.
+chosen : Lens Model (List Pick)
+chosen = Lens (m => elems (snd m)) (m now => dropped (elems (snd m)) now ++ added (elems (snd m)) now)
+
+dropped : List Pick -> List Pick -> List Act
+dropped had now = foldr (p acts => unless (has p now) acts (retracting selRel p :: acts)) Nil had
+
+added : List Pick -> List Pick -> List Act
+added had now = foldr (p acts => unless (has p had) acts (asserting selRel p :: acts)) Nil now
+
+#: `x` before `xs` when `b` holds.
+adding : Bool -> a -> List a -> List a
+adding b x xs = case b of
+    True -> x :: xs
+    False -> xs
+
+unless : Bool -> a -> a -> a
+unless b acts more = case b of
+    True -> acts
+    False -> more
+
+#: The notes a band from (x0, y0) to (x, y) touches — any part of its
+#: bar inside the band, Reaper's rule and today's.
+swept : Tune -> Int -> Int -> Int -> Int -> List Pick
+swept t x0 y0 x y = foldr (n ps => adding (touches n (min x0 x) (min y0 y) (max x0 x) (max y0 y)) (pickOf n) ps) Nil (elems t)
+
+touches : NoteRow -> Int -> Int -> Int -> Int -> Bool
+touches n bx0 by0 bx1 by1 = case n of
+    (s, b, v, a, k, l, e) -> case overlap (tickOf n / 2 - 192) (tickOf n / 2 - 192 + l / 2) bx0 bx1 of
+        True -> overlap ((64 - k) * 8 - 4) ((64 - k) * 8 + 4) by0 by1
+        False -> False
+
+overlap : Int -> Int -> Int -> Int -> Bool
+overlap a0 a1 b0 b1 = case a0 <= b1 of
+    True -> b0 <= a1
+    False -> False
+
+#: The band, an outline — the notes under it stay seen.
+band : Int -> Int -> Int -> Int -> Sub
+band x0 y0 x y = Shift ((x0 + x) / 2) ((y0 + y) / 2) (frame (max 1 (abs (x - x0))) (max 1 (abs (y - y0))))
+
+frame : Int -> Int -> Sub
+frame w h = Over (Over (Shift 0 (0 - h / 2) (Rect w 1 bandInk)) (Shift 0 (h / 2) (Rect w 1 bandInk)))
+    (Over (Shift (0 - w / 2) 0 (Rect 1 h bandInk)) (Shift (w / 2) 0 (Rect 1 h bandInk)))
+
+abs : Int -> Int
+abs v = case v < 0 of
+    True -> 0 - v
+    False -> v
 
 restInk : Colour
 restInk = RGB 235 178 110
@@ -102,6 +202,17 @@ heldInk = RGB 255 220 160
 
 laneInk : Colour
 laneInk = RGB 26 29 38
+
+pickedInk : Colour
+pickedInk = RGB 120 200 255
+
+bandInk : Colour
+bandInk = RGB 120 200 255
+
+restOr : Bool -> Colour
+restOr b = case b of
+    True -> pickedInk
+    False -> restInk
 
 #: A note drawn where its row says, nothing in it pressable.
 noteBar : NoteRow -> Colour -> Sub
@@ -129,11 +240,11 @@ onRoll : NoteRow -> Sub -> Sub
 onRoll n pic = case n of
     (s, b, v, a, k, l, e) -> Shift (tickOf n / 2 + l / 4 - 192) ((64 - k) * 8) pic
 
-reactor Note (n : NoteRow) (to : Lens Tune NoteRow)
+reactor Note (n : NoteRow) (to : Lens Model NoteRow) (mk : Lens Model Bool)
   mode Resting
     on grab x y -> Carrying x y x y
     on grab end x y -> Sizing x x
-    picture = onRoll n (Over (hold (noteBar n restInk)) (endAt n (hold end (endOf n))))
+    picture = onRoll n (Over (hold (noteBar n (restOr (get mk)))) (endAt n (hold end (endOf n))))
   mode Carrying (x0 : Int) (y0 : Int) (x : Int) (y : Int)
     on drag x1 y1 -> Carrying x0 y0 x1 y1
     on release -> Resting
@@ -145,12 +256,22 @@ reactor Note (n : NoteRow) (to : Lens Tune NoteRow)
     on release -> to = put to (sized n (x - x0))
     picture = onRoll (sized n (x - x0)) (hold end (noteBar (sized n (x - x0)) heldInk))
 
-reactor Roll (all : Lens Tune Tune)
-  notes = new Note n (moving n) for n in elems (get all) by noteKey n
-  picture = Over (Rect 400 200 laneInk) notes.picture
+reactor Roll (all : Lens Model Tune) (sel : Lens Model (List Pick))
+  notes = new Note n (moving n) (marked n) for n in elems (get all) by noteKey n
+  mode Idle
+    on grab x y -> Sweeping x y x y
+    picture = Over (hold lane) notes.picture
+  mode Sweeping (x0 : Int) (y0 : Int) (x : Int) (y : Int)
+    on drag x1 y1 -> Sweeping x0 y0 x1 y1
+    on release -> Idle
+    on release -> sel = put sel (swept (get all) x0 y0 x y)
+    picture = Over (hold lane) (Over notes.picture (band x0 y0 x y))
+
+lane : Sub
+lane = Rect 400 200 laneInk
 
 substrate : Sig Sub
-substrate = Roll.picture whole tune
+substrate = Roll.picture whole chosen both
 
 #: Silence — the window plays every file it opens.
 sound : Sig Float

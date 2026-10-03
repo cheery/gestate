@@ -744,6 +744,22 @@ def documents(source: str) -> list:
     return out
 
 
+#: `session = "selected" :: Nil` — the kinds a program asks the host to
+#: hold in memory rather than in a file.
+_SESSION = re.compile(r'^session[ \t]*=[ \t]*(.*)$', re.M)
+
+
+def session_kinds(source: str) -> list:
+    """The kinds a program's `session` names — **a session document**,
+    held by the host beside the piece and never saved with it, read by
+    the program's own declaration (`card:gui-is-difficult.md` §"The next
+    slice: band select, over a session document"; Henri, 2026-10-03,
+    *"go with 1"*).  Declared, not inferred, so a kind no file has is a
+    refusal rather than a quiet new document."""
+    m = _SESSION.search(source)
+    return re.findall(r'"([\w.]+)"', m.group(1)) if m else []
+
+
 def base_columns(kind: Kind) -> list:
     """The columns of a kind's base relation — the key, then every
     required fieldScalar field not in it — which is also the row a program

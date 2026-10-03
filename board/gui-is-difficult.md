@@ -5384,6 +5384,73 @@ selection survives the canvas being rebuilt.**
 * **The measure is re-read** with the band's spans counted on both
   sides, as the end's were.
 
+## Built — band select, over a session document — 2026-10-03
+
+**Henri:** *"go with 1"*, twice — a session document, and a `put` that
+sees the model.
+
+* **F249 resolved first**, in both walkers: of two overlapping siblings
+  the press goes to the one painted on top (`gui.py`'s `_under`,
+  `list.rs`' `top`).  Otherwise the lane under the notes takes every
+  press on a note.
+* **`put` sees the model** — `Lens (m -> a) (m -> a -> List Act)`,
+  model first as in `get`; a reactor's `put l v` desugars to `lensPut l
+  __m v`.  The four lenses in the tree each gained an argument.
+* **A session document** — `session = "selected" :: Nil` beside
+  `model`.  The window holds its text in memory (`session_text`), reads
+  it by the program's own declaration through a path no file is at
+  (`carry.session`, whose `.ges` is the program), feeds it with the
+  files, and keeps it across rebuilds.  **Each act goes to the document
+  that holds its kind**: the session's quietly, since the piece is not
+  touched, a file's said as before (`_perform`, `_holder`).
+* **`carry.ges` sweeps.**  The roll has two stored modes, `Idle` and
+  `Sweeping`, with a hold on the lane under the notes.  The band is
+  drawn as an outline, and on release every note it touches is the
+  selection.  `chosen`'s `put` retracts what is no longer in and asserts
+  what is new, so a second band says only the difference.  A press on
+  empty roll is a band that touches nothing, so it clears.  Selected
+  notes are drawn in their own ink, read through a `marked` lens.
+* **Left open, for the group-carry slice:** carrying a selected note
+  moves its key, and its `selected` row then names nothing.
+
+### The measure, re-read — and it went the other way
+
+    python doc/trial/reactors/notehand.py
+
+| | lines |
+|---|---|
+| today's note hand with its end and its band: `hand.ges` and seventeen `session.py` methods | 509 |
+| of it covered by the port | 402 |
+| the port's hand (the selection's declaration counted as hand) | 154 |
+| **ratio** | **0.38** (0.43 with the notes' declaration) |
+
+**The band alone is about one to one:** 78 port lines against 81 of
+today's.  Where the 78 went, per definition:
+
+| | lines |
+|---|---|
+| helpers the prelude lacks — `unless`/`adding` for `filter`, `overlap` for `&&`, `same`/`has` because `Eq` stops at pairs, `abs`, an outline | 24 |
+| the selection's declaration — relation, `session`, signal, types, two documents paired into one model | 17 |
+| geometry — `touches`, `swept`, `band`, `lane` | 11 |
+| the selection lens — `marked`, `chosen`, `dropped`, `added`, `pickOf` | 11 |
+| inks | 8 |
+| the reactor's two modes | 7 |
+
+The reactor part is small; the cost is vocabulary.  About a third is
+the prelude's, and another fifth is ceremony for holding two documents
+as one model.  *A session's reading, not measured further.*
+
+**The real window, driven:** `test/driven/20261003-201420-band-select/`
+(on this machine, not in git), `Xvfb :99`, the editor library rebuilt
+for `list.rs`.  Mid-sweep, the band's outline is over the notes.
+After the release, the first two notes are in the selected ink and four
+are at rest, and `tune.notes` is unchanged.  A click on empty roll
+leaves none selected, and a press on a note still carries it.
+
+**His two minutes:** `python -m gestate.workbench examples/gui/carry.ges`,
+canvas tab.  Sweep a band over some notes; sweep another; click empty
+roll; carry and resize a note as before.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

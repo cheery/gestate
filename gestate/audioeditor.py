@@ -2075,7 +2075,8 @@ class Workbench:
         (`sub`), and again whenever the file changed
         (`_refresh_documents`)."""
         from .documents import stamp
-        from .facts import FactsError, beside, channel_of, documents as declared, rows_of
+        from .facts import (FactsError, beside, channel_of, documents as declared,
+                            rows_of, session_kinds)
         from .notes import NotesError, documents, relations_of
 
         sub = self.substrate if sub is None else sub
@@ -2086,6 +2087,11 @@ class Workbench:
         try:
             authored = self.source()
             wanted = declared(authored)
+            held = [k for k in session_kinds(authored) if k in wanted]
+            self.session_kinds = held
+            wanted = [k for k in wanted if k not in held]
+            if held:
+                self._feed_session(sub, held)
             names = documents(authored)
             # **And a `.notes` include, when the program asks for one of
             # its kinds** — `document "note"`, read by the kinds gestate
@@ -2119,6 +2125,29 @@ class Workbench:
             self.documents.append(path)
             self._document_stamps[path] = stamp(path)
 
+    def _session_where(self):
+        """Where the session document is read from: a path no file is at,
+        whose `.ges` beside it is the program — so `facts.beside` reads
+        it by the program's own declaration."""
+        return self.path.with_suffix(".session")
+
+    def _feed_session(self, sub, kinds: list) -> None:
+        """Write the session document's rows — `self.session_text`, held
+        across rebuilds, empty at the start — to the kinds it holds."""
+        from .facts import FactsError, beside, channel_of, rows_of
+        from .notes import NotesError, relations_of
+
+        where = self._session_where()
+        text = getattr(self, "session_text", "")
+        try:
+            rels = relations_of(text, where.name, where=where)
+            doc = beside(where)
+            sub.write_all([(channel_of(k), rows_of(doc, rels, k)) for k in kinds])
+        except (NotesError, FactsError) as exc:
+            self.say(f"{where.name}: {self._first_line(exc)}")
+            return
+        sub.acts()
+
     def _refresh_documents(self) -> None:
         """A document edited by hand, or by anything else, reaches the
         board on the next frame — one `stat` a frame, `Session._outside`'s
@@ -2145,10 +2174,10 @@ class Workbench:
         if not acts:
             return
         paths = getattr(self, "documents", None) or []
-        if not paths:
+        held = getattr(self, "session_kinds", None) or []
+        if not paths and not held:
             self.say("acts: this program includes no document to write")
             return
-        path = paths[0]
         changed = False
         for act in acts:
             head = act[0] if isinstance(act, tuple) else act
@@ -2159,36 +2188,68 @@ class Workbench:
                 self.say(f"acts: `{head}` is not an act the host knows")
                 continue
             try:
-                doc = beside(path)
+                #: **Each act to the document that holds its kind** — the
+                #: session's in memory, quietly, since the piece is not
+                #: touched; a file's by its own declaration, said.
+                word = "".join(chr(c) for c in act[1])
+                if word in held:
+                    where = self._session_where()
+                    read = lambda: getattr(self, "session_text", "")  # noqa: E731
+                    write = lambda t: setattr(self, "session_text", t)  # noqa: E731
+                    loud = False
+                else:
+                    where = self._holder(paths, word)
+                    read, write, loud = where.read_text, where.write_text, True
+                doc = beside(where)
                 if head in ("MoveTo", "Reveal"):
                     kind, old = fact_of(doc, act[1], act[2], keyed=True)
                     if head == "Reveal":
-                        self.say(revealed(path.read_text(), kind.name, old,
-                                          path.name, where=path))
+                        self.say(revealed(read(), kind.name, old,
+                                          where.name, where=where))
                         continue
                     _k, new = fact_of(doc, act[1], act[3], keyed=True)
-                    out, said = moved(path.read_text(), kind.name, old, new,
-                                      path.name, where=path)
-                    path.write_text(out)
+                    out, said = moved(read(), kind.name, old, new,
+                                      where.name, where=where)
+                    write(out)
                     changed = True
-                    self.say(f"{path.name} — {said}")
+                    if loud:
+                        self.say(f"{where.name} — {said}")
                     continue
                 kind, values = fact_of(doc, act[1], act[2],
                                        keyed=head == "Retract")
-                text = path.read_text()
+                text = read()
                 if head == "Assert":
                     out, said = asserted(text, record_line(kind, values),
-                                         path.name, where=path)
+                                         where.name, where=where)
                 else:
                     out, said = retracted(text, key_line(kind, values),
-                                          path.name, where=path)
-                path.write_text(out)
+                                          where.name, where=where)
+                write(out)
                 changed = True
-                self.say(f"{path.name} — {said}")
+                if loud:
+                    self.say(f"{where.name} — {said}")
             except (OSError, NotesError, FactsError) as exc:
                 self.say(f"{head.lower()}: {self._first_line(exc)}")
         if changed:
             self._feed_documents()
+
+    @staticmethod
+    def _holder(paths: list, word: str):
+        """The included file whose declaration has the kind `word`, else
+        the first — which refuses it in its own words."""
+        from .facts import beside
+
+        for path in paths:
+            try:
+                if beside(path).kind(word) is not None:
+                    return path
+            except Exception:                           # noqa: BLE001
+                continue
+        if not paths:
+            from .notes import NotesError
+            #: complaint  command — a program's act on its document, answered in the status line
+            raise NotesError(f"`{word}` is no kind this program holds or includes")
+        return paths[0]
 
     def ask(self, x: int, y: int) -> list:
         """What a press at this point of the canvas would mean, asked and

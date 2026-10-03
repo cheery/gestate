@@ -558,7 +558,7 @@ the rest of the row is what the file says.
 ### `Lens`  <sub>data</sub>
 
 ```
-Lens m a := Lens (m -> a) (a -> List Act)
+Lens m a := Lens (m -> a) (m -> a -> List Act)
 ```
 
 What a component is handed: how to read its value off the model, and
@@ -577,10 +577,10 @@ What the lens sees of the model.
 ### `lensPut`
 
 ```
-lensPut l a : Lens m a -> a -> List Act
+lensPut l m a : Lens m a -> m -> a -> List Act
 ```
 
-The acts that make the model say `a` — the host performs them.
+The acts that make the model `m` say `a` — the host performs them.
 
 
 ### `member`

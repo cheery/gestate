@@ -48,7 +48,7 @@ dots = document "dot"
 #: keeps its prose (F248: a retract and an assert took the file's
 #: header with the first dot).
 place : Text -> Lens Dots Int
-place k = Lens (ds => xOf ds k) (x => MoveTo (relName dotRel) (atoms k) (atoms (k, x)) :: Nil)
+place k = Lens (ds => xOf ds k) (ds x => MoveTo (relName dotRel) (atoms k) (atoms (k, x)) :: Nil)
 
 xOf : Dots -> Text -> Int
 xOf ds k = case elems (for ((n, x) in ds, n == k) {x}) of

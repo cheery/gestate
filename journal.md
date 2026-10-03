@@ -159,4 +159,14 @@ still writing, and an early Ctrl-Tab could leave a lane with no notes
 for good.  Fixed by feeding before publishing.  F249 ledgered: a press
 on overlapping siblings reaches the one underneath.  The measure with
 the end counted on both sides: 0.23
-(`card:gui-is-difficult.md` §"Built — resize, as named holds").
+(`card:gui-is-difficult.md` §"Built — resize, as named holds").  His
+hands: *"resize works, end grabs fine."*  Then band select, at two more
+of his *"go with 1"*: the selection a session document the window holds
+in memory, and a lens whose `put` sees the model.  F249 fixed first in
+both walkers, since the lane under the notes would have taken every
+press.  It sweeps, clears and survives a rebuild without touching
+`tune.notes`.  **The measure went the other way: 0.38**, the band alone
+about one to one, 78 lines against 81 — most of it vocabulary the
+prelude lacks and ceremony for two documents as one model
+(`card:gui-is-difficult.md` §"Built — band select, over a session
+document").

@@ -682,7 +682,7 @@ def _desugar_one(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
 
         def rw(text: str) -> str:
             text = _GET.sub(lambda m: f"(lensGet {m.group(1)} __m)", text)
-            text = _PUT.sub(lambda m: f"lensPut {m.group(1)}", text)
+            text = _PUT.sub(lambda m: f"lensPut {m.group(1)} __m", text)
             text = _FEEDS.sub(lambda m: f"({base}__{mode.name or '_'}__feeds_{m.group(1)} "
                                         f"{a})", text)
             text = _INST.sub(lambda m: f"({base}__{m.group(1)}__picture {' '.join(args)})",

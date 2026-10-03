@@ -10,10 +10,11 @@ comment, docstrings included.
 **What it replaces** is the note hand of today: `gestate/hand.ges` and
 fifteen methods of `gestate/session.py` — eleven for the carry, and
 since the resize slice (§"The next slice: resize, on the note hand")
-the four of a note's end.  **What the port does not
+the four of a note's end, and since band select the band's two
+(`do_select`, `_show_band`).  **What the port does not
 cover** is subtracted, each span named below by the text it starts and
 ends at, so the judgment is on the page and can be argued with: a
-group's stretch, the band (sweep, select, clear), the group,
+group's stretch and carry, a double press making a note, the group,
 the audition, the interval said while dragging, the transcript, the
 ruler sharing the hand, a press declined by a box of a page, the probe's
 agreement bookkeeping, and the bar last pressed.  Where a span is in
@@ -37,7 +38,9 @@ METHODS = ["_note_touched", "_hit", "_hand_event", "_hand_act", "_snapped",
            "_carried", "_interval", "_written_at", "_commit_move",
            "_show_moved", "released",
            # the end, since the resize slice
-           "_length_of", "_grow", "_commit_length", "do_resize"]
+           "_length_of", "_grow", "_commit_length", "do_resize",
+           # the band, since band select
+           "do_select", "_show_band"]
 
 #: `(method, first line's text, last line's text)` — uncovered, inclusive.
 UNCOVERED = [
@@ -54,7 +57,9 @@ UNCOVERED = [
     ("_hand_act", "self.selected[box] = note", "self._hold(found)"),
     ("_hand_act", "self._sound(found, note, roll.events", "return self._written_at"),
     ("_hand_act", "self._sound(found, note, key)", "return self._interval"),
-    ("_hand_act", 'if head == "Sweep"', "return f\"hand.ges asked for"),
+    ("_hand_act", "said = self._clicked_twice", "return said"),
+    ("_hand_act", 'if head == "Drop"', "return f\"hand.ges asked for"),
+    ("do_select", 'if not getattr(found, "on_rail"', "the band is the box's, not a column's"),
     ("_interval", "def _interval", "return"),
     ("_written_at", "def _written_at", "of {where[0]}{tail}"),
     ("_commit_move", "if dt:", "self._bar_pressed(roll, at)"),
@@ -68,11 +73,11 @@ UNCOVERED = [
     ("released", 'doing = getattr(self.bench, "released"', 'return said or ""'),
 ]
 
-#: `hand.ges` lines that belong to the band or an abort — the end's
+#: `hand.ges` lines that belong to an abort or a drop — the end's
 #: (`Ending`, `Ended`, `GrabEnd`, `Grow`, `Resize`, `OnEnd`) left the
-#: list with the resize slice.
-HAND_UNCOVERED = re.compile(
-    r"\b(Sweeping|Swept|Sweep|Select|Clear|Drop|Abort|OnRoll)\b")
+#: list with the resize slice, the band's (`Sweeping`, `Swept`, `Sweep`,
+#: `Select`, `Clear`, `OnRoll`) with band select.
+HAND_UNCOVERED = re.compile(r"\b(Drop|Abort)\b")
 
 
 def code(line: str) -> bool:
@@ -126,13 +131,17 @@ def main() -> None:
 
     port = (ROOT / "examples" / "gui" / "carry.ges").read_text().split("\n")
     heads = ("include", "levels", "noteRel", "model", "lines", "type", "tune", "sound")
+    #: **The selection's declaration is the hand's**, not owed: a
+    #: program with no band would not declare `selected` at all, so its
+    #: relation, its `session`, its signal and its types count against
+    #: the claim — and its entries in `model` and `lines` with them.
     owed, cur = 0, None
     for l in port:
         if not code(l):
             continue
         if not l.startswith(" "):
             cur = l.split()[0]
-        if cur in heads:
+        if cur in heads and not re.search(r"\b(sel|selected|Pick|Picks|Model)\b|selRel", l):
             owed += 1
     total = sum(code(l) for l in port)
     hand_port = total - owed

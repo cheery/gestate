@@ -468,25 +468,33 @@ retracting k r = Retract (relName k) (atoms r)
 # say what it is told.  Bohannon, Pierce and Vaughan's `get` and `put`
 # (PODS '06, Def. 3.1), with `put` answering *acts* — the delta form
 # they leave as future work, and the one the host performs.
+#
+# **`put` sees the model, since 2026-10-03** — Def. 3.1's `put` takes
+# the source as well as the view, and this file had dropped it on
+# 10-02.  A lens over a whole set has to know which rows to retract:
+# a band committing *these notes are the selection*
+# (`card:gui-is-difficult.md` §"The next slice: band select, over a
+# session document", Henri's *"go with 1"*).  The model comes first,
+# as in `get`.
 
 #: What a component is handed: how to read its value off the model, and
 #: what to ask so that the model says a new one.
-Lens m a := Lens (m -> a) (a -> List Act)
+Lens m a := Lens (m -> a) (m -> a -> List Act)
 
 #: What the lens sees of the model.
 lensGet : Lens m a -> m -> a
 lensGet l m = case l of
     Lens g p -> g m
 
-#: The acts that make the model say `a` — the host performs them.
-lensPut : Lens m a -> a -> List Act
-lensPut l a = case l of
-    Lens g p -> p a
+#: The acts that make the model `m` say `a` — the host performs them.
+lensPut : Lens m a -> m -> a -> List Act
+lensPut l m a = case l of
+    Lens g p -> p m a
 
 #: **A row's membership, as a boolean lens** — true while the document
 #: holds the row; `True` asserts it, `False` retracts it.  The row's key
 #: is what makes the put well defined: a retraction names the key.
 member : (Atoms r, Eq r) => Rel -> r -> Lens (Set r) Bool
-member k r = Lens (s => elem r (elems s)) (b => case b of
+member k r = Lens (s => elem r (elems s)) (s b => case b of
     True -> asserting k r :: Nil
     False -> retracting k r :: Nil)

@@ -415,7 +415,7 @@ def test_a_bank_shares_one_hold_a_part_and_reads_each_mode_off_its_key():
     assert out.count("roll__notes__hold_end : Chan Hold") == 1
     assert ("roll__notes__state = reactors__scan2 (note__bankStep 0) (note__bankStep 1) "
             "NoteFree (wait roll__notes__hold) (wait roll__notes__hold_end)") in out
-    assert "(note__modeOf (noteKey n) __b0)" in out
+    assert "(note__modeOf (noteKey n) __b1)" in out, "the roll's own band is slot 0, the bank slot 1"
 
 
 # ── resize: a note's end, a part of its picture named `end` ─────────────────
@@ -467,6 +467,71 @@ def test_the_body_still_carries_beside_its_end():
     bench.touch("drag", -158, 32)
     bench.touch("release", -158, 32)
     assert bench.drain() == ["tune.notes — moved line 6: at 0 → 24 on line 6"]
+
+
+# ── band select: a session document the window holds, through a lens ─────
+#
+# `card:gui-is-difficult.md` §"The next slice: band select, over a
+# session document", 2026-10-03 — Henri's "go with 1" twice: a session
+# document, and a `put` that sees the model.  The first two notes are
+# drawn at x -192..-96, rows 32 and 0; the band below takes both.
+
+PICKED, REST = (120, 200, 255), (235, 178, 110)
+
+
+def _sweep(bench, x0, y0, x1, y1):
+    bench.touch("press", x0, y0)
+    bench.touch("drag", (x0 + x1) // 2, (y0 + y1) // 2)
+    bench.touch("drag", x1, y1)
+    bench.touch("release", x1, y1)
+    return bench.drain()
+
+
+def test_a_band_selects_every_note_it_touches_and_writes_nothing_to_the_piece():
+    bench, doc = _carry_bench()
+    bench.touch("press", -180, -40)
+    bench.touch("drag", -100, 40)
+    edges = [i for i in bench.substrate.picture() if i[0] == "rect" and i[5] == PICKED]
+    assert len(edges) == 4, "the band drawn as an outline while it sweeps"
+    bench.touch("release", -100, 40)
+    assert bench.drain() == [], "the session is not the piece: nothing said"
+    assert [ink for _x, _y, ink in _bars(bench)] == [PICKED, PICKED] + [REST] * 4
+    assert doc.read_text() == TUNE
+    assert bench.session_text.splitlines() == [
+        "selected  section A  bar 1  at 0  voice melody  key 60",
+        "selected  section A  bar 1  at 96  voice melody  key 64"]
+
+
+def test_a_press_on_empty_roll_clears_the_selection():
+    bench, doc = _carry_bench()
+    _sweep(bench, -180, -40, -100, 40)
+    bench.touch("press", 150, -80)
+    bench.touch("release", 150, -80)
+    assert [ink for _x, _y, ink in _bars(bench)] == [REST] * 6
+    assert bench.session_text.strip() == ""
+
+
+def test_a_selection_survives_the_canvas_being_rebuilt():
+    bench, _doc = _carry_bench()
+    _sweep(bench, -180, -40, -100, 40)
+    bench._load_substrate(bench.program())
+    assert [ink for _x, _y, ink in _bars(bench)][:3] == [PICKED, PICKED, REST]
+
+
+def test_a_second_band_says_only_the_difference():
+    """`put` sees the model: what stays selected is neither retracted nor
+    asserted again — an assert of a row already there would be refused."""
+    bench, _doc = _carry_bench()
+    _sweep(bench, -180, -40, -100, 40)
+    assert _sweep(bench, -170, -40, -60, 30) == []
+    assert [ink for _x, _y, ink in _bars(bench)][:3] == [PICKED, PICKED, PICKED]
+
+
+def test_a_session_kind_is_declared_by_the_program():
+    from gestate.facts import session_kinds
+
+    assert session_kinds(CARRY.read_text()) == ["selected"]
+    assert session_kinds(DRAG.read_text()) == []
 
 
 _PARTS = ("reactor Dot (at : Lens Dots Int)\n"

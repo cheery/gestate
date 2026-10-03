@@ -20,12 +20,12 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**596 complaints**, in 52 files.
+**597 complaints**, in 53 files.
 
 | | |
 |---|---|
 | `author` | 345 |
-| `command` | 60 |
+| `command` | 61 |
 | `world` | 27 |
 | `machine` | 164 |
 | say where | 229 |
@@ -166,10 +166,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:610` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:649` | `DeclarationCycle` | the program's own include line and its own model need each other first; the fault is the pairing of a suffix and a declaration, which no one line holds |
 | `facts.py:697` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:790` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:798` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:807` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:810` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:806` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:814` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:823` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:826` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:120` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
 | `gui.py:767` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
@@ -243,6 +243,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 513 | `ScoreError` | `machine` | — | 'no question is owed' |
 | 550 | `ScoreError` | `machine` | — | 'a block size of {block}' |
 | 799 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
+
+### `audioeditor.py`
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 2251 | `NotesError` | `command` | — | '`{word}` is no kind this program holds or includes' |
 
 ### `audioengine.py`
 
@@ -682,10 +688,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 610 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no relation `{name}`; it has ' + ', '.join((f'`{r.name}`' for r in s… |
 | 649 | `DeclarationCycle` | `author` | *nowhere, on purpose* | '{path.name} declares the model of a `.notes` it includes as a score, and each needs the other … |
 | 697 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the model of {Path(path).name} and will not load: {why}' |
-| 790 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
-| 798 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
-| 807 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
-| 810 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
+| 806 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
+| 814 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
+| 823 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
+| 826 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
 
 ### `gmachine.py`
 
