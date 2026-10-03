@@ -4979,6 +4979,57 @@ change a number in it by hand.
 **His hands on it, the same day:** *"the drag works."*  The slice's
 postcondition held.
 
+## The next slice: the notes editor's note hand — elaborated 2026-10-03, his to decide
+
+**Henri:** *"go with the notes editor."*  Expectation 14 is read here:
+*"reactors themselves would reduce the amount of ceremony … by an order
+of magnitude"* — **the ported part under a tenth of what it replaces**
+is the claim, a ratio nearer one the claim failing
+(`doc/memory/expectations-dug-up.md`).
+
+**Found by looking.**
+* **The piece.**  The note hand — press a note, carry it in time and
+  pitch, let go, the file rewritten; press and let go without moving,
+  the note revealed.  Today it is `hand.ges`, a chart (63 code lines),
+  and `session.py`'s `_note_touched`, `_hit`, `_hand_event`,
+  `_hand_act`, `_snapped`, `_carried`, `_interval`, `_written_at`,
+  `_commit_move`, `_show_moved` and `released` (300 code lines, counted
+  by expectation 14's own rule) — **363**, part of it shared with
+  resize and band select.  A tenth is about 36.
+* **A `.notes` file is not a document.**  `notes.documents` leaves it
+  out on purpose; a move is `_commit_move`, which rewrites the one line
+  in place, keeping its spelling and its neighbours.  A reactor's commit
+  is an act the host performs, so the host must be able to perform a
+  move on a `.notes` — and that touches `card:relational-model.md`'s
+  physical turn, which is his.
+* **Notes come and go.**  A static `new` cannot make an instance per
+  note; this is the mutation the drag slice left out.  One hand on a
+  desktop means at most one note held at a time.
+* **The roll's picture already exists** — `roll.ges`, drawn from a
+  box's few numbers — so the port is the hand, not the drawing.
+
+**Questions, each with a default** — asked 2026-10-03:
+
+1. **The piece and its scope.**  *Default:* carry and click on one note,
+   snapped to the grid, in a program of its own over a `.notes`
+   include — not yet wired into the score box's page.  Left out: resize,
+   band select, group carry, the ruler.  *Would kill it:* if a port
+   beside the box does not count as *"the first real port"*.
+2. **How the commit writes a `.notes`.**  *Default:* a `Move` act the
+   host performs through today's `_commit_move` path, so the line keeps
+   its place and spelling — not a retract and an assert, which would
+   re-render the line where the reader sorts it.  *Would kill it:* if
+   the physical turn should be decided first and the move fall out of it.
+3. **A note as an instance.**  *Default:* a **keyed bank** — `new Note
+   for n in notes` — keyed by the note's identity (voice, tick, key,
+   `doc/memory/identity-is-the-models-key.md`), instances coming and
+   going with the file; the bank shares one hold channel, and `Holds`
+   carries the key a press lands on, the way `Meaning` carries a number.
+   *Would kill it:* two hands at once.
+4. **The measure.**  *Default:* the port against the 363 above, with the
+   functions it does not cover named and subtracted, the count
+   committed with its command.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
