@@ -615,18 +615,29 @@ def _attachments(node, state) -> list:
 
 
 def _under(hits: list, x: int, y: int) -> dict | None:
-    """The deepest attachment the point lands on, or `None`.
+    """The deepest attachment the point lands on, **on top**, or `None`.
 
     Forward, because `_walk` records an attachment after the subtree it
     wraps: the innermost is the first one written down.  **Half-open**,
     as `shell/panel/src/list.rs`'s `contains` is: a shared edge belongs
     to the region that starts there (F243).
+
+    **And of two siblings, the one painted later** (F249): it is drawn
+    over the first, so it is what the hand is on.  A later hit holding
+    the point is a sibling on top when it does not enclose the one in
+    hand, and *around* it when it does — a flat table cannot tell a
+    parent from a sibling that covers the first whole, and reads it as
+    the parent, as before.  `list.rs`' `top` is the same rule.
     """
-    for hit in hits:
+    def has(hit):
         x0, y0, x1, y1 = hit["region"]
-        if x0 <= x < x1 and y0 <= y < y1:
-            return hit
-    return None
+        return x0 <= x < x1 and y0 <= y < y1
+
+    found = None
+    for hit in hits:
+        if has(hit) and (found is None or not _encloses(hit["region"], found["region"])):
+            found = hit
+    return found
 
 
 def _encloses(outer: tuple, inner: tuple) -> bool:

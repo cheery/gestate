@@ -270,7 +270,31 @@ impl Display {
 
     /// The deepest region containing a point, or nothing.
     pub fn pick(&self, x: i32, y: i32) -> Option<Hit> {
-        self.hits.iter().copied().find(|h| h.contains(x, y))
+        self.top(x, y).map(|i| self.hits[i])
+    }
+
+    /// **The deepest hit holding the point, and of two siblings the one
+    /// painted later** — `fixme.md` F249, `gui.py`'s `_under` to the
+    /// letter.  A later hit holding the point is a sibling on top when
+    /// it does not enclose the one in hand, and *around* it when it
+    /// does; a sibling covering the first whole reads as its parent, as
+    /// a flat table must.
+    fn top(&self, x: i32, y: i32) -> Option<usize> {
+        let mut found: Option<usize> = None;
+        for (i, h) in self.hits.iter().enumerate() {
+            if !h.contains(x, y) {
+                continue;
+            }
+            let around = found.is_some_and(|f| {
+                let (dx0, dy0, dx1, dy1) = self.hits[f].region;
+                let (x0, y0, x1, y1) = h.region;
+                x0 <= dx0 && y0 <= dy0 && x1 >= dx1 && y1 >= dy1
+            });
+            if !around {
+                found = Some(i);
+            }
+        }
+        found
     }
 
     /// **What a press takes hold of: the deepest channel attachment
@@ -293,8 +317,7 @@ impl Display {
     /// the same *deepest and everything around it* rule, with the two
     /// kinds of reference `card:gui-is-difficult.md` names.
     pub fn grabbed(&self, x: i32, y: i32) -> Vec<Hit> {
-        let Some(at) = self.hits.iter().position(|h| h.contains(x, y))
-        else { return Vec::new() };
+        let Some(at) = self.top(x, y) else { return Vec::new() };
         if !attaches(self.hits[at].kind) {
             return Vec::new();
         }
@@ -321,6 +344,20 @@ mod grab_tests {
 
     fn means(id: i64, v: f64, r: (i32, i32, i32, i32)) -> Hit {
         Hit { kind: Kind::Means(id), param: NO_PARAM, region: r, means: v, does: 0 }
+    }
+
+    #[test]
+    fn of_two_siblings_the_one_painted_later_takes_the_press() {
+        // F249: a note drawn over the lane it sits on.  The lane is
+        // recorded first and the note after; the note does not enclose
+        // the lane, so it is a sibling on top, and the press is its.
+        let mut d = Display::new();
+        d.hits.push(chan(Axis::X, 1, (0, 0, 100, 100)));
+        d.hits.push(chan(Axis::X, 2, (10, 10, 40, 20)));
+        let got: Vec<i64> = d.grabbed(20, 15).iter().map(|h| match h.kind {
+            Kind::Chan(_, c) => c, _ => -1 }).collect();
+        assert_eq!(got, vec![2], "the note on top, and not the lane under it");
+        assert_eq!(d.grabbed(80, 80).len(), 1, "the lane where no note is");
     }
 
     #[test]

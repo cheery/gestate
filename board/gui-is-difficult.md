@@ -5370,6 +5370,8 @@ selection survives the canvas being rebuilt.**
 
 **Default: 1.**  It changes the lens, which is his.
 
+**Henri, the same day:** *"go with 1"* — `put` takes the model as well.
+
 ### Decided, said, reversible
 
 * **A session kind is declared, not inferred**: `session : List Text`

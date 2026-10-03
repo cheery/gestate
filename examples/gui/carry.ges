@@ -110,8 +110,8 @@ noteBar n ink = case n of
 
 #: Where a note's end can be taken: 8 px past it, and its last 8 px too
 #: when it is wider than 16 — the roll's end since 2026-09-24.  Drawn
-#: first and drawn nothing: where two regions overlap a press reaches
-#: the one painted first (F249).  `endAt` places what it is given there.
+#: over the bar and drawn as nothing, so where the two overlap the press
+#: is the end's (F249).  `endAt` places what it is given there.
 endOf : NoteRow -> Sub
 endOf n = case n of
     (s, b, v, a, k, l, e) -> Gap (8 + inner l) 7
@@ -133,7 +133,7 @@ reactor Note (n : NoteRow) (to : Lens Tune NoteRow)
   mode Resting
     on grab x y -> Carrying x y x y
     on grab end x y -> Sizing x x
-    picture = onRoll n (Over (endAt n (hold end (endOf n))) (hold (noteBar n restInk)))
+    picture = onRoll n (Over (hold (noteBar n restInk)) (endAt n (hold end (endOf n))))
   mode Carrying (x0 : Int) (y0 : Int) (x : Int) (y : Int)
     on drag x1 y1 -> Carrying x0 y0 x1 y1
     on release -> Resting

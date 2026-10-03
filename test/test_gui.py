@@ -564,6 +564,20 @@ def test_a_shared_edge_belongs_to_the_region_that_starts_there():
     assert _under([upper, lower], 0, 0) is upper
 
 
+def test_of_two_siblings_the_one_painted_later_takes_the_press():
+    """F249: a note over the lane it sits on — the lane recorded first,
+    the note after.  The note is on top, so the press is its, and the
+    lane is not grabbed as though it were around it."""
+    from gestate.gui import _grabbed, _under
+    lane = {"region": (0, 0, 100, 100), "holds": True}
+    note = {"region": (10, 10, 40, 20), "holds": True}
+    assert _under([lane, note], 20, 15) is note
+    assert _grabbed([lane, note], 20, 15) == [note]
+    assert _under([lane, note], 80, 80) is lane
+    pad = {"region": (0, 0, 100, 100)}
+    assert _grabbed([note, pad], 20, 15) == [note, pad], "a place around a thing still takes both"
+
+
 #: A square held and dragged along x — `gui.ges`' `Holds`, by hand: the
 #: grip is a fold over the hold's own channel, and letting go says how
 #: far it went (`card:gui-is-difficult.md` §"The next slice: a drag").

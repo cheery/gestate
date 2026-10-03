@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 250 entries, **197 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 250 entries, **198 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -135,7 +135,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F246 | bug | `!` over three or more signals refuses a lifted function that runs a comprehension over a set |
 | F247 | resolved | A canvas with a `.notes` score and no bank refused in both halves: `Voice` |
 | F248 | resolved | Moving a row by retract and assert drops the prose above it — a header goes with its first record |
-| F249 | bug | Where two sibling regions overlap, a press reaches the one painted underneath |
+| F249 | resolved | Where two sibling regions overlap, a press reaches the one painted underneath |
 | F250 | resolved | A canvas opened before it had built could stay a lane with no notes: ticked while its rows were written |
 
 Several of these are **closed rather than pending** under
