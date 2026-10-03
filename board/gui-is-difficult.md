@@ -5192,6 +5192,74 @@ with the old `put`.
 canvas tab — drag a dot and let go; `drag.dots` should still open with
 its three-line comment.
 
+**His hands on it, the same day:** *"the drag works, header stays."*
+And the next step: *"go with resize."*
+
+## The next slice: resize, on the note hand — elaborated 2026-10-03, one question his
+
+**Henri:** *"go with resize."*  A note's end pulled to change its
+length, in `examples/gui/carry.ges`, beside the carry.
+
+*Postcondition, before building:* **pulling a note's end and letting
+go changes that note's length in the file and no other byte; pulling
+past where it started and back, or letting go where it was taken,
+writes nothing.**
+
+**Found by looking.**
+
+* **Today's resize** is `hand.ges`' `Ending`/`Ended` with `GrabEnd`,
+  `Grow`, `Resize`, and in `session.py` `_hit`'s `OnEnd` (the end is the
+  note's last `EDGE_PX` = 8 px when it is wider than 16, and 8 px past
+  it on its own row — his 2026-09-23 and 09-24 words), `_grow` for the
+  preview, `_length_of` (whole grid steps, never under one) and
+  `_commit_length` → `do_resize` → `notes.retune` on `len`.  `stretch`,
+  for a group, rides the same end.
+* **The commit is already there:** F248 let a `MoveTo` carry the whole
+  new row, and a note's seven columns are `fact_of`'s base columns, so
+  `len` moves in its own line with no host change.  `moving`'s lens can
+  serve both gestures — `Reveal` when the row is unchanged, one `MoveTo`
+  of the whole row otherwise.
+* **The wall:** a transition sees its mode's fields and the hand, and
+  `grab x y` is in the canvas's coordinates.  So the note cannot tell,
+  from its grab, whether the hand landed on its end.  Which is the
+  question.
+* *Suspected, not tried:* `sync` (`signal.ges`) already merges two event
+  streams, so two pressable parts of one instance can be desugared to
+  two channels folded by one step, with no walker or shell change.
+
+### The question — how does a note tell its end from its body?
+
+1. **Named holds in the picture** — `hold end (endZone n)` beside
+   `hold (noteBar …)`, and `on grab end x y -> Sizing x x`.  The
+   picture already says where things are, so it says where the end is
+   too; one note owns both gestures, one mode each.  *Killed if* two
+   parts of one instance need something the bank's one-key-held state
+   cannot say, or `sync` will not desugar (then the walkers again).
+2. **A guard that reads the note** — `on grab x y when nearEnd n x ->
+   Sizing x x`.  *Killed by* the geometry said twice: `nearEnd` inverts
+   `onRoll`, and the picture and the guard can disagree, which is the
+   second source of truth the window was built to refuse.
+3. **A second bank of `End` reactors**, no framework change at all.
+   *Killed by* the body not seeing that its end is held: a shrinking
+   note shows its old length under the new one.
+
+**Default: 1.**  It is a change to the reactor language, which is his.
+
+### Decided, said, reversible
+
+* **The end is today's**: 8 px past the note always, and its last 8 px
+  inside when it is wider than 16.
+* **Snapped by whole sixteenths**, 12 px each as the carry snaps time,
+  never under one sixteenth; a length past the bar line is written, as
+  `do_resize` writes it.
+* **Let go where it was taken** says where the note is written, as the
+  carry does.
+* **The measure is re-read**: the end's spans leave the script's
+  uncovered list and today's `_grow`, `_length_of`, `_commit_length` and
+  `do_resize` join the baseline, each named in the script.
+* **Not in this slice:** `stretch` for a group, and the *len 96 → 120*
+  the status line says while the hand moves.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
