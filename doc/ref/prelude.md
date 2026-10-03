@@ -617,8 +617,14 @@ machine that does something with it is outside the program.
 ### `Act`  <sub>data</sub>
 
 ```
-Act := Assert String (List Atom) | Retract String (List Atom) | Refuse String
+Act := Assert String (List Atom) | Retract String (List Atom) | Refuse String | MoveTo String (List Atom) (List Atom) | Reveal String (List Atom)
 ```
+
+
+**`MoveTo` and `Reveal`, 2026-10-03** (`card:gui-is-difficult.md`
+§"The next slice: the notes editor's note hand"): a record moved from
+one key to another, rewritten in its own line — the commit of a
+carried note — and a record's place said, the answer to a click.
 
 
 ## Ordering, put to work

@@ -1,0 +1,115 @@
+# examples/gui/carry.ges — the notes editor's note hand, as reactors.
+# `card:gui-is-difficult.md` §"The next slice: the notes editor's note
+# hand".
+#
+#   python -m gestate.workbench examples/gui/carry.ges
+#
+# **A note is an instance, one per note the file says** — a bank, keyed
+# by the note's place, so a note written into `tune.notes` by hand can
+# be carried at once and one deleted is gone.  Each holds no copy of its
+# note: the row is handed to it, and the file is the truth.
+#
+# **Press a note and carry it**, snapped to a sixteenth in time and a
+# semitone in pitch; the file is written once, on the release, the
+# note's own line rewritten in place.  **Press and let go** without
+# moving, and the window says where the note is written.
+
+include "tune.notes"
+
+levels : List Text
+levels = "ppp" :: "pp" :: "p" :: "mp" :: "mf" :: "f" :: "ff" :: "fff" :: Nil
+
+noteRel : Rel
+noteRel = Rel "note"
+    (Col "section" Word :: Col "bar" (AtLeast 1) :: Col "voice" Word :: Col "at" (AtLeast 0)
+     :: Col "key" (Range 0 127) :: Col "len" (AtLeast 1) :: Col "vel" (OneOf levels) :: Nil)
+    ("section" :: "bar" :: "voice" :: "at" :: "key" :: Nil)
+
+model : List Rel
+model = noteRel :: Nil
+
+lines : List Line
+lines = Line "note" Named ("section" :: "bar" :: "at" :: "len" :: "voice" :: "key" :: "vel" :: Nil) Nil :: Nil
+
+type NoteRow = $(rowType noteRel)
+type Tune = Set NoteRow
+
+tune : Sig Tune
+tune = document "note"
+
+#: A bar of four beats, ninety-six ticks a beat, as `tune.notes` says.
+span : Int
+span = 384
+
+tickOf : NoteRow -> Int
+tickOf n = case n of
+    (s, b, v, a, k, l, e) -> (b - 1) * span + a
+
+#: The note's place as one number — what a press on it says.
+noteKey : NoteRow -> Float
+noteKey n = case n of
+    (s, b, v, a, k, l, e) -> toFloat (tickOf n * 128 + k)
+
+#: The note carried by a hand that moved `dx`, `dy` pixels: a sixteenth
+#: in time per 12 pixels across, a semitone per 8 pixels up.
+carried : NoteRow -> Int -> Int -> NoteRow
+carried n dx dy = case n of
+    (s, b, v, a, k, l, e) -> placed (s, v, k - floor (toFloat dy / 8.0 + 0.5), l, e)
+        (tickOf n + 24 * floor (toFloat dx / 12.0 + 0.5))
+
+placed : (Text, Text, Int, Int, Text) -> Int -> NoteRow
+placed r t = case r of
+    (s, v, k, l, e) -> (s, t / span + 1, v, t - (t / span) * span, k, l, e)
+
+#: What the note is, and the acts that put it somewhere else — its line
+#: moved, or, where it was let go where it was taken, its place said.
+moving : NoteRow -> Lens Tune NoteRow
+moving n = Lens (s => n) (r => case noteKey r == noteKey n of
+    True -> Reveal "note" (keyAtoms n) :: Nil
+    False -> MoveTo "note" (keyAtoms n) (keyAtoms r) :: Nil)
+
+keyAtoms : NoteRow -> List Atom
+keyAtoms n = case n of
+    (s, b, v, a, k, l, e) -> atoms (s, b, v, a, k)
+
+whole : Lens Tune Tune
+whole = Lens (s => s) (s => Nil)
+
+restInk : Colour
+restInk = RGB 235 178 110
+
+heldInk : Colour
+heldInk = RGB 255 220 160
+
+laneInk : Colour
+laneInk = RGB 26 29 38
+
+#: A note drawn where its row says, nothing in it pressable.
+noteBar : NoteRow -> Colour -> Sub
+noteBar n ink = case n of
+    (s, b, v, a, k, l, e) -> Rect (l / 2) 7 ink
+
+onRoll : NoteRow -> Sub -> Sub
+onRoll n pic = case n of
+    (s, b, v, a, k, l, e) -> Shift (tickOf n / 2 + l / 4 - 192) ((64 - k) * 8) pic
+
+reactor Note (n : NoteRow) (to : Lens Tune NoteRow)
+  mode Resting
+    on grab x y -> Carrying x y x y
+    picture = onRoll n (hold (noteBar n restInk))
+  mode Carrying (x0 : Int) (y0 : Int) (x : Int) (y : Int)
+    on drag x1 y1 -> Carrying x0 y0 x1 y1
+    on release -> Resting
+    on release -> to = put to (carried n (x - x0) (y - y0))
+    picture = onRoll (carried n (x - x0) (y - y0)) (hold (noteBar n heldInk))
+
+reactor Roll (all : Lens Tune Tune)
+  notes = new Note n (moving n) for n in elems (get all) by noteKey n
+  picture = Over (Rect 400 200 laneInk) notes.picture
+
+substrate : Sig Sub
+substrate = Roll.picture whole tune
+
+#: Silence — the window plays every file it opens.
+sound : Sig Float
+sound = 0.0

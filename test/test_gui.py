@@ -182,8 +182,10 @@ def test_every_gui_example_is_exercised_here():
         "two-hands.ges",
         # `test_reactors.py` drives this one: two checkboxes as reactors.
         "checkboxes.ges",
-        # and this one: three dots dragged, a reactor with a stored mode.
-        "drag.ges"}
+        # and this one: three dots dragged, a reactor with a stored mode;
+        "drag.ges",
+        # and this one: the notes editor's note hand, a bank of notes.
+        "carry.ges"}
 
 
 # ── `patchbay.ges` — a Datafun query behind a picture ───────────────────────
@@ -566,13 +568,17 @@ def test_a_shared_edge_belongs_to_the_region_that_starts_there():
 #: grip is a fold over the hold's own channel, and letting go says how
 #: far it went (`card:gui-is-difficult.md` §"The next slice: a drag").
 HELD = """
-h : Chan Event
+h : Chan Hold
 h = chan
 
 Grip := Free | Took Int Int
 
-step : Grip -> Event -> Grip
-step g e = case e of
+step : Grip -> Hold -> Grip
+step g held = case held of
+    Hold k e -> grip g e
+
+grip : Grip -> Event -> Grip
+grip g e = case e of
     Press x y -> Took x x
     Move x y -> case g of
         Took a b -> Took a x
@@ -581,19 +587,19 @@ step g e = case e of
     Tick -> g
     Key k -> g
 
-grip : Sig Grip
-grip = scanE step Free (wait h)
+grips : Sig Grip
+grips = scanE step Free (wait h)
 
 ink : Colour
 ink = RGB 200 100 50
 
 pic : Grip -> Sub
 pic g = case g of
-    Free -> Holds h Nil (Rect 20 20 ink)
-    Took a b -> Holds h (Refuse (show (b - a)) :: Nil) (Shift (b - a) 0 (Rect 20 20 ink))
+    Free -> Holds h 0.0 Nil (Rect 20 20 ink)
+    Took a b -> Holds h 0.0 (Refuse (show (b - a)) :: Nil) (Shift (b - a) 0 (Rect 20 20 ink))
 
 substrate : Sig Sub
-substrate = map pic grip
+substrate = map pic grips
 """
 
 
@@ -612,3 +618,29 @@ def test_a_hold_follows_the_hand_and_commits_on_the_release():
     sub.touch("release", 25, 40)
     assert sub.acts() == [("Refuse", [ord(c) for c in "25"])]
     assert sub.picture()[0][1] == -10, "let go, the grip is free again"
+
+
+def test_a_canvas_with_a_score_and_no_bank_compiles_both_halves(tmp_path):
+    """F247: `music.ges`' `Score` names `Voice`, which only a `voices` bank
+    generates; a program that draws, includes a `.notes` as its score and
+    plays through no bank refused in both halves — *"Unknown type
+    constructor: Voice"* — until both were given `midi.py`'s stub."""
+    from gestate import notes
+    from gestate.audioperform import graph_of
+    from gestate.gui import Substrate
+
+    (tmp_path / "tune.notes").write_text(
+        (Path(__file__).resolve().parents[1] / "examples" / "gui" / "tune.notes").read_text())
+    (tmp_path / "piece.ges").write_text(
+        'include "tune.notes"\n\n'
+        "bpm : Int\nbpm = 100\n\n"
+        "score = notes_A_melody\n\n"
+        "substrate : Sig Sub\nsubstrate = map (e => Rect 10 10 (RGB 1 2 3)) events\n\n"
+        "sound : Sig Float\nsound = 0.0\n")
+    text = notes.read(tmp_path / "piece.ges")
+    assert Substrate(text).picture(), "the canvas half draws"
+    # and the sound half refuses for the reason that is true — the notes
+    # are given no instrument — not for a type nobody can declare
+    with pytest.raises(Exception) as caught:
+        graph_of(text, rate=22050)
+    assert "Voice" not in str(caught.value) and "FromNote" in str(caught.value)

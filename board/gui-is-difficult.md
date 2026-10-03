@@ -4979,6 +4979,16 @@ change a number in it by hand.
 **His hands on it, the same day:** *"the drag works."*  The slice's
 postcondition held.
 
+**And what his two minutes left behind: F248.**  `drag.dots` came back
+without its header — moving a row by retract and assert drops the prose
+above it, and the file's opening comment rides on the first record.
+Ledgered, not fixed; the shipped file restored.
+
+*Re-counted later the same day, when `Holds` gained its key:* the
+control unwraps the `Hold` by hand and its component is **19** lines,
+not 16; the reactor version is unchanged at 11, and the composition's
+7 against 17 stands.
+
 ## The next slice: the notes editor's note hand — elaborated 2026-10-03, his to decide
 
 **Henri:** *"go with the notes editor."*  Expectation 14 is read here:
@@ -5029,6 +5039,130 @@ is the claim, a ratio nearer one the claim failing
 4. **The measure.**  *Default:* the port against the 363 above, with the
    functions it does not cover named and subtracted, the count
    committed with its command.
+
+**His answer, the same day:** *"this is ok"* — all four defaults.
+
+**The postcondition** — the card's own: **his two minutes with the
+ported note hand**: press a note and carry it, snapped, in time and
+pitch; the file is unchanged until the release, and the release moves
+that note's line in place; press and let go without moving reveals
+it; a note added to the file by hand can be carried too.  Beside it,
+expectation 14's number: the port's code lines against the 363 it
+replaces, the uncovered functions named and subtracted.
+
+**How, decided by the session where the choice is reversible:**
+* **Notes as rows** — a `.notes` include feeds `document "note"`, read
+  by the kinds gestate ships (`facts.beside` falls back to them), the
+  way `drag.dots` is fed; `notes.documents` stops leaving `.notes` out
+  when the program asks for one of its kinds.
+* **Two acts the host performs:** `Move kind old new`, which retunes the
+  differing key fields of that one line in place — `do_carry`'s own
+  core, `notes.retune`, and the document's reader as the refusal — and
+  `Reveal kind key`, which says where the record is written: what
+  today's click says for a note in an included file.
+* **A keyed bank:** `notes = new Note n (moving n) for n in elems (get
+  score) by noteKey n`.  One hold channel per bank; the bank's state is
+  the one key held and its mode; an instance's mode is that mode when
+  its key is the held one, else its first.
+* **`Holds` carries the key** a press landed on:
+  `Holds (Chan Hold) Float (List Act) Sub`, `Hold := Hold Float Event`;
+  a static instance's key is 0.
+
+## Built — the notes editor's note hand — 2026-10-03
+
+**Henri:** *"this is ok"* — the four defaults.
+
+* **`examples/gui/carry.ges` over `tune.notes`** — a `Note` reactor
+  with a stored mode, a `Roll` with a **bank** of them, one per note
+  the file says.  Press a note and carry it: it follows the hand
+  snapped to a sixteenth and a semitone, alone, in the held ink; the
+  file is unchanged until the release, which rewrites that note's line
+  in place (`at 0 → 48, key 60 → 62` on line 6, every other byte the
+  same).  Let go where it was taken and the window says
+  `tune.notes:7 — note … key 64`.  A note written into the file by hand
+  is an instance at once and can be carried; one deleted is gone.  A
+  carry past the section's end, or onto a note already there, is
+  refused by name and writes nothing (`test_reactors.py`).
+* **Banks** in `gestate/reactors.py` — `new Note n (moving n) for n in
+  elems (get all) by noteKey n`: one hold channel a bank, the bank's
+  state the one key held and its mode.  **`Holds` carries a key**:
+  `Holds (Chan Hold) Float (List Act) Sub`, `Hold := Hold Float Event`;
+  both walkers, every shell's table, the fixtures regenerated, the
+  Rust suites green.
+* **Two acts the host performs**, `MoveTo kind old new` and `Reveal kind
+  key` (`prelude.ges`' `Act`; `documents.moved`, `documents.revealed`)
+  — `MoveTo` and not `Move`, which is `Event`'s.  `moved` is
+  `do_carry`'s core said by the document: `notes.retune` a field at a
+  time, then the reader's own refusals and `doubled`.
+* **A `.notes` read as rows** — fed to `document "note"` by the kinds
+  gestate ships, and **not expanded as a score** when the program reads
+  it that way (`notes.expanded`): a program that edits the notes is not
+  thereby a performance.  *The session's choice, reversible:* a program
+  that both edits and plays one file is a step after this.
+* **F247, found and fixed:** a canvas with a `.notes` score and no
+  `voices` bank refused in both halves with *"Unknown type constructor:
+  Voice"*; both now get `midi.py`'s stub (`audiovoices.voice_stub`).
+* **Names the port could not use**, each found by a refusal: `Score`,
+  `at` and `bar` are `music.ges`'s, `Row` is `gui.ges`' `Sub`, `Move`
+  is `Event`'s — the library's names step aside for an author's
+  (`prelude.shadow_libraries`), so a program that shadows a constructor
+  breaks the walk rather than its own code.  Not ledgered; it is the
+  rule working, and it cost four rebuilds.
+
+### The measure — expectation 14, read
+
+    python doc/trial/reactors/notehand.py
+
+| | lines |
+|---|---|
+| today's note hand: `hand.ges` and eleven `session.py` methods | 363 |
+| of it covered by the port, each uncovered span named in the script | 202 |
+| the port, `carry.ges` | 68 |
+| of it the document's declaration and the silent `sound` | 18 |
+| **the port's hand** | **50** |
+| **ratio** | **0.25** (0.34 with the declaration) |
+
+**The claim was under a tenth; on this piece it is a quarter.**  A
+fourfold reduction, and the expectation's own line says what that
+means: *"a ratio nearer one is the claim failing"* — this is nearer a
+tenth than one, and it is not a tenth.  Two things the number does not
+show, both said so the reading is not flattered either way:
+
+* **The baseline gets its geometry free.**  `_carried` and `_snapped`
+  call `scorebox`'s `tick_at`, `key_at` and `x_of`, which are not in
+  the 363; the port draws and places its own notes in about twelve
+  lines.  Leaving those out, the hand is about 38 and the ratio about
+  0.19 — still not a tenth.
+* **The framework is on neither side.**  The bank desugaring, the host's
+  `moved`, the reactor checks are machinery every GUI shares, as
+  `do_carry` and the commands are on the other side.
+
+**Where the port's 50 lines go**, counted per definition: the note's
+place and snapping (`span`, `tickOf`, `noteKey`, `carried`, `placed` —
+15), drawing (`noteBar`, `onRoll`, three inks — 12), the two reactors
+(12), the lens and its atoms (`moving`, `keyAtoms` — 7), the lens on the
+whole document (2), and `substrate` (2).  What it does not have is the whole of today's
+plumbing — the touch routed by channel name to a box, the chart run by
+the host, the hit test done in Python and handed to the chart, the
+preview pushed to the picture, the commit through a command addressed
+by rail.
+
+**The real window, driven** — `test/driven/20261003-143112-carry-notes/`
+(on this machine, not in git), `Xvfb :99`, the editor library rebuilt
+first: six notes drawn; mid-carry one bar in the held ink 24 px right
+and 16 px up, the rest where they were, the file unchanged; after the
+release the first line says `at 48 … key 62`; a press and release on
+another note puts `tune.notes:7 — note section A bar 1 at 96 …` on the
+status line.  **One earlier run, under the suite's load, drew the lane
+and no notes** for the two minutes it waited (`…-141733-carry-notes`);
+the canvas took 90 s to build there against 3 s unloaded, and the two
+runs after it, one with a log line in the feed and one without, both
+drew all six.  Not reproduced, so not ledgered — said here so it is not
+lost if it comes back.
+
+**His two minutes:** `python -m gestate.workbench examples/gui/carry.ges`,
+canvas tab — carry a note and let go; press one and let go; write a note
+into `tune.notes` by hand and carry it.
 
 ## What a session does now
 

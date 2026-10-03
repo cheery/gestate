@@ -1,6 +1,6 @@
 entry	main
-tags	14 15 16 17 18 19 20 21 22 23 24 25 26 1 0 27 28 29
-tick	30
+tags	16 17 18 19 20 21 22 23 24 25 26 27 28 1 0 29 30 31
+tick	32
 program
 crust 1
 block
@@ -137,12 +137,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 11 6
+I CaseJump 1 13 6
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 11 7
+I CaseJump 1 13 7
 I Update 1
 I Pop 1
 I Unwind
@@ -150,7 +150,7 @@ block
 I PushArg 0
 I PushArg 2
 I PushArg 4
-I Pack 20 3
+I Pack 22 3
 I Update 3
 I Pop 3
 I Unwind
@@ -245,14 +245,14 @@ I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 13 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 13 2
 I Update 2
 I Pop 2
 I Unwind
@@ -373,7 +373,7 @@ I Update 1
 I Pop 1
 I Unwind
 block
-I Pack 30 0
+I Pack 32 0
 I Eval
 I PushGlobal input
 I Eval
@@ -487,12 +487,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 11 37
+I CaseJump 1 13 37
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 11 38
+I CaseJump 1 13 38
 I Update 1
 I Pop 1
 I Unwind
@@ -500,21 +500,21 @@ block
 I PushArg 0
 I PushArg 2
 I PushArg 4
-I Pack 14 3
+I Pack 16 3
 I Update 3
 I Pop 3
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 13 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 13 2
 I Update 2
 I Pop 2
 I Unwind
@@ -530,12 +530,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 11 43
+I CaseJump 1 13 43
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 11 44
+I CaseJump 1 13 44
 I Update 1
 I Pop 1
 I Unwind
@@ -543,21 +543,21 @@ block
 I PushArg 0
 I PushArg 2
 I PushArg 4
-I Pack 13 3
+I Pack 15 3
 I Update 3
 I Pop 3
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 13 2
 I Update 2
 I Pop 2
 I Unwind
 block
 I PushArg 0
 I PushArg 2
-I Pack 11 2
+I Pack 13 2
 I Update 2
 I Pop 2
 I Unwind

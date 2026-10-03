@@ -1852,6 +1852,10 @@ def expanded(source: str, base: Path | None = None,
         return source, {}
     root = Path(base) if base is not None else Path.cwd()
     blanked = _INCLUDE.sub(lambda m: m.group(1), source)
+    #: The kinds this program reads as rows (`document "note"`) — a
+    #: `.notes` it reads that way is its document, not its score.
+    from .facts import documents as _rows_read
+    as_rows = bool(set(_rows_read(source)) & {"note", "section", "bar", "bpm"})
     read: list = []
     known: dict[str, set[str]] = {}
     for line, one in found:
@@ -1872,6 +1876,16 @@ def expanded(source: str, base: Path | None = None,
         #: here either: its declaration is this very program, and
         #: reading it would expand this program to read it.
         if path.suffix != ".notes":
+            continue
+        #: **Nor does a `.notes` the program reads as rows** — `document
+        #: "note"`, fed by the host like any document
+        #: (`card:gui-is-difficult.md` §"The next slice: the notes
+        #: editor's note hand", 2026-10-03).  A program that edits the
+        #: notes is handed them as facts; expanded as a score as well,
+        #: it would have to be a performance to compile at all.  *The
+        #: session's choice, reversible:* a program that both edits and
+        #: plays one file is the step after.
+        if as_rows:
             continue
         rels = parse(text, name=one, where=at)
         for section in sections_of(rels):

@@ -683,6 +683,21 @@ def _from_midi(bank: Bank, source: str) -> list:
             f"{bank.name}FromMidi ch p v = noteOn ch p v", ""]
 
 
+def voice_stub(source: str) -> str:
+    """`Voice := NoVoice`, for a program that has **no** `voices` bank and
+    is compiled with `music.ges` in front of it — `Score` names `Voice`,
+    whose constructors only a bank generates (`_voice_type`), and gestate
+    cannot declare a type with none (`fixme.md` F60).  `midi.py` gave its
+    bankless pieces this stub; the canvas half and the performance did
+    not, and a program that reads a `.notes` and plays through no bank
+    refused in both with *"Unknown type constructor: Voice"* (F247).
+    Empty when the program has a bank, which generates the real one."""
+    try:
+        return "" if banks_of(source) else "\nVoice := NoVoice\n"
+    except Exception:                                   # noqa: BLE001
+        return ""
+
+
 def _voice_type(banks: list) -> list:
     """`Voice`, and the injection each bank offers.
 

@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**582 complaints**, in 52 files.
+**591 complaints**, in 52 files.
 
 | | |
 |---|---|
-| `author` | 340 |
-| `command` | 51 |
+| `author` | 343 |
+| `command` | 57 |
 | `world` | 27 |
 | `machine` | 164 |
-| say where | 222 |
+| say where | 224 |
 | say `nowhere`, on purpose | 69 |
-| `unplaced`, with a defect that owns it | 86 |
+| `unplaced`, with a defect that owns it | 89 |
 
 ## A place that could exist, and does not
 
@@ -57,12 +57,12 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `audioextract.py:1104` | `ExtractError` | fixme.md F156: a static parameter — an envelope's points — read as a per-sample value, named by its definition path |
 | `audioextract.py:1193` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audiollvm.py:432` | `LLVMError` | fixme.md F157: a definition used at two types inside one fragment is the author's, and the name is carried where the line is not |
-| `audioscore.py:491` | `ScoreError` | fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on |
-| `audioscore.py:1133` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
-| `audioscore.py:1149` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its beat and not by its line |
-| `audiovoices.py:935` | `VoicesError` | fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here |
-| `audiovoices.py:959` | `VoicesError` | fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here |
-| `audiovoices.py:1012` | `VoicesError` | fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here |
+| `audioscore.py:496` | `ScoreError` | fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on |
+| `audioscore.py:1138` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
+| `audioscore.py:1154` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its beat and not by its line |
+| `audiovoices.py:950` | `VoicesError` | fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here |
+| `audiovoices.py:974` | `VoicesError` | fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here |
+| `audiovoices.py:1027` | `VoicesError` | fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here |
 | `constraint.py:46` | `ConstraintError` | fixme.md F157: constraint solving knows the predicate and has let go of the expression that wanted it |
 | `constraint.py:75` | `ConstraintError` | fixme.md F157: constraint solving knows the predicate and has let go of the expression that wanted it |
 | `constraint.py:338` | `ConstraintError` | fixme.md F157: constraint solving knows the predicate and has let go of the expression that wanted it |
@@ -82,23 +82,24 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:818` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:821` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:829` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:832` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1234` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
-| `reactors.py:318` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:327` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:347` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:352` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:363` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:372` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:351` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:360` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `reactors.py:380` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:384` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:390` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:395` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:403` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:383` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:388` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:399` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:408` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:416` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:420` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:426` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:431` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:439` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:174` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -128,9 +129,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:114` | `ScoreError` | the piece names an instrument no bank plays, which is about two declarations |
 | `audioscore.py:138` | `ScoreError` | a piece with no bank to play it through at all |
 | `audioscore.py:304` | `ScoreError` | the piece declares two ways of saying how fast it goes; the mistake is the pair |
-| `audioscore.py:525` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
-| `audioscore.py:591` | `ScoreError` | a note names a bank the piece does not declare |
-| `audioscore.py:1381` | `ScoreError` | the piece names a bank that was given no allocator |
+| `audioscore.py:530` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
+| `audioscore.py:596` | `ScoreError` | a note names a bank the piece does not declare |
+| `audioscore.py:1386` | `ScoreError` | the piece names a bank that was given no allocator |
 | `charts.py:68` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `charts.py:91` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
 | `charts.py:97` | `ChartError` | a chart file missing a declaration, or a term built for a constructor the file does not have: the fault is a name absent from a file, and an absent name has no line |
@@ -170,10 +171,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:807` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:810` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
-| `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:745` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:1116` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:1138` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:120` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
+| `gui.py:756` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:1127` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:1149` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -401,25 +402,25 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 287 | `ScoreError` | `author` | written out | 'at line {line}:0: {hint}' |
 | 304 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece declares both a `bpm` and a `tempo`, and only one of them says how fast it goes. A … |
 | 392 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
-| 491 | `ScoreError` | `author` | *unplaced — fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on* | "cannot tell which field of {payload} is the pitch — {len(found)} of them are whole numbers in … |
-| 525 | `ScoreError` | `author` | *nowhere, on purpose* | 'this score unfolds — ' + ', '.join((f'`{n}`' for n in unfolding)) + ' — so laying it out whole… |
-| 558 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
-| 582 | `ScoreError` | `machine` | — | 'expected an (onset, offset, voice) triple' |
-| 587 | `ScoreError` | `machine` | — | 'expected a `Voice` value' |
-| 591 | `ScoreError` | `author` | *nowhere, on purpose* | 'a note assigned to a voice bank this program does not declare (constructor tag {v.tag})' |
-| 879 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
-| 991 | `ScoreError` | `machine` | — | 'internal: the spans stream is not a list' |
-| 997 | `ScoreError` | `machine` | — | 'internal: a span is not (from, to, points)' |
-| 1122 | `ScoreError` | `machine` | — | 'internal: the shapes stream is not a list' |
-| 1128 | `ScoreError` | `machine` | — | 'internal: a shape span has four parts' |
-| 1133 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line* | 'a shape must name a channel' |
-| 1149 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line* | "a `shape` at beat {start / TICKS_PER_BEAT:g} has no width to spread its envelope over — the sp… |
-| 1229 | `ScoreError` | `machine` | — | 'internal: the marks stream is not a list' |
-| 1235 | `ScoreError` | `machine` | — | 'internal: a mark is not a (tick, name)' |
-| 1307 | `ScoreError` | `machine` | — | 'expected a `Step` or a `Ramp` in `tempo`' |
-| 1313 | `ScoreError` | `author` | carried from `caught` | str(caught) |
-| 1333 | `ScoreError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
-| 1381 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
+| 496 | `ScoreError` | `author` | *unplaced — fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on* | "cannot tell which field of {payload} is the pitch — {len(found)} of them are whole numbers in … |
+| 530 | `ScoreError` | `author` | *nowhere, on purpose* | 'this score unfolds — ' + ', '.join((f'`{n}`' for n in unfolding)) + ' — so laying it out whole… |
+| 563 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
+| 587 | `ScoreError` | `machine` | — | 'expected an (onset, offset, voice) triple' |
+| 592 | `ScoreError` | `machine` | — | 'expected a `Voice` value' |
+| 596 | `ScoreError` | `author` | *nowhere, on purpose* | 'a note assigned to a voice bank this program does not declare (constructor tag {v.tag})' |
+| 884 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
+| 996 | `ScoreError` | `machine` | — | 'internal: the spans stream is not a list' |
+| 1002 | `ScoreError` | `machine` | — | 'internal: a span is not (from, to, points)' |
+| 1127 | `ScoreError` | `machine` | — | 'internal: the shapes stream is not a list' |
+| 1133 | `ScoreError` | `machine` | — | 'internal: a shape span has four parts' |
+| 1138 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line* | 'a shape must name a channel' |
+| 1154 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line* | "a `shape` at beat {start / TICKS_PER_BEAT:g} has no width to spread its envelope over — the sp… |
+| 1234 | `ScoreError` | `machine` | — | 'internal: the marks stream is not a list' |
+| 1240 | `ScoreError` | `machine` | — | 'internal: a mark is not a (tick, name)' |
+| 1312 | `ScoreError` | `machine` | — | 'expected a `Step` or a `Ramp` in `tempo`' |
+| 1318 | `ScoreError` | `author` | carried from `caught` | str(caught) |
+| 1338 | `ScoreError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
+| 1386 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
 
 ### `audiovoices.py`
 
@@ -441,10 +442,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 487 | `VoicesError` | `author` | `_at()` | '`voices {bank.name} … -> Sig {bank.result}` names no data type in this program or the prelude;… |
 | 492 | `VoicesError` | `author` | `_at()` | '`{bank.result}` has {len(decl.constructors)} constructors; a frame is one record{_at(bank)}' |
 | 498 | `VoicesError` | `author` | `_at()` | '`{bank.result}` is not a frame: every field must be `Float`, because each one is an output cha… |
-| 859 | `VoicesError` | `author` | `_at()` | 'two banks are both called `{bank.name}`{_at(bank)}' |
-| 935 | `VoicesError` | `author` | *unplaced — fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here* | '`{name}` is defined in this program and is also generated by the `voices {whose}` declaration.… |
-| 959 | `VoicesError` | `author` | *unplaced — fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here* | '`holds.{name}` names no bank; this program declares ' + (', '.join((f'`{b}`' for b in sorted(k… |
-| 1012 | `VoicesError` | `author` | *unplaced — fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here* | '`voices.{name}` names no bank; this program declares ' + (', '.join((f'`{b}`' for b in sorted(… |
+| 874 | `VoicesError` | `author` | `_at()` | 'two banks are both called `{bank.name}`{_at(bank)}' |
+| 950 | `VoicesError` | `author` | *unplaced — fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here* | '`{name}` is defined in this program and is also generated by the `voices {whose}` declaration.… |
+| 974 | `VoicesError` | `author` | *unplaced — fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here* | '`holds.{name}` names no bank; this program declares ' + (', '.join((f'`{b}`' for b in sorted(k… |
+| 1027 | `VoicesError` | `author` | *unplaced — fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here* | '`voices.{name}` names no bank; this program declares ' + (', '.join((f'`{b}`' for b in sorted(… |
 
 ### `audiowasm.py`
 
@@ -594,6 +595,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 216 | `NotesError` | `command` | handed in | '{place}: `{word}` is not a record; a line is ' + ', '.join((f'`{k} …`' for k in document.names… |
 | 231 | `NotesError` | `command` | handed in | '{place}: no `{word}` here says that' |
 | 238 | `NotesError` | `command` | handed in | '{place}: retracting it would leave the file unreadable — {why}' |
+| 265 | `NotesError` | `command` | — | '{name}: `{kind_name}` is not a keyed record — a move names a record by its key' |
+| 273 | `NotesError` | `command` | — | '{name}: no `{key_line(kind, old)}` here to move' |
+| 282 | `NotesError` | `command` | — | '{name}: `{key_line(kind, old)}` is already there — nothing to move' |
+| 287 | `NotesError` | `command` | — | '{name}: line {line} would leave its section — a note does not leave its section by dragging' |
+| 291 | `NotesError` | `command` | — | '{name}: line {line} would land on a note already written there — the file cannot say one place… |
+| 307 | `NotesError` | `command` | — | '{name}: no `{key_line(kind, key)}` here' |
 
 ### `editor.py`
 
@@ -726,27 +733,27 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 112 | `GuiError` | `author` | *nowhere, on purpose* | 'this program declares a `scene`, which the canvas no longer draws. Rename it `substrate` and b… |
-| 256 | `GuiError` | `machine` | — | 'null indirection while reading a scene' |
-| 274 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
-| 284 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
-| 296 | `GuiError` | `machine` | — | 'expected a list cell, got {type(node).__name__}' |
-| 300 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
-| 308 | `GuiError` | `machine` | — | 'expected an RGB colour' |
-| 362 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 413 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 441 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 567 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 579 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 745 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 772 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
-| 791 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
-| 818 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 821 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 845 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 1116 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 1138 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1561 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 120 | `GuiError` | `author` | *nowhere, on purpose* | 'this program declares a `scene`, which the canvas no longer draws. Rename it `substrate` and b… |
+| 264 | `GuiError` | `machine` | — | 'null indirection while reading a scene' |
+| 282 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
+| 292 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
+| 304 | `GuiError` | `machine` | — | 'expected a list cell, got {type(node).__name__}' |
+| 308 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
+| 316 | `GuiError` | `machine` | — | 'expected an RGB colour' |
+| 370 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 421 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 449 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 576 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 588 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
+| 756 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 783 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
+| 802 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
+| 829 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 832 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 856 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 1127 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 1149 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1572 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -914,9 +921,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1346 | `NotesError` | `author` | handed in | '{place} is not a record — a line is `section …`, `note …` or `bpm …`' |
 | 1354 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
 | 1356 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 1863 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 1879 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
-| 1935 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 1867 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 1893 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section['name']}` is already included; two files cannot b… |
+| 1949 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -984,30 +991,33 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 221 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
-| 225 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
-| 234 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
-| 238 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
-| 247 | `ReactorError` | `author` | handed in | '{place}: a transition belongs to the mode it leaves — write it under a `mode`' |
-| 251 | `ReactorError` | `author` | handed in | "{place}: `on {m.group(1)}` binds the hand's two coordinates or none, not {len(binders)}" |
-| 267 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
-| 275 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
-| 280 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
-| 283 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …` or `mode … (field : T)…`, `on <port> -> <lens> = …`, … |
-| 299 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
-| 306 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
-| 318 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
-| 327 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
-| 339 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
-| 347 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
-| 352 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
-| 363 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {bad.line}: `{r.name}` mixes a stored mode with a derived one (`mode {bad.name} when …`) … |
-| 372 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: two transitions on `{phase}` in mode `{mode.name}` (the other on line {seen[phase]})… |
-| 380 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `-> {head}` — `{r.name}` has no mode of that name; its modes are {', '.join((f'`{x}`… |
-| 384 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand — not the model (`get`) and n… |
-| 390 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand, and `{p}` is a parameter" |
-| 395 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {x.line}: `on {x.port}` writes `{x.effects[0]}` — a hold writes nothing while the hand mo… |
-| 403 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `hold` in `{r.name}`, which has no stored mode for the hold to set — give it `mode …… |
+| 243 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 247 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 256 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 260 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 269 | `ReactorError` | `author` | handed in | '{place}: a transition belongs to the mode it leaves — write it under a `mode`' |
+| 273 | `ReactorError` | `author` | handed in | "{place}: `on {m.group(1)}` binds the hand's two coordinates or none, not {len(binders)}" |
+| 289 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
+| 297 | `ReactorError` | `author` | handed in | "{place}: a bank inside a mode is not in this slice — make it at the reactor's level" |
+| 301 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
+| 308 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
+| 313 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
+| 316 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …` or `mode … (field : T)…`, `on <port> -> <lens> = …`, … |
+| 332 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
+| 339 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
+| 351 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
+| 360 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
+| 372 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
+| 380 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
+| 383 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
+| 388 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
+| 399 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {bad.line}: `{r.name}` mixes a stored mode with a derived one (`mode {bad.name} when …`) … |
+| 408 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: two transitions on `{phase}` in mode `{mode.name}` (the other on line {seen[phase]})… |
+| 416 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `-> {head}` — `{r.name}` has no mode of that name; its modes are {', '.join((f'`{x}`… |
+| 420 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand — not the model (`get`) and n… |
+| 426 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand, and `{p}` is a parameter" |
+| 431 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {x.line}: `on {x.port}` writes `{x.effects[0]}` — a hold writes nothing while the hand mo… |
+| 439 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `hold` in `{r.name}`, which has no stored mode for the hold to set — give it `mode …… |
 
 ### `scorebox.py`
 

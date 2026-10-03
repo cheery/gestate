@@ -21,6 +21,8 @@ TODAY = ROOT / "doc" / "trial" / "reactors" / "checkboxes-today.ges"
 DRAG = ROOT / "examples" / "gui" / "drag.ges"
 DRAG_TODAY = ROOT / "doc" / "trial" / "reactors" / "drag-today.ges"
 DOTS = "dot  name a  x -80\ndot  name b  x 0\ndot  name c  x 80\n"
+CARRY = ROOT / "examples" / "gui" / "carry.ges"
+TUNE = (ROOT / "examples" / "gui" / "tune.notes").read_text()
 OFF, ON = (38, 42, 52), (240, 184, 72)
 
 
@@ -209,8 +211,8 @@ def test_the_drag_opens_the_way_the_window_opens_it():
 def test_each_stored_instance_gets_its_own_hold_and_mode():
     out = desugar(DRAG.read_text())
     for k in "abc":
-        assert f"panel__{k}__hold : Chan Event" in out
-        assert f"panel__{k}__mode = scanE dot__step DotResting (wait panel__{k}__hold)" in out
+        assert f"panel__{k}__hold : Chan Hold" in out
+        assert f"panel__{k}__state = scanE dot__step (DotResting) (wait panel__{k}__hold)" in out
     assert "DotMode := DotResting | DotCarrying Int Int" in out
 
 
@@ -272,4 +274,105 @@ def test_a_transition_belongs_to_a_mode():
                    "  mode Resting\n"
                    "    picture = hold (Gap 0 0)\n")
     assert "belongs to the mode it leaves" in why
+
+
+# ── the note hand: a bank of notes over a `.notes`, carried and clicked ────
+#
+# `card:gui-is-difficult.md` §"The next slice: the notes editor's note
+# hand", 2026-10-03.  The notes file is the test's own copy.
+
+
+def _carry_bench(text: str = TUNE):
+    from gestate.audioeditor import Workbench
+
+    tmp = Path(tempfile.mkdtemp())
+    shutil.copy(CARRY, tmp)
+    doc = tmp / "tune.notes"
+    doc.write_text(text)
+    bench = Workbench(tmp / CARRY.name, rate=22050, block=256)
+    bench._load_substrate(bench.program())
+    bench.drain()
+    return bench, doc
+
+
+def _bars(bench) -> list:
+    """Each note's bar — `(x, y, ink)` — the lane behind them left out."""
+    return [(i[1], i[2], i[5]) for i in bench.substrate.picture() if i[0] == "rect"][1:]
+
+
+def test_a_carried_note_follows_the_hand_snapped_and_moves_its_line_on_the_release():
+    bench, doc = _carry_bench()
+    first = _bars(bench)
+    assert first[0] == (-192, 29, (235, 178, 110))
+    bench.touch("press", -168, 32)
+    bench.touch("drag", -150, 24)
+    bench.touch("drag", -144, 16)
+    assert _bars(bench)[0] == (-168, 13, (255, 220, 160)), \
+        "two sixteenths right, two semitones up, in the held ink"
+    assert _bars(bench)[1:] == first[1:], "and only the held note moves"
+    assert doc.read_text() == TUNE, "nothing is written while the hand moves"
+    bench.touch("release", -144, 16)
+    assert bench.drain() == ["tune.notes — moved line 6: at 0 → 48 on line 6, "
+                             "key 60 → 62 on line 6"]
+    lines = doc.read_text().splitlines()
+    assert lines[5] == "note  section A  bar 1  at 48  len 96  voice melody  key 62  vel mf", \
+        "the line rewritten where it stood"
+    assert [l for l in lines if l != lines[5]] == [l for l in TUNE.splitlines() if l != TUNE.splitlines()[5]]
+
+
+def test_a_press_let_go_where_it_was_taken_says_where_the_note_is_written():
+    bench, doc = _carry_bench()
+    bench.touch("press", -120, 0)
+    bench.touch("release", -120, 0)
+    assert bench.drain() == ["tune.notes:7 — note  section A  bar 1  at 96  "
+                             "len 96  voice melody  key 64  vel mf"]
+    assert doc.read_text() == TUNE
+
+
+def test_a_carry_the_file_cannot_say_is_refused_whole():
+    bench, doc = _carry_bench()
+    bench.touch("press", 144, 32)
+    bench.touch("drag", 300, 32)
+    bench.touch("release", 300, 32)
+    assert "would leave its section" in bench.drain()[0]
+    bench.touch("press", -168, 32)
+    bench.touch("drag", -120, 0)
+    bench.touch("release", -120, 0)
+    assert "would land on a note already written there" in bench.drain()[0]
+    assert doc.read_text() == TUNE
+
+
+def test_a_note_written_by_hand_is_an_instance_at_once():
+    """Notes come and go: the bank follows the file, keyed by the note."""
+    bench, doc = _carry_bench()
+    doc.write_text(TUNE + "note  section A  bar 2  at 288  len 48  voice melody  key 72  vel p\n")
+    bench.tick()
+    assert len(_bars(bench)) == 7
+    bench.touch("press", 156, -64)
+    bench.touch("drag", 132, -64)
+    bench.touch("release", 132, -64)
+    assert "at 288 → 240" in bench.drain()[0]
+    doc.write_text(TUNE)
+    bench.tick()
+    assert len(_bars(bench)) == 6
+
+
+def test_the_carry_opens_the_way_the_window_opens_it():
+    from gestate import audio, notes
+
+    audio.render(notes.read(CARRY), seconds=0.01)
+
+
+def test_a_bank_names_a_reactor():
+    why = _refused("reactor P (all : Lens S S)\n"
+                   "  xs = new Ghost x for x in get all by x\n"
+                   "  picture = xs.picture\n")
+    assert "`new Ghost`" in why
+
+
+def test_a_bank_shares_one_hold_and_reads_each_mode_off_its_key():
+    out = desugar(CARRY.read_text())
+    assert out.count("roll__notes__hold : Chan Hold") == 1
+    assert "roll__notes__state = scanE note__bankStep NoteFree (wait roll__notes__hold)" in out
+    assert "(note__modeOf (noteKey n) __b0)" in out
 

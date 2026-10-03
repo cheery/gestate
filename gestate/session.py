@@ -7330,6 +7330,10 @@ def _say_act(act) -> str:
     text = lambda cps: "".join(chr(c) for c in cps)  # noqa: E731
     if head == "Refuse":
         return f"refuse {text(act[1])!r}"
+    if head == "MoveTo":
+        old = " ".join(str(v) if h == "IntAtom" else text(v) for h, v in act[2])
+        new = " ".join(str(v) if h == "IntAtom" else text(v) for h, v in act[3])
+        return f"move {text(act[1])} {old} to {new}"
     atoms = " ".join(str(v) if h == "IntAtom" else text(v) for h, v in act[2])
     return f"{head.lower()} {text(act[1])} {atoms}"
 

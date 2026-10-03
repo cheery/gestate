@@ -242,6 +242,71 @@ def retracted(text: str, key: str, name: str = "<document>",
     return made, f"retracted {' '.join(tokens)}{lines}"
 
 
+def moved(text: str, kind_name: str, old: dict, new: dict,
+          name: str = "<document>", where=None) -> tuple:
+    """`(text, said)` — one record moved: its line found by its key, and
+    every key field that differs rewritten in place, one field's bytes at
+    a time (`notes.retune`, `spec/north_star.md`'s law).  The act a
+    reactor's commit sends for a carried note
+    (`card:gui-is-difficult.md` §"The next slice: the notes editor's
+    note hand"): the line keeps its place, its prose and its other
+    fields, which a retract and an assert would not.
+
+    Refused, whole, by the reader's own rules — a domain, a reference, a
+    bar past its section's end, a tick past its bar — and when it would
+    land on a record already written there; `do_carry`'s refusals, said
+    by the document rather than by the command."""
+    from .notes import doubled, refused, retune
+
+    document = beside(where)
+    kind = document.kind(kind_name)
+    if kind is None or not kind.key:
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{name}: `{kind_name}` is not a keyed record — a move "
+                         "names a record by its key")
+    want = tuple(str(old[c]) for c in kind.key)
+    found = [e for e in records(text, name, where)
+             if e[1].name == kind.name
+             and tuple(str(e[2][c]) for c in kind.key) == want]
+    if not found:
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{name}: no `{key_line(kind, old)}` here to move")
+    line, _kind, values, _above, _beside = found[0]
+    out, said = text, []
+    for col in kind.key:
+        if str(new[col]) != str(values[col]):
+            out, word = retune(out, line, col, values[col], new[col])
+            said.append(word)
+    if out == text:
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{name}: `{key_line(kind, old)}` is already there — nothing to move")
+    _checked(out, name, where)
+    rels = relations_of(out, name, where=where)
+    if refused(rels, where):
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{name}: line {line} would leave its section — "
+                         "a note does not leave its section by dragging")
+    if any(a["line"] == line or b["line"] == line for a, b in doubled(rels)):
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{name}: line {line} would land on a note already "
+                         "written there — the file cannot say one place twice")
+    return out, f"moved line {line}: " + ", ".join(said)
+
+
+def revealed(text: str, kind_name: str, key: dict, name: str = "<document>",
+             where=None) -> str:
+    """Where a record is written, said — what a click on a note in an
+    included file answers (`session._reveal`): the file and the line."""
+    document = beside(where)
+    kind = document.kind(kind_name)
+    want = tuple(str(key[c]) for c in kind.key) if kind and kind.key else None
+    for line, other, values, _a, _b in records(text, name, where):
+        if other.name == kind_name and want == tuple(str(values[c]) for c in kind.key):
+            return f"{name}:{line} — {record_line(other, values)}"
+    #: complaint  command — a program's act on its document, answered in the status line
+    raise NotesError(f"{name}: no `{key_line(kind, key)}` here")
+
+
 def stamp(path: Path) -> tuple:
     """When a document last changed — what a host compares a frame
     later to know whether to read it again."""

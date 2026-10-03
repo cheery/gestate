@@ -1,0 +1,11 @@
+# tune.notes — the notes `carry.ges` carries.  Drag one and let go, or
+# change a number here; the roll follows either way.
+
+section A  key C  mode ionian  bars 2  beats 4  voices melody
+
+note  section A  bar 1  at 0  len 96  voice melody  key 60  vel mf
+note  section A  bar 1  at 96  len 96  voice melody  key 64  vel mf
+note  section A  bar 1  at 192  len 192  voice melody  key 67  vel f
+note  section A  bar 2  at 0  len 96  voice melody  key 65  vel mf
+note  section A  bar 2  at 96  len 96  voice melody  key 62  vel mf
+note  section A  bar 2  at 192  len 192  voice melody  key 60  vel mp

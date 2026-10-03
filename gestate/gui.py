@@ -56,6 +56,14 @@ def _preludes(source: str) -> str:
     head = preludes(source)
     if has_score(source):
         head += "\n" + (Path(__file__).with_name("music.ges")).read_text()
+        # **And `Voice` when no bank generates one** — `music.ges`'
+        # `Score` names it, and its constructors come from the program's
+        # `voices` banks (`audiovoices._voice_type`); a canvas that reads
+        # a `.notes` and plays through no bank had none, and refused with
+        # *"Unknown type constructor: Voice"* (`fixme.md` F247).  The stub
+        # `midi.py` gives a bankless piece, for the same reason.
+        from .audiovoices import voice_stub
+        head += voice_stub(source)
     return head
 
 
@@ -409,7 +417,7 @@ def _extent(node, state) -> tuple[int, int]:
     if tag in (cons["Does"].tag, cons["Takes"].tag):
         return _extent(args[1], state)
     if "Holds" in cons and tag == cons["Holds"].tag:
-        return _extent(args[2], state)
+        return _extent(args[3], state)
     raise GuiError(f"unknown substrate tag {tag}")
 
 
@@ -555,11 +563,12 @@ def _walk(node, state, cx: int, cy: int, out: list, hits: list) -> None:
         # (`Substrate.touch_all`).
         w, h = _extent(node, state)
         x0, y0 = cx - w // 2, cy - h // 2
-        _walk(args[2], state, cx, cy, out, hits)
+        _walk(args[3], state, cx, cy, out, hits)
         hits.append({
             "axis": None,
             "holds": True,
-            "acts": args[1],
+            "key": _float(args[1], state),
+            "acts": args[2],
             "chan": _chan_id(args[0], state),
             "region": (x0, y0, x0 + w, y0 + h),
         })
@@ -663,7 +672,7 @@ def _kinds(acts) -> set[str]:
     `Assert` and `Retract`, as the host reads it (`audioeditor`)."""
     out = set()
     for act in acts:
-        if isinstance(act, tuple) and act[0] in ("Assert", "Retract"):
+        if isinstance(act, tuple) and act[0] in ("Assert", "Retract", "MoveTo"):
             out.add("".join(chr(c) for c in act[1]))
     return out
 
@@ -701,11 +710,13 @@ _HOLD_EVENT = {"press": "Press", "drag": "Move", "release": "Release"}
 
 
 def _hold_writes(state, targets: list, kind: str, x: int, y: int) -> list:
-    """`(channel, Event)` for every held `Holds` — the phase, where."""
+    """`(channel, Hold key Event)` for every held `Holds` — whose it is,
+    the phase, and where."""
     name = _HOLD_EVENT.get(kind)
     if name is None:
         return []
-    return [(t["chan"], _event_node(state, (name, x, y)))
+    tag = state.cons["Hold"].tag
+    return [(t["chan"], NCon(tag, (NNum(t["key"]), _event_node(state, (name, x, y)))))
             for t in targets if t.get("holds")]
 
 
@@ -718,8 +729,8 @@ def _letting_go(hits: list, targets: list) -> list:
     for t in targets:
         if not t.get("holds"):
             continue
-        now = next((h for h in hits
-                    if h.get("holds") and h["chan"] == t["chan"]), t)
+        now = next((h for h in hits if h.get("holds") and h["chan"] == t["chan"]
+                    and h["key"] == t["key"]), t)
         out.append(now["acts"])
     return out
 

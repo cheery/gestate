@@ -252,7 +252,7 @@ pub fn extent(m: &mut Machine, t: &SubTags, node: usize) -> R<(i32, i32)> {
     } else if tag == t.does || tag == t.takes {
         extent(m, t, args[1])
     } else if tag == t.holds {
-        extent(m, t, args[2])
+        extent(m, t, args[3])
     } else {
         err(format!("unknown substrate tag {tag}"))
     }
@@ -373,8 +373,8 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
         // and stays home — `gui.Substrate._crossing`).
         let (w, h) = extent(m, t, node)?;
         let (x0, y0) = (cx - half(w), cy - half(h));
-        walk(m, t, args[2], cx, cy, d)?;
-        d.holds(args[1], (x0, y0, x0 + w, y0 + h));
+        walk(m, t, args[3], cx, cy, d)?;
+        d.holds(args[2], (x0, y0, x0 + w, y0 + h));
     } else {
         return err(format!("unknown substrate tag {tag}"));
     }
@@ -639,7 +639,8 @@ mod tests {
     fn a_holds_carries_its_acts_over_its_child() {
         // **Held from press to release** — `gui.ges`' `Holds`
         // (`card:gui-is-difficult.md` §"The next slice: a drag").  Its
-        // child is the third argument, after the channel and the acts;
+        // child is the fourth argument, after the channel, its key and
+        // the acts;
         // the walk records the region and the acts' node, and the
         // reference machine is the one that performs them.
         let mut m = machine();
@@ -648,7 +649,8 @@ mod tests {
         let boxed = con(&mut m, T.sized, vec![w, h, body]);
         let acts = con(&mut m, T.nil, vec![]);
         let chan = int(&mut m, 0);
-        let held = con(&mut m, T.holds, vec![chan, acts, boxed]);
+        let key = int(&mut m, 0);
+        let held = con(&mut m, T.holds, vec![chan, key, acts, boxed]);
 
         let d = view(&mut m, &T, held, 30, 30).unwrap();
         assert_eq!(d.hits.len(), 1);

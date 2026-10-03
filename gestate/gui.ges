@@ -76,7 +76,7 @@ Sub := Rect Int Int Colour
      | Meaning (Chan Float) Float Sub
      | Does (List Act) Sub
      | Takes (List Act) Sub
-     | Holds (Chan Event) (List Act) Sub
+     | Holds (Chan Hold) Float (List Act) Sub
 
 # ── What can arrive ──────────────────────────────────────────────────────
 #
@@ -93,6 +93,12 @@ Event := Tick
 
 input : Chan Event
 input = chan
+
+#: What a hold writes: the key the element was built with — the model's
+#: key, the way `Meaning` carries one — and what the hand did.  The key
+#: is what lets one channel serve a whole bank of held things, a note
+#: per note, and say which one a press landed on.
+Hold := Hold Float Event
 
 # ── Signals ─────────────────────────────────────────────────────────────
 #
@@ -372,7 +378,8 @@ onTake a s = !takes a s
 #: **Hold this element, and say what letting go of it does.**  From the
 #: press to the release the element is held: the press, every motion and
 #: the release are written to the channel as `Press`, `Move` and
-#: `Release`, in the canvas's coordinates — so a program folding over
+#: `Release`, in the canvas's coordinates and in a `Hold` with the key
+#: the element was given — so a program folding over
 #: the channel knows where the hand took it and where the hand is.  On
 #: the release the host performs the acts the picture carries **at that
 #: instant**, which is how a drag commits: the acts are computed from the
@@ -380,8 +387,8 @@ onTake a s = !takes a s
 #: moves.  The other attachments commit on the press; this is the one
 #: whose commit is the release (`card:gui-is-difficult.md` §"The next
 #: slice: a drag, as a reactor with a stored mode", 2026-10-03).
-onHold : Chan Event -> Sig (List Act) -> Sig Sub -> Sig Sub
-onHold c a s = !(holding c) a s
+onHold : Chan Hold -> Float -> Sig (List Act) -> Sig Sub -> Sig Sub
+onHold c k a s = !(holding c k) a s
 
 # ── Numbers beside a substrate ───────────────────────────────────────────
 
@@ -427,5 +434,5 @@ takes a s = Takes a s
 
 #: `Holds` with its channel first, for `meaning`'s reason, for `onHold`
 #: to lift.  A program building a `Sub` by hand writes the constructor.
-holding : Chan Event -> List Act -> Sub -> Sub
-holding c a s = Holds c a s
+holding : Chan Hold -> Float -> List Act -> Sub -> Sub
+holding c k a s = Holds c k a s

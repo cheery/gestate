@@ -129,4 +129,18 @@ host's `Retract` was made to take a key as the library already said it
 did, and F246 ledgered.  The measure moved this time: 3 places against
 6 to add a fourth dot, 7 composition lines against 17
 (`card:gui-is-difficult.md` §"Built — a drag, as a reactor with a stored
-mode").  Then his hands on it: *"the drag works."*
+mode").  Then his hands on it: *"the drag works."*  Then, at his *"go with the notes editor"*, the first real port
+of a piece of it — expectation 14's trigger.  The note hand (363 code
+lines today, `hand.ges` and eleven `session.py` methods) went into
+`examples/gui/carry.ges`: a bank of `Note` reactors over `tune.notes`,
+`Holds` given the key a press lands on, `MoveTo` and `Reveal` acts the
+host performs by retuning the note's own line, and a `.notes` read as
+rows rather than expanded as a score.  On the way it found F247 — a
+canvas with a score and no bank could not compile `Voice` in either
+half — and four names the library already owned.  It carries, clicks,
+refuses what the file cannot say, and follows a hand edit.  **The
+measure: 0.25, not under 0.10** — 50 lines of hand against the 202 it
+covers (`python doc/trial/reactors/notehand.py`), about 0.19 if the
+port's own drawing is left out as the baseline's is.  A fourfold
+reduction; the order of magnitude was not there on this piece
+(`card:gui-is-difficult.md` §"Built — the notes editor's note hand").

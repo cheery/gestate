@@ -2078,8 +2078,18 @@ class Workbench:
             return
         try:
             authored = self.source()
-            names = documents(authored)
             wanted = declared(authored)
+            names = documents(authored)
+            # **And a `.notes` include, when the program asks for one of
+            # its kinds** — `document "note"`, read by the kinds gestate
+            # ships (`facts.beside`): the notes as rows that follow the
+            # file, which is what a reactor over a score is handed
+            # (`card:gui-is-difficult.md` §"The next slice: the notes
+            # editor's note hand").
+            from .notes import includes
+            if set(wanted) & {"note", "section", "bar", "bpm"}:
+                names += [one for one in includes(authored)
+                          if one.endswith(".notes") and one not in names]
         except Exception:                                   # noqa: BLE001
             return
         if not names or not wanted:
@@ -2116,7 +2126,8 @@ class Workbench:
         """Do what the program asked in the step a hand just made —
         `Substrate.acts`: assert and retract through the document's own
         reader, say a refusal, and feed the rows back."""
-        from .documents import asserted, key_line, record_line, retracted
+        from .documents import (asserted, key_line, moved, record_line,
+                                retracted, revealed)
         from .facts import FactsError, beside, fact_of
         from .notes import NotesError
 
@@ -2137,11 +2148,24 @@ class Workbench:
             if head == "Refuse":
                 self.say("".join(chr(c) for c in act[1]))
                 continue
-            if head not in ("Assert", "Retract"):
+            if head not in ("Assert", "Retract", "MoveTo", "Reveal"):
                 self.say(f"acts: `{head}` is not an act the host knows")
                 continue
             try:
                 doc = beside(path)
+                if head in ("MoveTo", "Reveal"):
+                    kind, old = fact_of(doc, act[1], act[2], keyed=True)
+                    if head == "Reveal":
+                        self.say(revealed(path.read_text(), kind.name, old,
+                                          path.name, where=path))
+                        continue
+                    _k, new = fact_of(doc, act[1], act[3], keyed=True)
+                    out, said = moved(path.read_text(), kind.name, old, new,
+                                      path.name, where=path)
+                    path.write_text(out)
+                    changed = True
+                    self.say(f"{path.name} — {said}")
+                    continue
                 kind, values = fact_of(doc, act[1], act[2],
                                        keyed=head == "Retract")
                 text = path.read_text()

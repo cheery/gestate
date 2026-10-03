@@ -61,8 +61,12 @@ track = Rect 440 4 trackInk
 #: Where the hand took a dot and where it is now — or nowhere.
 Grip := Free | Took Int Int
 
-grip : Grip -> Event -> Grip
-grip g e = case e of
+grip : Grip -> Hold -> Grip
+grip g held = case held of
+    Hold k e -> took g e
+
+took : Grip -> Event -> Grip
+took g e = case e of
     Press x y -> Took x x
     Move x y -> case g of
         Took a b -> Took a x
@@ -71,13 +75,13 @@ grip g e = case e of
     Tick -> g
     Key k -> g
 
-aHold : Chan Event
+aHold : Chan Hold
 aHold = chan
 
-bHold : Chan Event
+bHold : Chan Hold
 bHold = chan
 
-cHold : Chan Event
+cHold : Chan Hold
 cHold = chan
 
 aGrip = scanE grip Free (wait aHold)
@@ -90,10 +94,10 @@ cGrip = scanE grip Free (wait cHold)
 moving : Text -> Int -> List Act
 moving k x = retracting dotRel k :: asserting dotRel (k, clampX x) :: Nil
 
-dotPic : Chan Event -> Text -> Dots -> Grip -> Sub
+dotPic : Chan Hold -> Text -> Dots -> Grip -> Sub
 dotPic h k ds g = case g of
-    Free -> Shift (xOf ds k) 0 (Holds h Nil (disc k restInk))
-    Took a b -> Shift (clampX (xOf ds k + b - a)) 0 (Holds h (moving k (xOf ds k + b - a)) (disc k heldInk))
+    Free -> Shift (xOf ds k) 0 (Holds h 0.0 Nil (disc k restInk))
+    Took a b -> Shift (clampX (xOf ds k + b - a)) 0 (Holds h 0.0 (moving k (xOf ds k + b - a)) (disc k heldInk))
 
 gather : Grip -> Grip -> Grip -> (Grip, Grip, Grip)
 gather a b c = (a, b, c)

@@ -393,8 +393,13 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
             f'`include "{left[0]}"` reached the assembler: this program was '
             "read without `gestate.notes.read`, which is the door that "
             "expands a `.notes` file")
+    from .audiovoices import voice_stub
+
     music = (Path(__file__).with_name("music.ges")).read_text()
-    head = preludes(synth + "\n" + piece) + "\n" + music
+    # `voice_stub`: a piece with no `voices` bank still names `Voice`
+    # through `music.ges` (F247).
+    head = (preludes(synth + "\n" + piece) + "\n" + music
+            + voice_stub(synth + "\n" + piece))
     # `audio._entry`'s tail — `sampleRate`, `constSig`, `main = sound` —
     # and the score's own entry after it, under its own name.  Which
     # spelling of the tempo the piece uses decides the pair's first half.

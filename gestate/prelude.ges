@@ -441,7 +441,12 @@ instance (Show a, Show b) => Show (a, b) where
 # machine that does something with it is outside the program.
 Atom := IntAtom Int | TextAtom String
 
-Act := Assert String (List Atom) | Retract String (List Atom) | Refuse String
+#:
+#: **`MoveTo` and `Reveal`, 2026-10-03** (`card:gui-is-difficult.md`
+#: §"The next slice: the notes editor's note hand"): a record moved from
+#: one key to another, rewritten in its own line — the commit of a
+#: carried note — and a record's place said, the answer to a click.
+Act := Assert String (List Atom) | Retract String (List Atom) | Refuse String | MoveTo String (List Atom) (List Atom) | Reveal String (List Atom)
 
 # ── Ordering, put to work ────────────────────────────────────────────────
 #
