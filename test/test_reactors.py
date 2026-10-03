@@ -181,8 +181,7 @@ def test_a_drag_moves_its_own_dot_and_writes_the_file_once_on_the_release(game):
     assert bench.drain() == []
     bench.touch("release", -40, 9)
     said = bench.drain()
-    assert said == [f"{doc.name} — retracted dot name a",
-                    f"{doc.name} — asserted dot  name a  x -40"]
+    assert said == [f"{doc.name} — moved line 1: x -80 → -40 on line 1"]
     assert _rows(doc) == ["dot  name a  x -40", "dot  name b  x 0", "dot  name c  x 80"]
     assert _dots(bench) == [-40, 0, 80]
     # a second dot, after the first: its own hold, its own mode
@@ -192,6 +191,26 @@ def test_a_drag_moves_its_own_dot_and_writes_the_file_once_on_the_release(game):
     bench.touch("release", 300, 0)
     bench.drain()
     assert "dot  name b  x 200" in _rows(doc)
+
+
+@pytest.mark.parametrize("game", [DRAG, DRAG_TODAY], ids=["reactors", "today"])
+def test_a_drag_changes_one_number_and_keeps_the_files_prose(game):
+    """F248: the file's opening comment rides on its first record, and a
+    retract and an assert took it with dot `a`.  The move rewrites the
+    one field in place, so every other byte stays."""
+    header = "# the dots\n# one a line\n\n"
+    bench, doc = _bench(game, header + DOTS.replace("x 0", "x 0  # the middle"), ".dots")
+    before = doc.read_text()
+    bench.touch("press", -80, 0)
+    bench.touch("drag", -40, 0)
+    bench.touch("release", -40, 0)
+    bench.drain()
+    bench.touch("press", 0, 0)
+    bench.touch("drag", 20, 0)
+    bench.touch("release", 20, 0)
+    bench.drain()
+    assert doc.read_text() == (before.replace("x -80", "x -40")
+                               .replace("x 0  #", "x 20  #"))
 
 
 def test_the_dots_follow_a_hand_edit_of_the_file():

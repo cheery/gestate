@@ -145,4 +145,8 @@ port's own drawing is left out as the baseline's is.  A fourfold
 reduction; the order of magnitude was not there on this piece
 (`card:gui-is-difficult.md` §"Built — the notes editor's note hand").  His
 reading: *"fourfold reduction is nothing to sneer at"*; and his hands on
-it, *"it worked."*
+it, *"it worked."*  Then F248, the first of the next steps said to
+him: the drag now puts one `MoveTo` whose second row is the whole new
+row, and `documents.moved` rewrites a field that is not the key in its
+own line, so a dragged dot changes one number and `drag.dots` keeps its
+header.

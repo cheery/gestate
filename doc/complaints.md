@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**591 complaints**, in 52 files.
+**594 complaints**, in 52 files.
 
 | | |
 |---|---|
 | `author` | 343 |
-| `command` | 57 |
+| `command` | 60 |
 | `world` | 27 |
 | `machine` | 164 |
-| say where | 224 |
+| say where | 227 |
 | say `nowhere`, on purpose | 69 |
 | `unplaced`, with a defect that owns it | 89 |
 
@@ -595,12 +595,15 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 216 | `NotesError` | `command` | handed in | '{place}: `{word}` is not a record; a line is ' + ', '.join((f'`{k} …`' for k in document.names… |
 | 231 | `NotesError` | `command` | handed in | '{place}: no `{word}` here says that' |
 | 238 | `NotesError` | `command` | handed in | '{place}: retracting it would leave the file unreadable — {why}' |
-| 265 | `NotesError` | `command` | — | '{name}: `{kind_name}` is not a keyed record — a move names a record by its key' |
-| 273 | `NotesError` | `command` | — | '{name}: no `{key_line(kind, old)}` here to move' |
-| 282 | `NotesError` | `command` | — | '{name}: `{key_line(kind, old)}` is already there — nothing to move' |
-| 287 | `NotesError` | `command` | — | '{name}: line {line} would leave its section — a note does not leave its section by dragging' |
-| 291 | `NotesError` | `command` | — | '{name}: line {line} would land on a note already written there — the file cannot say one place… |
-| 307 | `NotesError` | `command` | — | '{name}: no `{key_line(kind, key)}` here' |
+| 267 | `NotesError` | `command` | — | '{name}: `{kind_name}` is not a keyed record — a move names a record by its key' |
+| 275 | `NotesError` | `command` | — | '{name}: no `{key_line(kind, old)}` here to move' |
+| 289 | `NotesError` | `command` | — | '{name}: `{key_line(kind, old)}` is already there — nothing to move' |
+| 296 | `NotesError` | `command` | — | '{name}: line {line} would leave its section — a note does not leave its section by dragging' |
+| 300 | `NotesError` | `command` | — | '{name}: line {line} would land on a note already written there — the file cannot say one place… |
+| 319 | `NotesError` | `command` | handed in | '{place} is not in this file any more' |
+| 328 | `NotesError` | `command` | handed in | '{place} has no `{field}` to change' |
+| 331 | `NotesError` | `command` | handed in | '{place} says `{field} {found.group(2)}` where the picture thought `{field} {was}` — the file h… |
+| 349 | `NotesError` | `command` | — | '{name}: no `{key_line(kind, key)}` here' |
 
 ### `editor.py`
 

@@ -5177,6 +5177,21 @@ box's page on the port covering most of today's hand.
 canvas tab — carry a note and let go; press one and let go; write a note
 into `tune.notes` by hand and carry it.
 
+**F248, resolved — 2026-10-03.**  *Postcondition, before building:
+dragging a dot and letting go changes that dot's number in the file and
+no other byte — the header and every line's prose stay where their
+author wrote them.*  `MoveTo`'s second row may be the whole new row, and
+`documents.moved` rewrites any field it names in place
+(`documents._rewritten` for a declared kind); `drag.ges` and its control
+`drag-today.ges` put one `MoveTo`, a one-line change each, so the
+composition counts above stand.  `test_reactors.py` holds it on a
+document with a header and a comment beside a dot, red on both programs
+with the old `put`.
+
+**His two minutes:** `python -m gestate.workbench examples/gui/drag.ges`,
+canvas tab — drag a dot and let go; `drag.dots` should still open with
+its three-line comment.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

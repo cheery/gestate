@@ -90,9 +90,9 @@ bGrip = scanE grip Free (wait bHold)
 
 cGrip = scanE grip Free (wait cHold)
 
-#: The row moved: retracted by its key, asserted at the new `x`.
+#: The row moved: found by its key and told the new `x` in place.
 moving : Text -> Int -> List Act
-moving k x = retracting dotRel k :: asserting dotRel (k, clampX x) :: Nil
+moving k x = MoveTo (relName dotRel) (atoms k) (atoms (k, clampX x)) :: Nil
 
 dotPic : Chan Hold -> Text -> Dots -> Grip -> Sub
 dotPic h k ds g = case g of

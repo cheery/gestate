@@ -245,12 +245,14 @@ def retracted(text: str, key: str, name: str = "<document>",
 def moved(text: str, kind_name: str, old: dict, new: dict,
           name: str = "<document>", where=None) -> tuple:
     """`(text, said)` — one record moved: its line found by its key, and
-    every key field that differs rewritten in place, one field's bytes at
-    a time (`notes.retune`, `spec/north_star.md`'s law).  The act a
-    reactor's commit sends for a carried note
+    every field `new` names that differs rewritten in place, one field's
+    bytes at a time (`notes.retune`, `spec/north_star.md`'s law).  The
+    act a reactor's commit sends for a carried note
     (`card:gui-is-difficult.md` §"The next slice: the notes editor's
-    note hand"): the line keeps its place, its prose and its other
-    fields, which a retract and an assert would not.
+    note hand"), and for a dragged dot, whose `x` is not its key: the
+    line keeps its place, its prose and its other fields, which a
+    retract and an assert would not — the file's opening comment rides
+    on its first record, and went with it (F248).
 
     Refused, whole, by the reader's own rules — a domain, a reference, a
     bar past its section's end, a tick past its bar — and when it would
@@ -273,14 +275,21 @@ def moved(text: str, kind_name: str, old: dict, new: dict,
         raise NotesError(f"{name}: no `{key_line(kind, old)}` here to move")
     line, _kind, values, _above, _beside = found[0]
     out, said = text, []
-    for col in kind.key:
-        if str(new[col]) != str(values[col]):
-            out, word = retune(out, line, col, values[col], new[col])
+    #: The key first, then the rest in the declared order — a `new` of
+    #: the key alone (`fact_of`'s `keyed`) moves only the key.
+    for col in list(kind.key) + [f.name for f in kind.fields if f.name not in kind.key]:
+        if col in new and str(new[col]) != str(values.get(col)):
+            if kind.name in ("note", "section", "bpm"):
+                out, word = retune(out, line, col, values[col], new[col])
+            else:
+                out, word = _rewritten(out, line, kind, col, values.get(col), new[col])
             said.append(word)
     if out == text:
         #: complaint  command — a program's act on its document, answered in the status line
         raise NotesError(f"{name}: `{key_line(kind, old)}` is already there — nothing to move")
     _checked(out, name, where)
+    if document.kind("note") is None or document.kind("section") is None:
+        return out, f"moved line {line}: " + ", ".join(said)
     rels = relations_of(out, name, where=where)
     if refused(rels, where):
         #: complaint  command — a program's act on its document, answered in the status line
@@ -291,6 +300,39 @@ def moved(text: str, kind_name: str, old: dict, new: dict,
         raise NotesError(f"{name}: line {line} would land on a note already "
                          "written there — the file cannot say one place twice")
     return out, f"moved line {line}: " + ", ".join(said)
+
+
+def _rewritten(text: str, line: int, kind: Kind, field: str, was, now) -> tuple:
+    """`(text, said)` — one field of one record's line rewritten
+    byte-exactly, for a kind the program declares: `notes.retune`'s law
+    without its knowledge of notes.  A `Headed` kind's name and a `Bare`
+    kind's value stand bare after the word; any other field is written
+    `field value`.  Only the record half of the line is searched, so the
+    prose beside it is never edited; refused when the line does not say
+    `was` — the file has moved under the picture."""
+    import re
+
+    lines = text.splitlines(keepends=True)
+    place = f"line {line}"
+    if not 0 < line <= len(lines):
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{place} is not in this file any more")
+    row = lines[line - 1]
+    record, _said = _uncomment(row)
+    head = kind.shape[0] in ("Headed", "Bare") and kind.shape[1] == field
+    pattern = (rf"^(\s*{re.escape(kind.name)}\s+)(\S+)" if head
+               else rf"(\b{re.escape(field)}\s+)(\S+)")
+    found = re.search(pattern, record)
+    if found is None:
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(f"{place} has no `{field}` to change")
+    if found.group(2) != str(was):
+        #: complaint  command — a program's act on its document, answered in the status line
+        raise NotesError(
+            f"{place} says `{field} {found.group(2)}` where the picture "
+            f"thought `{field} {was}` — the file has moved under the picture")
+    lines[line - 1] = row[:found.start(2)] + str(now) + row[found.end(2):]
+    return "".join(lines), f"{field} {was} → {now} on line {line}"
 
 
 def revealed(text: str, kind_name: str, key: dict, name: str = "<document>",

@@ -625,6 +625,8 @@ Act := Assert String (List Atom) | Retract String (List Atom) | Refuse String | 
 §"The next slice: the notes editor's note hand"): a record moved from
 one key to another, rewritten in its own line — the commit of a
 carried note — and a record's place said, the answer to a click.
+`MoveTo`'s second row is the new key or the whole new row, so a
+field that is not the key moves in place too (a dragged dot, F248).
 
 
 ## Ordering, put to work

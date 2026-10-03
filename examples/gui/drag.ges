@@ -43,10 +43,12 @@ type Dots = Set Dot
 dots : Sig Dots
 dots = document "dot"
 
-#: Where the dot named `k` is, and the acts that put it somewhere else —
-#: its row retracted by its key and asserted again at the new `x`.
+#: Where the dot named `k` is, and the act that puts it somewhere else —
+#: its row, found by its key, told the new `x` in place, so the line
+#: keeps its prose (F248: a retract and an assert took the file's
+#: header with the first dot).
 place : Text -> Lens Dots Int
-place k = Lens (ds => xOf ds k) (x => retracting dotRel k :: asserting dotRel (k, x) :: Nil)
+place k = Lens (ds => xOf ds k) (x => MoveTo (relName dotRel) (atoms k) (atoms (k, x)) :: Nil)
 
 xOf : Dots -> Text -> Int
 xOf ds k = case elems (for ((n, x) in ds, n == k) {x}) of

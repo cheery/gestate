@@ -782,8 +782,8 @@ def fact_of(document: Document, kind_text, atoms, keyed: bool = False) -> tuple:
     `facts.ges`' *"Retract the row with this key"*, which until
     2026-10-03 the host refused unless the whole row came with it.  A
     lens's `put` sees only the value it is told, never the row it
-    replaces, so moving a row is a retract by its key and an assert of
-    the new one (`examples/gui/drag.ges`)."""
+    replaces, so a `MoveTo`'s first row is its key alone and its second
+    may be the key or the whole new row (`examples/gui/drag.ges`)."""
     name = _text(kind_text)
     kind = document.kind(name)
     if kind is None:
