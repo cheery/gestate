@@ -5160,6 +5160,9 @@ runs after it, one with a log line in the feed and one without, both
 drew all six.  Not reproduced, so not ledgered — said here so it is not
 lost if it comes back.
 
+**His reading of the number, the same evening:** *"fourfold reduction
+is nothing to sneer at."*
+
 **His two minutes:** `python -m gestate.workbench examples/gui/carry.ges`,
 canvas tab — carry a note and let go; press one and let go; write a note
 into `tune.notes` by hand and carry it.
