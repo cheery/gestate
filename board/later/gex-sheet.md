@@ -1,7 +1,6 @@
 # gex-sheet — gestate's own spreadsheet, and the sequencer that is one
 
-    status   open — 2026-09-23, one card at a time; `doing` from 2026-09-12.  Off the shelf the same day, the
-             textbox decided and `.notes` the first grid
+    status   shelved — 2026-10-03, untouched 10 days, the second time; the lamp's rule, at his word
     because  "I'd like to implement excel and markdown reader to gestate
              some day.  I wonder if that's crazy talk or whether it
              makes sense." — Henri, 2026-09-07; then, of the three
@@ -441,3 +440,17 @@ grid draws, a press names a cell, `field` edits the file, and the
 palette asks for the value — all of it held by tests and seen in a
 window on three and ninety-six rows with the clock stopped.  What is
 not true yet is *a grid on a piece that is playing*, and that is F227.
+
+## Shelved again, 2026-10-03
+
+**Henri:** *"defaults are fine"* — answering a session that proposed,
+under `tools/flow.py --check`'s lamp (10 days untouched), to shelve this
+with the two cards beside it.  The reason is his own of 2026-09-07,
+§"Shelved, 2026-09-07": *"It needs the GUI framework."*  Waits on the
+same event — `card:gui-is-difficult.md` reaching a framework this can be
+the first client of; reactor blocks are the nearest it has come.
+Sediment, not debt.
+
+*Its status line until today:* open — 2026-09-23, one card at a time;
+`doing` from 2026-09-12.  Off the shelf the same day, the textbox
+decided and `.notes` the first grid.

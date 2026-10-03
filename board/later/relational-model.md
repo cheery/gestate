@@ -1,6 +1,6 @@
 # relational-model — the format is a relation, so hold it to what relations learned
 
-    status   open
+    status   shelved — 2026-10-03, untouched 11 days; the lamp's rule, at his word
     because  "What I am seeing is a data format.  I have wanted a
              relational data format." — Henri, 2026-09-10, looking at
              examples/audio/arc.notes and untitled.desk.  And, the same
@@ -1306,3 +1306,19 @@ model's side of a gesture is being worked, and the tool leaves the
 command.  *Chased the same evening at his word* — `card:notes-editor.md`
 §"The 43 ms, chased": a box's eight preview channels re-written every
 pass, one reactive instant each; 12 ms median after.
+
+## Shelved, 2026-10-03
+
+**Henri:** *"defaults are fine"* — answering a session that proposed,
+under `tools/flow.py --check`'s lamp (11 days untouched), to shelve this
+with the two cards beside it.  He gave no sentence of his own for this
+one.
+
+Waits on **his physical turn** — the logical turn was built 2026-09-14
+at his word and the physical one is his (§"The logical turn").  *The
+session's reading:* that is a decision, so by `board/README.md`
+§"The priority" this is debt rather than sediment, and it belongs in
+the next batch of decisions.  An event may reach it first:
+`card:gui-is-difficult.md`'s lenses are relational lenses over this
+card's relations (§"A checkbox, and the lens it should be given"), and
+a reactor that edits notes will ask the physical question in practice.

@@ -67,29 +67,10 @@ in its `blocked` line, not by preference — and a card does not become
    framework for gestate is built from, the command language and the
    model first; the critical parts are his to design, so day one is a
    dialogue.  *Arrived unplaced, 2026-09-07.*
-2. **[relational-model](relational-model.md)** — the `.notes` format is
-   a relation, and this holds it to what relational practice paid to
-   learn: eight scars, each to be paid, refused or built, and the
-   decisions shaped for him.  *Arrived unplaced, 2026-09-10; a
-   dialogue he said he would continue.  The logical turn built
-   2026-09-14 at his word: the model first, the text its projection,
-   the kinds derived; the physical turn is his.  2026-09-22: Prela
-   read at its page, three items and one moved number, nothing built.*
-3. **[gex-sheet](gex-sheet.md)** — a sheet of cells whose formulas
-   are gestate expressions, and `.notes` as the first grid; the textbox
-   is the window's own line editor.  *Off the shelf 2026-09-12,
-   unplaced.*
-4. **[strict-forms](strict-forms.md)** — the language refuses what
-   Python allows and the cost is paid in Python: three seams measured
-   on one slice, eight families of typed languages that attack the
-   shape, each priced against the language goal.  *Arrived unplaced,
-   2026-09-13, at his ask: "a separate issue that we should solve in a
-   some neat way."  Decided 2026-09-14: staging; seam 1 closed the
-   same day, the grid's tables moved; seam 2 closed the same evening
-   by `Act` — the picture carries the command and the host performs
-   it.  E and composition remain, his.  2026-09-18: the two-level
-   papers read, and five of the seven places they reach built the
-   same day.*
+
+*Three cards went to `later/` on 2026-10-03 under the seven-day lamp,
+at his word — `card:strict-forms.md`, `card:relational-model.md`,
+`card:gex-sheet.md`, each with what it waits on.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

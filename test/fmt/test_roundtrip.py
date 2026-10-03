@@ -37,8 +37,8 @@ which is what keeps a baseline from becoming a graveyard.  The shape is
 `card:ungated-fixes.md`'s *accepted baseline that may shrink and never
 grow*, used here for the first time.
 
-The 58 `.ges` files the formatter cannot parse at all are **not listed and
-not checked**.  They are mostly the audio subgrammar, which `pipeline`
+The `.ges` files the formatter cannot parse at all — 65 of them on
+2026-10-03 — are **not listed and not checked**.  They are mostly the audio subgrammar, which `pipeline`
 handles before parsing and `gestate.fmt` does not, and whether `fmt` is
 meant to cover that surface is an open question and Henri's, not a defect.
 A source that lands unreadable therefore fails nothing.  `READABLE` holds
@@ -46,7 +46,9 @@ the other direction: a file that reads today must not silently stop.
 
 Measured 2026-08-31: 147 files — 58 unreadable; 89 readable, of which 9
 write output that does not parse (F191), 7 write a different program, and
-10 are not idempotent (F190).
+10 are not idempotent (F190).  Measured again 2026-10-03: 174 files — 65
+unreadable; 109 readable, of which 6 write output that does not parse, 2
+write a different program, and none is not idempotent.
 
 ## What this cannot catch, measured
 
@@ -139,7 +141,7 @@ def _survey() -> dict[str, Reading]:
         # the module keeps the parse this survey needs anyway instead of doing
         # it twice.  Half the run time is that one substitution.
         try:
-            before = parse(src)
+            before = parse(src, reader=True)
         except Exception:
             out[_rel(p)] = Reading(False, False, False, False)
             continue
@@ -148,7 +150,7 @@ def _survey() -> dict[str, Reading]:
         # the failures being recorded (F191), so it is caught rather than
         # allowed to end the survey.
         try:
-            after = parse(once)
+            after = parse(once, reader=True)
         except Exception as e:
             out[_rel(p)] = Reading(True, False, False, False, str(e))
             continue
@@ -269,12 +271,53 @@ READABLE = {
     "test/sessions/F147-freqknob.ges",
 }
 
+#: **And every file readable on 2026-10-03 that the set above missed** —
+#: 33 of them.  Five came with `parse(…, reader=True)`, which keeps an
+#: `include` line or a `reactor` block as the reader's own and writes it
+#: back verbatim; the other 28 had become readable since 2026-08-31 and
+#: nobody had named them, so losing one of them failed nothing.
+READABLE |= {
+    "doc/trial/reactors/checkboxes-today.ges",
+    "doc/trial/signals/blip.ges",
+    "doc/trial/signals/bounce.ges",
+    "doc/trial/signals/knob.ges",
+    "doc/trial/signals/tic-tac-toe.ges",
+    "doc/trial/signals/twoknobs.ges",
+    "examples/advanced/01-fold.ges",
+    "examples/advanced/02-samplehold.ges",
+    "examples/advanced/04-loop.ges",
+    "examples/audio/bottleneck.ges",
+    "examples/audio/drums.ges",
+    "examples/audio/flutter.ges",
+    "examples/audio/fm.ges",
+    "examples/audio/strings.ges",
+    "examples/audio/strings2.ges",
+    "examples/audio/twoknobs.ges",
+    "examples/gui/bounce.ges",
+    "examples/gui/chain.ges",
+    "examples/gui/checkboxes.ges",
+    "examples/gui/tic-tac-toe-facts.ges",
+    "examples/gui/tic-tac-toe.ges",
+    "examples/gui/two-hands.ges",
+    "gestate/chart.ges",
+    "gestate/command.ges",
+    "gestate/facts.ges",
+    "gestate/gesture.ges",
+    "gestate/grid.ges",
+    "gestate/hand.ges",
+    "gestate/hands.ges",
+    "gestate/notes.ges",
+    "gestate/roll.ges",
+    "gestate/rules.ges",
+    "gestate/transport.ges",
+}
+
 #: `fixme.md` F191 — read, then written as something that does not parse.
 #: **May shrink, never grow.**
+#: Three left on 2026-10-03 — `closure`, `patchbay`, `relations`: a bare
+#: comprehension guard was written back as the binder the parser makes of
+#: it, `_guard1# in guard e`, which no file can say.
 OUTPUT_DOES_NOT_PARSE = {
-    "examples/closure.ges",
-    "examples/gui/patchbay.ges",
-    "examples/relations.ges",
     "gestate/audio.ges",
     "gestate/gui.ges",
     "gestate/music.ges",

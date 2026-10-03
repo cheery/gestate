@@ -1899,7 +1899,7 @@ def point_of(roll: Roll, across: float, down: float) -> tuple:
 
 
 def bar_of(roll: Roll, i: int) -> tuple:
-    """`(x0, y0, x1, y1)` of the bar note `i` is drawn as, inclusive —
+    """`(x0, y0, x1, y1)` of the bar note `i` is drawn as, half-open —
     the region `gui._walk` records for the `Rect` of `rows_of`'s row,
     at rest: its centre the row's `x, y`, its width the row's `w`, its
     height the geometry's, and the edges cut as the walk cuts them
@@ -1936,7 +1936,7 @@ def note_at(roll: Roll, across: float, down: float) -> int | None:
     """
     x, y = point_of(roll, across, down)
     for i, (x0, y0, x1, y1) in enumerate(bars_of(roll)):
-        if x0 <= x <= x1 and y0 <= y <= y1:
+        if x0 <= x < x1 and y0 <= y < y1:   # half-open, as `_under` (F243)
             return i
     return None
 

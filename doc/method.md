@@ -156,16 +156,16 @@ decline honestly:
 | [`README.md`](../README.md) | 262 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 85 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 378 | how an instrument fails, and the two standing rules |
-| [`board/README.md`](../board/README.md) | 668 | how a task is worked — written for sessions |
+| [`board/README.md`](../board/README.md) | 649 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~19,000 | how each part is designed, and what it cost |
-| [`fixme.md`](../fixme.md) + `fixme/` | 245 entries, 192 resolved, one file each | where the implementation disagrees with the specs |
+| [`fixme.md`](../fixme.md) + `fixme/` | 245 entries, 194 resolved, one file each | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
 | [`keeper.md`](../keeper.md) | 237 | standard work for the one person who keeps all of the above |
 
 Two of those are worth a word. `fixme.md` is a **register, not a
 backlog**: an entry is closed by being marked resolved, never by being
-deleted, so the 53 open ones are visible on purpose. And the
+deleted, so the 51 open ones are visible on purpose. And the
 journal is long — 13,091 lines for its first month — which is why it
 rotates into `journal/YYYY-MM.md` behind an index. Read the index line,
 open the one month you wanted.

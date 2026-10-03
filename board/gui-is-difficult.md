@@ -4836,6 +4836,17 @@ examples/gui/checkboxes.ges`, canvas tab — press each box; open
 **His hands on it, the same evening:** *"the checkboxes work."*  The
 slice's postcondition held.
 
+**The small things, 2026-10-03, before the next slice at his word** —
+*"fix the small things first anyway."*  F243 (half-open in `_under`, and
+in the roll's probe, which was a second copy) and F244 (a one-line
+`case` or `do` ends at its line) resolved.  **The formatter reads
+`reactor` blocks and `include` lines now** — `parse(…, reader=True)`
+keeps them as the reader's own and writes them back verbatim; it does
+not lay out a reactor's body, which it did not parse.  Five files came
+readable with it, and two of those showed a comprehension guard written
+back as `_guard1# in guard e`: repaired, and three files left F191's
+list.  `checkboxes.ges` is on the readable list.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

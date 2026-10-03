@@ -369,3 +369,17 @@ def test_two_operator_members_in_a_row():
                     "    (==) a b = True\n"
                     "    (/=) a b = False\n\n"
                     "main : String\nmain = show ((1,2,3) == (1,2,3))\n") == "True"
+
+
+@pytest.mark.parametrize("src", [
+    "f x = case x of True -> 1; False -> 2\n\ng y = y\n",
+    "f x = case x of True -> 1; False -> 2 -- a comment\ng y = y\n",
+    "main = do pure 1; pure 2\n\ng y = y\n",
+])
+def test_a_one_line_block_ends_at_its_line(src):
+    """F244: a `case` or `do` written on one line opens no block, so its
+    line's end is its end — the next definition is a definition."""
+    from gestate.syntax import parse
+    items = parse(src).items
+    assert [i.name for i in items][-1] == "g"
+    assert len(items) == 2

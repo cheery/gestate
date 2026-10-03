@@ -597,3 +597,29 @@ def test_no_output_wears_a_placeholder():
                 "f : Maybe Int -> Int\nf (Just x) = x\nf Nothing = 0\n"):
         out = format(src)
         assert "<" not in out, f"placeholder in output for {src!r}: {out!r}"
+
+
+def test_the_readers_lines_come_back_as_written():
+    """An `include` and a `reactor` block are the reader's, not the
+    parser's: the formatter writes them back verbatim and lays out the rest
+    (`card:gui-is-difficult.md` §"Built — two checkboxes as reactors")."""
+    src = ('include "a.flags"\n\n'
+           'x  =  1\n\n'
+           'reactor Box (at : Lens M Bool)\n'
+           '  mode Off when not (get at)\n'
+           '    on press -> at = put at True\n'
+           '    picture = feeds press (Rect 1 1 ink)\n\n'
+           'y = 2\n')
+    out = format(src)
+    assert out == src.replace("x  =  1", "x = 1")
+    assert format(out) == out
+
+
+def test_a_bare_guard_is_written_as_the_guard():
+    """F191: a comprehension's bare guard is a binding at an unwritable name
+    inside the parser, and came back out as one — `_guard1# in guard …` —
+    which does not parse."""
+    out = format("f s = for (x in s, x < 3) {x}\n")
+    assert "_guard" not in out
+    assert "for (x in s, x < 3)" in out
+    parse(out)

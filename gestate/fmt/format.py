@@ -20,7 +20,7 @@ from gestate.syntax import (
     VApp, VFunc, VLet, VGiven, VCase, VAlt,
     VInfix, VPrefix, VPostfix,
     VTuple, VList, VSet, VProj, VAnnot, VConstraint,
-    VBox, VUnbox, VFor, VFix, VGfix, VComment,
+    VBox, VUnbox, VFor, VFix, VGfix, VComment, VReader,
     VFixity, VCtor, VTypeDecl, VTypeAlias, VSig, VImplicit, VSCEqn, VSCDecl,
     VClass, VInstance, VKind, VModule,
     VOpPhrase,
@@ -271,7 +271,12 @@ class Formatter:
     # ── Top-level items ──────────────────────────────────────────────────
 
     def _format_top_item(self, item: Val):
-        if isinstance(item, VFixity):
+        if isinstance(item, VReader):
+            # The reader's lines, as written: an `include`, a `reactor`
+            # block — this formatter does not lay out what it did not parse.
+            for line in item.text.split("\n"):
+                self._ln(line)
+        elif isinstance(item, VFixity):
             right = f" {item.right}" if item.right is not None else ""
             self._ln(f"{item.mode} {item.prec}{right} {item.op}")
         elif isinstance(item, VKind):
@@ -326,9 +331,9 @@ class Formatter:
                 self._ln(f"{prefix}| {constraints}{ctor.name} {fields}".rstrip() + suffix)
 
     def _format_type_alias(self, ta: VTypeAlias):
-        params = " ".join(ta.params)
+        head = " ".join([ta.name, *ta.params])
         body = self._fmt_val(ta.body)
-        self._ln(f"type {ta.name} {params} = {body}".rstrip())
+        self._ln(f"type {head} = {body}".rstrip())
 
     def _format_sc_decl(self, scd: VSCDecl):
         if scd.sig:
@@ -593,6 +598,14 @@ class Formatter:
     def _fmt_for(self, f: VFor) -> str:
         bindings: list[str] = []
         for pat, val in f.bindings:
+            # A bare guard came back from the parser as a binding at an
+            # unwritable name (`_guard1#`, `Parser._guard_clause`); it is
+            # written as the guard the author wrote, or it does not parse.
+            if (isinstance(pat, PVar) and pat.name.startswith("_guard")
+                    and pat.name.endswith("#") and isinstance(val, VApp)
+                    and isinstance(val.fn, VWord) and val.fn.value == "guard"):
+                bindings.append(self._fmt_val(val.arg))
+                continue
             bindings.append(f"{self._fmt_pat(pat)} in {self._fmt_val(val)}")
         body = self._fmt_val(f.body)
         return f"for ({', '.join(bindings)}) {body}"
@@ -685,7 +698,7 @@ def format_module(module: VModule) -> str:
 
 def format_source(source: str) -> str:
     """Parse *source* and return formatted output (idempotent-style)."""
-    mod = syntax_parse(source)
+    mod = syntax_parse(source, reader=True)
     return format_module(mod)
 
 

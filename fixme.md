@@ -33,7 +33,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 245 entries, **192 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
+Of 245 entries, **194 are resolved**.  (Those two numbers are checked by `test_citations.py`, because the ledger's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -112,7 +112,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F187 | resolved | A lambda's and an instance member's parameters are not atoms — F46's third bullet, in the callers it did not reach |
 | F188 | resolved | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
 | F190 | open | The formatter is not idempotent: a second pass moves comments and deletes 27 of them |
-| F191 | open | For nine sources — the prelude among them — the formatter's output does not parse |
+| F191 | open | For six sources (nine until 2026-10-03) — the prelude among them — the formatter's output does not parse |
 | F192 | open | A written type loses its source position at instantiation: `_apply_subst_map` carries the span on `TFun` and not on `TApp` |
 | F193 | resolved | `spec/syntax.md` did not list `do`, `internal` or `%`, which the tokenizer and the parser have |
 | F194 | open | `memoryindex.py` writes nothing and exits 0 behind the fence, where `$HOME` is a tmpfs — and its own gate skips there |
@@ -129,8 +129,8 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F240 | resolved | The first note played into a fresh plugin was silent on every plucked and struck bank, because a note stamped into the state's first block is read a block late |
 | F241 | bug | Two gestate editors open at once froze the laptop, and the cause is not known |
 | F242 | bug | A canvas with no `sound` is told it declares no `ticks` — a word its author never typed |
-| F243 | bug | A press on the edge between two regions goes to different elements in the two walkers |
-| F244 | bug | A one-line `case … of A -> a; B -> b` swallows the next top-level definition |
+| F243 | resolved | A press on the edge between two regions goes to different elements in the two walkers |
+| F244 | resolved | A one-line `case … of A -> a; B -> b` swallows the next top-level definition |
 | F245 | missing | A reactor block's refusal says its line in words, and the window does not draw it under the line |
 
 Several of these are **closed rather than pending** under

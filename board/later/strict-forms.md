@@ -1,6 +1,6 @@
 # strict-forms — the language refuses what Python allows, and the cost is paid in Python
 
-    status   open
+    status   shelved — 2026-10-03, untouched 15 days; the lamp's rule, at his word
     because  "The functional language is excellent the way we use it, but
              we cannot escape from the strict forms it comes with.  It's
              basically the difference between this language and python:
@@ -1011,3 +1011,20 @@ a design for a channel that is a value, his; the card's larger
 question, how a program is composed from pieces, is his too; and
 **the seven places of §"Read — 2026-09-18"**, of which **1, 2, 3, 4 and 7 are built** the same day; 5 and 6 wait on
 their triggers.
+
+## Shelved, 2026-10-03
+
+**Henri:** *"defaults are fine"* — answering a session that proposed,
+under `tools/flow.py --check`'s lamp (15 days untouched), to shelve this
+with the two cards beside it.  He gave no sentence of his own for this
+one; what it waits on is read off §"What a session does now" above.
+
+Waits on **an event and a decision, both named.**  The event:
+composition, this card's larger question, is being designed now in
+`card:gui-is-difficult.md` as reactor blocks — wiring declared in a
+block, instances by `new`, ports checked — and E's *channel that is a
+value* is a reactor's port in that design.  When that lands it says
+what is left here.  Items 5 and 6 of §"Read — 2026-09-18" wait on their
+triggers.  *The session's reading, not his:* the design half is a
+decision, and `board/README.md` §"The priority" calls a card waiting on
+a decision debt; it is shelved because it waits on the reactors first.

@@ -82,8 +82,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:769` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:772` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:771` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:774` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1234` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
@@ -164,9 +164,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:801` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:696` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:1064` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:1086` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:698` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:1066` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:1088` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -731,15 +731,15 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 439 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
 | 548 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
 | 560 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 696 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 723 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
-| 742 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
-| 769 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 772 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 796 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 1064 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 1086 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1480 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 698 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 725 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
+| 744 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
+| 771 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 774 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 798 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 1066 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 1088 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1482 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 

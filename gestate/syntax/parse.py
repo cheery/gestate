@@ -1343,7 +1343,12 @@ class Parser:
         scrut = self._parse_val()
         self._eat(TT.RESERVED, "of")
         self._skip_nl()
-        if self._at(TT.INDENT):
+        #: **A block opened on its own line ends at that line's end** —
+        #: no `INDENT`, so no `DEDENT` will close it, and the loop below
+        #: ran on and read the next top-level definition as another
+        #: alternative (`fixme.md` F244).
+        one_line = not self._at(TT.INDENT)
+        if not one_line:
             self._adv()
         alts: list[VAlt] = []
 
@@ -1362,7 +1367,8 @@ class Parser:
             start_i = self._i
             alts.append(self._parse_alt())
             self._close_inner_blocks(start_i)
-            self._skip_trivia()
+            if not one_line:   # its newline is its end (F244)
+                self._skip_trivia()
 
         def at_end() -> bool:
             # A `case` written on one line inside brackets has no block to
@@ -1371,6 +1377,7 @@ class Parser:
             # read the closing bracket as the start of another pattern
             # (`fixme.md` F72).
             return (self._at(TT.DEDENT) or self._at(TT.EOF)
+                    or (one_line and self._at(TT.NEWLINE))
                     or any(self._at(TT.SEP, c) for c in (")", "]", "}", ",")))
 
         alt()
@@ -1410,7 +1417,8 @@ class Parser:
         """
         start = self._eat(TT.RESERVED, "do").pos
         self._skip_nl()
-        if self._at(TT.INDENT):
+        one_line = not self._at(TT.INDENT)   # as `case`'s (F244)
+        if not one_line:
             self._adv()
         items: list[tuple] = []
 
@@ -1421,10 +1429,12 @@ class Parser:
             start_i = self._i
             items.append(self._parse_do_item())
             self._close_inner_blocks(start_i)
-            self._skip_trivia()
+            if not one_line:
+                self._skip_trivia()
 
         def at_end() -> bool:
             return (self._at(TT.DEDENT) or self._at(TT.EOF)
+                    or (one_line and self._at(TT.NEWLINE))
                     or any(self._at(TT.SEP, c)
                            for c in (")", "]", "}", ",")))
 

@@ -16,7 +16,7 @@ from .ast import (
     VApp, VFunc, VLet, VGiven, VCase, VAlt,
     VOpPhrase, VInfix, VPrefix, VPostfix,
     VTuple, VList, VSet, VProj, VAnnot, VConstraint,
-    VBox, VUnbox, VFor, VFix, VGfix, VComment,
+    VBox, VUnbox, VFor, VFix, VGfix, VComment, VReader,
     VFixity, VCtor, VTypeDecl, VTypeAlias, VSig, VImplicit, VSCEqn, VSCDecl,
     VClass, VInstance, VKind, VModule,
     Pos, Span,
@@ -66,7 +66,8 @@ def _shifted(tok: T, dn: int) -> T:
                   Pos(s.end.line + dn, s.end.col)))
 
 
-def parse(source: str, *, descend_fixity: bool = True) -> VModule:
+def parse(source: str, *, descend_fixity: bool = True,
+          reader: bool = False) -> VModule:
     """Parse *source* into a resolved :class:`VModule` AST.
 
     Applies full pipeline: tokenize → parse → fixity resolution.  A text
@@ -77,7 +78,13 @@ def parse(source: str, *, descend_fixity: bool = True) -> VModule:
         descend_fixity: If ``False``, skip fixity resolution.  Useful
             when merging multiple modules before a single ``descend``
             pass.
+        reader: If ``True``, the lines the reader handles — `include`
+            lines and `reactor` blocks — come back as :class:`VReader`
+            items where they stood, instead of failing the parse.  The
+            formatter's reading; nothing that compiles asks for it.
     """
+    if reader:
+        return _with_reader_lines(source, descend_fixity)
     cut = _SEAMS.get(source)
     if cut is not None:
         head = source[:cut]
@@ -104,9 +111,37 @@ __all__ = [
     "VApp", "VFunc", "VLet", "VGiven", "VCase", "VAlt",
     "VOpPhrase", "VInfix", "VPrefix", "VPostfix",
     "VTuple", "VList", "VSet", "VProj", "VAnnot", "VConstraint",
-    "VBox", "VUnbox", "VFor", "VFix", "VGfix", "VComment",
+    "VReader", "VBox", "VUnbox", "VFor", "VFix", "VGfix", "VComment",
     "VFixity", "VCtor", "VTypeDecl", "VTypeAlias", "VSig", "VImplicit",
     "VSCEqn", "VSCDecl",
     "VClass", "VInstance", "VKind", "VModule",
     "Pos", "Span",
 ]
+
+
+def _with_reader_lines(source: str, descend_fixity: bool) -> VModule:
+    """`parse(source, reader=True)`: the reader's lines blanked, the rest
+    parsed, and each run of them put back as one `VReader` in line order."""
+    from ..notes import _INCLUDE
+    from ..reactors import _blocks
+    lines = source.split("\n")
+    taken = set(_blocks(source)[1])
+    taken |= {i for i, line in enumerate(lines) if _INCLUDE.match(line)}
+    if not taken:
+        return parse(source, descend_fixity=descend_fixity)
+    runs: list[list[int]] = []
+    for i in sorted(taken):
+        if runs and runs[-1][-1] == i - 1 and not (
+                _INCLUDE.match(lines[i]) or _INCLUDE.match(lines[i - 1])):
+            runs[-1].append(i)
+        else:
+            runs.append([i])
+    module = parse("\n".join("" if i in taken else line
+                             for i, line in enumerate(lines)),
+                   descend_fixity=descend_fixity)
+    kept = [VReader("\n".join(lines[i].rstrip() for i in run),
+                    Span(Pos(run[0], 0), Pos(run[-1], len(lines[run[-1]]))))
+            for run in runs]
+    module.items = sorted(module.items + kept,
+                          key=lambda item: item.span.start.line)
+    return module

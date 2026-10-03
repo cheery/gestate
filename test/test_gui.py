@@ -547,3 +547,14 @@ def test_the_turn_is_read_off_the_board_and_a_win_stops_the_game():
     assert _foot(view) == "X WINS"
     _press(view, 3)
     assert len(_marks(view)) == 5, "a finished game takes no more marks"
+
+
+def test_a_shared_edge_belongs_to_the_region_that_starts_there():
+    """F243: two rows stacked share a line, and a press on it goes to the
+    lower one — half-open, as `shell/panel/src/list.rs`'s `contains`."""
+    from gestate.gui import _under
+    upper = {"region": (0, 0, 10, 10)}
+    lower = {"region": (0, 10, 10, 20)}
+    assert _under([upper, lower], 5, 10) is lower
+    assert _under([upper, lower], 10, 5) is None
+    assert _under([upper, lower], 0, 0) is upper

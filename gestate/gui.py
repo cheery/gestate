@@ -590,11 +590,13 @@ def _under(hits: list, x: int, y: int) -> dict | None:
     """The deepest attachment the point lands on, or `None`.
 
     Forward, because `_walk` records an attachment after the subtree it
-    wraps: the innermost is the first one written down.
+    wraps: the innermost is the first one written down.  **Half-open**,
+    as `shell/panel/src/list.rs`'s `contains` is: a shared edge belongs
+    to the region that starts there (F243).
     """
     for hit in hits:
         x0, y0, x1, y1 = hit["region"]
-        if x0 <= x <= x1 and y0 <= y <= y1:
+        if x0 <= x < x1 and y0 <= y < y1:
             return hit
     return None
 

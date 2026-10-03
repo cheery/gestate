@@ -283,6 +283,21 @@ class VComment(Val):
     span: Span = field(default_factory=Span)
 
 
+@dataclass
+class VReader(Val):
+    """A line the **reader** handles before the parser sees the file — an
+    `include`, a `reactor` block (`notes.expanded`) — kept verbatim.
+
+    Only `parse(…, reader=True)` makes one, which is what the formatter
+    reads with: it writes the lines back as they were, so a file with an
+    `include` or a reactor in it can be formatted at all.  The compiler
+    never sees one; it reads through `notes.expanded`, which takes these
+    lines out first.
+    """
+    text: str
+    span: Span = field(default_factory=Span)
+
+
 # ── Patterns ─────────────────────────────────────────────────────────────────
 
 class Pat:
