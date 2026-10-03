@@ -231,7 +231,7 @@ def test_each_stored_instance_gets_its_own_hold_and_mode():
     out = desugar(DRAG.read_text())
     for k in "abc":
         assert f"panel__{k}__hold : Chan Hold" in out
-        assert f"panel__{k}__state = scanE dot__step (DotResting) (wait panel__{k}__hold)" in out
+        assert f"panel__{k}__state = scanE (dot__step 0) (DotResting) (wait panel__{k}__hold)" in out
     assert "DotMode := DotResting | DotCarrying Int Int" in out
 
 
@@ -376,6 +376,26 @@ def test_a_note_written_by_hand_is_an_instance_at_once():
     assert len(_bars(bench)) == 6
 
 
+def test_a_canvas_is_published_only_once_its_rows_are_written():
+    """F250: `start` builds on its own thread and the window ticks
+    whatever `substrate` is, so a canvas published before its rows were
+    fed could be ticked mid-write — a lane with no notes, for good."""
+    from gestate.audioeditor import Workbench
+
+    bench, _doc = _carry_bench()
+    seen = []
+    feed = Workbench._feed_documents
+
+    def watched(self, sub=None):
+        seen.append(sub is not None and self.substrate is not sub)
+        return feed(self, sub)
+
+    bench._feed_documents = watched.__get__(bench)
+    bench._load_substrate(bench.program())
+    assert seen and seen[0], "the rows were fed into a canvas the window could already tick"
+    assert len(_bars(bench)) == 6
+
+
 def test_the_carry_opens_the_way_the_window_opens_it():
     from gestate import audio, notes
 
@@ -389,9 +409,91 @@ def test_a_bank_names_a_reactor():
     assert "`new Ghost`" in why
 
 
-def test_a_bank_shares_one_hold_and_reads_each_mode_off_its_key():
+def test_a_bank_shares_one_hold_a_part_and_reads_each_mode_off_its_key():
     out = desugar(CARRY.read_text())
     assert out.count("roll__notes__hold : Chan Hold") == 1
-    assert "roll__notes__state = scanE note__bankStep NoteFree (wait roll__notes__hold)" in out
+    assert out.count("roll__notes__hold_end : Chan Hold") == 1
+    assert ("roll__notes__state = reactors__scan2 (note__bankStep 0) (note__bankStep 1) "
+            "NoteFree (wait roll__notes__hold) (wait roll__notes__hold_end)") in out
     assert "(note__modeOf (noteKey n) __b0)" in out
+
+
+# ── resize: a note's end, a part of its picture named `end` ─────────────────
+#
+# `card:gui-is-difficult.md` §"The next slice: resize, on the note hand",
+# 2026-10-03 — Henri's "go with 1", named holds.  The first note is
+# drawn from -192 to -144 on the row at 32; its end is -152 to -136.
+
+
+def test_a_pulled_end_changes_the_length_in_its_line_and_nothing_else():
+    bench, doc = _carry_bench()
+    first = [i for i in bench.substrate.picture() if i[0] == "rect"][1:]
+    bench.touch("press", -146, 32)
+    bench.touch("drag", -130, 30)
+    bench.touch("drag", -122, 40)
+    held = [i for i in bench.substrate.picture() if i[0] == "rect"][1:]
+    assert held[0][1:6] == (-192, 29, 72, 7, (255, 220, 160)), \
+        "two sixteenths longer, where it starts, the hand's height ignored"
+    assert held[1:] == first[1:], "and only the held note changes"
+    assert doc.read_text() == TUNE, "nothing is written while the hand moves"
+    bench.touch("release", -122, 40)
+    assert bench.drain() == ["tune.notes — moved line 6: len 96 → 144 on line 6"]
+    assert doc.read_text() == TUNE.replace("at 0  len 96  voice melody  key 60",
+                                           "at 0  len 144  voice melody  key 60")
+
+
+def test_an_end_is_taken_past_the_note_and_never_pulled_under_a_sixteenth():
+    bench, doc = _carry_bench()
+    bench.touch("press", -140, 32)          # 4 px past the first note
+    bench.touch("drag", -400, 32)
+    bench.touch("release", -400, 32)
+    assert bench.drain() == ["tune.notes — moved line 6: len 96 → 24 on line 6"]
+
+
+def test_an_end_let_go_where_it_was_taken_says_where_the_note_is_written():
+    bench, doc = _carry_bench()
+    bench.touch("press", -146, 32)
+    bench.touch("drag", -120, 32)
+    bench.touch("drag", -145, 32)           # out and back
+    bench.touch("release", -145, 32)
+    assert bench.drain() == ["tune.notes:6 — note  section A  bar 1  at 0  "
+                             "len 96  voice melody  key 60  vel mf"]
+    assert doc.read_text() == TUNE
+
+
+def test_the_body_still_carries_beside_its_end():
+    bench, doc = _carry_bench()
+    bench.touch("press", -170, 32)
+    bench.touch("drag", -158, 32)
+    bench.touch("release", -158, 32)
+    assert bench.drain() == ["tune.notes — moved line 6: at 0 → 24 on line 6"]
+
+
+_PARTS = ("reactor Dot (at : Lens Dots Int)\n"
+          "  mode Resting\n"
+          "    on grab x y -> Carrying x\n"
+          "{grabs}"
+          "    picture = Over (hold end (Gap 4 4)) (hold (Gap 9 9))\n"
+          "  mode Carrying (x : Int)\n"
+          "{shifts}"
+          "    on release -> Resting\n"
+          "    picture = hold (Gap 9 9)\n")
+
+
+def test_a_part_is_named_on_grab_and_nowhere_else():
+    why = _refused(_PARTS.format(grabs="", shifts="    on drag end x y -> Carrying x\n"))
+    assert "named where it begins, on `grab`" in why
+
+
+def test_two_grabs_on_one_part_in_one_mode_are_refused_and_on_two_parts_allowed():
+    why = _refused(_PARTS.format(grabs="    on grab x y -> Resting\n", shifts=""))
+    assert "two transitions on `grab`" in why
+    out = desugar(_PARTS.format(grabs="    on grab end x y -> Carrying 0\n", shifts=""))
+    assert "reactors__pick (__p == 0)" in out
+
+
+def test_a_third_part_is_refused_in_this_slice():
+    why = _refused(_PARTS.format(grabs="    on grab end x y -> Carrying 0\n"
+                                       "    on grab top x y -> Carrying 1\n", shifts=""))
+    assert "one named part beside the unnamed one" in why
 

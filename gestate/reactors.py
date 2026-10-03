@@ -91,6 +91,25 @@ key it was built with (`Hold key event`), the bank's state is the one
 key held and its instance's mode (`NoteHeld k m`, or `NoteFree`), and an
 instance's mode is that one when its key is the held key, its first
 otherwise — one hand on a desktop holds one thing.
+
+**And named holds, the same day** — §"The next slice: resize, on the
+note hand", Henri's *"go with 1"*.  A picture may have more than one
+part to take hold of, and names the others; a `grab` says which part it
+begins on:
+
+    reactor Note (n : NoteRow) (to : Lens Tune NoteRow)
+      mode Resting
+        on grab x y -> Carrying x y x y
+        on grab end x y -> Sizing x x
+        picture = onRoll n (Over (hold (noteBar n restInk)) (hold end (endOf n)))
+
+The picture says where the end is, so the geometry is said once.  Each
+name is a hold channel of its own (two to a reactor, in this slice),
+both folded by the one step through `sync` (`reactors__scan2`); a drag
+and a release arrive where their hold began, so only a `grab` names a
+part, and a mode the hold is in draws its part under the same name — the
+host performs the acts of the hold on the grabbed channel, as it stands
+at the release.
 """
 from __future__ import annotations
 
@@ -117,6 +136,9 @@ _FIELD = re.compile(r"\(\s*([a-z]\w*)\s*:\s*([^()]*?)\s*\)")
 #: A transition, set by a phase of the hold: `on grab x y -> Carrying x x`.
 _SHIFT = re.compile(r"^on\s+(grab|drag|release)((?:\s+[a-z_]\w*)*)\s*->\s*([A-Z].*)$")
 _HOLD = re.compile(r"\bhold\b")
+#: `hold` and the word after it, which is a part's name when a `grab`
+#: names it — `hold end (endOf n)` — and the picture's own word otherwise.
+_HOLD_PART = re.compile(r"\bhold\b(?:\s+([a-z]\w*))?")
 #: A phase of a hold, and the `Event` it arrives as.
 _PHASE = {"grab": "Press", "drag": "Move", "release": "Release"}
 _ON = re.compile(r"^on\s+([a-z]\w*)\s*(?:->\s*([\w\s,]*?))?\s*=\s*(.*)$")
@@ -204,6 +226,13 @@ class _Reactor:
         """Whether its modes are stored — set by a hold — not derived."""
         return any(m.stored for m in self.modes)
 
+    @property
+    def ports(self) -> list[str]:
+        """The parts of its picture a hold can begin on: the unnamed one
+        first, then each a `grab` names — a hold channel each."""
+        named = sorted({sh[2] for m in self.modes for sh in m.shifts if sh[2]})
+        return [""] + named
+
 
 def _blocks(source: str) -> tuple[list[_Reactor], list[int]]:
     """The reactor blocks of `source`, and the line numbers they take."""
@@ -269,12 +298,20 @@ def _member(r: _Reactor, into: _Mode, item: _Item) -> None:
             raise ReactorError(f"{place}: a transition belongs to the mode it "
                                "leaves — write it under a `mode`")
         binders = m.group(2).split()
+        port = ""
+        if len(binders) in (1, 3):
+            if m.group(1) != "grab":
+                raise ReactorError(
+                    f"{place}: `on {m.group(1)} {binders[0]}` — a hold's part is "
+                    f"named where it begins, on `grab`; a {m.group(1)} arrives "
+                    f"where its hold began")
+            port, binders = binders[0], binders[1:]
         if len(binders) not in (0, 2):
             raise ReactorError(f"{place}: `on {m.group(1)}` binds the hand's "
                                f"two coordinates or none, not {len(binders)}")
         body = " ".join([m.group(3)] + [t for c in item.children
                                         for _n, t in c.body()])
-        into.shifts.append((item.number, m.group(1), binders, body))
+        into.shifts.append((item.number, m.group(1), port, binders, body))
         return
     m = _ON.match(item.text)
     if m:
@@ -401,16 +438,22 @@ def _check_stored(r: _Reactor) -> None:
             f"one (`mode {bad.name} when …`) — a mode is set by a hold or read "
             f"off the model, and one reactor does one")
     names = {m.name for m in r.modes}
+    if len(r.ports) > 2:
+        raise ReactorError(
+            f"line {r.line}: `{r.name}` names {len(r.ports) - 1} parts to take "
+            f"hold of ({', '.join(f'`{x}`' for x in r.ports[1:])}) — one named "
+            f"part beside the unnamed one is what this slice folds")
     for mode in r.modes:
-        seen: dict[str, int] = {}
-        for n, phase, binders, body in mode.shifts:
-            if phase in seen:
+        seen: dict[tuple, int] = {}
+        for n, phase, port, binders, body in mode.shifts:
+            said = f"{phase} {port}".strip()
+            if (phase, port) in seen:
                 raise ReactorError(
-                    f"line {n}: two transitions on `{phase}` in mode "
-                    f"`{mode.name}` (the other on line {seen[phase]}) — the "
+                    f"line {n}: two transitions on `{said}` in mode "
+                    f"`{mode.name}` (the other on line {seen[phase, port]}) — the "
                     f"mode is one value and two writers of it is a choice "
                     f"nobody wrote down")
-            seen[phase] = n
+            seen[phase, port] = n
             head = body.split()[0]
             if head not in names:
                 raise ReactorError(
@@ -476,13 +519,26 @@ def _slots(r: _Reactor, reactors: dict[str, _Reactor]) -> list[tuple]:
     return out
 
 
-def _arg_names(kind: str, i: int) -> list[str]:
-    return [f"__h{i}", f"__k{i}", f"__s{i}"] if kind == "one" else [f"__h{i}", f"__b{i}"]
+def _slot_cls(r: _Reactor, path: tuple, reactors: dict[str, _Reactor]) -> _Reactor:
+    """The stored reactor a slot's path under `r` comes to."""
+    cls = r
+    for name in path:
+        cls = reactors[(cls.instances.get(name) or cls.banks[name])[1]]
+    return cls
+
+
+def _holds(i: int, parts: int) -> list[str]:
+    """A slot's hold channels, one a part: `__h0`, then `__h0_1`."""
+    return [f"__h{i}"] + [f"__h{i}_{p}" for p in range(1, parts)]
+
+
+def _arg_names(kind: str, i: int, parts: int = 1) -> list[str]:
+    return _holds(i, parts) + ([f"__k{i}", f"__s{i}"] if kind == "one" else [f"__b{i}"])
 
 
 def _slot_args(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
-    return [a for i, (kind, _p) in enumerate(_slots(r, reactors))
-            for a in _arg_names(kind, i)]
+    return [a for i, (kind, path) in enumerate(_slots(r, reactors))
+            for a in _arg_names(kind, i, len(_slot_cls(r, path, reactors).ports))]
 
 
 def _ctor(r: _Reactor, mode: _Mode) -> str:
@@ -512,8 +568,10 @@ def _others(taken: set, pad: str, result: str) -> list[str]:
 
 
 def _step(r: _Reactor) -> list[str]:
-    """`<r>__step : <R>Mode -> Hold -> <R>Mode` — the transitions, a
-    phase of the hold to a mode; any other event leaves the mode be."""
+    """`<r>__step : Int -> <R>Mode -> Hold -> <R>Mode` — the transitions,
+    a phase of the hold to a mode; any other event leaves the mode be.
+    The `Int` is the part the hold arrived on, `ports`' index: a `grab`
+    reads it, and nothing else does."""
     base = _low(r.name)
     names = [m.name for m in r.modes]
 
@@ -521,19 +579,44 @@ def _step(r: _Reactor) -> list[str]:
         return re.sub(r"\b(" + "|".join(names) + r")\b",
                       lambda m: f"{r.name}{m.group(1)}", text)
 
-    lines = [f"{base}__step __s __h = case __h of",
+    lines = [f"{base}__step __p __s __h = case __h of",
              "    Hold __k __e -> case __s of"]
+    ports = r.ports
     for mode in r.modes:
         fields = " ".join(f for f, _t in mode.fields)
         lines.append(f"        {_ctor(r, mode)} {fields}".rstrip() + " -> case __e of")
         taken = set()
-        for _n, phase, binders, body in mode.shifts:
+        for phase in ("grab", "drag", "release"):
+            mine = [sh for sh in mode.shifts if sh[1] == phase]
+            if not mine:
+                continue
             event = _PHASE[phase]
             taken.add(event)
-            x, y = binders or ["__x", "__y"]
-            lines.append(f"            {event} {x} {y} -> {ctors(body)}")
+            if phase != "grab" or all(not sh[2] for sh in mine) and len(ports) == 1:
+                _n, _ph, _port, binders, body = mine[0]
+                x, y = binders or ["__x", "__y"]
+                lines.append(f"            {event} {x} {y} -> {ctors(body)}")
+                continue
+            # a grab, told apart by the part it began on
+            lines.append(f"            {event} __gx __gy -> " + _by_port(mine, ports, ctors))
         lines += _others(taken, "            ", "__s")
     return lines + [""]
+
+
+def _by_port(grabs: list, ports: list[str], ctors) -> str:
+    """The grab transitions of one mode as one expression of `__p`: each
+    part's own, and the mode left be on a part with none."""
+    def one(port: str) -> str:
+        sh = next((g for g in grabs if g[2] == port), None)
+        if sh is None:
+            return "__s"
+        _n, _ph, _port, binders, body = sh
+        x, y = binders or ["__x", "__y"]
+        return f"(({x} {y} => {ctors(body)}) __gx __gy)"
+    out = one(ports[-1])
+    for i in range(len(ports) - 2, -1, -1):
+        out = f"(reactors__pick (__p == {i}) {one(ports[i])} {out})"
+    return out
 
 
 def _bank_kit(c: _Reactor) -> list[str]:
@@ -544,12 +627,12 @@ def _bank_kit(c: _Reactor) -> list[str]:
     first = c.modes[0]
     fields = " ".join("__f" + str(k) for k in range(len(first.fields)))
     return ([f"{C}Bank := {C}Free | {C}Held Float {C}Mode", ""]
-            + [f"{base}__bankStep __b __h = case __h of",
+            + [f"{base}__bankStep __p __b __h = case __h of",
                "    Hold __k __e -> case __b of",
                f"        {C}Free -> case __e of",
-               f"            Press __x __y -> {base}__settle __k ({base}__step ({_first(c)}) __h)"]
+               f"            Press __x __y -> {base}__settle __k ({base}__step __p ({_first(c)}) __h)"]
             + _others({"Press"}, "            ", "__b")
-            + [f"        {C}Held __j __m -> {base}__settle __j ({base}__step __m (Hold __j __e))", ""]
+            + [f"        {C}Held __j __m -> {base}__settle __j ({base}__step __p __m (Hold __j __e))", ""]
             + [f"{base}__settle __k __m = case __m of",
                f"    {_ctor(c, first)} {fields}".rstrip() + f" -> {C}Free"]
             + [f"    {_ctor(c, m)} " + " ".join(f"__f{k}" for k in range(len(m.fields)))
@@ -559,6 +642,21 @@ def _bank_kit(c: _Reactor) -> list[str]:
                f"    {C}Held __j __m -> case __j == __k of",
                "        True -> __m",
                f"        False -> {_first(c)}", ""])
+
+
+def _parts() -> list[str]:
+    """What a reactor with a named part needs, once: a choice of two
+    modes, and the fold of two hold channels into one state — `scanE`
+    over `sync`, whichever arrived (`signal.ges`' `zipSig` is the same
+    move over signals)."""
+    return ["reactors__pick __c __a __b = case __c of",
+            "    True -> __a",
+            "    False -> __b", "",
+            "reactors__scan2 : (b -> a -> b) -> (b -> a -> b) -> b -> ExL a -> ExL a -> Sig b",
+            "reactors__scan2 = gfix q => (f g z e1 e2 => z ::: (delay (q2 s => case s of",
+            "    SyncLeft x -> q2 f g (f z x) e1 e2",
+            "    SyncRight y -> q2 f g (g z y) e1 e2",
+            "    SyncBoth x y -> q2 f g (g (f z x) y) e1 e2) <*> q <@> sync e1 e2))", ""]
 
 
 def _over() -> list[str]:
@@ -590,7 +688,14 @@ def _desugar_one(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
             text = _INST.sub(lambda m: f"({base}__{m.group(1)}__picture {' '.join(args)})",
                              text)
             if mode.stored:
-                text = _HOLD.sub(f"Holds __h0 __k0 ({base}__{mode.name}__release {a})", text)
+                def held(m):
+                    part = m.group(1)
+                    if part in r.ports[1:]:
+                        return (f"Holds __h0_{r.ports.index(part)} __k0 "
+                                f"({base}__{mode.name}__release {a})")
+                    tail = f" {part}" if part else ""
+                    return f"Holds __h0 __k0 ({base}__{mode.name}__release {a}){tail}"
+                text = _HOLD_PART.sub(held, text)
             return text
         return rw
 
@@ -600,7 +705,7 @@ def _desugar_one(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
         passed = []
         for kind, p in _slots(child, reactors):
             at = mine.index((kind, (name,) + p))
-            passed += _arg_names(kind, at)
+            passed += _arg_names(kind, at, len(_slot_cls(child, p, reactors).ports))
         call = " ".join([f"{_low(cls)}__picture", rewrite_for(r.always)(given)]
                         + passed + ["__m"])
         out += _define(f"{base}__{name}__picture", args, [call])
@@ -610,7 +715,7 @@ def _desugar_one(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
         if child.stored:
             at = mine.index(("bank", (name,)))
             k = f"({rw(key)})"
-            passed = [f"__h{at}", k, f"({_low(cls)}__modeOf {k} __b{at})"]
+            passed = _holds(at, len(child.ports)) + [k, f"({_low(cls)}__modeOf {k} __b{at})"]
         else:
             passed = []
         each = " ".join([f"{_low(cls)}__picture", rw(given)] + passed + ["__m"])
@@ -683,12 +788,18 @@ def _root(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
             cls = reactors[(cls.instances.get(name) or cls.banks[name])[1]]
         tag = "__".join(path) or "self"
         hold, state = f"{base}__{tag}__hold", f"{base}__{tag}__state"
+        holds = [hold] + [f"{hold}_{p}" for p in cls.ports[1:]]
         c = _low(cls.name)
         start = (f"({_first(cls)})" if kind == "one" else f"{cls.name}Free")
         step = f"{c}__step" if kind == "one" else f"{c}__bankStep"
-        out += [f"{hold} : Chan Hold", f"{hold} = chan", "",
-                f"{state} = scanE {step} {start} (wait {hold})", ""]
-        passed += ([hold, "0.0", f"__s{i}"] if kind == "one" else [hold, f"__s{i}"])
+        for h in holds:
+            out += [f"{h} : Chan Hold", f"{h} = chan", ""]
+        if len(holds) == 1:
+            out += [f"{state} = scanE ({step} 0) {start} (wait {hold})", ""]
+        else:
+            out += [f"{state} = reactors__scan2 ({step} 0) ({step} 1) {start} "
+                    f"(wait {holds[0]}) (wait {holds[1]})", ""]
+        passed += holds + (["0.0", f"__s{i}"] if kind == "one" else [f"__s{i}"])
         states.append(state)
     params = " ".join(r.params)
     picture = " ".join(x for x in (f"{base}__picture", params, " ".join(passed), "__m") if x)
@@ -752,6 +863,8 @@ def desugar(source: str) -> str:
                 banked.append(cls)
     if banked:
         generated += _over()
+    if any(len(r.ports) > 1 for r in reactors):
+        generated += _parts()
     for r in reactors:
         generated += _desugar_one(r, by_name)
         if r.name in banked and r.stored:

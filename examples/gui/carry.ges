@@ -13,6 +13,10 @@
 # semitone in pitch; the file is written once, on the release, the
 # note's own line rewritten in place.  **Press and let go** without
 # moving, and the window says where the note is written.
+#
+# **Pull a note's end** to change its length, a sixteenth at a time and
+# never under one — the end is a part of the note's picture of its own,
+# `hold end`, so where it is is said once, where the note is drawn.
 
 include "tune.notes"
 
@@ -61,16 +65,31 @@ placed : (Text, Text, Int, Int, Text) -> Int -> NoteRow
 placed r t = case r of
     (s, v, k, l, e) -> (s, t / span + 1, v, t - (t / span) * span, k, l, e)
 
+#: The note with its end pulled `dx` pixels: a sixteenth per 12 pixels,
+#: as the carry snaps time, and never under one.
+sized : NoteRow -> Int -> NoteRow
+sized n dx = case n of
+    (s, b, v, a, k, l, e) -> (s, b, v, a, k, max 24 (l + 24 * floor (toFloat dx / 12.0 + 0.5)), e)
+
 #: What the note is, and the acts that put it somewhere else — its line
-#: moved, or, where it was let go where it was taken, its place said.
+#: told the new place or length, or, where it was let go as it was
+#: taken, its place said.
 moving : NoteRow -> Lens Tune NoteRow
-moving n = Lens (s => n) (r => case noteKey r == noteKey n of
+moving n = Lens (s => n) (r => case (noteKey r, lenOf r) == (noteKey n, lenOf n) of
     True -> Reveal "note" (keyAtoms n) :: Nil
-    False -> MoveTo "note" (keyAtoms n) (keyAtoms r) :: Nil)
+    False -> MoveTo "note" (keyAtoms n) (rowAtoms r) :: Nil)
+
+lenOf : NoteRow -> Int
+lenOf n = case n of
+    (s, b, v, a, k, l, e) -> l
 
 keyAtoms : NoteRow -> List Atom
 keyAtoms n = case n of
     (s, b, v, a, k, l, e) -> atoms (s, b, v, a, k)
+
+rowAtoms : NoteRow -> List Atom
+rowAtoms n = case n of
+    (s, b, v, a, k, l, e) -> atoms ((s, b, v, a, k), (l, e))
 
 whole : Lens Tune Tune
 whole = Lens (s => s) (s => Nil)
@@ -89,6 +108,23 @@ noteBar : NoteRow -> Colour -> Sub
 noteBar n ink = case n of
     (s, b, v, a, k, l, e) -> Rect (l / 2) 7 ink
 
+#: Where a note's end can be taken: 8 px past it, and its last 8 px too
+#: when it is wider than 16 — the roll's end since 2026-09-24.  Drawn
+#: first and drawn nothing: where two regions overlap a press reaches
+#: the one painted first (F249).  `endAt` places what it is given there.
+endOf : NoteRow -> Sub
+endOf n = case n of
+    (s, b, v, a, k, l, e) -> Gap (8 + inner l) 7
+
+endAt : NoteRow -> Sub -> Sub
+endAt n pic = case n of
+    (s, b, v, a, k, l, e) -> Shift (l / 4 + 4 - inner l / 2) 0 pic
+
+inner : Int -> Int
+inner l = case l / 2 > 16 of
+    True -> 8
+    False -> 0
+
 onRoll : NoteRow -> Sub -> Sub
 onRoll n pic = case n of
     (s, b, v, a, k, l, e) -> Shift (tickOf n / 2 + l / 4 - 192) ((64 - k) * 8) pic
@@ -96,12 +132,18 @@ onRoll n pic = case n of
 reactor Note (n : NoteRow) (to : Lens Tune NoteRow)
   mode Resting
     on grab x y -> Carrying x y x y
-    picture = onRoll n (hold (noteBar n restInk))
+    on grab end x y -> Sizing x x
+    picture = onRoll n (Over (endAt n (hold end (endOf n))) (hold (noteBar n restInk)))
   mode Carrying (x0 : Int) (y0 : Int) (x : Int) (y : Int)
     on drag x1 y1 -> Carrying x0 y0 x1 y1
     on release -> Resting
     on release -> to = put to (carried n (x - x0) (y - y0))
     picture = onRoll (carried n (x - x0) (y - y0)) (hold (noteBar n heldInk))
+  mode Sizing (x0 : Int) (x : Int)
+    on drag x1 y1 -> Sizing x0 x1
+    on release -> Resting
+    on release -> to = put to (sized n (x - x0))
+    picture = onRoll (sized n (x - x0)) (hold end (noteBar (sized n (x - x0)) heldInk))
 
 reactor Roll (all : Lens Tune Tune)
   notes = new Note n (moving n) for n in elems (get all) by noteKey n

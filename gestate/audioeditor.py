@@ -1515,10 +1515,16 @@ class Workbench:
             self.substrate = None
         else:
             try:
-                self.substrate = Substrate(text, self.rate)
                 # **Its document, fed** — the rows a `document "kind"`
-                # reads, from the file the program includes.
-                self._feed_documents()
+                # reads, from the file the program includes — **before
+                # the canvas is published.**  `start` runs on its own
+                # thread and the window's loop ticks whatever
+                # `self.substrate` is: a frame ticking a canvas whose rows
+                # were still being written raised on the graph and left a
+                # lane with no notes for good (F250).
+                fresh = Substrate(text, self.rate)
+                self._feed_documents(fresh)
+                self.substrate = fresh
                 # **Both inside the guard.**  `_load_substrate` runs from
                 # `start` *before* there is a transport, so a reading
                 # switched on out here raised on `None` — and the `except`
@@ -2063,15 +2069,16 @@ class Workbench:
     # document's own reader, and feeds the rows back.  The program
     # stores nothing; the file is the state.
 
-    def _feed_documents(self) -> None:
+    def _feed_documents(self, sub=None) -> None:
         """Write every `document "kind"` its rows, from the file the
-        program includes — at a build, and again whenever the file
-        changed (`_refresh_documents`)."""
+        program includes — at a build, into the canvas not yet published
+        (`sub`), and again whenever the file changed
+        (`_refresh_documents`)."""
         from .documents import stamp
         from .facts import FactsError, beside, channel_of, documents as declared, rows_of
         from .notes import NotesError, documents, relations_of
 
-        sub = self.substrate
+        sub = self.substrate if sub is None else sub
         self.documents = []
         self._document_stamps = {}
         if sub is None:

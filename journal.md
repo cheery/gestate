@@ -149,4 +149,14 @@ it, *"it worked."*  Then F248, the first of the next steps said to
 him: the drag now puts one `MoveTo` whose second row is the whole new
 row, and `documents.moved` rewrites a field that is not the key in its
 own line, so a dragged dot changes one number and `drag.dots` keeps its
-header.
+header.  His hands on it: *"the drag works, header stays."*  Then
+resize, at his *"go with resize"* and *"go with 1"*: named holds, a
+second part of a reactor's picture to take hold of, each its own channel
+folded through `sync`; `carry.ges` pulls a note's end by sixteenths and
+commits one `MoveTo` of the whole row.  Driving it found F250, a race
+older than the slice: the window ticked a canvas whose rows `start` was
+still writing, and an early Ctrl-Tab could leave a lane with no notes
+for good.  Fixed by feeding before publishing.  F249 ledgered: a press
+on overlapping siblings reaches the one underneath.  The measure with
+the end counted on both sides: 0.23
+(`card:gui-is-difficult.md` §"Built — resize, as named holds").

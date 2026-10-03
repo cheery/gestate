@@ -8,10 +8,12 @@ the expectation's own — a line counts when it is not blank and not a
 comment, docstrings included.
 
 **What it replaces** is the note hand of today: `gestate/hand.ges` and
-eleven methods of `gestate/session.py`.  **What the port does not
+fifteen methods of `gestate/session.py` — eleven for the carry, and
+since the resize slice (§"The next slice: resize, on the note hand")
+the four of a note's end.  **What the port does not
 cover** is subtracted, each span named below by the text it starts and
-ends at, so the judgment is on the page and can be argued with: the
-note's end (grow, resize), the band (sweep, select, clear), the group,
+ends at, so the judgment is on the page and can be argued with: a
+group's stretch, the band (sweep, select, clear), the group,
 the audition, the interval said while dragging, the transcript, the
 ruler sharing the hand, a press declined by a box of a page, the probe's
 agreement bookkeeping, and the bar last pressed.  Where a span is in
@@ -33,7 +35,9 @@ ROOT = Path(__file__).resolve().parents[3]
 
 METHODS = ["_note_touched", "_hit", "_hand_event", "_hand_act", "_snapped",
            "_carried", "_interval", "_written_at", "_commit_move",
-           "_show_moved", "released"]
+           "_show_moved", "released",
+           # the end, since the resize slice
+           "_length_of", "_grow", "_commit_length", "do_resize"]
 
 #: `(method, first line's text, last line's text)` — uncovered, inclusive.
 UNCOVERED = [
@@ -46,13 +50,11 @@ UNCOVERED = [
     ("_note_touched", "self._bar_pressed(roll, tick_at", "self._bar_pressed(roll, tick_at"),
     ("_hit", "named = self.named_note.pop", "named = self.named_note.pop"),
     ("_hit", "across = self.rail_at.get", "self.disagreed.append"),
-    ("_hit", "at = x_of(roll, tick)", 'return ("OnEnd", max('),
-    ("_hit", "on, off = roll.events[note][:2]", 'return ("OnEnd", note) if edge'),
     ("_hand_act", 'if head not in ("Grab"', "self._hush(found)"),
     ("_hand_act", "self.selected[box] = note", "self._hold(found)"),
     ("_hand_act", "self._sound(found, note, roll.events", "return self._written_at"),
     ("_hand_act", "self._sound(found, note, key)", "return self._interval"),
-    ("_hand_act", 'if head == "Grow"', "return f\"hand.ges asked for"),
+    ("_hand_act", 'if head == "Sweep"', "return f\"hand.ges asked for"),
     ("_interval", "def _interval", "return"),
     ("_written_at", "def _written_at", "of {where[0]}{tail}"),
     ("_commit_move", "if dt:", "self._bar_pressed(roll, at)"),
@@ -60,12 +62,17 @@ UNCOVERED = [
     ("released", "sz = self.sizing", "return self._ruler_event(regions[sz[0]]"),
     ("released", 'self._journal().add("released", (name,), "")', 'self._journal().add("released", (name,), "")'),
     ("released", "if found.box in self.declined", 'return ""'),
+    ("_commit_length", "group = self.group.get", "return said"),
+    ("do_resize", "where = (getattr", "a note from a `.notes` file can be resized"),
+    ("do_resize", "self.bench.audition", "self.bench.audition"),
     ("released", 'doing = getattr(self.bench, "released"', 'return said or ""'),
 ]
 
-#: `hand.ges` lines that belong to the end, the band, or an abort.
+#: `hand.ges` lines that belong to the band or an abort — the end's
+#: (`Ending`, `Ended`, `GrabEnd`, `Grow`, `Resize`, `OnEnd`) left the
+#: list with the resize slice.
 HAND_UNCOVERED = re.compile(
-    r"\b(Ending|Ended|Sweeping|Swept|GrabEnd|Grow|Resize|Sweep|Select|Clear|Drop|Abort|OnEnd|OnRoll)\b")
+    r"\b(Sweeping|Swept|Sweep|Select|Clear|Drop|Abort|OnRoll)\b")
 
 
 def code(line: str) -> bool:

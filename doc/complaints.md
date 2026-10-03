@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**594 complaints**, in 52 files.
+**596 complaints**, in 52 files.
 
 | | |
 |---|---|
-| `author` | 343 |
+| `author` | 345 |
 | `command` | 60 |
 | `world` | 27 |
 | `machine` | 164 |
-| say where | 227 |
+| say where | 229 |
 | say `nowhere`, on purpose | 69 |
-| `unplaced`, with a defect that owns it | 89 |
+| `unplaced`, with a defect that owns it | 91 |
 
 ## A place that could exist, and does not
 
@@ -88,18 +88,18 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1234` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
-| `reactors.py:351` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:360` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:380` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:383` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `reactors.py:388` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:399` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:408` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:416` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:397` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:417` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `reactors.py:420` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:426` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:431` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:439` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:425` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:436` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:442` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:459` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:463` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:469` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:474` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:482` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:174` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -994,33 +994,35 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 243 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
-| 247 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
-| 256 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
-| 260 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
-| 269 | `ReactorError` | `author` | handed in | '{place}: a transition belongs to the mode it leaves — write it under a `mode`' |
-| 273 | `ReactorError` | `author` | handed in | "{place}: `on {m.group(1)}` binds the hand's two coordinates or none, not {len(binders)}" |
-| 289 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
-| 297 | `ReactorError` | `author` | handed in | "{place}: a bank inside a mode is not in this slice — make it at the reactor's level" |
-| 301 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
-| 308 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
-| 313 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
-| 316 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …` or `mode … (field : T)…`, `on <port> -> <lens> = …`, … |
-| 332 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
-| 339 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
-| 351 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
-| 360 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
-| 372 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
-| 380 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
-| 383 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
-| 388 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
-| 399 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {bad.line}: `{r.name}` mixes a stored mode with a derived one (`mode {bad.name} when …`) … |
-| 408 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: two transitions on `{phase}` in mode `{mode.name}` (the other on line {seen[phase]})… |
-| 416 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `-> {head}` — `{r.name}` has no mode of that name; its modes are {', '.join((f'`{x}`… |
-| 420 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand — not the model (`get`) and n… |
-| 426 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand, and `{p}` is a parameter" |
-| 431 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {x.line}: `on {x.port}` writes `{x.effects[0]}` — a hold writes nothing while the hand mo… |
-| 439 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `hold` in `{r.name}`, which has no stored mode for the hold to set — give it `mode …… |
+| 272 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 276 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 285 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 289 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 298 | `ReactorError` | `author` | handed in | '{place}: a transition belongs to the mode it leaves — write it under a `mode`' |
+| 304 | `ReactorError` | `author` | handed in | "{place}: `on {m.group(1)} {binders[0]}` — a hold's part is named where it begins, on `grab`; a… |
+| 310 | `ReactorError` | `author` | handed in | "{place}: `on {m.group(1)}` binds the hand's two coordinates or none, not {len(binders)}" |
+| 326 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
+| 334 | `ReactorError` | `author` | handed in | "{place}: a bank inside a mode is not in this slice — make it at the reactor's level" |
+| 338 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
+| 345 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
+| 350 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
+| 353 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …` or `mode … (field : T)…`, `on <port> -> <lens> = …`, … |
+| 369 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
+| 376 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
+| 388 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
+| 397 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
+| 409 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
+| 417 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
+| 420 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
+| 425 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
+| 436 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {bad.line}: `{r.name}` mixes a stored mode with a derived one (`mode {bad.name} when …`) … |
+| 442 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {r.line}: `{r.name}` names {len(r.ports) - 1} parts to take hold of ({', '.join((f'`{x}`'… |
+| 451 | `ReactorError` | `author` | carried from `said` | 'line {n}: two transitions on `{said}` in mode `{mode.name}` (the other on line {seen[phase, po… |
+| 459 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `-> {head}` — `{r.name}` has no mode of that name; its modes are {', '.join((f'`{x}`… |
+| 463 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand — not the model (`get`) and n… |
+| 469 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand, and `{p}` is a parameter" |
+| 474 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {x.line}: `on {x.port}` writes `{x.effects[0]}` — a hold writes nothing while the hand mo… |
+| 482 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `hold` in `{r.name}`, which has no stored mode for the hold to set — give it `mode …… |
 
 ### `scorebox.py`
 

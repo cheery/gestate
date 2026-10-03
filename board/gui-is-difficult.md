@@ -5245,6 +5245,8 @@ writes nothing.**
 
 **Default: 1.**  It is a change to the reactor language, which is his.
 
+**Henri, the same day:** *"go with 1"* — named holds.
+
 ### Decided, said, reversible
 
 * **The end is today's**: 8 px past the note always, and its last 8 px
@@ -5259,6 +5261,62 @@ writes nothing.**
   `do_resize` join the baseline, each named in the script.
 * **Not in this slice:** `stretch` for a group, and the *len 96 → 120*
   the status line says while the hand moves.
+
+## Built — resize, as named holds — 2026-10-03
+
+**Henri:** *"go with 1."*
+
+* **Named holds** in `gestate/reactors.py`.  A picture names a second
+  part to take hold of, `hold end (…)`, and a mode's `on grab end x y`
+  begins there.  Each part is a hold channel of its own, two to a
+  reactor in this slice, folded by one step through `sync`
+  (`reactors__scan2`, generated).  A drag and a release arrive where
+  their hold began, so only a `grab` names a part.  Refused by name:
+  a part named on `drag` or `release`, two grabs on one part in one
+  mode, a third part.
+* **`carry.ges` resizes.**  The end is drawn first and drawn as nothing:
+  8 px past the note, plus its last 8 px when it is wider than 16.  A
+  `Sizing` mode pulls the length a sixteenth per 12 px, never under one.
+  The commit is one `MoveTo` of the whole row, F248's path, so `len`
+  moves in its own line.  Letting go where the end was taken says where
+  the note is written.  The carry is unchanged beside it.
+* **F249, ledgered:** where two sibling regions overlap, a press reaches
+  the one painted underneath, in both walkers.  It is why the end is
+  drawn first.
+* **F250, found and fixed:** opening the canvas before it had built
+  could leave the lane with no notes, for good.  The window ticked the
+  canvas while `start`'s thread was writing its rows.  The rows now go
+  in before the canvas is published.  It is the lane-and-no-notes run
+  the note hand's driven run could not reproduce.  The cost: the full
+  picture at about 12 s on an early open, cold.
+
+### The measure, re-read
+
+    python doc/trial/reactors/notehand.py
+
+| | lines |
+|---|---|
+| today's note hand with its end: `hand.ges` and fifteen `session.py` methods | 457 |
+| of it covered by the port, each uncovered span named in the script | 321 |
+| the port, `carry.ges` | 93 |
+| of it the document's declaration and the silent `sound` | 18 |
+| **the port's hand** | **75** |
+| **ratio** | **0.23** (0.29 with the declaration) |
+
+The end alone: 25 lines of port against about 119 of today's.  Both
+caveats of the first reading stand.  The baseline gets its geometry
+from `scorebox` for free, and the port's end spends ten lines on it
+(`endOf`, `endAt`, `inner`).  The framework is on neither side.
+
+**The real window, driven:** `test/driven/20261003-192413-resize-notes/`
+(on this machine, not in git), `Xvfb :99`.  Six notes drawn.  Mid-pull,
+the first note's bar is 72 px in the held ink where it was 48, and the
+file is unchanged.  After the release its line says `len 144`, and a
+body carry after that says `at 24`.
+
+**His two minutes:** `python -m gestate.workbench examples/gui/carry.ges`,
+canvas tab.  Pull a note's end longer and shorter and let go; press an
+end and let go; carry a note.
 
 ## What a session does now
 
