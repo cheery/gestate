@@ -5163,6 +5163,16 @@ lost if it comes back.
 **His reading of the number, the same evening:** *"fourfold reduction
 is nothing to sneer at."*
 
+**His hands on it:** *"I did look at carry.ges and it worked."*  The
+slice's postcondition held.
+
+**Next, the session's default, said to him at the end of the day:**
+F248 first (a non-key field moved in place, so the drag keeps the
+file's prose), then resize — a second stored mode on the same `Note`;
+band select waits on his answer about the selection's tier, hearing
+what one edits on undoing the rows-not-score choice, and the score
+box's page on the port covering most of today's hand.
+
 **His two minutes:** `python -m gestate.workbench examples/gui/carry.ges`,
 canvas tab — carry a note and let go; press one and let go; write a note
 into `tune.notes` by hand and carry it.

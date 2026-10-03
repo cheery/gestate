@@ -143,4 +143,6 @@ measure: 0.25, not under 0.10** — 50 lines of hand against the 202 it
 covers (`python doc/trial/reactors/notehand.py`), about 0.19 if the
 port's own drawing is left out as the baseline's is.  A fourfold
 reduction; the order of magnitude was not there on this piece
-(`card:gui-is-difficult.md` §"Built — the notes editor's note hand").
+(`card:gui-is-difficult.md` §"Built — the notes editor's note hand").  His
+reading: *"fourfold reduction is nothing to sneer at"*; and his hands on
+it, *"it worked."*
