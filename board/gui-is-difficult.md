@@ -4976,6 +4976,9 @@ reaches.
 canvas tab — drag each dot and let go; watch `drag.dots` while dragging;
 change a number in it by hand.
 
+**His hands on it, the same day:** *"the drag works."*  The slice's
+postcondition held.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

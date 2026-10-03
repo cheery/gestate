@@ -129,4 +129,4 @@ host's `Retract` was made to take a key as the library already said it
 did, and F246 ledgered.  The measure moved this time: 3 places against
 6 to add a fourth dot, 7 composition lines against 17
 (`card:gui-is-difficult.md` §"Built — a drag, as a reactor with a stored
-mode").  His two minutes are next.
+mode").  Then his hands on it: *"the drag works."*
