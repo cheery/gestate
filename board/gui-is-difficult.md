@@ -5451,6 +5451,33 @@ leaves none selected, and a press on a note still carries it.
 canvas tab.  Sweep a band over some notes; sweep another; click empty
 roll; carry and resize a note as before.
 
+**Where it stands at the end of 2026-10-03, for the next session.**
+Henri went to sleep after this slice landed (`4735c11`); **his two
+minutes on band select are not yet had**, so the postcondition is
+unheld.  Ask for them first.
+
+*Next, the session's default, not yet said to him as a question:*
+
+1. **Group carry** — a press on a selected note carries the whole
+   selection.  Two questions come with it, both to put to him shaped:
+   several `MoveTo`s that succeed or fail as one (today's `do_carry`
+   refuses the whole group), and the selection's rows naming a key the
+   carry just moved (they dangle now: carry a selected note and it
+   loses its mark).
+2. **The band's cost is vocabulary**, and that is his to read: about a
+   third of its 78 lines stand in for `filter`, `&&`, `Eq` past pairs
+   and `abs`, and a fifth is two documents paired into one model.
+   Whether the prelude grows, or a program's model may be several
+   documents without the pairing, is a language decision.
+3. Still on the list from before: what one edits when hearing comes
+   back (undoing rows-not-score), and the score box's page on the port.
+
+The driven-run scripts this sitting used were in its scratchpad and are
+gone; `test/driven/20261003-201420-band-select/report.md` (this machine)
+says what they observed.  The canvas's origin in the window is the
+lane's centre, at (550, 380) on a 1600×1000 `Xvfb :99`; Ctrl-Tab opens
+the canvas tab.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
