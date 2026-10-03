@@ -5318,6 +5318,9 @@ body carry after that says `at 24`.
 canvas tab.  Pull a note's end longer and shorter and let go; press an
 end and let go; carry a note.
 
+**His hands on it, the same day:** *"resize works, end grabs fine."*
+The slice's postcondition held.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
