@@ -282,7 +282,11 @@ _SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
              "Does",
              # `Takes`, 2026-10-02 (`card:gui-is-difficult.md` Q8): a
              # `Does` that nothing around it hears pressed.  On the end.
-             "Takes")
+             "Takes",
+             # `Holds`, 2026-10-03 (`card:gui-is-difficult.md` §"The next
+             # slice: a drag"): held from press to release, its acts
+             # performed on the release.  On the end.
+             "Holds")
 
 
 def substrate_of(source: str, rate: int, graph, knobs: frozenset):

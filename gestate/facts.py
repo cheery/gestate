@@ -768,7 +768,7 @@ def rows_of(document: Document, rels: dict, name: str) -> list:
     return sorted(r[0] if len(r) == 1 else r for r in rels[name].rows)
 
 
-def fact_of(document: Document, kind_text, atoms) -> tuple:
+def fact_of(document: Document, kind_text, atoms, keyed: bool = False) -> tuple:
     """`(kind, {column: value})` of the fact an `Act` carries.
 
     A fact is **the kind's word and its base columns' values as atoms,
@@ -776,7 +776,14 @@ def fact_of(document: Document, kind_text, atoms) -> tuple:
     `mark  cell 4  mark X`, which `facts.ges`' `asserting markKind (4,
     "X")` builds.  A `Text` arrives as the code points the machine
     holds it as; an atom of the wrong shape for its column is refused
-    by name."""
+    by name.
+
+    **`keyed`, for a retract: the key's atoms alone are enough** —
+    `facts.ges`' *"Retract the row with this key"*, which until
+    2026-10-03 the host refused unless the whole row came with it.  A
+    lens's `put` sees only the value it is told, never the row it
+    replaces, so moving a row is a retract by its key and an assert of
+    the new one (`examples/gui/drag.ges`)."""
     name = _text(kind_text)
     kind = document.kind(name)
     if kind is None:
@@ -785,6 +792,8 @@ def fact_of(document: Document, kind_text, atoms) -> tuple:
             "word is a kind's — "
             + ", ".join(f"`{k.name}`" for k in document.kinds))
     cols = base_columns(kind)
+    if keyed and kind.key and len(atoms) == len(kind.key):
+        cols = list(kind.key)
     if len(atoms) != len(cols):
         raise FactsError(
             f"`{name}` carries {len(atoms)} values and `{kind.name}` has "

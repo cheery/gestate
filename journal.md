@@ -110,3 +110,23 @@ signals (`e5cd33e`, `card:gui-is-difficult.md` §"Built — two checkboxes
 as reactors").  It works, every check refuses what it should, and the
 measure is honest: no reduction for checkboxes, which the tree's facts
 and `Does` already composed.
+
+**Saturday 3.10.**  The seven-day lamp first: `strict-forms`,
+`relational-model` and `gex-sheet` to `later/` at his *"defaults are
+fine"*.  Then the small things before the next slice, at his word —
+F243's half-open edge in both walkers (and a second copy of it in the
+roll's probe), F244's one-line `case`, and the formatter reading
+`reactor` blocks and `include` lines, which made five files readable and
+showed a comprehension guard written back unparseable; repaired, three
+files off F191 (`715ecab`).  Then the slice he chose, (a): a drag, as a
+reactor with a stored mode.  Before any code it found the substrate
+could not commit on a release, and he took the new attachment —
+*"(1) sounds right, go ahead"* — so `Holds` went into both walkers and
+every shell's table, stored modes into the reactor desugaring with a
+hold channel and a mode per instance, and `examples/gui/drag.ges` drags
+three dots over a file it writes only on the release.  On the way, the
+host's `Retract` was made to take a key as the library already said it
+did, and F246 ledgered.  The measure moved this time: 3 places against
+6 to add a fourth dot, 7 composition lines against 17
+(`card:gui-is-difficult.md` §"Built — a drag, as a reactor with a stored
+mode").  His two minutes are next.

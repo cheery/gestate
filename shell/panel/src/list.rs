@@ -128,6 +128,9 @@ pub enum Kind {
     /// around it is grabbed, here or in `gui.py`'s `_grabbed`
     /// (`card:gui-is-difficult.md` Q8, 2026-10-02).
     Takes,
+    /// **Held from press to release** — `gui.ges`' `Holds`: the acts it
+    /// carries are performed on the release, by the reference machine.
+    Holds,
 }
 
 /// A region that listens, and what it writes to.
@@ -199,7 +202,7 @@ impl Hit {
             // be wrong for it: a cell number is not a fraction.
             Kind::Means(_) => return self.means,
             // A thing that does answers with its acts, not a number.
-            Kind::Does | Kind::Takes => return 0.0,
+            Kind::Does | Kind::Takes | Kind::Holds => return 0.0,
         };
         f.clamp(0.0, 1.0)
     }
@@ -256,6 +259,12 @@ impl Display {
     /// A `Does` that keeps the press — `gui.ges`' `Takes`.
     pub fn takes(&mut self, node: usize, region: (i32, i32, i32, i32)) {
         self.hits.push(Hit { kind: Kind::Takes, param: NO_PARAM,
+                             region, means: 0.0, does: node });
+    }
+
+    /// An element held from press to release — `gui.ges`' `Holds`.
+    pub fn holds(&mut self, node: usize, region: (i32, i32, i32, i32)) {
+        self.hits.push(Hit { kind: Kind::Holds, param: NO_PARAM,
                              region, means: 0.0, does: node });
     }
 

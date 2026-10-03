@@ -68,7 +68,7 @@ reactor Panel
   picture = Column mute.picture solo.picture
 
 substrate : Sig Sub
-substrate = map Panel.picture flags
+substrate = Panel.picture flags
 
 #: Silence — the window plays every file it opens.
 sound : Sig Float

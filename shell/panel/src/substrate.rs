@@ -56,6 +56,10 @@ pub struct SubTags {
     /// grabbed (`card:gui-is-difficult.md` Q8, 2026-10-02).  On the end
     /// of the table, after `Does`.
     pub takes: i64,
+    /// `Holds` — held from press to release, its acts performed on the
+    /// release (`card:gui-is-difficult.md` §"The next slice: a drag",
+    /// 2026-10-03).  On the end of the table, after `Takes`.
+    pub holds: i64,
     /// `Cons` and `Nil` — **not `Sub` constructors**, and they are here
     /// because a `Label` carries a `String` and a `String` is
     /// `List Char`.  That is the whole cost of text crossing: no new
@@ -247,6 +251,8 @@ pub fn extent(m: &mut Machine, t: &SubTags, node: usize) -> R<(i32, i32)> {
         extent(m, t, args[2])
     } else if tag == t.does || tag == t.takes {
         extent(m, t, args[1])
+    } else if tag == t.holds {
+        extent(m, t, args[2])
     } else {
         err(format!("unknown substrate tag {tag}"))
     }
@@ -360,6 +366,15 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
         let (x0, y0) = (cx - half(w), cy - half(h));
         walk(m, t, args[1], cx, cy, d)?;
         d.takes(args[0], (x0, y0, x0 + w, y0 + h));
+    } else if tag == t.holds {
+        // **Held from press to release** — recorded with its acts, which
+        // the reference machine reads off the node at the release; this
+        // walker writes no `Event` (a program with a hold has a document,
+        // and stays home — `gui.Substrate._crossing`).
+        let (w, h) = extent(m, t, node)?;
+        let (x0, y0) = (cx - half(w), cy - half(h));
+        walk(m, t, args[2], cx, cy, d)?;
+        d.holds(args[1], (x0, y0, x0 + w, y0 + h));
     } else {
         return err(format!("unknown substrate tag {tag}"));
     }
@@ -399,7 +414,7 @@ mod tests {
     const T: SubTags = SubTags {
         rect: 10, circle: 11, gap: 12, over: 13, row: 14, column: 15,
         shift: 16, sized: 17, pad: 18, touch_x: 19, touch_y: 20,
-        label: 21, meaning: 22, cons: 1, nil: 0, does: 23, takes: 24,
+        label: 21, meaning: 22, cons: 1, nil: 0, does: 23, takes: 24, holds: 25,
     };
 
     fn machine() -> Machine {
@@ -618,6 +633,31 @@ mod tests {
         assert_eq!(hit.fraction(15, 15), 0.0, "and no fraction to report");
         assert_eq!(extent(&mut m, &T, cell).unwrap(), (30, 30),
                    "saying what a thing does takes no room");
+    }
+
+    #[test]
+    fn a_holds_carries_its_acts_over_its_child() {
+        // **Held from press to release** — `gui.ges`' `Holds`
+        // (`card:gui-is-difficult.md` §"The next slice: a drag").  Its
+        // child is the third argument, after the channel and the acts;
+        // the walk records the region and the acts' node, and the
+        // reference machine is the one that performs them.
+        let mut m = machine();
+        let body = rect(&mut m, 28, 28);
+        let (w, h) = (int(&mut m, 30), int(&mut m, 30));
+        let boxed = con(&mut m, T.sized, vec![w, h, body]);
+        let acts = con(&mut m, T.nil, vec![]);
+        let chan = int(&mut m, 0);
+        let held = con(&mut m, T.holds, vec![chan, acts, boxed]);
+
+        let d = view(&mut m, &T, held, 30, 30).unwrap();
+        assert_eq!(d.hits.len(), 1);
+        let hit = d.hits[0];
+        assert_eq!(hit.kind, Kind::Holds);
+        assert_eq!(hit.region, (0, 0, 30, 30));
+        assert_eq!(hit.does, acts, "the node the release reads the acts off");
+        assert_eq!(extent(&mut m, &T, held).unwrap(), (30, 30),
+                   "holding a thing takes no room");
     }
 
     #[test]

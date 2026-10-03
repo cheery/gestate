@@ -4847,6 +4847,135 @@ readable with it, and two of those showed a comprehension guard written
 back as `_guard1# in guard e`: repaired, and three files left F191's
 list.  `checkboxes.ges` is on the readable list.
 
+## The next slice: a drag, as a reactor with a stored mode — written 2026-10-03
+
+**Henri**, offered (a) a drag inside a composed parent or (b) a piece of
+the notes editor: *"defaults are fine, go with (a)"*; and on the
+substrate's half, offered `Holds` or a reuse of `TouchX`/`TouchY`:
+*"(1) sounds right, go ahead."*
+
+**Why a drag.**  The checkbox measure said no reduction, because a
+checkbox has no state of its own — its mode is a view of its lens.  A
+drag is the first thing with state that belongs to **one instance**:
+where it was taken, where the hand is now.  That is what reactors should
+pay for and what the checkbox slice did not reach.
+
+**What it found before any code.**  The substrate cannot commit on a
+release: `Meaning` and `Does` fire on the press and on nothing else
+(*"a press on a thing **is** the commit"*), and `TouchX`/`TouchY`
+report a place and perform nothing.  So the slice adds one attachment.
+
+* **`Holds (Chan Event) (List Act) Sub`**, appended to `Sub`.  Held from
+  press to release, it writes `Press`, every `Move` and `Release` to its
+  channel, in canvas coordinates; **on the release it performs the acts
+  the picture carries at that instant** — the picture is still the
+  dispatcher, and the acts are computed from the drag as it stood.
+  Both walkers record it; the reference machine performs it, as it
+  performs `Does`.
+* **Stored modes.**  A reactor whose modes carry fields —
+  `mode Carrying (x0 : Int) (x : Int)` — and no `when`.  The modes are
+  one data type, a transition is `on grab x y -> Carrying x x`, and
+  each instance's mode is a `scanE` over **its own** hold channel, made
+  for it at compile time by `new` — the desugaring the first slice
+  predicted, met here for the first time.
+* **`X.picture` is a signal of the model**, `Sig Model -> Sig Sub`, since
+  a child's mode is a signal; `checkboxes.ges` changes by one line.
+
+**The program:** three dots on a line, each over a fact of a small
+document — `dot  name a  x -80` — composed blind by a parent.
+
+**The postcondition** — the card's own: **his two minutes with the
+three dots**: dragging one moves it alone, the file is unchanged until
+the release, the release writes the file, and an edit made to the file
+by hand moves the dot.  Beside it, expectation 14's measure: **places
+touched to add a fourth dot**, and the component's lines, against the
+same three dots written the best way the tree had before — counted the
+same way for both.
+
+**Left out on purpose:** mutations, a drag that crosses to the walking
+window (a program with a document stays home), a transition that reads
+the model, and nested stored modes.
+
+## Built — a drag, as a reactor with a stored mode — 2026-10-03
+
+**Henri:** *"(1) sounds right, go ahead."*
+
+* **`Holds (Chan Event) (List Act) Sub`** in `gui.ges`, with `onHold`
+  and `holding`.  `gui.py` writes `Press`, `Move` and `Release` to its
+  channel while it is held, and on the release performs the acts read
+  off the **current** picture's `Holds` of that channel — the drag as it
+  stood, not the press (`test_gui.py`, red when the grabbed node's acts
+  are read instead).  `_SUB_CONS` and every shell's table carry it —
+  eighteen tags — and the panel walker records it as `Kind::Holds`
+  (`substrate.rs`, a test of its own); the fixtures regenerated, the
+  panel, editor, plugin and page suites green.
+* **Stored modes** in `gestate/reactors.py`: `mode Carrying (x0 : Int)
+  (x : Int)` without a `when`; `on grab|drag|release … -> Mode …` a
+  transition; `on release -> lens = …` the commit; `hold` in a picture
+  the reactor's own `Holds`.  The modes desugar to a data type and a
+  step, and **every stored instance gets its own hold channel and its
+  own mode** — a `scanE` of the step over that channel, made at the root
+  for each path to it.  Seven new refusals, each seen refusing.
+* **`X.picture` is a signal of the model**; `checkboxes.ges` changed by
+  one line, `map Panel.picture flags` to `Panel.picture flags`.
+* **`examples/gui/drag.ges`** — three dots over `drag.dots`, composed
+  blind.  Driven through the workbench model: the held dot follows
+  alone, the file is unchanged until the release, the release writes
+  `x`, a second dot has its own drag, a drag past the track is clamped,
+  and a hand edit of the file moves the dot (`test_reactors.py`).
+* **A host change, at the library's own word:** a `Retract` may carry
+  the key alone — `facts.ges`' *"Retract the row with this key"*, which
+  the host refused unless the whole row came (`facts.fact_of`,
+  `keyed`).  A lens's `put` never sees the row it replaces, so moving a
+  row is a retract by key and an assert.
+* **Found and ledgered, not fixed: F246** — `!` over three or more
+  signals refuses a lifted function that runs a comprehension over a
+  set.  The root gathers the modes into one tuple signal first, so every
+  `!` it writes takes two.
+
+### The measure, and what it says
+
+The control is `doc/trial/reactors/drag-today.ges`: the same three dots
+with the same `Holds` and the same document, each dot's channel, fold
+and picture written by hand — driven by the same test and behaving the
+same.  The fourth dot was **added to both and dragged**, not estimated.
+
+| | reactor blocks | without them |
+|---|---|---|
+| places touched to add a fourth dot | 3 | 6 |
+| the component's code lines | 11 | 16 |
+| the composition's code lines | 7 | 17 |
+
+**A reduction, and where the first slice said to look for one**: state
+that belongs to an instance, composed.  Without reactor blocks every
+instance is a channel, a fold, a slot in a gather and a slot in the
+view's tuple, written by hand and kept in step by hand; with them it is
+one `new` line and one place in the picture.  The checks are the second
+half: a transition cannot read the model, a hold cannot write while it
+moves, two transitions on one phase are refused — none of which the
+control can say.  Expectation 14 is still read at the notes editor;
+this is the second data point and the first that moved.
+
+**What the slice did not reach**, as written above: mutations, a drag
+in the walking window, a transition that reads the model, nested
+stored modes.
+
+**And the real window, driven, before his hands** —
+`test/driven/20261003-124327-drag-dots/` (on this machine; the
+directory is not in git), on `Xvfb :99`, the editor
+library rebuilt first (it was stale against the eighteen-tag table, and
+the launcher would have rebuilt it at his start too).  Three dots drawn
+at rest; mid-drag one dot in the held ink 40 px right of where *a* was,
+the other two where they were, and the file unchanged; after the
+release the file says `x -40`; a hand edit of *b* moved it.  The model
+draws this canvas — a program with a document stays home — so what the
+run proves is the window's forwarding and repaint, which no model test
+reaches.
+
+**His two minutes:** `python -m gestate.workbench examples/gui/drag.ges`,
+canvas tab — drag each dot and let go; watch `drag.dots` while dragging;
+change a number in it by hand.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again

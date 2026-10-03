@@ -1,0 +1,104 @@
+# examples/gui/drag.ges — three dots dragged along a line, as reactors.
+# `card:gui-is-difficult.md` §"The next slice: a drag, as a reactor with
+# a stored mode".
+#
+#   python -m gestate.workbench examples/gui/drag.ges
+#
+# **A dot holds where it is in the document, and nothing else holds it.**
+# It is handed a lens on its row of `drag.dots` — `dot  name a  x -80` —
+# and draws itself at the `x` the lens reads.
+#
+# **What it does hold is the drag**: where the hand took it and where the
+# hand is now.  That is a *stored* mode — `Carrying x0 x` — set by the
+# hold's phases, and it belongs to one dot: each `new` gets its own hold
+# channel and its own mode, made at compile time.
+#
+# **The file is written once, on the release**, with where the drag
+# ended; while the hand moves only the picture changes.  A number edited
+# in the file by hand moves the dot as well.
+#
+# **The panel composes them blind**: it lays the three pictures over a
+# track and wires nothing — each picture carries its own hold.
+
+include "drag.dots"
+
+names : List Text
+names = "a" :: "b" :: "c" :: Nil
+
+dotRel : Rel
+dotRel = Rel "dot" (Col "name" (OneOf names) :: Col "x" (Range (0 - 200) 200) :: Nil) ("name" :: Nil)
+
+dotLine : Line
+dotLine = Line "dot" Named ("name" :: "x" :: Nil) (By "name" :: Nil)
+
+model : List Rel
+model = dotRel :: Nil
+
+lines : List Line
+lines = dotLine :: Nil
+
+type Dot = $(rowType dotRel)
+type Dots = Set Dot
+
+dots : Sig Dots
+dots = document "dot"
+
+#: Where the dot named `k` is, and the acts that put it somewhere else —
+#: its row retracted by its key and asserted again at the new `x`.
+place : Text -> Lens Dots Int
+place k = Lens (ds => xOf ds k) (x => retracting dotRel k :: asserting dotRel (k, x) :: Nil)
+
+xOf : Dots -> Text -> Int
+xOf ds k = case elems (for ((n, x) in ds, n == k) {x}) of
+    [] -> 0
+    x :: rest -> x
+
+#: The track's own bounds, which the file's `Range` also says.
+clampX : Int -> Int
+clampX x = case x < 0 - 200 of
+    True -> 0 - 200
+    False -> case x > 200 of
+        True -> 200
+        False -> x
+
+restInk : Colour
+restInk = RGB 235 178 110
+
+heldInk : Colour
+heldInk = RGB 255 220 160
+
+textInk : Colour
+textInk = RGB 30 30 36
+
+trackInk : Colour
+trackInk = RGB 38 42 52
+
+#: A dot and its letter, drawn — nothing in it knows it can be held.
+disc : Text -> Colour -> Sub
+disc label ink = Over (Circle 14 ink) (Label 12 12 label textInk)
+
+track : Sub
+track = Rect 440 4 trackInk
+
+reactor Dot (label : Text) (at : Lens Dots Int)
+  mode Resting
+    on grab x y -> Carrying x x
+    picture = Shift (get at) 0 (hold (disc label restInk))
+  mode Carrying (x0 : Int) (x : Int)
+    on drag x1 y1 -> Carrying x0 x1
+    on release -> Resting
+    on release -> at = put at (clampX (get at + x - x0))
+    picture = Shift (clampX (get at + x - x0)) 0 (hold (disc label heldInk))
+
+reactor Panel
+  a = new Dot "a" (place "a")
+  b = new Dot "b" (place "b")
+  c = new Dot "c" (place "c")
+  picture = Over track (Over a.picture (Over b.picture c.picture))
+
+substrate : Sig Sub
+substrate = Panel.picture dots
+
+#: Silence — the window plays every file it opens.
+sound : Sig Float
+sound = 0.0

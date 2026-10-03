@@ -408,6 +408,8 @@ def _extent(node, state) -> tuple[int, int]:
         return _extent(args[2], state)
     if tag in (cons["Does"].tag, cons["Takes"].tag):
         return _extent(args[1], state)
+    if "Holds" in cons and tag == cons["Holds"].tag:
+        return _extent(args[2], state)
     raise GuiError(f"unknown substrate tag {tag}")
 
 
@@ -545,6 +547,23 @@ def _walk(node, state, cx: int, cy: int, out: list, hits: list) -> None:
             "region": (x0, y0, x0 + w, y0 + h),
         })
         return
+    if "Holds" in cons and tag == cons["Holds"].tag:
+        # **Held from press to release** — `gui.ges`' `onHold`.  The
+        # channel hears the press, every motion and the release as
+        # `Event`s; the acts are read off the node the *release* finds,
+        # so they are the ones the picture holds when the hand lets go
+        # (`Substrate.touch_all`).
+        w, h = _extent(node, state)
+        x0, y0 = cx - w // 2, cy - h // 2
+        _walk(args[2], state, cx, cy, out, hits)
+        hits.append({
+            "axis": None,
+            "holds": True,
+            "acts": args[1],
+            "chan": _chan_id(args[0], state),
+            "region": (x0, y0, x0 + w, y0 + h),
+        })
+        return
     raise GuiError(f"unknown substrate tag {tag}")
 
 
@@ -675,6 +694,34 @@ def two_writers(grabbed: list) -> str | None:
                         f"on the one the press is for")
             seen.setdefault(kind, i)
     return None
+
+
+#: What each phase of a hold is written to its channel as.
+_HOLD_EVENT = {"press": "Press", "drag": "Move", "release": "Release"}
+
+
+def _hold_writes(state, targets: list, kind: str, x: int, y: int) -> list:
+    """`(channel, Event)` for every held `Holds` — the phase, where."""
+    name = _HOLD_EVENT.get(kind)
+    if name is None:
+        return []
+    return [(t["chan"], _event_node(state, (name, x, y)))
+            for t in targets if t.get("holds")]
+
+
+def _letting_go(hits: list, targets: list) -> list:
+    """The acts each held `Holds` carries **now**: read off the node of
+    the same channel in the picture as it stands at the release, not the
+    one the press grabbed — a drag redraws what it holds, and the commit
+    is the drag as it stood."""
+    out = []
+    for t in targets:
+        if not t.get("holds"):
+            continue
+        now = next((h for h in hits
+                    if h.get("holds") and h["chan"] == t["chan"]), t)
+        out.append(now["acts"])
+    return out
 
 
 # ── Driving it ──────────────────────────────────────────────────────────────
@@ -888,6 +935,9 @@ def touches(source: str, gestures, rate: int = 0) -> list[list[tuple]]:
             held = _under(hits, x, y)
         target = held
         writes = []
+        if target is not None and target.get("holds"):
+            writes = _hold_writes(state, [target], kind, x, y)
+            target = None
         if target is not None:
             # **Through `_gesture_value`, not a second copy of it.**  This
             # was written out again inline, so `touches` and
@@ -1310,8 +1360,27 @@ class Substrate:
         targets = self._held or []
         if kind == "release":
             self._held = None
-            return [("released", self._named(t["chan"])) for t in targets
-                    if t["chan"] is not None and self._named(t["chan"])]
+            out = []
+            # **A hold commits here**: the acts its picture carries now,
+            # refused whole when two holds write one kind of fact, then
+            # the `Release` written — so the commit is computed from the
+            # drag as it stood, and the mode it ends comes after.
+            letting = [_term(a, self.state) for a in _letting_go(hits, targets)]
+            if letting:
+                refused = two_writers(letting)
+                if refused is not None:
+                    self._pressed.append(("Refuse", [ord(c) for c in refused]))
+                    out.append(("refused", refused))
+                else:
+                    for acts in letting:
+                        self._pressed.extend(acts)
+                        out.append(("does", acts))
+            writes = _hold_writes(self.state, targets, kind, x, y)
+            if writes:
+                react(self.reactive, writes)
+            return out + [("released", self._named(t["chan"])) for t in targets
+                          if t["chan"] is not None and not t.get("holds")
+                          and self._named(t["chan"])]
         out = []
         refused = None
         if kind == "press":
@@ -1322,7 +1391,13 @@ class Substrate:
                 # why, the way it says any `Refuse`.
                 self._pressed.append(("Refuse", [ord(c) for c in refused]))
                 out.append(("refused", refused))
+        writes = _hold_writes(self.state, targets, kind, x, y)
+        if writes:
+            react(self.reactive, writes)
+            out.append(("held", kind))
         for target in targets:
+            if target.get("holds"):
+                continue
             if "does" in target:
                 # **A thing that does** writes no channel: its acts are
                 # read off the node the walk recorded, on the press and
@@ -1362,6 +1437,10 @@ class Substrate:
             if "does" in target:
                 out.append(("does", _term(target["does"], self.state)))
                 continue
+            if target.get("holds"):
+                # What letting go here would do, were it held now.
+                out.append(("holds", _term(target["acts"], self.state)))
+                continue
             name = self._named(target["chan"])
             value = _gesture_value(target, "press", x, y)
             if name is not None and value is not None:
@@ -1396,7 +1475,7 @@ def _gesture_value(target: dict, kind: str, x: int, y: int):
 
     A release writes nothing: a fader stays where it was let go.
     """
-    if kind == "release" or "does" in target:
+    if kind == "release" or "does" in target or target.get("holds"):
         return None
     #: **A thing answers what it is, on the press and on nothing else.**
     #: A meaning does not change while the hand moves over it, and a

@@ -1,0 +1,7 @@
+# The dots of drag-today.ges — the control's copy of
+# `examples/gui/drag.dots`; `dot  name a  x -80` is dot a, eighty to the
+# left of the middle.
+
+dot  name a  x -80
+dot  name b  x 0
+dot  name c  x 80

@@ -1,0 +1,7 @@
+# The dots of drag.ges — one a line.  `dot  name a  x -80` is dot a,
+# eighty to the left of the middle.  Drag a dot and let go, or change a
+# number here; the dot follows either way.
+
+dot  name a  x -80
+dot  name b  x 0
+dot  name c  x 80

@@ -181,7 +181,9 @@ def test_every_gui_example_is_exercised_here():
         # `test_two_hands.py` drives this one: two things one press reaches.
         "two-hands.ges",
         # `test_reactors.py` drives this one: two checkboxes as reactors.
-        "checkboxes.ges"}
+        "checkboxes.ges",
+        # and this one: three dots dragged, a reactor with a stored mode.
+        "drag.ges"}
 
 
 # ── `patchbay.ges` — a Datafun query behind a picture ───────────────────────
@@ -558,3 +560,55 @@ def test_a_shared_edge_belongs_to_the_region_that_starts_there():
     assert _under([upper, lower], 5, 10) is lower
     assert _under([upper, lower], 10, 5) is None
     assert _under([upper, lower], 0, 0) is upper
+
+
+#: A square held and dragged along x — `gui.ges`' `Holds`, by hand: the
+#: grip is a fold over the hold's own channel, and letting go says how
+#: far it went (`card:gui-is-difficult.md` §"The next slice: a drag").
+HELD = """
+h : Chan Event
+h = chan
+
+Grip := Free | Took Int Int
+
+step : Grip -> Event -> Grip
+step g e = case e of
+    Press x y -> Took x x
+    Move x y -> case g of
+        Took a b -> Took a x
+        Free -> Free
+    Release x y -> Free
+    Tick -> g
+    Key k -> g
+
+grip : Sig Grip
+grip = scanE step Free (wait h)
+
+ink : Colour
+ink = RGB 200 100 50
+
+pic : Grip -> Sub
+pic g = case g of
+    Free -> Holds h Nil (Rect 20 20 ink)
+    Took a b -> Holds h (Refuse (show (b - a)) :: Nil) (Shift (b - a) 0 (Rect 20 20 ink))
+
+substrate : Sig Sub
+substrate = map pic grip
+"""
+
+
+def test_a_hold_follows_the_hand_and_commits_on_the_release():
+    """The press and every motion reach the program, nothing is performed
+    while the hand moves, and the release performs the acts the picture
+    carries **as it stood** — the drag's distance, not the press's."""
+    from gestate.gui import Substrate
+    sub = Substrate(HELD)
+    assert sub.picture()[0][1] == -10
+    sub.touch("press", 0, 0)
+    sub.touch("drag", 15, 40)
+    assert sub.acts() is None, "a hold performs nothing while it moves"
+    assert sub.picture()[0][1] == 5, "the square follows the hand"
+    sub.touch("drag", 25, 40)
+    sub.touch("release", 25, 40)
+    assert sub.acts() == [("Refuse", [ord(c) for c in "25"])]
+    assert sub.picture()[0][1] == -10, "let go, the grip is free again"

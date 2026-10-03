@@ -76,6 +76,7 @@ Sub := Rect Int Int Colour
      | Meaning (Chan Float) Float Sub
      | Does (List Act) Sub
      | Takes (List Act) Sub
+     | Holds (Chan Event) (List Act) Sub
 
 # ── What can arrive ──────────────────────────────────────────────────────
 #
@@ -368,6 +369,20 @@ onDo a s = !does a s
 onTake : Sig (List Act) -> Sig Sub -> Sig Sub
 onTake a s = !takes a s
 
+#: **Hold this element, and say what letting go of it does.**  From the
+#: press to the release the element is held: the press, every motion and
+#: the release are written to the channel as `Press`, `Move` and
+#: `Release`, in the canvas's coordinates — so a program folding over
+#: the channel knows where the hand took it and where the hand is.  On
+#: the release the host performs the acts the picture carries **at that
+#: instant**, which is how a drag commits: the acts are computed from the
+#: drag as it stood, and nothing is written to a document while the hand
+#: moves.  The other attachments commit on the press; this is the one
+#: whose commit is the release (`card:gui-is-difficult.md` §"The next
+#: slice: a drag, as a reactor with a stored mode", 2026-10-03).
+onHold : Chan Event -> Sig (List Act) -> Sig Sub -> Sig Sub
+onHold c a s = !(holding c) a s
+
 # ── Numbers beside a substrate ───────────────────────────────────────────
 
 #: What a bare number means beside a substrate: the same number, always —
@@ -409,3 +424,8 @@ does a s = Does a s
 #: writes the constructor.
 takes : List Act -> Sub -> Sub
 takes a s = Takes a s
+
+#: `Holds` with its channel first, for `meaning`'s reason, for `onHold`
+#: to lift.  A program building a `Sub` by hand writes the constructor.
+holding : Chan Event -> List Act -> Sub -> Sub
+holding c a s = Holds c a s

@@ -2142,7 +2142,8 @@ class Workbench:
                 continue
             try:
                 doc = beside(path)
-                kind, values = fact_of(doc, act[1], act[2])
+                kind, values = fact_of(doc, act[1], act[2],
+                                       keyed=head == "Retract")
                 text = path.read_text()
                 if head == "Assert":
                     out, said = asserted(text, record_line(kind, values),

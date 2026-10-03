@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**571 complaints**, in 52 files.
+**582 complaints**, in 52 files.
 
 | | |
 |---|---|
-| `author` | 329 |
+| `author` | 340 |
 | `command` | 51 |
 | `world` | 27 |
 | `machine` | 164 |
-| say where | 218 |
+| say where | 222 |
 | say `nowhere`, on purpose | 69 |
-| `unplaced`, with a defect that owns it | 75 |
+| `unplaced`, with a defect that owns it | 86 |
 
 ## A place that could exist, and does not
 
@@ -73,7 +73,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `elaborate.py:224` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
 | `elaborate.py:256` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
 | `elaborate.py:264` | `ElaborateError` | fixme.md F157: elaboration knows the class and the definition, not the line |
-| `export.py:754` | `ExportError` | fixme.md F156: a control channel the author declared, named by the channel and not by the line |
+| `export.py:758` | `ExportError` | fixme.md F156: a control channel the author declared, named by the channel and not by the line |
 | `gmachine.py:1248` | `GmError` | fixme.md F159: a signal read out of turn is the program's mistake, and the instruction that reads it carries no span the way `Hole` does |
 | `gmachine.py:1346` | `GmError` | fixme.md F159: a match that covers nothing is the program's mistake; exhaustiveness catches most of them and this is what catches the rest |
 | `gmachine.py:1371` | `GmError` | fixme.md F159: dividing by zero is a program's own doing and the instruction carries no span |
@@ -82,16 +82,23 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:771` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:774` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:818` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:821` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1234` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
-| `reactors.py:248` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:257` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:277` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
-| `reactors.py:282` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:318` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:327` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:347` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:352` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:363` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:372` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:380` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:384` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:390` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:395` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
+| `reactors.py:403` | `ReactorError` | fixme.md F245: a reactor block refused before it compiles, its line said in words |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:174` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -134,7 +141,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `desugar.py:180` | `DesugarError` | which libraries the program was assembled with, which is a fact about the assembly and not about a line of it |
 | `desugar.py:379` | `DesugarError` | an implicit nothing supplies is an absence, and an absence is not written anywhere |
-| `export.py:764` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
+| `export.py:768` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
 | `facts.py:152` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:162` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:172` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
@@ -158,15 +165,15 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `facts.py:610` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:649` | `DeclarationCycle` | the program's own include line and its own model need each other first; the fault is the pairing of a suffix and a declaration, which no one line holds |
 | `facts.py:697` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:783` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:789` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:790` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `facts.py:798` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
-| `facts.py:801` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:807` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
+| `facts.py:810` | `FactsError` | a document's `.ges` that declares no kinds, or one whose kinds are not the shape the library gives: the fault is a name absent from a file, and an absent name has no line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:698` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:1066` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:1088` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:745` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:1116` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:1138` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -630,11 +637,11 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 738 | `ExportError` | `world` | — | 'no clang to build the graph with' |
-| 740 | `ExportError` | `world` | — | 'no cargo to build the shell with — the CLAP shell is Rust (`shell/clap/`)' |
-| 754 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
-| 764 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
-| 809 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
+| 742 | `ExportError` | `world` | — | 'no clang to build the graph with' |
+| 744 | `ExportError` | `world` | — | 'no cargo to build the shell with — the CLAP shell is Rust (`shell/clap/`)' |
+| 758 | `ExportError` | `author` | *unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line* | 'channel `{node.chan}` carries `{node.type_}`, which does not fit a control slot' |
+| 768 | `ExportError` | `author` | *nowhere, on purpose* | 'the graph at {r} Hz orders its channels differently — export cannot share slots' |
+| 813 | `ExportError` | `world` | — | 'the shell did not build:\n' + done.stderr |
 
 ### `facts.py`
 
@@ -665,10 +672,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 610 | `FactsError` | `author` | *nowhere, on purpose* | '{self.path.name} declares no relation `{name}`; it has ' + ', '.join((f'`{r.name}`' for r in s… |
 | 649 | `DeclarationCycle` | `author` | *nowhere, on purpose* | '{path.name} declares the model of a `.notes` it includes as a score, and each needs the other … |
 | 697 | `FactsError` | `author` | *nowhere, on purpose* | '{beside_it.name} declares the model of {Path(path).name} and will not load: {why}' |
-| 783 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
-| 789 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
-| 798 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
-| 801 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
+| 790 | `FactsError` | `author` | *nowhere, on purpose* | "`{name}` names no kind of {document.path.name}; a fact's word is a kind's — " + ', '.join((f'`… |
+| 798 | `FactsError` | `author` | *nowhere, on purpose* | '`{name}` carries {len(atoms)} values and `{kind.name}` has {len(cols)} — ' + ', '.join((f'`{c}… |
+| 807 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a number and the fact carries a word' |
+| 810 | `FactsError` | `author` | *nowhere, on purpose* | '`{col}` of `{kind.name}` is a word and the fact carries a number' |
 
 ### `gmachine.py`
 
@@ -727,19 +734,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 300 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
 | 308 | `GuiError` | `machine` | — | 'expected an RGB colour' |
 | 362 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 411 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 439 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 548 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 560 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 698 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 725 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
-| 744 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
-| 771 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 774 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 798 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 1066 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 1088 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1482 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 413 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 441 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 567 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 579 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
+| 745 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 772 | `GuiError` | `machine` | — | 'a channel cannot carry {type(value).__name__}: {value!r}' |
+| 791 | `GuiError` | `machine` | — | 'a program answered a {type(node).__name__}, not a value' |
+| 818 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 821 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 845 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 1116 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 1138 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1561 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -977,19 +984,30 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 179 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
-| 183 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
-| 199 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
-| 207 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
-| 212 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
-| 215 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …`, `on <port> -> <lens> = …`, `picture = …` and `<name>… |
-| 229 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
-| 236 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
-| 248 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
-| 257 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
-| 269 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
-| 277 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
-| 282 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
+| 221 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 225 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 234 | `ReactorError` | `author` | handed in | '{place}: a mode inside a mode — nest a modal reactor instead (Modal Reactors §IV-A)' |
+| 238 | `ReactorError` | `author` | handed in | '{place}: `{r.name}` has two modes named `{mode.name}`' |
+| 247 | `ReactorError` | `author` | handed in | '{place}: a transition belongs to the mode it leaves — write it under a `mode`' |
+| 251 | `ReactorError` | `author` | handed in | "{place}: `on {m.group(1)}` binds the hand's two coordinates or none, not {len(binders)}" |
+| 267 | `ReactorError` | `author` | handed in | '{place}: a second `picture` in `{into.name or r.name}`' |
+| 275 | `ReactorError` | `author` | handed in | "{place}: an instance inside a mode is not in this slice — instantiate at the reactor's level" |
+| 280 | `ReactorError` | `author` | handed in | '{place}: two instances named `{name}`' |
+| 283 | `ReactorError` | `author` | handed in | '{place}: a reactor holds `mode … when …` or `mode … (field : T)…`, `on <port> -> <lens> = …`, … |
+| 299 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: `on {x.port}` declares `{e}` as an effect, and `{r.name}` has no lens of that n… |
+| 306 | `ReactorError` | `author` | carried from `e` | 'line {n}: `put {put}` in a reaction that declares {', '.join((f'`{e}`' for e in x.effects)) or… |
+| 318 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `get {got}` — `{r.name}` has no lens of that name' |
+| 327 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: this region feeds `{port}`, and no reaction in {where} hears `{port}`' |
+| 339 | `ReactorError` | `author` | carried from `e` | 'line {x.line}: two reactions on `{x.port}` write `{e}` {where} (the other on line {seen[key]})… |
+| 347 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `new {cls}` — no reactor of that name' |
+| 352 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `{inst}.picture` — `{r.name}` has no instance named `{inst}`' |
+| 363 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {bad.line}: `{r.name}` mixes a stored mode with a derived one (`mode {bad.name} when …`) … |
+| 372 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: two transitions on `{phase}` in mode `{mode.name}` (the other on line {seen[phase]})… |
+| 380 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `-> {head}` — `{r.name}` has no mode of that name; its modes are {', '.join((f'`{x}`… |
+| 384 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand — not the model (`get`) and n… |
+| 390 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | "line {n}: a transition reads only its mode's fields and the hand, and `{p}` is a parameter" |
+| 395 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {x.line}: `on {x.port}` writes `{x.effects[0]}` — a hold writes nothing while the hand mo… |
+| 403 | `ReactorError` | `author` | *unplaced — fixme.md F245: a reactor block refused before it compiles, its line said in words* | 'line {n}: `hold` in `{r.name}`, which has no stored mode for the hold to set — give it `mode …… |
 
 ### `scorebox.py`
 

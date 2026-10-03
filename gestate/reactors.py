@@ -21,7 +21,7 @@ press still reaches the child.
       solo = new Checkbox "solo" (member flagRel "solo")
       picture = Column mute.picture solo.picture
 
-    substrate = map Panel.picture flags
+    substrate = Panel.picture flags
 
 **Desugared into the signals the tree already has**, as Henri guessed
 (*"the implementation may indeed fall out from the signals"*).  Each
@@ -50,8 +50,32 @@ to (his answer 1, *"declared and checked"*):
 *Modes here are derived, not set.*  A mode is live when its `when`
 holds of the model — the first that holds, in the order written — so a
 checkbox's mode is a view of its lens and holds no copy, where LF's
-modes are stored and switched by transitions.  A transient mode — a drag
-under way — is the next slice's, not this one's.
+modes are stored and switched by transitions.
+
+**And stored, since 2026-10-03** — `card:gui-is-difficult.md` §"The next
+slice: a drag, as a reactor with a stored mode".  A mode with fields and
+no `when` is set by a **hold** (`gui.ges`' `Holds`):
+
+    reactor Dot (label : Text) (at : Lens Dots Int)
+      mode Resting
+        on grab x y -> Carrying x x
+        picture = Shift (get at) 0 (hold (disc label restInk))
+      mode Carrying (x0 : Int) (x : Int)
+        on drag x1 y1 -> Carrying x0 x1
+        on release -> Resting
+        on release -> at = put at (get at + x - x0)
+        picture = Shift (get at + x - x0) 0 (hold (disc label heldInk))
+
+The modes are one data type, `DotMode`; a transition is a phase of the
+hold to a mode, folded by `dot__step`; `on release -> <lens> = …` is the
+commit, carried by the picture's `Holds` and performed on the release.
+**Each instance has its own hold channel and its own mode** — a `scanE`
+of the step over that channel — made at the root for every path to a
+stored instance, which a static `new` is what allows.  So `X.picture`
+outside the blocks is a signal of the model, `Sig m -> Sig Sub`.
+A transition sees only its mode's fields and the hand; a hold writes
+nothing while it moves; one reactor's modes are all stored or all
+derived.
 """
 from __future__ import annotations
 
@@ -70,6 +94,16 @@ class ReactorError(NotesError):
 _HEAD = re.compile(r"^reactor\s+([A-Z]\w*)\s*(.*?)\s*$")
 _PARAM = re.compile(r"\(\s*([a-z]\w*)\s*:[^()]*(?:\([^()]*\)[^()]*)*\)")
 _MODE = re.compile(r"^mode\s+([A-Z]\w*)\s+when\s+(.+)$")
+#: A **stored** mode: no `when`, and the fields it carries — `mode
+#: Carrying (x0 : Int) (x : Int)`.  Its modes are a data type, set by
+#: transitions over a hold, not derived from the model.
+_SMODE = re.compile(r"^mode\s+([A-Z]\w*)((?:\s*\(\s*[a-z]\w*\s*:[^()]*\))*)\s*$")
+_FIELD = re.compile(r"\(\s*([a-z]\w*)\s*:\s*([^()]*?)\s*\)")
+#: A transition, set by a phase of the hold: `on grab x y -> Carrying x x`.
+_SHIFT = re.compile(r"^on\s+(grab|drag|release)((?:\s+[a-z_]\w*)*)\s*->\s*([A-Z].*)$")
+_HOLD = re.compile(r"\bhold\b")
+#: A phase of a hold, and the `Event` it arrives as.
+_PHASE = {"grab": "Press", "drag": "Move", "release": "Release"}
 _ON = re.compile(r"^on\s+([a-z]\w*)\s*(?:->\s*([\w\s,]*?))?\s*=\s*(.*)$")
 _PICTURE = re.compile(r"^picture\s*=\s*(.*)$")
 _NEW = re.compile(r"^([a-z]\w*)\s*=\s*new\s+([A-Z]\w*)\s*(.*)$")
@@ -127,9 +161,12 @@ class _Reaction:
 
 
 class _Mode:
-    def __init__(self, line, name, when):
+    def __init__(self, line, name, when, fields=None):
         self.line, self.name, self.when = line, name, when
+        self.fields: list[tuple[str, str]] = fields or []
+        self.stored = when is None and fields is not None
         self.reactions: list[_Reaction] = []
+        self.shifts: list[tuple[int, str, list[str], str]] = []
         self.picture: list[tuple[int, str]] | None = None
 
 
@@ -139,6 +176,11 @@ class _Reactor:
         self.modes: list[_Mode] = []
         self.always = _Mode(line, "", None)          # what no mode holds
         self.instances: dict[str, tuple[int, str, str]] = {}
+
+    @property
+    def stored(self) -> bool:
+        """Whether its modes are stored — set by a hold — not derived."""
+        return any(m.stored for m in self.modes)
 
 
 def _blocks(source: str) -> tuple[list[_Reactor], list[int]]:
@@ -186,6 +228,32 @@ def _member(r: _Reactor, into: _Mode, item: _Item) -> None:
         for c in item.children:
             _member(r, mode, c)
         return
+    m = _SMODE.match(item.text)
+    if m:
+        if into is not r.always:
+            raise ReactorError(f"{place}: a mode inside a mode — nest a "
+                               "modal reactor instead (Modal Reactors §IV-A)")
+        mode = _Mode(item.number, m.group(1), None, _FIELD.findall(m.group(2)))
+        if any(x.name == mode.name for x in r.modes):
+            raise ReactorError(f"{place}: `{r.name}` has two modes named "
+                               f"`{mode.name}`")
+        r.modes.append(mode)
+        for c in item.children:
+            _member(r, mode, c)
+        return
+    m = _SHIFT.match(item.text)
+    if m:
+        if into is r.always:
+            raise ReactorError(f"{place}: a transition belongs to the mode it "
+                               "leaves — write it under a `mode`")
+        binders = m.group(2).split()
+        if len(binders) not in (0, 2):
+            raise ReactorError(f"{place}: `on {m.group(1)}` binds the hand's "
+                               f"two coordinates or none, not {len(binders)}")
+        body = " ".join([m.group(3)] + [t for c in item.children
+                                        for _n, t in c.body()])
+        into.shifts.append((item.number, m.group(1), binders, body))
+        return
     m = _ON.match(item.text)
     if m:
         effects = [e.strip() for e in (m.group(2) or "").split(",") if e.strip()]
@@ -213,7 +281,8 @@ def _member(r: _Reactor, into: _Mode, item: _Item) -> None:
         r.instances[name] = (item.number, m.group(2), m.group(3))
         return
     raise ReactorError(
-        f"{place}: a reactor holds `mode … when …`, `on <port> -> <lens> = …`, "
+        f"{place}: a reactor holds `mode … when …` or `mode … (field : T)…`, "
+        f"`on <port> -> <lens> = …`, `on grab|drag|release … -> <Mode> …`, "
         f"`picture = …` and `<name> = new <Reactor> …`; this line is none of them")
 
 
@@ -222,6 +291,7 @@ def _member(r: _Reactor, into: _Mode, item: _Item) -> None:
 
 def _check(r: _Reactor, known: set[str]) -> None:
     lenses = set(r.params)
+    _check_stored(r)
     for mode in [r.always] + r.modes:
         for x in mode.reactions:
             for e in x.effects:
@@ -283,6 +353,58 @@ def _check(r: _Reactor, known: set[str]) -> None:
                                    f"has no instance named `{inst}`")
 
 
+def _check_stored(r: _Reactor) -> None:
+    """The rules a stored mode adds: one kind of mode to a reactor, a
+    transition that sees only its mode's fields and the hand, one
+    transition per phase per mode, a commit only on the release, and a
+    `hold` only where there is a mode for it to set."""
+    if r.stored and any(not m.stored for m in r.modes):
+        bad = next(m for m in r.modes if not m.stored)
+        raise ReactorError(
+            f"line {bad.line}: `{r.name}` mixes a stored mode with a derived "
+            f"one (`mode {bad.name} when …`) — a mode is set by a hold or read "
+            f"off the model, and one reactor does one")
+    names = {m.name for m in r.modes}
+    for mode in r.modes:
+        seen: dict[str, int] = {}
+        for n, phase, binders, body in mode.shifts:
+            if phase in seen:
+                raise ReactorError(
+                    f"line {n}: two transitions on `{phase}` in mode "
+                    f"`{mode.name}` (the other on line {seen[phase]}) — the "
+                    f"mode is one value and two writers of it is a choice "
+                    f"nobody wrote down")
+            seen[phase] = n
+            head = body.split()[0]
+            if head not in names:
+                raise ReactorError(
+                    f"line {n}: `-> {head}` — `{r.name}` has no mode of that "
+                    f"name; its modes are {', '.join(f'`{x}`' for x in sorted(names))}")
+            if _GET.search(body) or _PUT.search(body):
+                raise ReactorError(
+                    f"line {n}: a transition reads only its mode's fields and "
+                    f"the hand — not the model (`get`) and not a lens (`put`); "
+                    f"a commit is `on release -> <lens> = …`")
+            for p in r.params:
+                if re.search(rf"\b{p}\b", body):
+                    raise ReactorError(
+                        f"line {n}: a transition reads only its mode's fields "
+                        f"and the hand, and `{p}` is a parameter")
+        for x in mode.reactions:
+            if x.port in ("grab", "drag") and x.effects:
+                raise ReactorError(
+                    f"line {x.line}: `on {x.port}` writes `{x.effects[0]}` — a "
+                    f"hold writes nothing while the hand moves; its commit is "
+                    f"`on release`")
+    pictures = [t for m in [r.always] + r.modes for t in (m.picture or [])]
+    if not r.stored:
+        for n, text in pictures:
+            if _HOLD.search(text):
+                raise ReactorError(
+                    f"line {n}: `hold` in `{r.name}`, which has no stored "
+                    f"mode for the hold to set — give it `mode … (field : T)`")
+
+
 # ── the desugaring ────────────────────────────────────────────────────────
 
 
@@ -302,48 +424,136 @@ def _define(name: str, args: list[str], body: list[str]) -> list[str]:
     return [head + body[0]] + body[1:] + [""]
 
 
+def _slots(r: _Reactor, reactors: dict[str, _Reactor]) -> list[tuple]:
+    """Every instance under `r` that **stores** a mode, `r` itself first
+    when it does — as paths of instance names, `()` for `r`.  Each slot
+    is a hold channel and a mode signal, made once per path at the root:
+    a static `new` is what lets every instance have its own."""
+    out = [()] if r.stored else []
+    for name, (_n, cls, _given) in r.instances.items():
+        out += [(name,) + p for p in _slots(reactors[cls], reactors)]
+    return out
+
+
+def _slot_args(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
+    return [a for i, _p in enumerate(_slots(r, reactors))
+            for a in (f"__h{i}", f"__s{i}")]
+
+
+def _ctor(r: _Reactor, mode: _Mode) -> str:
+    return f"{r.name}{mode.name}"
+
+
+def _modes_type(r: _Reactor) -> list[str]:
+    """The stored modes as one data type, a constructor a mode."""
+    alts = " | ".join(" ".join([_ctor(r, m)] + [t for _f, t in m.fields])
+                      for m in r.modes)
+    return [f"{r.name}Mode := {alts}", ""]
+
+
+def _step(r: _Reactor) -> list[str]:
+    """`<r>__step : <R>Mode -> Event -> <R>Mode` — the transitions, a
+    phase of the hold to a mode; any other event leaves the mode be."""
+    base = _low(r.name)
+    names = [m.name for m in r.modes]
+
+    def ctors(text: str) -> str:
+        return re.sub(r"\b(" + "|".join(names) + r")\b",
+                      lambda m: f"{r.name}{m.group(1)}", text)
+
+    lines = [f"{base}__step __s __e = case __s of"]
+    for mode in r.modes:
+        fields = " ".join(f for f, _t in mode.fields)
+        lines.append(f"    {_ctor(r, mode)} {fields}".rstrip() + " -> case __e of")
+        taken = set()
+        for _n, phase, binders, body in mode.shifts:
+            event = _PHASE[phase]
+            taken.add(event)
+            x, y = binders or ["__x", "__y"]
+            lines.append(f"        {event} {x} {y} -> {ctors(body)}")
+        for event, arity in (("Tick", 0), ("Move", 2), ("Press", 2),
+                             ("Release", 2), ("Key", 1)):
+            if event not in taken:
+                pat = " ".join([event] + [f"__a{k}" for k in range(arity)])
+                lines.append(f"        {pat} -> __s")
+    return lines + [""]
+
+
 def _desugar_one(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
     base = _low(r.name)
-    args = r.params + ["__m"]
+    slots = _slot_args(r, reactors)
+    args = r.params + slots + ["__m"]
     out: list[str] = [f"# reactor {r.name}, line {r.line}"]
+    if r.stored:
+        out += _modes_type(r) + _step(r)
+
+    def margs(mode: _Mode) -> list[str]:
+        """A mode's own functions see its fields, bound by the dispatch."""
+        return r.params + slots + [f for f, _t in mode.fields] + ["__m"]
 
     def rewrite_for(mode: _Mode):
+        a = " ".join(margs(mode))
+
         def rw(text: str) -> str:
             text = _GET.sub(lambda m: f"(lensGet {m.group(1)} __m)", text)
             text = _PUT.sub(lambda m: f"lensPut {m.group(1)}", text)
             text = _FEEDS.sub(lambda m: f"({base}__{mode.name or '_'}__feeds_{m.group(1)} "
-                                        f"{' '.join(args)})", text)
+                                        f"{a})", text)
             text = _INST.sub(lambda m: f"({base}__{m.group(1)}__picture {' '.join(args)})",
                              text)
+            if mode.stored:
+                text = _HOLD.sub(f"Holds __h0 ({base}__{mode.name}__release {a})", text)
             return text
         return rw
 
+    mine = _slots(r, reactors)
     for name, (n, cls, given) in r.instances.items():
         child = reactors[cls]
-        out += _define(f"{base}__{name}__picture", args,
-                       [f"{_low(cls)}__picture {rewrite_for(r.always)(given)} __m"])
+        passed = []
+        for p in _slots(child, reactors):
+            at = mine.index((name,) + p)
+            passed += [f"__h{at}", f"__s{at}"]
+        call = " ".join([f"{_low(cls)}__picture", rewrite_for(r.always)(given)]
+                        + passed + ["__m"])
+        out += _define(f"{base}__{name}__picture", args, [call])
     for mode in [r.always] + r.modes:
         rw = rewrite_for(mode)
         tag = mode.name or "_"
+        ma = margs(mode) if mode is not r.always else args
         live = r.always.reactions + (mode.reactions if mode is not r.always else [])
-        for port in sorted({x.port for x in live}):
+        for port in sorted({x.port for x in live if x.port != "release" or not r.stored}):
             acts = [x for x in live if x.port == port]
             for k, x in enumerate(acts):
-                out += _define(f"{base}__{tag}__on_{port}_{k}", args, _expr(x.body, rw))
-            joined = " ++ ".join(f"{base}__{tag}__on_{port}_{k} {' '.join(args)}"
+                out += _define(f"{base}__{tag}__on_{port}_{k}", ma, _expr(x.body, rw))
+            joined = " ++ ".join(f"{base}__{tag}__on_{port}_{k} {' '.join(ma)}"
                                  for k in range(len(acts)))
-            out += _define(f"{base}__{tag}__feeds_{port}", args + ["__s"],
+            out += _define(f"{base}__{tag}__feeds_{port}", ma + ["__s"],
                            [f"Does ({joined}) __s"])
+        if mode.stored:
+            commits = [x for x in mode.reactions if x.port == "release"]
+            for k, x in enumerate(commits):
+                out += _define(f"{base}__{tag}__on_release_{k}", ma, _expr(x.body, rw))
+            joined = " ++ ".join(f"{base}__{tag}__on_release_{k} {' '.join(ma)}"
+                                 for k in range(len(commits))) or "Nil"
+            out += _define(f"{base}__{tag}__release", ma, [joined])
         if mode.picture is not None:
-            out += _define(f"{base}__{tag}__picture", args, _expr(mode.picture, rw))
+            out += _define(f"{base}__{tag}__picture", ma, _expr(mode.picture, rw))
         if mode.when:
             out += _define(f"{base}__{tag}__when", args, [rw(mode.when)])
-    # the picture: the first mode whose `when` holds, else the reactor's own
+    # the picture: the mode the reactor is in, else the reactor's own
     fallback = (f"{base}_____picture {' '.join(args)}" if r.always.picture is not None
                 else "Gap 0 0")
-    # Laid out as a block, one alternative a line: a one-line
-    # `case … of True -> a; False -> b` carried on into the next
-    # definition when it was tried (2026-10-02).
+    if r.stored:
+        body = ["case __s0 of"]
+        for mode in r.modes:
+            fields = " ".join(f for f, _t in mode.fields)
+            pic = (f"{base}__{mode.name}__picture {' '.join(margs(mode))}"
+                   if mode.picture is not None else fallback)
+            body.append(f"    {_ctor(r, mode)} {fields}".rstrip() + f" -> {pic}")
+        out += _define(f"{base}__picture", args, body)
+        return out
+    # Laid out as a block, one alternative a line — the one-line form was
+    # F244 when this was written, and the block reads as well.
     body = [fallback]
     for mode in reversed(r.modes):
         pic = (f"{base}__{mode.name}__picture {' '.join(args)}"
@@ -353,6 +563,58 @@ def _desugar_one(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
                  f"    False -> {body[0]}"]
                 + ["    " + line for line in body[1:]])
     out += _define(f"{base}__picture", args, body)
+    return out
+
+
+def _root(r: _Reactor, reactors: dict[str, _Reactor]) -> list[str]:
+    """`X.picture` outside the blocks: **a signal of the model**, `Sig m ->
+    Sig Sub`.  Each slot under `X` gets its hold channel and its mode — a
+    `scanE` of the stored reactor's step over that channel — and the view
+    is the picture applied to the modes and the model, zipped."""
+    base = _low(r.name)
+    slots = _slots(r, reactors)
+    out = [f"# the root {r.name}: a hold channel and a mode for each of its "
+           f"{len(slots)} stored instance(s)"]
+    holds, modes = [], []
+    for i, path in enumerate(slots):
+        cls = r
+        for name in path:
+            cls = reactors[cls.instances[name][1]]
+        tag = "__".join(path) or "self"
+        hold, mode = f"{base}__{tag}__hold", f"{base}__{tag}__mode"
+        out += [f"{hold} : Chan Event", f"{hold} = chan", "",
+                f"{mode} = scanE {_low(cls.name)}__step "
+                f"{_ctor(cls, cls.modes[0])}"
+                + "".join(" 0" for _f in cls.modes[0].fields)
+                + f" (wait {hold})", ""]
+        holds.append(hold)
+        modes.append(mode)
+    params = " ".join(r.params)
+    passed = " ".join(a for k, h in enumerate(holds) for a in (h, f"__s{k}"))
+    picture = " ".join(x for x in (f"{base}__picture", params, passed, "__m") if x)
+    # **Two signals to a `!`, never more.**  The modes are gathered into
+    # one signal first — a tuple of them, no set in it — and the view is
+    # lifted over that and the model: `!` over three or more signals
+    # refuses a function that runs a comprehension over a set (F246),
+    # and a lens's `get` is exactly that.
+    if len(modes) > 1:
+        names = [f"__s{k}" for k in range(len(modes))]
+        tup = "(" + ", ".join(names) + ")"
+        out += _define(f"{base}__gather", names, [tup])
+        out += [f"{base}__modes = !{base}__gather {' '.join(modes)}", ""]
+        out += _define(f"{base}__view", r.params + ["__ss", "__m"],
+                       [f"case __ss of", f"    {tup} -> {picture}"])
+        joined = f"{base}__modes"
+    else:
+        out += _define(f"{base}__view",
+                       r.params + [f"__s{k}" for k in range(len(modes))] + ["__m"],
+                       [picture])
+        joined = modes[0] if modes else ""
+    view = " ".join(x for x in (f"{base}__view", params) if x)
+    sig = (f"map ({view}) __sm" if not modes
+           else f"!{view} {joined} __sm" if not r.params
+           else f"!({view}) {joined} __sm")
+    out += _define(f"{base}__picture_sig", r.params + ["__sm"], [sig])
     return out
 
 
@@ -370,11 +632,21 @@ def desugar(source: str) -> str:
     for n in taken:
         lines[n] = ""
     text = "\n".join(lines)
-    # `Panel.picture` outside the blocks is the reactor's picture function
-    text = re.sub(r"\b([A-Z]\w*)\.picture\b",
-                  lambda m: f"{_low(m.group(1))}__picture" if m.group(1) in known
-                  else m.group(0), text)
+    # `Panel.picture` outside the blocks is the reactor's picture as a
+    # signal of the model — a stored mode under it is a signal too
+    roots = []
+
+    def root(m):
+        if m.group(1) not in known:
+            return m.group(0)
+        if m.group(1) not in roots:
+            roots.append(m.group(1))
+        return f"{_low(m.group(1))}__picture_sig"
+
+    text = re.sub(r"\b([A-Z]\w*)\.picture\b", root, text)
     generated = [GENERATED, ""]
     for r in reactors:
         generated += _desugar_one(r, by_name)
+    for name in roots:
+        generated += _root(by_name[name], by_name)
     return text.rstrip("\n") + "\n\n" + "\n".join(generated)
