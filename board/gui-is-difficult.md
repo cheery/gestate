@@ -5321,6 +5321,67 @@ end and let go; carry a note.
 **His hands on it, the same day:** *"resize works, end grabs fine."*
 The slice's postcondition held.
 
+**The selection's tier — Henri, the same day:** *"go with 1"* — a
+session document: held in memory beside the piece, never saved with it,
+read through a lens like any document (§"A third tier of state, not
+named until now").
+
+## The next slice: band select, over a session document — elaborated 2026-10-03, one question his
+
+*Postcondition, before building:* **sweeping a band over the roll and
+letting go marks every note it touches as selected, and a press on
+empty roll clears the mark; neither writes the piece's file, and the
+selection survives the canvas being rebuilt.**
+
+**Found by looking.**
+
+* **Today's band** is `hand.ges`' `Sweeping`/`Swept` with `Sweep`,
+  `Select`, `Clear`, and `session.do_select`.  Every note the band
+  touches is in (Reaper's rule), a press on empty roll clears at once,
+  and the group lasts until a press on a note outside it.
+* **A document's kinds come from the `.ges` beside it**
+  (`facts.beside`).  A session document has no file, so the host holds
+  its text in memory and reads it by the program's own declaration, with
+  the same `asserted`, `retracted` and `moved` a file gets.
+* **The host writes every act to its first document** (`_perform`,
+  `paths[0]`).  With two documents it has to route each act by its kind.
+* **F249 blocks the band.**  The band begins on the lane, the lane is
+  painted under the notes, and the region painted first wins.  So the
+  lane would take every press on a note.  It is fixed first, in both
+  walkers: of two siblings, the one on top.
+* **A lens cannot put a whole set.**  `Lens (m -> a) (a -> List Act)`:
+  `put` never sees the model, so a band committing *these notes are
+  the selection* cannot know which rows to retract.  The lens paper this
+  card cites gives `put` the source as well (Bohannon, Pierce and
+  Vaughan, PODS '06, Def. 3.1); this card dropped it on 2026-10-02.
+
+### The question — how does a lens put a whole set?
+
+1. **`put` takes the model as well** — `Lens (m -> a) (a -> m -> List
+   Act)`, Def. 3.1's shape with acts kept as the result.  Every lens in
+   the tree gains an argument it may ignore (`member`, `place`,
+   `moving`, `whole`: four, in five programs).  *Killed if* a `put` that
+   reads the model writes something its `get` did not show, and nothing
+   can check that.
+2. **A new act that says a kind's whole content** — `Exactly "selected"
+   rows`; the host works out the difference.  The lens stays as it is.
+   *Killed by* a second way to say a retraction, which the host has to
+   keep in step with the first.
+
+**Default: 1.**  It changes the lens, which is his.
+
+### Decided, said, reversible
+
+* **A session kind is declared, not inferred**: `session : List Text`
+  beside `model`, naming the kinds the host holds in memory.  A kind no
+  file has is then a refusal rather than a quiet new document, so a
+  typo is not a session.
+* **The slice is the band, the clear, and the selected notes drawn in
+  their own ink.**  Carrying the group is the next slice: several moves
+  that succeed or fail as one is a question of its own.
+* **The measure is re-read** with the band's spans counted on both
+  sides, as the end's were.
+
 ## What a session does now
 
 Ask, and write the answers in.  Not code.  Henri: *"I am needed again
