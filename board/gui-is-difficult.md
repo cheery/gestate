@@ -5360,7 +5360,7 @@ selection survives the canvas being rebuilt.**
 1. **`put` takes the model as well** — `Lens (m -> a) (a -> m -> List
    Act)`, Def. 3.1's shape with acts kept as the result.  Every lens in
    the tree gains an argument it may ignore (`member`, `place`,
-   `moving`, `whole`: four, in five programs).  *Killed if* a `put` that
+   `moving`, `whole`: four, in three programs and `facts.ges`).  *Killed if* a `put` that
    reads the model writes something its `get` did not show, and nothing
    can check that.
 2. **A new act that says a kind's whole content** — `Exactly "selected"
