@@ -95,7 +95,7 @@ session inferred.
 - [Identity is the model's key, never the picture's index](identity-is-the-models-key.md) — Henri, 2026-09-08: a note's identity is (voice, tick, key); a reference declares its kind
 - [Test what a person would do](test-what-a-person-would-do.md) — try the naive thing before declaring it done; a harness built from the implementation cannot find a missing affordance
 - [Declare, hold to parity, derive](declare-parity-derive.md) — how a load-bearing mechanism is replaced here; the derivation finds the defect, because one existing file is a witness, not a boundary
-- [The kaizen is asked, not answered](the-kaizen-is-asked-not-answered.md) — put the three questions to Henri first and wait; a kaizen with one participant is a session grading itself
+- [The kaizen is asked, not answered](the-kaizen-is-asked-not-answered.md) — put the four questions to Henri first and wait; a kaizen with one participant is a session grading itself
 - [Finnish in the room, English in the tree](finnish-in-the-room.md) — talk in whichever language he opens in; the artefact is English, his sentences quoted verbatim where the wording carries
 - [Henri's working style](henri-working-style.md) — explorative docs, reuse existing machinery, targeted tests; he writes short on purpose, so go and look before asking; and work set-based
 - [The work laptop](gestate-work-laptop.md) — gestate on Ubuntu 26.04 since 2026-08-17; a fresh install is the only honest read of `doc/install.md`
@@ -179,3 +179,4 @@ session inferred.
 - [A shipped document gets played](a-shipped-document-gets-played.md) — an example whose state is a file beside it is written by whoever runs it; `git diff` the document before committing
 - [A capitalised word before a date is a person](a-capitalised-word-before-a-date-is-a-person.md) — the consent gate's dated pattern refused a commit twice; put a lowercase word before the date
 - [Expectations, dug up](expectations-dug-up.md) — week 39: his expectations for `vision.md`, dug from the tree; bring one or two per conversation, never the list
+- [The seed plugin](the-seed-plugin.md) — `~/.claude/skills/seed`, public, since 2026-10-15: kaizen on trial, and **`workflow/exnihilo` is next**
