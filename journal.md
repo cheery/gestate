@@ -170,3 +170,8 @@ about one to one, 78 lines against 81 — most of it vocabulary the
 prelude lacks and ceremony for two documents as one model
 (`card:gui-is-difficult.md` §"Built — band select, over a session
 document").
+
+**Outcome.**  Met — `card:snap-grid.md` closed Friday 2.10 at his word,
+*"it holds, close snap-grid"*.  What carried over:
+`card:gui-is-difficult.md`, now the one `doing` card, with group carry
+next and two questions his (`fa58baa`).  Then no work until 15.10.

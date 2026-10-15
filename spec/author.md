@@ -125,7 +125,7 @@ day."*
 
 **Bounded, because the unbounded version is the one that gets skipped on
 the day it is most needed** — and it was, silently, which is the
-evidence rather than the theory.  Fifteen minutes and three questions:
+evidence rather than the theory.  Fifteen minutes and four questions:
 
     what did we learn · what did we get wrong · what mechanism does
     that earn · what is tomorrow's first thing
@@ -137,7 +137,7 @@ finds a day run in the wrong order.  *A defect is a caller* applies here
 or it applies nowhere, so the answer is a mechanism or a stated reason
 there is none, and the next kaizen opens by reading it back.
 
-**Both halves, and his first.**  The three are put to the author and
+**Both halves, and his first.**  The four are put to the author and
 answered by him *before* the session offers its own; answers delivered
 first become the frame.  *Henri, 2026-08-21: "molemmat opimme
 virheistämme."*
