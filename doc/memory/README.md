@@ -179,4 +179,4 @@ session inferred.
 - [A shipped document gets played](a-shipped-document-gets-played.md) — an example whose state is a file beside it is written by whoever runs it; `git diff` the document before committing
 - [A capitalised word before a date is a person](a-capitalised-word-before-a-date-is-a-person.md) — the consent gate's dated pattern refused a commit twice; put a lowercase word before the date
 - [Expectations, dug up](expectations-dug-up.md) — week 39: his expectations for `vision.md`, dug from the tree; bring one or two per conversation, never the list
-- [The seed plugin](the-seed-plugin.md) — `~/.claude/skills/seed`, public, since 2026-10-15: kaizen is the session's close since 10-28, on trial; **`workflow/exnihilo` is next**
+- [The seed plugin](the-seed-plugin.md) — `~/.claude/skills/seed`, public: kaizen is the session's close since 10-28, on trial; **`workflow/exnihilo` is next**, seeded by an Ideal State Artifact

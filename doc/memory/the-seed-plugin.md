@@ -43,6 +43,21 @@ the skill as assets."*  That is a copy of this tree's method, so
 the two warnings to read first: a copy should carry the mechanisms and
 not the prose, and the first anonymised copy failed its transfer trial.
 
+**A source for exnihilo: the Ideal State Artifact** — Daniel Miessler,
+*Writing Is Closer to Thought Than Code*, 2026-10-23,
+<https://danielmiessler.com/blog/writing-is-closer-to-thought-than-code>.
+One document per project: *Ideal State* (prose intent, the most
+important part), *Constraints*, *Decisions* (a dated log with reasons),
+and *Ideal State Criteria*, each atomic and with its own eval on a
+ladder from `assert` to an LLM judge.  Henri found it, 2026-10-28, as
+*"pieni malli puusta jo itsessään"*, and the same evening: *"Se
+todellakin voisi aloittaa uuden projektin tällä tavalla."*  So
+exnihilo may start a project from an ISA-shaped seed and let the kata
+grow it into a tree.  The session's reading, to weigh then: the parts
+map onto `vision.md`, `refused/`, dated answers and postconditions; what
+an ISA lacks is the kata — no "what did we get wrong", no read-back —
+and its top rung, an LLM judge, meets [[a-judge-built-from-the-arms]].
+
 **Why:** the plan was said aloud at the close of the sitting and lived
 nowhere else.
 
