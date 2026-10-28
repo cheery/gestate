@@ -24,6 +24,18 @@ to cap the thinking.  The experiment's `run.sh` is the worked example of
 measuring a skill with fresh sessions.  It needed three things: runs
 placed outside `~/.claude/`, data in the fixture, and an answers file.
 
+**2026-10-28, the second draft (seed `49b3c60`).**  Henri: the tree is
+a learning environment, and its biggest skill is teaching itself; the
+session-end kaizen is the main loop, and costly trials are rarely
+needed.  He wrote the frame; a session added, on trial: a lesson points
+at evidence from the session (Harness², arXiv:2610.14224: reflection
+without evidence fell below no memory), the read-back is the check, a
+probe before any full experiment, and *the tree is for its people too*
+— his correction the same evening.  `AGENTS.md`'s one line now ends
+*close the session with /seed:kaizen* (gestate `8e603f7`).  His
+sentence at the close: *"jos se ei mennyt oikein tänään, voimme korjata
+ensi kerralla."*
+
 **Next in the roster: `workflow/exnihilo`**, for creating new projects.
 Henri, 2026-10-15: *"Everything we got here basically but packaged into
 the skill as assets."*  That is a copy of this tree's method, so
