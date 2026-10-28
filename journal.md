@@ -175,3 +175,38 @@ document").
 *"it holds, close snap-grid"*.  What carried over:
 `card:gui-is-difficult.md`, now the one `doing` card, with group carry
 next and two questions his (`fa58baa`).  Then no work until 15.10.
+
+## Week 44 — 2026-10-26 to 2026-11-01
+
+**Theme.**  A tree is a learning environment, for its sessions and for
+the people who read it.  *The session's line, from his.*
+
+**Goal.**  None set, and that is his answer rather than a gap:
+*"Olemme horrostaneet jonkin aikaa sillä en ole kokenut tarvetta edetä.
+Mutta emme ole lopettaneet gestate:a… Joskus tulee aikoja kun ei ole
+aika edetä."*
+
+**Wednesday 28.10.**  The seed plugin's kaizen skill, his second draft.
+He opened with the idea — *"puu on oppimisympäristö ja isoin taito sillä
+on opittavanaan on itsensä opettaminen"* — and two papers: Harness²
+(arXiv:2610.14224), whose continual-improvement loop is a session-end
+kaizen and whose ablation says reflection without evidence does worse
+than no memory; and Recursive Agent Harnesses (arXiv:2606.13643), about
+orchestration, not learning.  He wrote the frame, with the kaizen moved
+first as the main loop; the session added, on trial, a lesson that
+points at the session's evidence, the read-back as the check, and a
+probe before any full experiment.  Then his correction: *"Puu on myös
+minulle ja sen lukeville ihmisille"* — a paragraph for it (seed
+`49b3c60`).  `AGENTS.md`'s one line now ends *close the session with
+/seed:kaizen* (`8e603f7`).
+
+**Kaizen, 28.10 — his answers.**  *Learned:* trees are learning
+environments, for machines and for the people who read them — *"ja
+melkein unohdimme että ne ovat myös ihmisille sitä."*  *Mechanism:* the
+skill corrected, and the session's close written into `AGENTS.md`.
+*Next session's first thing:* not known yet, and that is allowed.  *The
+session's half:* what went wrong was the session's first reading of
+the frame — it named only the sessions as learners, and his sentence
+was what caught it.  The `gui-is-difficult` lamp (25 days) waits for
+whenever the work resumes, at his word.  And his line at the close:
+*"jos se ei mennyt oikein tänään, voimme korjata ensi kerralla."*
